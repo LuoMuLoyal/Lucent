@@ -20,6 +20,9 @@ const mockUser: UserPayload = {
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
   ip: '127.0.0.1',
+  // `@fastify/cookie` 在生产环境装饰这个属性；替身里要显式给出空对象，
+  // 否则 `listSessions` 读 refresh token 时会 TypeError。
+  cookies: {},
   raw: { socket: { remoteAddress: '127.0.0.1' } },
 } as unknown as FastifyRequest;
 
@@ -102,29 +105,46 @@ describe('SessionController', () => {
     });
   });
 
-  describe('GET /auth/devices', () => {
+  describe('GET /auth/sessions', () => {
     it('returns sessions list resource', async () => {
       const sessions = [
         {
           id: 'sess-1',
-          ipAddress: '127.0.0.1',
-          userAgent: 'test',
-          createdAt: '2026-07-10T00:00:00Z',
+          lastUsedAt: '2026-07-10T00:00:00.000Z',
+          createdAt: '2026-07-10T00:00:00.000Z',
+          expiresAt: '2026-07-17T00:00:00.000Z',
+          isCurrent: true,
         },
       ];
       sessionTokens.list.mockReturnValue(okAsync(sessions as never));
 
-      const result = await controller.listDevices(mockUser);
+      const result = await controller.listSessions(mockUser, mockRequest);
 
-      expect(sessionTokens.list).toHaveBeenCalledWith('user-1');
+      // 请求没有 refresh cookie 时传 `undefined`——Bearer 客户端走这条，
+      // 结果是 `isCurrent: false`。
+      expect(sessionTokens.list).toHaveBeenCalledWith('user-1', undefined);
       expect(result).toEqual(sessions);
+    });
+
+    it('把 refresh cookie 传给 list，用于判定 isCurrent', async () => {
+      sessionTokens.list.mockReturnValue(okAsync([] as never));
+
+      await controller.listSessions(mockUser, {
+        ...mockRequest,
+        cookies: { lucent_refresh: 'refresh-token-value' },
+      } as unknown as FastifyRequest);
+
+      expect(sessionTokens.list).toHaveBeenCalledWith(
+        'user-1',
+        'refresh-token-value',
+      );
     });
   });
 
-  describe('DELETE /auth/devices/:sessionId', () => {
+  describe('DELETE /auth/sessions/:sessionId', () => {
     it('revokes session, writes audit log, and returns no content (204)', async () => {
       await expect(
-        controller.revokeDevice(mockUser, 'sess-1', mockRequest),
+        controller.revokeSession(mockUser, 'sess-1', mockRequest),
       ).resolves.toBeUndefined();
 
       expect(sessionTokens.revokeById).toHaveBeenCalledWith('user-1', 'sess-1');
@@ -149,7 +169,7 @@ describe('SessionController', () => {
       );
 
       await expect(
-        controller.revokeDevice(mockUser, 'sess-1', mockRequest),
+        controller.revokeSession(mockUser, 'sess-1', mockRequest),
       ).rejects.toBeInstanceOf(DomainFailureException);
       expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });
@@ -165,7 +185,7 @@ describe('SessionController', () => {
       );
 
       await expect(
-        controller.revokeDevice(mockUser, 'missing', mockRequest),
+        controller.revokeSession(mockUser, 'missing', mockRequest),
       ).rejects.toBeInstanceOf(DomainFailureException);
       expect(auditLogService.logFireAndForget).not.toHaveBeenCalled();
     });

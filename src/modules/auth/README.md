@@ -92,20 +92,31 @@ S2（本地凭据）已迁完:`services/identity/identity.service.ts` 与
 用 `browser` 而不是 `cookie`:后者描述机制(换种存法就能改),前者描述场景
 ——「这条是给不该让脚本读 token 的客户端用的」。
 
-设备/登录会话清单与吊销在 `/auth/devices`(`GET`、`DELETE /:sessionId`),
+会话清单与吊销在 `/auth/sessions`(`GET`、`DELETE /:sessionId`),
 与管理面 `/admin/users/:id/sessions/:sessionId` 分开:前者是用户自助,后者是运营。
-**`/auth/devices` 不带 `browser` 前缀**:它不投递 token,没有安全契约差异;
-「会话/设备」是资源,路径表达资源。
+**`/auth/sessions` 不带 `browser` 前缀**:它不投递 token,没有安全契约差异;
+「会话」是资源,路径表达资源。
+
+响应字段只有 `id` / `lastUsedAt` / `createdAt` / `expiresAt` / `isCurrent`
+——**没有设备字段**。表里虽有 `device_type`/`device_name`/`platform` 三列,
+但全仓库零写入、恒为 null,2026-10-25 从契约删除(恒为 null 的字段是契约谎言)。
+要真做「设备清单」得先让客户端上报设备信息,那是另一个需求。
+
+`isCurrent` 的语义:**该会话是否由发起本次请求的客户端持有**。靠请求携带的
+`lucent_refresh` cookie 与每条会话的 `refreshTokenHash` 比对得出。
+**Bearer 客户端恒为 `false`**——它们的 refresh token 在客户端自己手里,请求里
+没有 refresh cookie,服务端无从比对。这不是缺陷,也不要为了「让它也能显示」
+去猜一个值。
 
 **没有 `/auth/me`**:账户资料的唯一读入口是 `GET /account`(account 模块,
 含 `hasPassword`/`linkedIdentities`/`lastLoginAt`)。登录/注册/刷新的响应里仍带
 `user` 块,那是会话建立的产物;会话恢复要读账户资料,而不是把登录快照当权威。
 
-operationId 在 `@ApiOperation` 上显式声明(`loginWithCookie` /
-`registerWithCookie` / `refreshWithCookie` / `logoutWithCookie` /
-`listDevices` / `revokeDevice`),不靠方法名推导。**路径用 `browser` 表达场景、
-operationId 用 `WithCookie` 表达机制**——两者互补:前者回答「谁在用」,
-后者回答「token 落在哪」,而后者正是生成客户端方法名要表达的东西。
+operationId 在 `@ApiOperation` 上显式声明(`loginInBrowser` /
+`registerInBrowser` / `refreshInBrowser` / `logoutInBrowser` /
+`listSessions` / `revokeSession`),不靠方法名推导、也不迁就客户端生成名。
+**路径与 operationId 都按场景命名**(`browser` / `InBrowser`):`WithCookie`
+那种按机制命名的写法在 2026-10-25 被替换——机制是实现细节,场景才是契约。
 
 ## 边界
 

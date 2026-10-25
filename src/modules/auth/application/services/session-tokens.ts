@@ -275,13 +275,35 @@ export class SessionTokens {
     });
   }
 
-  /** 当前用户仍在生效的会话清单（轮换掉的 tombstone 已由仓储排除）。 */
-  list(userId: string): ResultAsync<
+  /**
+   * 当前用户仍在生效的会话清单（轮换掉的 tombstone 已由仓储排除）。
+   *
+   * ## `isCurrent` 是怎么算出来的
+   *
+   * access token 的 payload 里**没有 session id**（只有 `sub`/`email`/`status`
+   * 与一个随机的 `jti`），所以「当前会话」不能从 access token 反推。
+   *
+   * 能用来比对的是请求上携带的 **refresh token**：调用方把请求里的
+   * `lucent_refresh` cookie 传进来，这里 hash 后与列表里每条会话的
+   * `refreshTokenHash` 比对。
+   *
+   * ## 为什么这个方案对两种投递都正确
+   *
+   * - **cookie 投递的客户端**（Lumine）带着 `lucent_refresh` → 能命中 → 正确标出；
+   * - **Bearer 投递的客户端**（Flutter）**没有** refresh cookie → 无从比对 →
+   *   一律 `false`。这正是正确答案：服务端无法从它的请求里确定「当前」是哪条，
+   *   而它自己持有 refresh token，不依赖这个字段。
+   *
+   * @param userId 会话归属人（来自 access token）。
+   * @param currentRefreshToken 请求携带的 refresh token；缺席则所有条目
+   *   `isCurrent` 为 `false`。
+   */
+  list(
+    userId: string,
+    currentRefreshToken?: string,
+  ): ResultAsync<
     Array<{
       id: string;
-      deviceType: string | null;
-      deviceName: string | null;
-      platform: string | null;
       lastUsedAt: string | null;
       createdAt: string;
       expiresAt: string;
@@ -289,18 +311,20 @@ export class SessionTokens {
     }>,
     DomainFailure
   > {
+    const currentHash =
+      currentRefreshToken === undefined
+        ? null
+        : hashRefreshToken(currentRefreshToken);
+
     return fromPromise(this.sessions.listActive(userId), (error) =>
       mapUnknownToDependencyFailure(error, 'Failed to list sessions'),
     ).map((rows) =>
       rows.map((row) => ({
         id: row.id,
-        deviceType: row.deviceType,
-        deviceName: row.deviceName,
-        platform: row.platform,
         lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),
         expiresAt: row.expiresAt.toISOString(),
-        isCurrent: false,
+        isCurrent: currentHash !== null && row.refreshTokenHash === currentHash,
       })),
     );
   }

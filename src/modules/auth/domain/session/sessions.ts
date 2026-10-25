@@ -52,13 +52,31 @@ export interface SessionForRefresh {
   rotatedAt: Date | null;
 }
 
-/** 设备/会话清单的一行（读侧形状，不是聚合）。 */
+/**
+ * 会话清单的一行（读侧形状，不是聚合）。
+ *
+ * ## 没有设备字段
+ *
+ * `user_sessions` 表里有 `device_type` / `device_name` / `platform` 三列，
+ * 但**全仓库没有任何写入路径**——`PrismaSessions.create()` 不写，
+ * `AuthRequestContext` 也只有 `ipAddress`/`userAgent`，客户端没有上传设备信息
+ * 的通道。所以它们恒为 `null`。
+ *
+ * 2026-10-25 从契约里删掉了：恒为 null 的字段是**契约谎言**——客户端会写
+ * `deviceName ?? '未知设备'` 的兜底，以为「某些情况下有值」，而实际永远不会。
+ * 要真做「设备清单」得先让客户端上报设备信息，那是另一个需求。
+ *
+ * ## `refreshTokenHash` 用来判定「当前会话」
+ *
+ * access token 的 payload 里没有 session id，所以「哪条是当前会话」只能靠
+ * 请求携带的 refresh token 反查。读侧因此需要这一列（**不出口**，只在
+ * `SessionTokens.list` 内部用于比对）。
+ */
 export interface ActiveSessionRow {
   id: string;
   userId: string;
-  deviceType: string | null;
-  deviceName: string | null;
-  platform: string | null;
+  /** 该行的 refresh token 指纹。**仅用于内部判定 `isCurrent`，不进响应。** */
+  refreshTokenHash: string;
   lastUsedAt: Date | null;
   createdAt: Date;
   expiresAt: Date;

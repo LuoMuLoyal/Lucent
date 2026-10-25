@@ -164,9 +164,7 @@ export class PrismaSessions extends Sessions {
         select: {
           id: true,
           userId: true,
-          deviceType: true,
-          deviceName: true,
-          platform: true,
+          refreshTokenHash: true,
           lastUsedAt: true,
           createdAt: true,
           expiresAt: true,

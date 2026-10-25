@@ -364,7 +364,7 @@ describe('Cookie Session API (e2e)', () => {
       expect(sessions.filter((s) => s.rotatedAt !== null)).toHaveLength(1);
 
       const listed = await request(app.getHttpServer())
-        .get('/api/v1/auth/devices')
+        .get('/api/v1/auth/sessions')
         .set('Cookie', accessCookie)
         .expect(200);
 

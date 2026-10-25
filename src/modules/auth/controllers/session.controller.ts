@@ -27,6 +27,7 @@ import { registerResponseSchema } from '../../../common/api/response-schema.regi
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { SessionTokens } from '../application/services/session-tokens.js';
+import { REFRESH_COOKIE_NAME } from '../domain/session/cookie-policy.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
 import type { UserPayload } from '../types/auth-request.js';
@@ -75,14 +76,14 @@ export class SessionController {
     return;
   }
 
-  // ── GET /api/v1/auth/devices ──────────────────────────────
+  // ── GET /api/v1/auth/sessions ─────────────────────────────
 
-  @Get('devices')
+  @Get('sessions')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'List signed-in devices for the current user',
-    operationId: 'listDevices',
+    operationId: 'listSessions',
   })
   @ApiResponse({
     status: 200,
@@ -103,19 +104,31 @@ export class SessionController {
   // registration below uses the array schema (component keeps the former
   // class name — Luminous re-generation shape needs gate review).
   @SerializeOptions({ schema: sessionListItemSchema })
-  async listDevices(@CurrentUser() user: UserPayload) {
-    const sessions = await unwrapResult(this.sessionTokens.list(user.sub));
+  async listSessions(
+    @CurrentUser() user: UserPayload,
+    @Req() request: FastifyRequest,
+  ) {
+    // `isCurrent` 靠请求携带的 refresh cookie 判定：hash 后与每条会话的
+    // `refreshTokenHash` 比对。Bearer 客户端没有这个 cookie，所以它们的
+    // 结果恒为 `false`——见 `SessionTokens.list` 的注释。
+    //
+    // `request.cookies` 由 `@fastify/cookie` 装饰，生产环境恒存在。
+    const currentRefreshToken: string | undefined =
+      request.cookies[REFRESH_COOKIE_NAME];
+    const sessions = await unwrapResult(
+      this.sessionTokens.list(user.sub, currentRefreshToken),
+    );
     return sessions;
   }
 
-  // ── DELETE /api/v1/auth/devices/:sessionId ────────────────
+  // ── DELETE /api/v1/auth/sessions/:sessionId ───────────────
 
-  @Delete('devices/:sessionId')
+  @Delete('sessions/:sessionId')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Revoke a signed-in device',
-    operationId: 'revokeDevice',
+    operationId: 'revokeSession',
   })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
@@ -141,7 +154,7 @@ export class SessionController {
     description: 'Authentication method unavailable',
     type: ProblemDetailsDto,
   })
-  async revokeDevice(
+  async revokeSession(
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
     @Req() request: FastifyRequest,
@@ -195,7 +208,7 @@ export class SessionController {
 // NOTE: array body — the component schema is the full response array; the
 // endpoint handler validates per item with the item schema (see above).
 registerResponseSchema({
-  path: '/api/v1/auth/devices',
+  path: '/api/v1/auth/sessions',
   method: 'get',
   componentName: 'SessionListItem',
   schema: sessionListSchema,
