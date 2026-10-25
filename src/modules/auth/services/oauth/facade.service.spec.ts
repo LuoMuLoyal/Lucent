@@ -7,7 +7,7 @@ import type { AuthOAuthStateService } from './state.service.js';
 import type { SessionTokens } from '../../application/services/session-tokens.js';
 import type { AuthOAuthService } from './oauth.service.js';
 import type { AuthNotificationService } from '../notification.service.js';
-import type { OAuthProfile } from '../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 import type { AppleOAuthProvider } from '../../infrastructure/oauth/apple.js';
 import { AuthOAuthFacadeService } from './facade.service.js';
 import { UserStatus } from '#generated/prisma/client.js';
@@ -20,7 +20,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 
-const mockProfile: OAuthProfile = {
+const mockProfile: OAuthProviderProfile = {
   provider: 'wechat_web',
   providerUserId: 'wx-123',
   nickname: 'TestUser',

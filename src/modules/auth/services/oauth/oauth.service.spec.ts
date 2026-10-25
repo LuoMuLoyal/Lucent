@@ -10,7 +10,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import type { OAuthProfile } from '../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 
 // ── Fixtures ──────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ const mockAccount: Account = {
   updatedAt: new Date('2026-01-01'),
 };
 
-const wechatProfile: OAuthProfile = {
+const wechatProfile: OAuthProviderProfile = {
   provider: 'wechat_web',
   providerUserId: 'wx-openid-123',
   unionId: 'wx-union-456',
@@ -66,7 +66,7 @@ const googleProfile = {
   emailVerifiedAt: new Date(),
   nickname: 'Google User',
   avatar: 'https://lh3.googleusercontent.com/photo',
-} as OAuthProfile;
+} as OAuthProviderProfile;
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
   const error = Object.create(
@@ -281,7 +281,7 @@ describe('AuthOAuthService', () => {
 
     it('should not link by email when email is unverified', async () => {
       prisma.user.findFirst.mockResolvedValue(mockUser);
-      const unverifiedProfile: OAuthProfile = {
+      const unverifiedProfile: OAuthProviderProfile = {
         ...googleProfile,
         emailVerifiedAt: null,
       };

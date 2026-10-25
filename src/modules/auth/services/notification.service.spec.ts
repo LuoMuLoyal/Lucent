@@ -3,7 +3,7 @@ import { createDomainFailure } from '../../../common/result/index.js';
 import { makeTestI18n } from '../../../common/tests/test-i18n.js';
 import type { I18nService } from 'nestjs-i18n';
 import type { NotificationsService } from '../../notifications/index.js';
-import type { OAuthProfile } from '../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../application/ports/oauth-provider.js';
 import { AuthNotificationService } from './notification.service.js';
 
 const i18n = makeTestI18n() as unknown as I18nService;
@@ -39,7 +39,7 @@ describe('AuthNotificationService', () => {
 
   describe('notifyOAuthLogin', () => {
     it('creates a notification with provider label', async () => {
-      const profile: OAuthProfile = {
+      const profile: OAuthProviderProfile = {
         provider: 'wechat_web',
         providerUserId: 'wx-123',
         nickname: 'TestUser',
@@ -59,7 +59,7 @@ describe('AuthNotificationService', () => {
     });
 
     it('renders in English for an English request locale', async () => {
-      const profile: OAuthProfile = {
+      const profile: OAuthProviderProfile = {
         provider: 'wechat_web',
         providerUserId: 'wx-123',
       };
@@ -157,7 +157,7 @@ describe('AuthNotificationService', () => {
         {
           provider: 'github',
           providerUserId: 'gh-1',
-        } as unknown as OAuthProfile,
+        } as unknown as OAuthProviderProfile,
         'en',
       );
 
@@ -170,7 +170,7 @@ describe('AuthNotificationService', () => {
     });
 
     it('localizes the WeChat label per locale', async () => {
-      const wechat: OAuthProfile = {
+      const wechat: OAuthProviderProfile = {
         provider: 'wechat_mobile',
         providerUserId: 'wx-m',
       };

@@ -20,7 +20,7 @@ import type {
 import { UserStatus } from '#generated/prisma/client.js';
 import { WechatWebOAuthProvider } from '../../../src/modules/auth/index.js';
 import { WechatMobileOAuthProvider } from '../../../src/modules/auth/index.js';
-import type { OAuthProfile } from '../../../src/modules/auth/index.js';
+import type { OAuthProviderProfile as OAuthProfile } from '../../../src/modules/auth/index.js';
 import { okAsync } from '../../../src/common/result/index.js';
 
 const ACCOUNT_PATH = '/api/v1/account';

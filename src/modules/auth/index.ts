@@ -1,5 +1,11 @@
-export type { OAuthProfile } from './types/oauth.types.js';
 export type { UserPayload } from './types/auth-request.js';
+/**
+ * 提供商归一化后的身份形状 —— 端口契约。
+ *
+ * 导出它是因为 e2e 需要构造 provider 替身；**领域层不认识这个类型**，
+ * 它只认识 domain/account/oauth-identity.ts 的 OAuthIdentity。
+ */
+export type { OAuthProviderProfile } from './application/ports/oauth-provider.js';
 export { ARGON2_OPTIONS } from './config/argon2-options.js';
 export { AppleOAuthProvider } from './infrastructure/oauth/apple.js';
 export { AuthIdentityService } from './application/services/identity.js';

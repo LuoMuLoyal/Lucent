@@ -28,8 +28,8 @@ import {
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WECHAT_WEB,
   type OAuthAuthorizeResult,
-  type OAuthProfile,
 } from '../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 import { AuthNotificationService } from '../notification.service.js';
 import { AuthOAuthService } from './oauth.service.js';
 import {
@@ -261,7 +261,7 @@ export class AuthOAuthFacadeService {
   }
 
   private loginWithOAuthProfile(
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
     context?: RequestOrigin,
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthService

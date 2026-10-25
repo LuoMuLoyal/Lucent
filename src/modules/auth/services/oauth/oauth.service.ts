@@ -17,7 +17,7 @@ import { Injectable } from '@nestjs/common';
 
 import { Prisma, User, UserStatus } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import type { OAuthProfile } from '../../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 import { toOAuthIdentity } from '../../adapters/acl/oauth-profile.js';
 import {
   canExplicitlyLink,
@@ -60,7 +60,7 @@ export class AuthOAuthService {
    * `decideOAuthAccount` 判定，再执行决定。
    */
   findOrCreateOAuthUser(
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
   ): ResultAsync<User, DomainFailure> {
     const identity = toOAuthIdentity(profile);
 
@@ -90,7 +90,7 @@ export class AuthOAuthService {
    */
   updateOAuthLoginUser(
     user: User,
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
   ): ResultAsync<User, DomainFailure> {
     return fromPrismaResult(
       this.prisma.user.update({
@@ -113,7 +113,7 @@ export class AuthOAuthService {
    */
   linkOAuthProfileToUser(
     userId: string,
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
   ): ResultAsync<void, DomainFailure> {
     const identity = toOAuthIdentity(profile);
 
@@ -267,7 +267,7 @@ export class AuthOAuthService {
   // ── 写入 ─────────────────────────────────────────────────────
 
   private createOAuthUser(
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
   ): ResultAsync<User, DomainFailure> {
     // No email is fine: WeChat and other providers do not always disclose one,
     // and `users.email` is nullable for exactly this case. The account can set
@@ -299,7 +299,7 @@ export class AuthOAuthService {
 
   private createAccount(
     userId: string,
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
   ): ResultAsync<void, DomainFailure> {
     return fromPrismaResult(
       this.prisma.account
@@ -312,7 +312,7 @@ export class AuthOAuthService {
 
   private toAccountCreateData(
     userId: string,
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
   ): Prisma.AccountCreateInput {
     const email = profile.email;
     return {

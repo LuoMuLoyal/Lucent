@@ -4,7 +4,7 @@ import { resolveLocale } from '../../../common/index.js';
 import { PrismaService } from '../../../prisma/index.js';
 
 import { INotificationSender } from '../../notifications/index.js';
-import type { OAuthProfile } from '../types/oauth.types.js';
+import type { OAuthProviderProfile } from '../application/ports/oauth-provider.js';
 
 /**
  * Security notifications for auth events.
@@ -32,7 +32,7 @@ export class AuthNotificationService {
 
   async notifyOAuthLogin(
     userId: string,
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
     locale?: string,
   ): Promise<void> {
     const lang = await this.resolveUserLocale(userId, locale);
@@ -49,7 +49,7 @@ export class AuthNotificationService {
 
   async notifyIdentityLinked(
     userId: string,
-    profile: OAuthProfile,
+    profile: OAuthProviderProfile,
     locale?: string,
   ): Promise<void> {
     const lang = await this.resolveUserLocale(userId, locale);
