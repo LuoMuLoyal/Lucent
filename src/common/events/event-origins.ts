@@ -18,7 +18,9 @@ import {
   HEALTH_CONTEXT_CHANGED,
   HEALTH_EVENT_CHANGED,
   REMINDER_CHANGED,
+  RISK_ASSESSMENT_COMPLETED,
   SETTINGS_CHANGED,
+  TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
 } from './domain-events.js';
 
 export interface EventOrigin {
@@ -59,6 +61,16 @@ export const EVENT_ORIGINS: Readonly<Record<string, EventOrigin>> = {
     context: 'health-events',
     aggregateType: 'health-event',
     aggregateIdField: 'eventId',
+  },
+  [RISK_ASSESSMENT_COMPLETED]: {
+    context: 'medicines',
+    aggregateType: 'risk-assessment',
+    aggregateIdField: 'assessmentId',
+  },
+  [TODAY_SUGGESTION_MATERIALIZATION_CHANGED]: {
+    context: 'today-suggestion',
+    aggregateType: 'daily-suggestion',
+    aggregateIdField: 'userId',
   },
 };
 

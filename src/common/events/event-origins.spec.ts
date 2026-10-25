@@ -28,6 +28,25 @@ describe('EVENT_ORIGINS', () => {
     }
   });
 
+  it('declares an origin for every event constant', () => {
+    // The opposite drift from the first test, and the one that actually bit us:
+    // `RISK_ASSESSMENT_COMPLETED` existed as a constant with no origin entry, so
+    // the first producer to publish it wrote `context: 'unknown'` into the
+    // outbox — silently, because `eventOriginFor` is required to fall back.
+    //
+    // Events are allowed to have *no subscriber* (see `subscriptions.ts`), but
+    // "who emitted this" is not optional bookkeeping: without it the outbox row
+    // cannot be attributed to a context at all.
+    const declared = declaredEventNames();
+    expect(declared.length).toBeGreaterThan(0);
+    for (const name of declared) {
+      expect(
+        Object.keys(EVENT_ORIGINS),
+        `${name} has no EVENT_ORIGINS entry; it would be persisted as context 'unknown'`,
+      ).toContain(name);
+    }
+  });
+
   it('gives every origin a non-empty context and aggregate type', () => {
     for (const [name, origin] of Object.entries(EVENT_ORIGINS)) {
       expect(origin.context.length, `${name} context`).toBeGreaterThan(0);
