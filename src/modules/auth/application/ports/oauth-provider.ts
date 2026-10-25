@@ -85,4 +85,36 @@ export interface OAuthProvider {
   fetchProfile(
     credential: Record<string, unknown>,
   ): ResultAsync<OAuthProviderProfile, DomainFailure>;
+
+  /**
+   * 两步式提供商（目前只有 Google）的**第一步**：把授权码换成 token 对。
+   *
+   * ## 为什么在端口上而不是留在实现类里
+   *
+   * 应用层的 OAuth 编排（`application/services/oauth-facade.ts`）需要它：
+   * Google 的流程是「code → tokens → 验 id_token → 用 access_token 取
+   * userinfo」，中间验签那步的**失败分类**是应用层决策（Google 的 id token
+   * 是服务端换来的，验签失败算上游异常）。
+   *
+   * 若方法留在 `GoogleOAuthProvider` 上，应用层就必须 import 那个具体类——
+   * `ddd-application-no-infra-or-adapters` 会拦（它禁止 `application/`
+   * import 任何模块的 `infrastructure/`）。所以这个能力必须出现在端口上。
+   *
+   * 可选：单步式提供商（微信、QQ、Apple）不实现。
+   */
+  exchangeCodeForTokens?(
+    code: string,
+  ): ResultAsync<{ accessToken: string; idToken: string }, DomainFailure>;
+
+  /**
+   * 两步式提供商的**第二步**：用已验证的 id token 取身份。
+   *
+   * 与 {@link exchangeCodeForTokens} 同属「两步式」能力，一起可选。
+   * 实现方须**自己**验证 id token（签名、iss、aud、exp）——应用层不该知道
+   * JWKS 的存在。
+   */
+  fetchProfileFromIdToken?(
+    idToken: string,
+    accessToken: string,
+  ): ResultAsync<OAuthProviderProfile, DomainFailure>;
 }

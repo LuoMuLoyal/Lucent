@@ -14,7 +14,11 @@ import type { UserPayload } from '../auth/index.js';
 
 import { AccountController } from './account.controller.js';
 import { AccountService } from './services/account.service.js';
-import { AuthService } from '../auth/index.js';
+import {
+  CredentialsSelfService,
+  DeleteAccount,
+  IdentityLink,
+} from '../auth/index.js';
 import { AuditLogService } from '../audit-log/index.js';
 import type { UpdateAccountDto } from './dto/update.dto.js';
 import type { AccountDto } from './dto/response.dto.js';
@@ -56,7 +60,9 @@ const mockAccount = {
 describe('AccountController', () => {
   let controller: AccountController;
   let accountService: vi.Mocked<AccountService>;
-  let authService: vi.Mocked<AuthService>;
+  let credentials: vi.Mocked<CredentialsSelfService>;
+  let identityLink: vi.Mocked<IdentityLink>;
+  let deleteAccountUseCase: vi.Mocked<DeleteAccount>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -71,16 +77,24 @@ describe('AccountController', () => {
           },
         },
         {
-          provide: AuthService,
+          provide: CredentialsSelfService,
           useValue: {
             changePassword: vi.fn(),
             setPassword: vi.fn(),
             changeEmail: vi.fn(),
-            deleteAccount: vi.fn(),
+          },
+        },
+        {
+          provide: IdentityLink,
+          useValue: {
             createWechatWebIdentityLinkAuthorizeUrl: vi.fn(),
             linkWechatWebIdentity: vi.fn(),
             linkWechatMobileIdentity: vi.fn(),
           },
+        },
+        {
+          provide: DeleteAccount,
+          useValue: { execute: vi.fn(), run: vi.fn() },
         },
         {
           provide: AuditLogService,
@@ -94,7 +108,9 @@ describe('AccountController', () => {
 
     controller = module.get(AccountController);
     accountService = module.get(AccountService);
-    authService = module.get(AuthService);
+    credentials = module.get(CredentialsSelfService);
+    identityLink = module.get(IdentityLink);
+    deleteAccountUseCase = module.get(DeleteAccount);
   });
 
   afterEach(() => {
@@ -133,7 +149,7 @@ describe('AccountController', () => {
 
   describe('POST /account/password', () => {
     it('should change password and return no content', async () => {
-      authService.changePassword.mockReturnValue(okAsync(undefined));
+      credentials.changePassword.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.changePassword(
@@ -146,14 +162,14 @@ describe('AccountController', () => {
         ),
       ).resolves.toBeUndefined();
 
-      expect(authService.changePassword).toHaveBeenCalledWith(mockUser.sub, {
+      expect(credentials.changePassword).toHaveBeenCalledWith(mockUser.sub, {
         password: 'OldPass1',
         newPassword: 'NewPass1',
       });
     });
 
     it('should fold wrong-password failures into DomainFailureException', async () => {
-      authService.changePassword.mockReturnValue(
+      credentials.changePassword.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -178,7 +194,7 @@ describe('AccountController', () => {
     });
 
     it('should fold AUTH_PASSWORD_NOT_SET failures into DomainFailureException', async () => {
-      authService.changePassword.mockReturnValue(
+      credentials.changePassword.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -205,7 +221,7 @@ describe('AccountController', () => {
 
   describe('POST /account/set-password', () => {
     it('should set initial password and return no content', async () => {
-      authService.setPassword.mockReturnValue(okAsync(undefined));
+      credentials.setPassword.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.setPassword(
@@ -218,7 +234,7 @@ describe('AccountController', () => {
         ),
       ).resolves.toBeUndefined();
 
-      expect(authService.setPassword).toHaveBeenCalledWith(mockUser.sub, {
+      expect(credentials.setPassword).toHaveBeenCalledWith(mockUser.sub, {
         code: '123456',
         password: 'NewPass1',
       });
@@ -231,7 +247,7 @@ describe('AccountController', () => {
         email: 'new@example.com',
         emailVerifiedAt: new Date('2026-06-15T08:00:00.000Z'),
       };
-      authService.changeEmail.mockReturnValue(
+      credentials.changeEmail.mockReturnValue(
         okAsync(updatedUser as unknown as User),
       );
 
@@ -245,7 +261,7 @@ describe('AccountController', () => {
         mockRequest,
       );
 
-      expect(authService.changeEmail).toHaveBeenCalledWith(mockUser.sub, {
+      expect(credentials.changeEmail).toHaveBeenCalledWith(mockUser.sub, {
         newEmail: 'new@example.com',
         code: '123456',
         password: 'Passw0rd123',
@@ -257,7 +273,7 @@ describe('AccountController', () => {
     });
 
     it('should return null emailVerifiedAt when the value is null', async () => {
-      authService.changeEmail.mockReturnValue(
+      credentials.changeEmail.mockReturnValue(
         okAsync({
           email: 'unverified@example.com',
           emailVerifiedAt: null,
@@ -278,7 +294,7 @@ describe('AccountController', () => {
     });
 
     it('should fold email-conflict failures into DomainFailureException', async () => {
-      authService.changeEmail.mockReturnValue(
+      credentials.changeEmail.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'conflict',
@@ -358,14 +374,14 @@ describe('AccountController', () => {
         state: 'state-xxx',
         expiresIn: 300,
       };
-      authService.createWechatWebIdentityLinkAuthorizeUrl.mockReturnValue(
+      identityLink.createWechatWebIdentityLinkAuthorizeUrl.mockReturnValue(
         okAsync(authorizeResult),
       );
 
       const result = await controller.createWechatWebIdentityLinkAuthorizeUrl();
 
       expect(
-        authService.createWechatWebIdentityLinkAuthorizeUrl,
+        identityLink.createWechatWebIdentityLinkAuthorizeUrl,
       ).toHaveBeenCalledWith(undefined);
       expect(result).toEqual(authorizeResult);
     });
@@ -376,7 +392,7 @@ describe('AccountController', () => {
         state: 'state-yyy',
         expiresIn: 300,
       };
-      authService.createWechatWebIdentityLinkAuthorizeUrl.mockReturnValue(
+      identityLink.createWechatWebIdentityLinkAuthorizeUrl.mockReturnValue(
         okAsync(authorizeResult),
       );
 
@@ -385,7 +401,7 @@ describe('AccountController', () => {
       });
 
       expect(
-        authService.createWechatWebIdentityLinkAuthorizeUrl,
+        identityLink.createWechatWebIdentityLinkAuthorizeUrl,
       ).toHaveBeenCalledWith({
         callbackUri: 'http://127.0.0.1:49152/oauth/wechat',
       });
@@ -394,7 +410,7 @@ describe('AccountController', () => {
 
   describe('POST /account/identities/wechat-web/callback', () => {
     it('should link WeChat web identity and return the account resource', async () => {
-      authService.linkWechatWebIdentity.mockReturnValue(okAsync(undefined));
+      identityLink.linkWechatWebIdentity.mockReturnValue(okAsync(undefined));
       accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatWebIdentity(
@@ -406,7 +422,7 @@ describe('AccountController', () => {
         mockRequest,
       );
 
-      expect(authService.linkWechatWebIdentity).toHaveBeenCalledWith(
+      expect(identityLink.linkWechatWebIdentity).toHaveBeenCalledWith(
         mockUser.sub,
         { code: 'auth-code', state: 'state-xxx' },
       );
@@ -417,7 +433,7 @@ describe('AccountController', () => {
 
   describe('POST /account/identities/wechat-mobile/callback', () => {
     it('should link WeChat mobile identity and return the account resource', async () => {
-      authService.linkWechatMobileIdentity.mockReturnValue(okAsync(undefined));
+      identityLink.linkWechatMobileIdentity.mockReturnValue(okAsync(undefined));
       accountService.getAccount.mockReturnValue(okAsync(mockAccount));
 
       const result = await controller.linkWechatMobileIdentity(
@@ -428,7 +444,7 @@ describe('AccountController', () => {
         mockRequest,
       );
 
-      expect(authService.linkWechatMobileIdentity).toHaveBeenCalledWith(
+      expect(identityLink.linkWechatMobileIdentity).toHaveBeenCalledWith(
         mockUser.sub,
         { code: 'mobile-auth-code' },
       );
@@ -439,7 +455,7 @@ describe('AccountController', () => {
 
   describe('DELETE /account', () => {
     it('should delete account and return no content', async () => {
-      authService.deleteAccount.mockReturnValue(okAsync(undefined));
+      deleteAccountUseCase.execute.mockReturnValue(okAsync(undefined));
 
       await expect(
         controller.deleteAccount(
@@ -451,13 +467,13 @@ describe('AccountController', () => {
         ),
       ).resolves.toBeUndefined();
 
-      expect(authService.deleteAccount).toHaveBeenCalledWith(mockUser.sub, {
+      expect(deleteAccountUseCase.execute).toHaveBeenCalledWith(mockUser.sub, {
         password: 'Passw0rd123',
       });
     });
 
     it('should fold wrong-password failures into DomainFailureException', async () => {
-      authService.deleteAccount.mockReturnValue(
+      deleteAccountUseCase.execute.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',

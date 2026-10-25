@@ -22,7 +22,6 @@ import {
   AuthAccountRepository,
   AuthAccountRepositoryPort,
 } from './repositories/account.repository.js';
-import { AuthService } from './services/auth.service.js';
 import { LocalController } from './controllers/local.controller.js';
 import { OAuthController } from './controllers/oauth.controller.js';
 import { SessionController } from './controllers/session.controller.js';
@@ -32,10 +31,10 @@ import { PasswordReauthService } from './services/identity/password-reauth.servi
 import { AuthOAuthStateService } from './services/oauth/state.service.js';
 import { AuthOAuthService } from './services/oauth/oauth.service.js';
 import { CredentialAuthService } from './services/identity/credential.service.js';
-import { PasswordManagementService } from './services/identity/password-management.service.js';
+import { PasswordManagementService } from './application/services/password-management.js';
 import { AuthAccountService } from './services/account.service.js';
 import { AuthSessionAdminService } from './services/session-admin.service.js';
-import { AuthOAuthFacadeService } from './services/oauth/facade.service.js';
+import { AuthOAuthFacadeService } from './application/services/oauth-facade.js';
 import { AuthNotificationService } from './services/notification.service.js';
 import { VerificationCodeService } from './services/identity/verification-code.service.js';
 import { WechatMobileOAuthProvider } from './infrastructure/oauth/wechat/wechat-mobile.js';
@@ -45,6 +44,9 @@ import { GoogleOAuthProvider } from './infrastructure/oauth/google.js';
 import { QqOAuthProvider } from './infrastructure/oauth/qq.js';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js';
 import { CookieSessionUseCase } from './application/use_cases/cookie-session.js';
+import { DeleteAccount } from './application/use_cases/delete-account.js';
+import { CredentialsSelfService } from './application/ports/credentials-self-service.js';
+import { IdentityLink } from './application/ports/identity-link.js';
 import { AuthIdentityService } from './application/services/identity.js';
 import { EmailVerificationService } from './services/identity/email-verification.service.js';
 import { HumanVerification } from './application/ports/human-verification.js';
@@ -86,7 +88,6 @@ import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js
       provide: AuthAccountRepositoryPort,
       useExisting: AuthAccountRepository,
     },
-    AuthService,
     AuthAccountService,
     AuthSessionAdminService,
     AuthOAuthFacadeService,
@@ -99,6 +100,9 @@ import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js
     PasswordManagementService,
     JwtAccessStrategy,
     CookieSessionUseCase,
+    DeleteAccount,
+    { provide: CredentialsSelfService, useExisting: PasswordManagementService },
+    { provide: IdentityLink, useExisting: AuthOAuthFacadeService },
     VerificationCodeService,
     WechatMobileOAuthProvider,
     WechatWebOAuthProvider,
@@ -113,11 +117,13 @@ import { CacheFailureCounters } from './infrastructure/cache/failure-counters.js
     { provide: FailureCounters, useExisting: CacheFailureCounters },
   ],
   exports: [
-    AuthService,
     AuthIdentityService,
     PasswordReauthService,
     AuthSessionAdminService,
     HumanVerification,
+    CredentialsSelfService,
+    IdentityLink,
+    DeleteAccount,
   ],
 })
 export class AuthModule {}

@@ -10,6 +10,9 @@ import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 import { WechatWebOAuthProvider } from '../../../src/modules/auth/index.js';
 import { WechatMobileOAuthProvider } from '../../../src/modules/auth/index.js';
 import { QqOAuthProvider } from '../../../src/modules/auth/index.js';
+// 局部别名：既有夹具沿用 OAuthProfile 这个变量名，而那个类型已删除——
+// 现在唯一的身份形状是端口契约 OAuthProviderProfile。别名只为不动夹具，
+// **不是**因为旧类型还在。
 import type { OAuthProviderProfile as OAuthProfile } from '../../../src/modules/auth/index.js';
 import { okAsync } from '../../../src/common/result/index.js';
 

@@ -9,7 +9,7 @@ import { ConfigKey } from '../../../config/env/config-keys.enum.js';
 import { SESSION_COOKIE_NAME } from '../domain/session/cookie-policy.js';
 import { createDomainFailure } from '../../../common/result/index.js';
 import { DomainFailureException } from '../../../common/result/unwrap-result.js';
-import { UserPayload } from '../services/auth.service.js';
+import type { UserPayload } from '../types/auth-request.js';
 
 interface JwtConfigShape {
   accessSecret: string;

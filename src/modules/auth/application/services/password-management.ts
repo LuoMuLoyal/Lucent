@@ -14,9 +14,9 @@ import {
 import type { User } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
 import { INotificationSender } from '../../../notifications/index.js';
-import { AuthIdentityService } from '../../application/services/identity.js';
-import { EmailVerificationService } from './email-verification.service.js';
-import { VerificationCodeService } from './verification-code.service.js';
+import { AuthIdentityService } from './identity.js';
+import { EmailVerificationService } from '../../services/identity/email-verification.service.js';
+import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
 import type { ChangePasswordDto } from '../../dto/password/change-password.dto.js';
 import type { ChangeEmailDto } from '../../dto/password/change-email.dto.js';
 import type { ResetPasswordDto } from '../../dto/password/reset-password.dto.js';
@@ -24,8 +24,9 @@ import type { SetPasswordDto } from '../../dto/password/set-password.dto.js';
 import type { ForgotPasswordDto } from '../../dto/password/forgot-password.dto.js';
 import type { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto.js';
 import type { VerifyEmailDto } from '../../dto/password/verify-email.dto.js';
-import { SessionTokens } from '../../application/services/session-tokens.js';
-import { PasswordReauthService } from './password-reauth.service.js';
+import { SessionTokens } from './session-tokens.js';
+import { PasswordReauthService } from '../../services/identity/password-reauth.service.js';
+import { CredentialsSelfService } from '../ports/credentials-self-service.js';
 
 /**
  * Handles password management flows: password changes, email changes,
@@ -38,7 +39,7 @@ import { PasswordReauthService } from './password-reauth.service.js';
  * real semantics instead of being misreported as wrong credentials.
  */
 @Injectable()
-export class PasswordManagementService {
+export class PasswordManagementService implements CredentialsSelfService {
   private readonly logger = new Logger(PasswordManagementService.name);
 
   constructor(
@@ -139,7 +140,10 @@ export class PasswordManagementService {
   changeEmail(
     userId: string,
     dto: ChangeEmailDto,
-  ): ResultAsync<User, DomainFailure> {
+  ): ResultAsync<
+    { email: string | null; emailVerifiedAt: Date | null },
+    DomainFailure
+  > {
     const newEmail = normalizeEmail(dto.newEmail);
 
     return this.getActiveUser(userId)

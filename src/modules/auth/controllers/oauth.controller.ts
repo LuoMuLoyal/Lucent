@@ -19,7 +19,7 @@ import {
 } from '../../../common/index.js';
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
-import { AuthService } from '../services/auth.service.js';
+import { AuthOAuthFacadeService } from '../application/services/oauth-facade.js';
 
 import {
   appleOAuthCallbackSchema,
@@ -54,7 +54,7 @@ import { Public } from '../decorators/public.decorator.js';
 @Public()
 @Controller('auth')
 export class OAuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly oauthFacade: AuthOAuthFacadeService) {}
 
   // ── POST /api/v1/auth/oauth/wechat-web/authorize ─────────────
 
@@ -74,7 +74,7 @@ export class OAuthController {
   async createWechatWebAuthorizeUrl(
     @Body({ schema: oauthAuthorizeSchema }) dto?: OAuthAuthorizeDto,
   ) {
-    return unwrapResult(this.authService.createWechatWebAuthorizeUrl(dto));
+    return unwrapResult(this.oauthFacade.createWechatWebAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/wechat-web/callback ──────────────
@@ -123,7 +123,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithWechatWeb(
+      this.oauthFacade.loginWithWechatWeb(
         dto,
         extractAuthRequestContext(request),
       ),
@@ -146,7 +146,7 @@ export class OAuthController {
     @Res() reply: FastifyReply,
   ) {
     const redirectUrl = await unwrapResult(
-      this.authService.resolveWechatWebCallbackRedirect(dto),
+      this.oauthFacade.resolveWechatWebCallbackRedirect(dto),
     );
     reply.redirect(redirectUrl, HttpStatus.FOUND);
   }
@@ -197,7 +197,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithWechatMobile(
+      this.oauthFacade.loginWithWechatMobile(
         dto,
         extractAuthRequestContext(request),
       ),
@@ -251,7 +251,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithApple(dto, extractAuthRequestContext(request)),
+      this.oauthFacade.loginWithApple(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -274,7 +274,7 @@ export class OAuthController {
   async createQqAuthorizeUrl(
     @Body({ schema: qqOAuthAuthorizeSchema }) dto?: QqOAuthAuthorizeDto,
   ) {
-    return unwrapResult(this.authService.createQqAuthorizeUrl(dto));
+    return unwrapResult(this.oauthFacade.createQqAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/qq/callback ───────────────────
@@ -323,7 +323,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithQq(dto, extractAuthRequestContext(request)),
+      this.oauthFacade.loginWithQq(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -346,7 +346,7 @@ export class OAuthController {
   async createGoogleAuthorizeUrl(
     @Body({ schema: googleOAuthAuthorizeSchema }) dto?: GoogleOAuthAuthorizeDto,
   ) {
-    return unwrapResult(this.authService.createGoogleAuthorizeUrl(dto));
+    return unwrapResult(this.oauthFacade.createGoogleAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/google/callback ───────────────
@@ -395,7 +395,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithGoogle(dto, extractAuthRequestContext(request)),
+      this.oauthFacade.loginWithGoogle(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }

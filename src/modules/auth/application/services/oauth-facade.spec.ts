@@ -1,15 +1,11 @@
 import type { UserService } from '../../../user/index.js';
-import type { WechatWebOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-web.js';
-import type { WechatMobileOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-mobile.js';
-import type { QqOAuthProvider } from '../../infrastructure/oauth/qq.js';
-import type { GoogleOAuthProvider } from '../../infrastructure/oauth/google.js';
-import type { AuthOAuthStateService } from './state.service.js';
+import type { OAuthProvider } from '../ports/oauth-provider.js';
+import type { AuthOAuthStateService } from '../../services/oauth/state.service.js';
 import type { SessionTokens } from '../../application/services/session-tokens.js';
-import type { AuthOAuthService } from './oauth.service.js';
-import type { AuthNotificationService } from '../notification.service.js';
+import type { AuthOAuthService } from '../../services/oauth/oauth.service.js';
+import type { AuthNotificationService } from '../../services/notification.service.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
-import type { AppleOAuthProvider } from '../../infrastructure/oauth/apple.js';
-import { AuthOAuthFacadeService } from './facade.service.js';
+import { AuthOAuthFacadeService } from './oauth-facade.js';
 import { UserStatus } from '#generated/prisma/client.js';
 import {
   createDomainFailure,
@@ -69,15 +65,15 @@ function collectResult<T>(
 describe('AuthOAuthFacadeService', () => {
   let service: AuthOAuthFacadeService;
   let userService: vi.Mocked<UserService>;
-  let wechatWebProvider: vi.Mocked<WechatWebOAuthProvider>;
-  let wechatMobileProvider: vi.Mocked<WechatMobileOAuthProvider>;
-  let qqProvider: vi.Mocked<QqOAuthProvider>;
-  let googleProvider: vi.Mocked<GoogleOAuthProvider>;
+  let wechatWebProvider: vi.Mocked<OAuthProvider>;
+  let wechatMobileProvider: vi.Mocked<OAuthProvider>;
+  let qqProvider: vi.Mocked<OAuthProvider>;
+  let googleProvider: vi.Mocked<OAuthProvider>;
   let stateService: vi.Mocked<AuthOAuthStateService>;
   let tokenService: vi.Mocked<SessionTokens>;
   let oauthService: vi.Mocked<AuthOAuthService>;
   let notificationService: vi.Mocked<AuthNotificationService>;
-  let appleProvider: vi.Mocked<AppleOAuthProvider>;
+  let appleProvider: vi.Mocked<OAuthProvider>;
 
   beforeEach(() => {
     userService = {
@@ -87,25 +83,25 @@ describe('AuthOAuthFacadeService', () => {
     wechatWebProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://wx/auth?url=1'),
       fetchProfile: vi.fn().mockReturnValue(okAsync(mockProfile)),
-    } as unknown as vi.Mocked<WechatWebOAuthProvider>;
+    } as unknown as vi.Mocked<OAuthProvider>;
     wechatMobileProvider = {
       fetchProfile: vi
         .fn()
         .mockReturnValue(
           okAsync({ ...mockProfile, provider: 'wechat_mobile' }),
         ),
-    } as unknown as vi.Mocked<WechatMobileOAuthProvider>;
+    } as unknown as vi.Mocked<OAuthProvider>;
     appleProvider = {
       fetchProfile: vi
         .fn()
         .mockReturnValue(okAsync({ ...mockProfile, provider: 'apple' })),
-    } as unknown as vi.Mocked<AppleOAuthProvider>;
+    } as unknown as vi.Mocked<OAuthProvider>;
     qqProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://qq/auth?url=1'),
       fetchProfile: vi
         .fn()
         .mockReturnValue(okAsync({ ...mockProfile, provider: 'qq' })),
-    } as unknown as vi.Mocked<QqOAuthProvider>;
+    } as unknown as vi.Mocked<OAuthProvider>;
     googleProvider = {
       buildAuthorizeUrl: vi.fn().mockReturnValue('https://google/auth?url=1'),
       fetchProfile: vi
@@ -119,7 +115,7 @@ describe('AuthOAuthFacadeService', () => {
       fetchProfileFromIdToken: vi
         .fn()
         .mockReturnValue(okAsync({ ...mockProfile, provider: 'google' })),
-    } as unknown as vi.Mocked<GoogleOAuthProvider>;
+    } as unknown as vi.Mocked<OAuthProvider>;
     stateService = {
       createState: vi
         .fn()
@@ -443,7 +439,7 @@ describe('AuthOAuthFacadeService', () => {
         kind: 'dependency',
         code: 'DEPENDENCY_UNAVAILABLE',
       });
-      googleProvider.fetchProfileFromIdToken.mockReturnValue(
+      (googleProvider.fetchProfileFromIdToken as vi.Mock).mockReturnValue(
         errAsync(verificationFailure),
       );
 
@@ -460,7 +456,7 @@ describe('AuthOAuthFacadeService', () => {
         kind: 'dependency',
         code: 'DEPENDENCY_UNAVAILABLE',
       });
-      googleProvider.exchangeCodeForTokens.mockReturnValue(
+      (googleProvider.exchangeCodeForTokens as vi.Mock).mockReturnValue(
         errAsync(exchangeFailure),
       );
 

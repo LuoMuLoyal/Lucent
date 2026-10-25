@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import type { ExecutionContext } from '@nestjs/common';
 
 import { currentUserFactory } from './current-user.decorator.js';
-import type { UserPayload } from '../services/auth.service.js';
+import type { UserPayload } from '../types/auth-request.js';
 
 function createMockContext(user?: UserPayload): ExecutionContext {
   return {

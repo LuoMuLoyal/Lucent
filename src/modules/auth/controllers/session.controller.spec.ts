@@ -1,7 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller.js';
-import { AuthService } from '../services/auth.service.js';
 import { SessionTokens } from '../application/services/session-tokens.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { DomainFailureException } from '../../../common/result/unwrap-result.js';
@@ -33,7 +32,6 @@ const mockRefreshResult = {
 
 describe('SessionController', () => {
   let controller: SessionController;
-  let authService: vi.Mocked<AuthService>;
   let sessionTokens: vi.Mocked<SessionTokens>;
   let auditLogService: vi.Mocked<AuditLogService>;
 
@@ -42,17 +40,18 @@ describe('SessionController', () => {
       controllers: [SessionController],
       providers: [
         {
-          provide: AuthService,
-          useValue: {
-            logout: vi.fn().mockReturnValue(okAsync(undefined)),
-            refresh: vi.fn().mockReturnValue(okAsync(mockRefreshResult)),
-          },
-        },
-        {
           provide: SessionTokens,
           useValue: {
             list: vi.fn().mockReturnValue(okAsync([])),
             revokeById: vi.fn().mockReturnValue(okAsync(undefined)),
+            revoke: vi.fn().mockReturnValue(okAsync(undefined)),
+            rotate: vi.fn().mockReturnValue(
+              okAsync({
+                userId: 'user-1',
+                status: 'active',
+                tokens: mockRefreshResult,
+              }),
+            ),
           },
         },
         {
@@ -65,7 +64,6 @@ describe('SessionController', () => {
     }).compile();
 
     controller = module.get(SessionController);
-    authService = module.get(AuthService);
     sessionTokens = module.get(SessionTokens);
     auditLogService = module.get(AuditLogService);
   });
@@ -82,14 +80,14 @@ describe('SessionController', () => {
         }),
       ).resolves.toBeUndefined();
 
-      expect(authService.logout).toHaveBeenCalledWith(
+      expect(sessionTokens.revoke).toHaveBeenCalledWith(
         'user-1',
         'refresh-token',
       );
     });
 
     it('rethrows DomainFailureException when logout fails (401 path)', async () => {
-      authService.logout.mockReturnValue(
+      sessionTokens.revoke.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -180,7 +178,7 @@ describe('SessionController', () => {
         mockRequest,
       );
 
-      expect(authService.refresh).toHaveBeenCalledWith(
+      expect(sessionTokens.rotate).toHaveBeenCalledWith(
         'old-refresh',
         expect.objectContaining({ userAgent: 'test-agent' }),
       );
@@ -190,7 +188,7 @@ describe('SessionController', () => {
     });
 
     it('rethrows DomainFailureException for an invalid refresh token (401 path)', async () => {
-      authService.refresh.mockReturnValue(
+      sessionTokens.rotate.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',

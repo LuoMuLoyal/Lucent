@@ -20,7 +20,8 @@ import { ProblemDetailsDto } from '../../../common/index.js';
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
-import { AuthService } from '../services/auth.service.js';
+import { CredentialAuthService } from '../services/identity/credential.service.js';
+import { PasswordManagementService } from '../application/services/password-management.js';
 import { HumanVerification } from '../application/ports/human-verification.js';
 import { VerificationCodeService } from '../services/identity/verification-code.service.js';
 
@@ -55,7 +56,8 @@ import { Public } from '../decorators/public.decorator.js';
 @Controller('auth')
 export class LocalController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly credentialAuthService: CredentialAuthService,
+    private readonly passwordManagement: PasswordManagementService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly auditLogService: AuditLogService,
     private readonly turnstileService: HumanVerification,
@@ -93,7 +95,10 @@ export class LocalController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.register(dto, extractAuthRequestContext(request)),
+      this.credentialAuthService.register(
+        dto,
+        extractAuthRequestContext(request),
+      ),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -141,7 +146,7 @@ export class LocalController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.login(dto, extractAuthRequestContext(request)),
+      this.credentialAuthService.login(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -186,7 +191,7 @@ export class LocalController {
     @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.sendVerificationCode(
+      this.passwordManagement.sendVerificationCode(
         dto,
         getRequestClientIp(request),
         locale,
@@ -225,7 +230,7 @@ export class LocalController {
   })
   @SerializeOptions({ schema: verifyEmailResponseSchema })
   async verifyEmail(@Body({ schema: verifyEmailSchema }) dto: VerifyEmailDto) {
-    await unwrapResult(this.authService.verifyEmail(dto));
+    await unwrapResult(this.passwordManagement.verifyEmail(dto));
     return { emailVerified: true };
   }
 
@@ -266,7 +271,11 @@ export class LocalController {
     @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.forgotPassword(dto, getRequestClientIp(request), locale),
+      this.passwordManagement.forgotPassword(
+        dto,
+        getRequestClientIp(request),
+        locale,
+      ),
     );
 
     return {
@@ -304,7 +313,7 @@ export class LocalController {
   async resetPassword(
     @Body({ schema: resetPasswordSchema }) dto: ResetPasswordDto,
   ) {
-    await unwrapResult(this.authService.resetPassword(dto));
+    await unwrapResult(this.passwordManagement.resetPassword(dto));
     return {
       cooldown: this.verificationCodeService.getCooldownSec(),
       message: this.i18n.t('auth.reset_password_success'),

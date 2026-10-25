@@ -8,7 +8,8 @@ import type {
 } from '../../../../common/result/index.js';
 import type { RequestOrigin } from '../ports/request-origin.js';
 import { SessionTokens, type TokenPair } from '../services/session-tokens.js';
-import { AuthService } from '../../services/auth.service.js';
+import { CredentialAuthService } from '../../services/identity/credential.service.js';
+import { createDomainFailure } from '../../../../common/result/index.js';
 
 /**
  * 登录命令 —— **应用层自己的输入契约**。
@@ -95,7 +96,7 @@ function splitCredentials(result: CredentialsResult): {
 @Injectable()
 export class CookieSessionUseCase {
   constructor(
-    private readonly authService: AuthService,
+    private readonly credentialAuth: CredentialAuthService,
     private readonly sessionTokens: SessionTokens,
   ) {}
 
@@ -110,7 +111,7 @@ export class CookieSessionUseCase {
     command: LoginCommand,
     context?: RequestOrigin,
   ): ResultAsync<{ user: SessionUser; tokens: TokenPair }, DomainFailure> {
-    return this.authService.login(command, context).map(splitCredentials);
+    return this.credentialAuth.login(command, context).map(splitCredentials);
   }
 
   /** 注册并直接建立会话（服务端注册即登录，客户端不必再调一次登录）。 */
@@ -118,7 +119,7 @@ export class CookieSessionUseCase {
     command: RegisterCommand,
     context?: RequestOrigin,
   ): ResultAsync<{ user: SessionUser; tokens: TokenPair }, DomainFailure> {
-    return this.authService.register(command, context).map(splitCredentials);
+    return this.credentialAuth.register(command, context).map(splitCredentials);
   }
 
   /**
@@ -146,6 +147,9 @@ export class CookieSessionUseCase {
    * 两条路共用一套错误词汇：客户端只需按一个值分支。
    */
   refreshFailure(): DomainFailure {
-    return this.authService.refreshTokenInvalidException().failure;
+    return createDomainFailure({
+      kind: 'authentication',
+      code: 'AUTH_REFRESH_TOKEN_INVALID',
+    });
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 import { User } from '#generated/prisma/client.js';
 import { UserService } from '../../../user/index.js';
@@ -18,11 +22,7 @@ import type {
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto.js';
-import { GoogleOAuthProvider } from '../../infrastructure/oauth/google.js';
-import { AppleOAuthProvider } from '../../infrastructure/oauth/apple.js';
-import { QqOAuthProvider } from '../../infrastructure/oauth/qq.js';
-import { WechatMobileOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-mobile.js';
-import { WechatWebOAuthProvider } from '../../infrastructure/oauth/wechat/wechat-web.js';
+import type { OAuthProvider } from '../ports/oauth-provider.js';
 import {
   OAUTH_PROVIDER_GOOGLE,
   OAUTH_PROVIDER_QQ,
@@ -30,12 +30,12 @@ import {
   type OAuthAuthorizeResult,
 } from '../../types/oauth.types.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
-import { AuthNotificationService } from '../notification.service.js';
-import { AuthOAuthService } from './oauth.service.js';
+import { AuthNotificationService } from '../../services/notification.service.js';
+import { AuthOAuthService } from '../../services/oauth/oauth.service.js';
 import {
   AuthOAuthStateService,
   type OAuthStateEntry,
-} from './state.service.js';
+} from '../../services/oauth/state.service.js';
 import {
   SessionTokens,
   type TokenPair,
@@ -49,11 +49,11 @@ export class AuthOAuthFacadeService {
 
   constructor(
     private readonly userService: UserService,
-    private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
-    private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
-    private readonly qqOAuthProvider: QqOAuthProvider,
-    private readonly googleOAuthProvider: GoogleOAuthProvider,
-    private readonly appleOAuthProvider: AppleOAuthProvider,
+    private readonly wechatWebOAuthProvider: OAuthProvider,
+    private readonly wechatMobileOAuthProvider: OAuthProvider,
+    private readonly qqOAuthProvider: OAuthProvider,
+    private readonly googleOAuthProvider: OAuthProvider,
+    private readonly appleOAuthProvider: OAuthProvider,
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly sessionTokens: SessionTokens,
     private readonly authOAuthService: AuthOAuthService,
@@ -82,7 +82,9 @@ export class AuthOAuthFacadeService {
         this.authOAuthStateService
           .peek(OAUTH_PROVIDER_WECHAT_WEB, state)
           .map((entry) => ({
-            authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
+            authorizeUrl: this.requireAuthorizeUrl(
+              this.wechatWebOAuthProvider,
+            ).buildAuthorizeUrl(state),
             state,
             expiresIn: ttlSec,
             ...(entry.callbackUri !== undefined && {
@@ -148,10 +150,9 @@ export class AuthOAuthFacadeService {
         this.authOAuthStateService
           .peek(OAUTH_PROVIDER_QQ, state)
           .map((entry) => ({
-            authorizeUrl: this.qqOAuthProvider.buildAuthorizeUrl(
-              state,
-              dto?.callbackUri,
-            ),
+            authorizeUrl: this.requireAuthorizeUrl(
+              this.qqOAuthProvider,
+            ).buildAuthorizeUrl(state, dto?.callbackUri),
             state,
             expiresIn: ttlSec,
             ...(entry.callbackUri !== undefined && {
@@ -180,10 +181,9 @@ export class AuthOAuthFacadeService {
         this.authOAuthStateService
           .peek(OAUTH_PROVIDER_GOOGLE, state)
           .map((entry) => ({
-            authorizeUrl: this.googleOAuthProvider.buildAuthorizeUrl(
-              state,
-              dto?.callbackUri,
-            ),
+            authorizeUrl: this.requireAuthorizeUrl(
+              this.googleOAuthProvider,
+            ).buildAuthorizeUrl(state, dto?.callbackUri),
             state,
             expiresIn: ttlSec,
             ...(entry.callbackUri !== undefined && {
@@ -199,9 +199,16 @@ export class AuthOAuthFacadeService {
   ): ResultAsync<{ user: User } & TokenPair, DomainFailure> {
     return this.authOAuthStateService
       .consume(OAUTH_PROVIDER_GOOGLE, dto.state, 'login')
-      .andThen(() => this.googleOAuthProvider.exchangeCodeForTokens(dto.code))
+      .andThen(() =>
+        this.requireTwoStep(this.googleOAuthProvider).exchangeCodeForTokens(
+          dto.code,
+        ),
+      )
       .andThen(({ accessToken, idToken }) =>
-        this.googleOAuthProvider.fetchProfileFromIdToken(idToken, accessToken),
+        this.requireTwoStep(this.googleOAuthProvider).fetchProfileFromIdToken(
+          idToken,
+          accessToken,
+        ),
       )
       .andThen((profile) => this.loginWithOAuthProfile(profile, context));
   }
@@ -258,6 +265,63 @@ export class AuthOAuthFacadeService {
       .andThen((profile) =>
         this.authOAuthService.linkOAuthProfileToUser(userId, profile),
       );
+  }
+
+  /**
+   * 取一个「一定能构造授权 URL」的提供商。
+   *
+   * 端口的 `buildAuthorizeUrl` 是可选的（原生 UI 提供商不实现），而这三个
+   * 调用点都明确需要它。缺失意味着**配置/装配错误**——不是业务失败，
+   * 所以抛而不是返回 `DomainFailure`（与端口契约里「配置错误抛出」一致）。
+   */
+  /**
+   * 取一个「一定能构造授权 URL」的提供商。
+   *
+   * 端口的 `buildAuthorizeUrl` 是可选的（原生 UI 提供商不实现），而这三个
+   * 调用点都明确需要它。缺失意味着**配置/装配错误**——不是业务失败，
+   * 所以抛而不是返回 `DomainFailure`（与端口契约里「配置错误抛出」一致）。
+   *
+   * 注意**不在这里统一参数个数**：各调用点原本的实参个数不同（微信传 1 个，
+   * QQ/Google 传 2 个含 `undefined`），统一会改变对提供商方法的调用形状。
+   */
+  private requireAuthorizeUrl(
+    provider: OAuthProvider,
+  ): OAuthProvider & {
+    buildAuthorizeUrl: NonNullable<OAuthProvider['buildAuthorizeUrl']>;
+  } {
+    if (provider.buildAuthorizeUrl === undefined) {
+      throw new ServiceUnavailableException({
+        code: 'AUTH_METHOD_DISABLED',
+        message: `${provider.provider} does not support authorize URLs.`,
+      });
+    }
+    return provider as OAuthProvider & {
+      buildAuthorizeUrl: NonNullable<OAuthProvider['buildAuthorizeUrl']>;
+    };
+  }
+
+  /**
+   * 取一个两步式提供商（code → tokens → id token → profile）。
+   *
+   * 缺任何一个方法都是装配错误，理由同 {@link requireAuthorizeUrl}。
+   */
+  private requireTwoStep(
+    provider: OAuthProvider,
+  ): Required<
+    Pick<OAuthProvider, 'exchangeCodeForTokens' | 'fetchProfileFromIdToken'>
+  > {
+    if (
+      provider.exchangeCodeForTokens === undefined ||
+      provider.fetchProfileFromIdToken === undefined
+    ) {
+      throw new ServiceUnavailableException({
+        code: 'AUTH_METHOD_DISABLED',
+        message: `${provider.provider} does not support the two-step flow.`,
+      });
+    }
+    return provider as Required<
+      Pick<OAuthProvider, 'exchangeCodeForTokens' | 'fetchProfileFromIdToken'>
+    >;
   }
 
   private loginWithOAuthProfile(

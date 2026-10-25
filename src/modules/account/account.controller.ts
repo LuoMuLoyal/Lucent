@@ -26,7 +26,8 @@ import {
 import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { AuditLogService } from '../audit-log/index.js';
-import { AuthService } from '../auth/index.js';
+import { CredentialsSelfService, IdentityLink } from '../auth/index.js';
+import { DeleteAccount } from '../auth/index.js';
 
 import type { UserPayload } from '../auth/index.js';
 import { CurrentUser } from '../auth/index.js';
@@ -65,7 +66,9 @@ import type { UpdateAccountDto } from './dto/update.dto.js';
 export class AccountController {
   constructor(
     private readonly accountService: AccountService,
-    private readonly authService: AuthService,
+    private readonly credentials: CredentialsSelfService,
+    private readonly identityLink: IdentityLink,
+    private readonly deleteAccountUseCase: DeleteAccount,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -129,7 +132,7 @@ export class AccountController {
     @Body({ schema: changePasswordSchema }) dto: ChangePasswordDto,
     @Req() request: FastifyRequest,
   ) {
-    await unwrapResult(this.authService.changePassword(user.sub, dto));
+    await unwrapResult(this.credentials.changePassword(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -166,7 +169,7 @@ export class AccountController {
     @Body({ schema: setPasswordSchema }) dto: SetPasswordDto,
     @Req() request: FastifyRequest,
   ) {
-    await unwrapResult(this.authService.setPassword(user.sub, dto));
+    await unwrapResult(this.credentials.setPassword(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -215,7 +218,7 @@ export class AccountController {
     @Req() request: FastifyRequest,
   ) {
     const updated = await unwrapResult(
-      this.authService.changeEmail(user.sub, dto),
+      this.credentials.changeEmail(user.sub, dto),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -294,7 +297,7 @@ export class AccountController {
     @Body({ schema: oauthAuthorizeSchema }) dto?: OAuthAuthorizeDto,
   ) {
     return unwrapResult(
-      this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto),
+      this.identityLink.createWechatWebIdentityLinkAuthorizeUrl(dto),
     );
   }
 
@@ -344,7 +347,7 @@ export class AccountController {
     @Body({ schema: oauthCallbackSchema }) dto: OAuthCallbackDto,
     @Req() request: FastifyRequest,
   ) {
-    await unwrapResult(this.authService.linkWechatWebIdentity(user.sub, dto));
+    await unwrapResult(this.identityLink.linkWechatWebIdentity(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -402,7 +405,7 @@ export class AccountController {
     @Req() request: FastifyRequest,
   ) {
     await unwrapResult(
-      this.authService.linkWechatMobileIdentity(user.sub, dto),
+      this.identityLink.linkWechatMobileIdentity(user.sub, dto),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -445,7 +448,7 @@ export class AccountController {
     @Body({ schema: deleteAccountSchema }) dto: DeleteAccountDto,
     @Req() request: FastifyRequest,
   ) {
-    await unwrapResult(this.authService.deleteAccount(user.sub, dto));
+    await unwrapResult(this.deleteAccountUseCase.execute(user.sub, dto));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,

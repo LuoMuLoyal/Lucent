@@ -26,7 +26,6 @@ import {
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
-import { AuthService } from '../services/auth.service.js';
 import { SessionTokens } from '../application/services/session-tokens.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
@@ -47,7 +46,6 @@ import {
 @Controller('auth')
 export class SessionController {
   constructor(
-    private readonly authService: AuthService,
     private readonly sessionTokens: SessionTokens,
     private readonly auditLogService: AuditLogService,
   ) {}
@@ -73,7 +71,7 @@ export class SessionController {
     @CurrentUser() user: UserPayload,
     @Body({ schema: logoutSchema }) dto: LogoutDto,
   ) {
-    await unwrapResult(this.authService.logout(user.sub, dto.refreshToken));
+    await unwrapResult(this.sessionTokens.revoke(user.sub, dto.refreshToken));
     return;
   }
 
@@ -181,15 +179,15 @@ export class SessionController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.refresh(
+      this.sessionTokens.rotate(
         dto.refreshToken,
         extractAuthRequestContext(request),
       ),
     );
     return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+      expiresIn: calculateExpiresIn(result.tokens.accessTokenExpiresAt),
     };
   }
 }

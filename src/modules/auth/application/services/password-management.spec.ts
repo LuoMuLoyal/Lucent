@@ -2,14 +2,14 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 
-import { PasswordManagementService } from './password-management.service.js';
+import { PasswordManagementService } from './password-management.js';
 import { UserService } from '../../../user/index.js';
-import { VerificationCodeService } from './verification-code.service.js';
+import { VerificationCodeService } from '../../services/identity/verification-code.service.js';
 import { SessionTokens } from '../../application/services/session-tokens.js';
-import { PasswordReauthService } from './password-reauth.service.js';
+import { PasswordReauthService } from '../../services/identity/password-reauth.service.js';
 import { INotificationSender } from '../../../notifications/index.js';
 import { AuthIdentityService } from '../../application/services/identity.js';
-import { EmailVerificationService } from './email-verification.service.js';
+import { EmailVerificationService } from '../../services/identity/email-verification.service.js';
 import type { NotificationListItemDto } from '../../../notifications/index.js';
 import type { User } from '#generated/prisma/client.js';
 import { UserStatus } from '#generated/prisma/client.js';
