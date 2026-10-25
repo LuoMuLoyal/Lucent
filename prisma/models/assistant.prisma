@@ -88,7 +88,7 @@ model AssistantMemory {
   content              String
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceConversation  AssistantConversation? @relation(fields: [sourceConversationId], references: [id], onDelete: SetNull)
+  sourceConversation  AssistantConversation @relation(fields: [sourceConversationId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([sourceConversationId])
