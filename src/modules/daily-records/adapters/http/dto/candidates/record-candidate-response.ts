@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { DAILY_RECORD_CANDIDATE_KINDS } from './candidate-contract.js';
+import { DAILY_RECORD_CANDIDATE_KINDS } from '../../../../application/ports/candidate-contract.js';
 
 export type DailyRecordCandidateKind =
   (typeof DAILY_RECORD_CANDIDATE_KINDS)[number];

@@ -5,7 +5,7 @@ import {
 import type {
   ObjectStorageConfig,
   ObjectStorageRuntime,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import type { I18nService } from 'nestjs-i18n';
 import { DailyRecordImageUploadService } from './image-upload.service.js';
 

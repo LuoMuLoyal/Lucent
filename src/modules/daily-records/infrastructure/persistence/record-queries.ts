@@ -18,6 +18,7 @@ import {
   type DailyRecordSummaryFact,
 } from '../../application/ports/records-query.js';
 import {
+  toDailyRecordFact,
   toDailyRecordFactFromColumns,
   toDailyRecordSummaryFact,
 } from '../../application/read_models/record-fact.js';
@@ -178,6 +179,17 @@ export class PrismaRecordQueries
       include: recordWithAttachments,
     });
     return row == null ? null : toDailyRecordSummaryFact(toRecordRow(row));
+  }
+
+  async findByIdWithAttachments(
+    userId: string,
+    id: string,
+  ): Promise<DailyRecordFact | null> {
+    const row = await this.prisma.userDailyRecord.findFirst({
+      where: { id, userId, ...nonDeleted },
+      include: recordWithAttachments,
+    });
+    return row == null ? null : toDailyRecordFact(toRecordRow(row));
   }
 
   /**

@@ -1,15 +1,15 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 import { DailyRecordsController } from './daily-records.controller.js';
-import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
-import { DailyRecordImageUploadService } from './services/image-upload.service.js';
-import { DailyRecordsService } from './services/records.service.js';
-import { SymptomCatalogService } from './services/symptom-catalog.service.js';
-import type { UserPayload } from '../auth/index.js';
-import { okAsync, errAsync } from '../../common/result/index.js';
-import type { DomainFailure } from '../../common/result/index.js';
-import { createDailyRecordSchema } from './adapters/http/dto/create-record.js';
-import { generateDailyRecordCandidatesSchema } from './adapters/http/dto/candidates/generate-record-candidates.js';
+import { DailyRecordCandidatesService } from '../../application/use_cases/generate-candidates.js';
+import { DailyRecordImageUploadService } from './image-upload.service.js';
+import { DailyRecordsService } from '../../application/services/records-facade.service.js';
+import { SymptomCatalogService } from './symptom-catalog.service.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { okAsync, errAsync } from '../../../../common/result/index.js';
+import type { DomainFailure } from '../../../../common/result/index.js';
+import { createDailyRecordSchema } from './dto/create-record.js';
+import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-record-candidates.js';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;

@@ -56,7 +56,8 @@ export interface UpdateRecordInput {
   unit?: string | null | undefined;
   note?: string | null | undefined;
   healthEventId?: string | null | undefined;
-  payload?: Record<string, unknown> | undefined;
+  /** `null` = 显式清空 payload（与「不提交」不同）。 */
+  payload?: Record<string, unknown> | null | undefined;
   /** `undefined` = 附件不动；给数组 = 整体替换（空数组即清空）。 */
   attachments?: ReadonlyArray<AttachmentInput> | undefined;
 }

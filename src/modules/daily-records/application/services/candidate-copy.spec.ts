@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { DailyRecordCandidatesCopyService } from '../candidates/copy.service.js';
+import { DailyRecordCandidatesCopyService } from './candidate-copy.js';
 
 describe('DailyRecordCandidatesCopyService', () => {
   let service: DailyRecordCandidatesCopyService;

@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { LocalizedCopyService } from '../../../../common/services/localized-copy.service.js';
-import type { DailyRecordCandidateData } from '../../adapters/http/dto/candidates/record-candidate-response.js';
-import type { DailyRecordCandidatesPromptCopy } from '../../prompts/daily-record-candidates.prompt.js';
+import type { DailyRecordCandidateData } from '../ports/record-candidates.js';
+import { CandidateCopyPort } from '../ports/candidate-generator.js';
+import type { DailyRecordCandidatesPromptCopy } from './candidate-prompt.js';
 import { nowIsoString } from '../../../../common/index.js';
 
 @Injectable()
-export class DailyRecordCandidatesCopyService extends LocalizedCopyService<DailyRecordCandidatesPromptCopy> {
+export class DailyRecordCandidatesCopyService
+  extends LocalizedCopyService<DailyRecordCandidatesPromptCopy>
+  implements CandidateCopyPort
+{
   protected readonly scope = 'daily-record-candidates';
 
   confirmationHint(locale: string): string {

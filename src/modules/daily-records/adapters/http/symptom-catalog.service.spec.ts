@@ -1,6 +1,6 @@
 import type { I18nService } from 'nestjs-i18n';
 import { SymptomCatalogService } from './symptom-catalog.service.js';
-import { SYMPTOM_CATALOG_CODES } from '../constants/symptom-catalog.constants.js';
+import { SYMPTOM_CATALOG_CODES } from '../../constants/symptom-catalog.constants.js';
 
 /** i18n fake：把 `symptom-catalog.<code>` 翻成 `<label>[<lang>]`，便于断言顺序与语言。 */
 function buildI18n(lang = 'zh-CN', labels: Record<string, string> = {}) {

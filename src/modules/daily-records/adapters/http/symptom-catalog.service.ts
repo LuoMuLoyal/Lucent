@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { SYMPTOM_CATALOG_CODES } from '../constants/symptom-catalog.constants.js';
-import type { SymptomCatalogResponseDto } from '../adapters/http/dto/symptom-catalog.js';
+import { SYMPTOM_CATALOG_CODES } from '../../constants/symptom-catalog.constants.js';
+import type { SymptomCatalogResponseDto } from '../../adapters/http/dto/symptom-catalog.js';
 
 /**
  * 症状目录（静态参考数据，无用户维度）。

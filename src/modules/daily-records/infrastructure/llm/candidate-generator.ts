@@ -7,11 +7,11 @@ import {
   buildDailyRecordCandidatesSystemPrompt,
   buildDailyRecordCandidatesUserPrompt,
   type DailyRecordCandidatesPromptCopy,
-} from '../../prompts/daily-record-candidates.prompt.js';
+} from '../../application/services/candidate-prompt.js';
 import {
   dailyRecordCandidatesSchema,
   type DailyRecordCandidateStructuredOutput,
-} from '../../adapters/http/dto/candidates/candidate-contract.js';
+} from '../../application/ports/candidate-contract.js';
 
 @Injectable()
 export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorService<

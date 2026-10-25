@@ -97,4 +97,15 @@ export abstract class DailyRecordReaderPort {
     userId: string,
     id: string,
   ): Promise<DailyRecordSummaryFact | null>;
+
+  /**
+   * 按 id 读单条（含附件明细）。
+   *
+   * 与 {@link findById} 并存是因为消费方要的东西不同：事件复查只要标题/时间，
+   * 助手与详情页需要附件对象键。
+   */
+  abstract findByIdWithAttachments(
+    userId: string,
+    id: string,
+  ): Promise<DailyRecordFact | null>;
 }

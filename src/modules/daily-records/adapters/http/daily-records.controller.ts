@@ -19,43 +19,43 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { ProblemDetailsDto } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { unwrapResult } from '../../common/result/index.js';
-import { createDailyRecordSchema } from './adapters/http/dto/create-record.js';
-import type { CreateDailyRecordDto } from './adapters/http/dto/create-record.js';
+import { CurrentUser } from '../../../auth/index.js';
+import type { UserPayload } from '../../../auth/index.js';
+import { ProblemDetailsDto } from '../../../../common/index.js';
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
+import { unwrapResult } from '../../../../common/result/index.js';
+import { createDailyRecordSchema } from './dto/create-record.js';
+import type { CreateDailyRecordDto } from './dto/create-record.js';
 
-import { updateDailyRecordSchema } from './adapters/http/dto/update-record.js';
-import type { UpdateDailyRecordDto } from './adapters/http/dto/update-record.js';
+import { updateDailyRecordSchema } from './dto/update-record.js';
+import type { UpdateDailyRecordDto } from './dto/update-record.js';
 
 import {
   dailyRecordListResponseSchema,
   dailyRecordResponseSchema,
   dailyRecordSummaryResponseSchema,
-} from './adapters/http/dto/record-response.js';
+} from './dto/record-response.js';
 
 import {
   createDailyRecordImageUploadSchema,
   dailyRecordImageUploadResponseSchema,
-} from './adapters/http/dto/candidates/record-image-upload.js';
-import type { CreateDailyRecordImageUploadDto } from './adapters/http/dto/candidates/record-image-upload.js';
+} from './dto/candidates/record-image-upload.js';
+import type { CreateDailyRecordImageUploadDto } from './dto/candidates/record-image-upload.js';
 
-import { dailyRecordCandidateResponseSchema } from './adapters/http/dto/candidates/record-candidate-response.js';
+import { dailyRecordCandidateResponseSchema } from './dto/candidates/record-candidate-response.js';
 
-import { generateDailyRecordCandidatesSchema } from './adapters/http/dto/candidates/generate-record-candidates.js';
-import type { GenerateDailyRecordCandidatesDto } from './adapters/http/dto/candidates/generate-record-candidates.js';
+import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-record-candidates.js';
+import type { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.js';
 
-import { queryDailyRecordSchema } from './adapters/http/dto/query-record.js';
-import type { QueryDailyRecordDto } from './adapters/http/dto/query-record.js';
-import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service.js';
-import { DailyRecordImageUploadService } from './services/image-upload.service.js';
-import { DailyRecordsService } from './services/records.service.js';
+import { queryDailyRecordSchema } from './dto/query-record.js';
+import type { QueryDailyRecordDto } from './dto/query-record.js';
+import { DailyRecordCandidatesService } from '../../application/use_cases/generate-candidates.js';
+import { DailyRecordImageUploadService } from './image-upload.service.js';
+import { DailyRecordsService } from '../../application/services/records-facade.service.js';
 import { I18nLang } from 'nestjs-i18n';
-import { symptomCatalogResponseSchema } from './adapters/http/dto/symptom-catalog.js';
-import type { SymptomCatalogResponseDto } from './adapters/http/dto/symptom-catalog.js';
-import { SymptomCatalogService } from './services/symptom-catalog.service.js';
+import { symptomCatalogResponseSchema } from './dto/symptom-catalog.js';
+import type { SymptomCatalogResponseDto } from './dto/symptom-catalog.js';
+import { SymptomCatalogService } from './symptom-catalog.service.js';
 
 @ApiTags('Daily Records')
 @ApiBearerAuth('access-token')
