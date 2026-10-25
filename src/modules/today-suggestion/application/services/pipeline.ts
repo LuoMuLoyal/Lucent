@@ -1,17 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import type { RuleContext } from '../../domain/rule/rule-definition.js';
-import { MedicationCollectorService } from '../../adapters/acl/collectors/medication.js';
-import { RecordCollectorService } from '../../adapters/acl/collectors/record.js';
-import { ProfileCollectorService } from '../../adapters/acl/collectors/profile.js';
-import { HealthEventCollectorService } from '../../adapters/acl/collectors/health-event.js';
+import {
+  HEALTH_EVENT_COLLECTOR_PORT,
+  MEDICATION_COLLECTOR_PORT,
+  PROFILE_COLLECTOR_PORT,
+  RECORD_COLLECTOR_PORT,
+  type SuggestionSignalCollectorPort,
+} from '../ports/collectors.js';
 import { RegistryService } from '../services/rule-registry.js';
+import { timeOfDay } from '../../domain/rule/time-of-day.js';
 import { FeedbackReadModel } from '../read_models/feedback-read.js';
 import { arbitrate } from '../../domain/policies/arbitration/arbiter.js';
 import type { ArbitrationResult } from '../../domain/policies/arbitration/arbiter.js';
 import { suppressAndAdjust } from '../../domain/policies/feedback/suppression.js';
-import { BaselineService } from '../../infrastructure/persistence/baseline.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
+import { BASELINE_PORT, type BaselinePort } from '../ports/baseline.js';
+import { SUGGESTION_CACHE_PORT } from '../ports/suggestion-cache.js';
+import type { SuggestionCachePort } from '../ports/suggestion-cache.js';
 import type { SuggestionSignal } from '../../domain/signal/signal.js';
 
 /**
@@ -37,14 +42,18 @@ export class SuggestionPipelineService {
   private readonly logger = new Logger(SuggestionPipelineService.name);
 
   constructor(
-    private readonly medicationCollector: MedicationCollectorService,
-    private readonly recordCollector: RecordCollectorService,
-    private readonly profileCollector: ProfileCollectorService,
-    private readonly healthEventCollector: HealthEventCollectorService,
+    @Inject(MEDICATION_COLLECTOR_PORT)
+    private readonly medicationCollector: SuggestionSignalCollectorPort,
+    @Inject(RECORD_COLLECTOR_PORT)
+    private readonly recordCollector: SuggestionSignalCollectorPort,
+    @Inject(PROFILE_COLLECTOR_PORT)
+    private readonly profileCollector: SuggestionSignalCollectorPort,
+    @Inject(HEALTH_EVENT_COLLECTOR_PORT)
+    private readonly healthEventCollector: SuggestionSignalCollectorPort,
     private readonly registry: RegistryService,
     private readonly feedbackRead: FeedbackReadModel,
-    private readonly baseline: BaselineService,
-    private readonly cache: SuggestionCacheService,
+    @Inject(BASELINE_PORT) private readonly baseline: BaselinePort,
+    @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
   ) {}
 
   /**
@@ -89,7 +98,7 @@ export class SuggestionPipelineService {
     const context: RuleContext = {
       userId,
       date: targetDate,
-      timeOfDay: RecordCollectorService.getTimeOfDay(),
+      timeOfDay: timeOfDay(),
       baselineStatus,
     };
 

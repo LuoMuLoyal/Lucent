@@ -1,9 +1,7 @@
 import type { I18nService } from 'nestjs-i18n';
 import { SuggestionPresentationService } from './presentation.js';
-import {
-  SuggestionCopyService,
-  type CopyGenerationResult,
-} from '../../adapters/queue/copy/writer.js';
+import { buildCopyResultKey } from '../../domain/suggestion/copy-result-key.js';
+import type { CopyGenerationResult } from '../../types/copy-generation.types.js';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
@@ -232,10 +230,7 @@ describe('SuggestionPresentationService', () => {
   describe('resolveCopy', () => {
     it('returns the result from the map when available', () => {
       const results = new Map([
-        [
-          SuggestionCopyService.buildResultKey('test.template', {}),
-          mockCopyResult,
-        ],
+        [buildCopyResultKey('test.template', {}), mockCopyResult],
       ]);
 
       const result = service.resolveCopy(results, 'test.template', {}, 'zh-CN');

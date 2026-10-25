@@ -1,4 +1,4 @@
-import type { MaterializationReasonCode } from '../../infrastructure/persistence/materialization.types.js';
+import type { MaterializationReasonCode } from '../../application/ports/materialization.js';
 
 /**
  * Payload of a resolved suggestion recompute job.

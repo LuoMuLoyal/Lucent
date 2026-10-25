@@ -1,4 +1,5 @@
 import { SuggestionCacheService } from './suggestions.js';
+import { buildExcludeKey } from '../../domain/suggestion/exclude-key.js';
 import { BaselineDimension } from '../../domain/baseline/baseline.js';
 
 describe('SuggestionCacheService', () => {
@@ -177,41 +178,37 @@ describe('SuggestionCacheService', () => {
 
   describe('buildExcludeKey', () => {
     it('should return none for empty or undefined', () => {
-      expect(SuggestionCacheService.buildExcludeKey()).toBe('none');
-      expect(SuggestionCacheService.buildExcludeKey([])).toBe('none');
+      expect(buildExcludeKey()).toBe('none');
+      expect(buildExcludeKey([])).toBe('none');
     });
 
     it('should return sorted comma-joined string', () => {
-      expect(SuggestionCacheService.buildExcludeKey(['b', 'a', 'c'])).toBe(
-        'a,b,c',
-      );
+      expect(buildExcludeKey(['b', 'a', 'c'])).toBe('a,b,c');
     });
 
     it('should return the single element for single-item array', () => {
-      expect(SuggestionCacheService.buildExcludeKey(['only'])).toBe('only');
+      expect(buildExcludeKey(['only'])).toBe('only');
     });
 
     it('should sort unsorted single element', () => {
-      expect(SuggestionCacheService.buildExcludeKey(['z'])).toBe('z');
+      expect(buildExcludeKey(['z'])).toBe('z');
     });
 
     it('should handle duplicate IDs by including them all', () => {
-      const result = SuggestionCacheService.buildExcludeKey(['a', 'a', 'b']);
+      const result = buildExcludeKey(['a', 'a', 'b']);
       // Duplicates are not removed, just sorted and joined
       expect(result).toBe('a,a,b');
     });
 
     it('should not mutate the input array', () => {
       const input = ['c', 'a', 'b'];
-      SuggestionCacheService.buildExcludeKey(input);
+      buildExcludeKey(input);
       // Original array should not be sorted in-place
       expect(input).toEqual(['c', 'a', 'b']);
     });
 
     it('should handle IDs with special characters', () => {
-      expect(SuggestionCacheService.buildExcludeKey(['id:1', 'id:2'])).toBe(
-        'id:1,id:2',
-      );
+      expect(buildExcludeKey(['id:1', 'id:2'])).toBe('id:1,id:2');
     });
   });
 });

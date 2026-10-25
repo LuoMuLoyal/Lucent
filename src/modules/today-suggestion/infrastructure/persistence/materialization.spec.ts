@@ -2,7 +2,7 @@ import { MaterializationStore } from './materialization.js';
 import type {
   MaterializationRow,
   MaterializationStatus,
-} from './materialization.types.js';
+} from '../../application/ports/materialization.js';
 
 function row(overrides: Partial<MaterializationRow> = {}): MaterializationRow {
   return {

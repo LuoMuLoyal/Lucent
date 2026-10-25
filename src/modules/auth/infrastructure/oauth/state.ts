@@ -23,13 +23,8 @@ import {
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_GOOGLE,
   type OAuthProviderName,
+  type OAuthStateEntry,
 } from '../../types/oauth.types.js';
-
-interface OAuthStateEntry {
-  provider: OAuthProviderName;
-  purpose: 'login' | 'link';
-  callbackUri?: string;
-}
 
 export type { OAuthStateEntry };
 

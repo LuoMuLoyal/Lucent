@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import {
@@ -9,13 +9,36 @@ import {
 } from '../../domain/suggestion/suggestion.types.js';
 import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.js';
-import type { CopyJobData } from '../../types/copy-generation.types.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
-import {
-  SuggestionCopyService,
-  type CopyGenerationResult,
-} from '../../adapters/queue/copy/writer.js';
-import { SuggestionCopyQueueService } from '../../adapters/queue/copy/queue.js';
+import { buildCopyResultKey } from '../../domain/suggestion/copy-result-key.js';
+import { SUGGESTION_CACHE_PORT } from '../ports/suggestion-cache.js';
+import type { SuggestionCachePort } from '../ports/suggestion-cache.js';
+import type {
+  CopyGenerationResult,
+  CopyJobData,
+} from '../../types/copy-generation.types.js';
+
+/**
+ * The slice of the copy writer this service drives.
+ *
+ * Declared here rather than imported from the queue adapter, so presentation
+ * depends on a contract instead of on dapters/queue (ADR-0024 D2).
+ */
+export interface CopyServiceLike {
+  getOrEnqueueBatch(
+    requests: CopyJobData[],
+    queue?: CopyQueueLike,
+  ): Promise<Map<string, CopyGenerationResult>>;
+  generateSyncBatch(
+    requests: CopyJobData[],
+  ): Promise<Map<string, CopyGenerationResult>>;
+}
+
+/** The queue surface the batch read path branches on. */
+export interface CopyQueueLike {
+  readonly isConfigured: boolean;
+  enqueue(data: CopyJobData): Promise<string | null>;
+}
+
 import { getFallbackCopy } from '../../constants/copy-fallback.js';
 import {
   localizeEvidenceLabel,
@@ -34,9 +57,9 @@ export class SuggestionPresentationService {
   private readonly logger = new Logger(SuggestionPresentationService.name);
 
   constructor(
-    private readonly copyService: SuggestionCopyService,
-    private readonly copyQueue: SuggestionCopyQueueService,
-    private readonly cache: SuggestionCacheService,
+    private readonly copyService: CopyServiceLike,
+    private readonly copyQueue: CopyQueueLike,
+    @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
     private readonly i18n: I18nService,
   ) {}
 
@@ -98,7 +121,7 @@ export class SuggestionPresentationService {
     params: Record<string, string | number>,
     locale: string,
   ): CopyGenerationResult {
-    const resultKey = SuggestionCopyService.buildResultKey(templateKey, params);
+    const resultKey = buildCopyResultKey(templateKey, params);
     const result = results.get(resultKey);
     if (result != null) return result;
 

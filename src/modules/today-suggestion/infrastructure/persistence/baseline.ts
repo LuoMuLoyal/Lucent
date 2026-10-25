@@ -7,6 +7,7 @@ import {
   BASELINE_MIN_DAYS,
 } from '../../domain/baseline/baseline.js';
 import type { BaselineRecord } from '../../domain/baseline/baseline.js';
+import type { BaselinePort } from '../../application/ports/baseline.js';
 import type { SuggestionSignal } from '../../domain/signal/signal.js';
 
 /**
@@ -17,7 +18,7 @@ import type { SuggestionSignal } from '../../domain/signal/signal.js';
  * trend/behavior rules are allowed to fire.
  */
 @Injectable()
-export class BaselineService {
+export class BaselineService implements BaselinePort {
   constructor(private readonly prisma: PrismaService) {}
 
   /**

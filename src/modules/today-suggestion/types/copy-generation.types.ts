@@ -42,3 +42,13 @@ export interface CopyPromptCopy {
   constraints: string;
   factsLabel: string;
 }
+
+/** One generated card copy, as produced by the writer adapter. */
+export interface CopyGenerationResult {
+  title: string;
+  reason: string;
+  boundary: string;
+  actionLabel: string;
+  aiGenerated: boolean;
+  fromCache: boolean;
+}

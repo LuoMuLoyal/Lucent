@@ -2,8 +2,8 @@ import { HealthEventKind } from '#generated/prisma/client.js';
 import { formatDateOnlyInTimezone } from '../../../../common/index.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
 import { RecomputeEventTriggerService } from './event-trigger.service.js';
-import type { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
-import type { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
+import type { SuggestionCachePort } from '../../application/ports/suggestion-cache.js';
+import type { MaterializationStorePort } from '../../application/ports/materialization.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
 const CURRENT = {
@@ -66,8 +66,8 @@ describe('RecomputeEventTriggerService', () => {
       },
     };
     service = new RecomputeEventTriggerService(
-      store as unknown as MaterializationStore,
-      cache as unknown as SuggestionCacheService,
+      store as unknown as MaterializationStorePort,
+      cache as unknown as SuggestionCachePort,
       prisma as unknown as PrismaService,
     );
   });

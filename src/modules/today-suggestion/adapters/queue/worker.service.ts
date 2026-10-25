@@ -1,12 +1,19 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { resolveLocale } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { SuggestionService } from '../../application/services/suggestions.js';
-import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
-import { BaselineService } from '../../infrastructure/persistence/baseline.js';
+import {
+  MATERIALIZATION_STORE_PORT,
+  type MaterializationStorePort,
+} from '../../application/ports/materialization.js';
+import { SUGGESTION_CACHE_PORT } from '../../application/ports/suggestion-cache.js';
+import type { SuggestionCachePort } from '../../application/ports/suggestion-cache.js';
+import {
+  BASELINE_PORT,
+  type BaselinePort,
+} from '../../application/ports/baseline.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';
 import type { RecomputeJobData } from './recompute-job.types.js';
 
@@ -18,9 +25,10 @@ export class SuggestionRecomputeWorkerService {
 
   constructor(
     private readonly suggestionService: SuggestionService,
-    private readonly materializationStore: MaterializationStore,
-    private readonly cache: SuggestionCacheService,
-    private readonly baseline: BaselineService,
+    @Inject(MATERIALIZATION_STORE_PORT)
+    private readonly materializationStore: MaterializationStorePort,
+    @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
+    @Inject(BASELINE_PORT) private readonly baseline: BaselinePort,
     private readonly prisma: PrismaService,
     @Optional() private readonly metricsService?: MetricsService,
   ) {}
@@ -152,7 +160,7 @@ export class SuggestionRecomputeWorkerService {
         return;
       } catch (error) {
         let latest:
-          | Awaited<ReturnType<MaterializationStore['readStatus']>>
+          | Awaited<ReturnType<MaterializationStorePort['readStatus']>>
           | undefined;
         try {
           latest = await this.materializationStore.readStatus(

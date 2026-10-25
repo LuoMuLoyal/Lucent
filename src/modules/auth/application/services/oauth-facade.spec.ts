@@ -1,9 +1,9 @@
 import type { UserService } from '../../../user/index.js';
 import type { OAuthProvider } from '../ports/oauth-provider.js';
-import type { AuthOAuthStateService } from '../../infrastructure/oauth/state.js';
+import type { OAuthStatePort } from '../ports/oauth-services.js';
 import type { SessionTokens } from '../../application/services/session-tokens.js';
-import type { AuthOAuthService } from '../../infrastructure/oauth/identities.js';
-import type { AuthNotificationService } from '../../infrastructure/oauth/notifications.js';
+import type { OAuthIdentitiesPort } from '../ports/oauth-services.js';
+import type { OAuthNotificationsPort } from '../ports/oauth-services.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
 import { AuthOAuthFacadeService } from './oauth-facade.js';
 import { UserStatus } from '#generated/prisma/client.js';
@@ -69,10 +69,10 @@ describe('AuthOAuthFacadeService', () => {
   let wechatMobileProvider: vi.Mocked<OAuthProvider>;
   let qqProvider: vi.Mocked<OAuthProvider>;
   let googleProvider: vi.Mocked<OAuthProvider>;
-  let stateService: vi.Mocked<AuthOAuthStateService>;
+  let stateService: vi.Mocked<OAuthStatePort>;
   let tokenService: vi.Mocked<SessionTokens>;
-  let oauthService: vi.Mocked<AuthOAuthService>;
-  let notificationService: vi.Mocked<AuthNotificationService>;
+  let oauthService: vi.Mocked<OAuthIdentitiesPort>;
+  let notificationService: vi.Mocked<OAuthNotificationsPort>;
   let appleProvider: vi.Mocked<OAuthProvider>;
 
   beforeEach(() => {
@@ -131,7 +131,7 @@ describe('AuthOAuthFacadeService', () => {
       ),
       consume: vi.fn().mockReturnValue(okAsync(undefined as never)),
       buildRedirectUrl: vi.fn().mockReturnValue(ok('https://app/callback')),
-    } as unknown as vi.Mocked<AuthOAuthStateService>;
+    } as unknown as vi.Mocked<OAuthStatePort>;
     tokenService = {
       issue: vi.fn().mockReturnValue(okAsync(mockTokens)),
     } as unknown as vi.Mocked<SessionTokens>;
@@ -139,11 +139,11 @@ describe('AuthOAuthFacadeService', () => {
       findOrCreateOAuthUser: vi.fn().mockReturnValue(okAsync(mockUser)),
       updateOAuthLoginUser: vi.fn().mockReturnValue(okAsync(mockUser)),
       linkOAuthProfileToUser: vi.fn().mockReturnValue(okAsync(undefined)),
-    } as unknown as vi.Mocked<AuthOAuthService>;
+    } as unknown as vi.Mocked<OAuthIdentitiesPort>;
     notificationService = {
       notifyOAuthLogin: vi.fn().mockResolvedValue(undefined),
       notifyIdentityLinked: vi.fn().mockResolvedValue(undefined),
-    } as unknown as vi.Mocked<AuthNotificationService>;
+    } as unknown as vi.Mocked<OAuthNotificationsPort>;
 
     service = new AuthOAuthFacadeService(
       userService,

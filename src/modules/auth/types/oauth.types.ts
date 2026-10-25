@@ -17,3 +17,10 @@ export interface OAuthAuthorizeResult {
   expiresIn: number;
   callbackUri?: string;
 }
+
+/** One in-flight OAuth authorization: which provider, why, and where back. */
+export interface OAuthStateEntry {
+  provider: OAuthProviderName;
+  purpose: 'login' | 'link';
+  callbackUri?: string;
+}

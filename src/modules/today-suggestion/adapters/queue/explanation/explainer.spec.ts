@@ -1,7 +1,7 @@
 import type { I18nService } from 'nestjs-i18n';
 import type { LlmSafetyPolicyService } from '../../../../../common/llm/safety/llm-safety-policy.service.js';
 import type { PrismaService } from '../../../../../prisma/index.js';
-import type { ExplanationGeneratorService } from '../../../infrastructure/llm/explanation-generator.js';
+import type { ExplanationGeneratorLike } from './explainer.js';
 import { ExplanationService } from './explainer.js';
 
 describe('ExplanationService', () => {
@@ -47,7 +47,7 @@ describe('ExplanationService', () => {
     const generatorMock = {
       hasAnalysisModel: vi.fn().mockReturnValue(hasModel),
       generate: vi.fn().mockResolvedValue(generateResult),
-    } as unknown as ExplanationGeneratorService;
+    } as unknown as ExplanationGeneratorLike;
 
     const safetyMock = {
       isSafe: vi.fn().mockReturnValue(isSafe),
@@ -116,7 +116,7 @@ describe('ExplanationService', () => {
       const generatorMock = {
         hasAnalysisModel: vi.fn().mockReturnValue(true),
         generate: vi.fn().mockRejectedValue(new Error('LLM timeout')),
-      } as unknown as ExplanationGeneratorService;
+      } as unknown as ExplanationGeneratorLike;
       const safetyMock = {
         isSafe: vi.fn().mockReturnValue(true),
       } as unknown as LlmSafetyPolicyService;

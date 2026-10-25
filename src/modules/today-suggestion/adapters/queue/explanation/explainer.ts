@@ -17,7 +17,21 @@ import type {
   ExplanationContext,
   ExplanationPromptCopy,
 } from '../../../prompts/explanation.prompt.js';
-import { ExplanationGeneratorService } from '../../../infrastructure/llm/explanation-generator.js';
+import type { ExplanationStructuredOutput } from '../../../schemas/explanation.schema.js';
+
+/**
+ * The slice of the explanation generator this adapter drives.
+ *
+ * Declared structurally so the queue adapter depends on a contract rather than
+ * on infrastructure/llm (ADR-0024 D3); the module binds the real generator.
+ */
+export interface ExplanationGeneratorLike {
+  hasAnalysisModel(): boolean;
+  generate(
+    context: ExplanationContext,
+    promptCopy: ExplanationPromptCopy,
+  ): Promise<ExplanationStructuredOutput>;
+}
 
 /**
  * Result of an AI explanation request.
@@ -46,7 +60,7 @@ export class ExplanationService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly generatorService: ExplanationGeneratorService,
+    private readonly generatorService: ExplanationGeneratorLike,
     private readonly policyService: LlmSafetyPolicyService,
     private readonly i18n: I18nService,
   ) {}

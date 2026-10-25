@@ -5,6 +5,7 @@ import type { SuggestionSignal } from '../../domain/signal/signal.js';
 import type { BaselineDimension } from '../../domain/baseline/baseline.js';
 import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.js';
 import type { GeneratedCopy } from '../../schemas/copy.schema.js';
+import type { SuggestionCachePort } from '../../application/ports/suggestion-cache.js';
 import {
   SIGNAL_CACHE_TTL_MS,
   SUGGESTION_CACHE_TTL_MS,
@@ -30,7 +31,7 @@ const CACHE_KEY_PREFIX = 'today-suggestion';
  * - Baseline cache: invalidated when a new baseline is established (via invalidateBaseline).
  */
 @Injectable()
-export class SuggestionCacheService {
+export class SuggestionCacheService implements SuggestionCachePort {
   private readonly logger = new Logger(SuggestionCacheService.name);
 
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
@@ -270,8 +271,4 @@ export class SuggestionCacheService {
   }
 
   /** Builds a cache-safe exclude key from an array of IDs. */
-  static buildExcludeKey(excludeIds?: string[]): string {
-    if (excludeIds == null || excludeIds.length === 0) return 'none';
-    return [...excludeIds].sort().join(',');
-  }
 }

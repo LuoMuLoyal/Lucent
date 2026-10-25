@@ -20,7 +20,8 @@ import {
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
   FEEDBACK_SUPPRESS_DURATION_MS,
 } from '../../constants/feedback.constants.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
+import { SUGGESTION_CACHE_PORT } from '../ports/suggestion-cache.js';
+import type { SuggestionCachePort } from '../ports/suggestion-cache.js';
 import { ProductEventsService } from '../../../product-events/index.js';
 import { FEEDBACK_PORT } from '../ports/feedback.js';
 import type { FeedbackPort } from '../ports/feedback.js';
@@ -62,7 +63,8 @@ export class RecordFeedbackUseCase {
 
   constructor(
     @Inject(FEEDBACK_PORT) private readonly feedback: FeedbackPort,
-    private readonly suggestionCache: SuggestionCacheService,
+    @Inject(SUGGESTION_CACHE_PORT)
+    private readonly suggestionCache: SuggestionCachePort,
     private readonly productEvents: ProductEventsService,
   ) {}
 

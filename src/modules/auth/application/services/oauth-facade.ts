@@ -35,12 +35,16 @@ import {
   type OAuthAuthorizeResult,
 } from '../../types/oauth.types.js';
 import type { OAuthProviderProfile } from '../../application/ports/oauth-provider.js';
-import { AuthNotificationService } from '../../infrastructure/oauth/notifications.js';
-import { AuthOAuthService } from '../../infrastructure/oauth/identities.js';
+import type { OAuthStateEntry } from '../../types/oauth.types.js';
+
 import {
-  AuthOAuthStateService,
-  type OAuthStateEntry,
-} from '../../infrastructure/oauth/state.js';
+  OAUTH_IDENTITIES_PORT,
+  OAUTH_NOTIFICATIONS_PORT,
+  OAUTH_STATE_PORT,
+  type OAuthIdentitiesPort,
+  type OAuthNotificationsPort,
+  type OAuthStatePort,
+} from '../ports/oauth-services.js';
 import {
   SessionTokens,
   type TokenPair,
@@ -80,10 +84,13 @@ export class AuthOAuthFacadeService implements OnModuleInit {
     private readonly googleOAuthProvider: OAuthProvider,
     @Inject(OAUTH_PROVIDER_TOKENS.apple)
     private readonly appleOAuthProvider: OAuthProvider,
-    private readonly authOAuthStateService: AuthOAuthStateService,
+    @Inject(OAUTH_STATE_PORT)
+    private readonly authOAuthStateService: OAuthStatePort,
     private readonly sessionTokens: SessionTokens,
-    private readonly authOAuthService: AuthOAuthService,
-    private readonly authNotificationService: AuthNotificationService,
+    @Inject(OAUTH_IDENTITIES_PORT)
+    private readonly authOAuthService: OAuthIdentitiesPort,
+    @Inject(OAUTH_NOTIFICATIONS_PORT)
+    private readonly authNotificationService: OAuthNotificationsPort,
   ) {}
 
   /**

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   now,
   nowIsoString,
@@ -12,10 +12,33 @@ import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.j
 import { SuggestionPipelineService } from './pipeline.js';
 import { SuggestionPresentationService } from './presentation.js';
 import { LifecycleService } from './lifecycle.js';
-import { EscalationService } from '../../infrastructure/notifications/escalation.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
-import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
-import type { MaterializationStatusView } from '../../infrastructure/persistence/materialization.types.js';
+import type { SuggestionCandidate as EscalatableCandidate } from '../../domain/suggestion/suggestion-candidate.js';
+
+/**
+ * The notification escalation surface this orchestrator drives.
+ *
+ * Declared structurally so pplication/ depends on a contract rather than on
+ * infrastructure/notifications (ADR-0024 D2). The module binds the real
+ * EscalationService.
+ */
+export interface EscalationPort {
+  escalateIfNeeded(
+    userId: string,
+    suggestionId: string,
+    candidate: EscalatableCandidate,
+    date: string,
+    copy: { title: string; reason: string },
+  ): Promise<boolean>;
+}
+
+/** DI token for the escalation port. */
+export const ESCALATION_PORT = 'ESCALATION_PORT';
+import { buildExcludeKey } from '../../domain/suggestion/exclude-key.js';
+import {
+  MATERIALIZATION_STORE_PORT,
+  type MaterializationStorePort,
+} from '../ports/materialization.js';
+import type { MaterializationStatusView } from '../ports/materialization.js';
 import type { SuggestionSignal } from '../../domain/signal/signal.js';
 import { SUGGESTION_DEFAULT_LOCALE } from '../../constants/locale.constants.js';
 
@@ -54,8 +77,9 @@ export class SuggestionService {
     private readonly pipeline: SuggestionPipelineService,
     private readonly presentation: SuggestionPresentationService,
     private readonly lifecycle: LifecycleService,
-    private readonly escalation: EscalationService,
-    private readonly materializationStore: MaterializationStore,
+    @Inject(ESCALATION_PORT) private readonly escalation: EscalationPort,
+    @Inject(MATERIALIZATION_STORE_PORT)
+    private readonly materializationStore: MaterializationStorePort,
   ) {}
 
   /**
@@ -88,7 +112,7 @@ export class SuggestionService {
     const cachedResult = await this.presentation.getCachedResult(
       userId,
       targetDate,
-      SuggestionCacheService.buildExcludeKey(excludeIds),
+      buildExcludeKey(excludeIds),
     );
     if (
       cachedResult == null ||
@@ -133,7 +157,7 @@ export class SuggestionService {
   ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
-    const excludeKey = SuggestionCacheService.buildExcludeKey(excludeIds);
+    const excludeKey = buildExcludeKey(excludeIds);
     // Pass-through is intentional here: the caller (worker or an explicit
     // caller) already owns the locale, and copy generation / persistence accept
     // it verbatim — `copy-fallback.ts` even keys on `en-US`. `readCurrent`

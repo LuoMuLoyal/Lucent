@@ -1,11 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { formatDateOnlyInTimezone, now } from '../../../../common/index.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
-import { MaterializationStore } from '../../infrastructure/persistence/materialization.js';
-import type { MaterializationReasonCode } from '../../infrastructure/persistence/materialization.types.js';
+import { SUGGESTION_CACHE_PORT } from '../../application/ports/suggestion-cache.js';
+import type { SuggestionCachePort } from '../../application/ports/suggestion-cache.js';
+import {
+  MATERIALIZATION_STORE_PORT,
+  type MaterializationStorePort,
+} from '../../application/ports/materialization.js';
+import type { MaterializationReasonCode } from '../../application/ports/materialization.js';
 import type { RecomputeJobData } from './recompute-job.types.js';
 
 /** Event name → the reason code recorded on the materialization row. */
@@ -46,8 +50,9 @@ export class RecomputeEventTriggerService {
   private readonly logger = new Logger(RecomputeEventTriggerService.name);
 
   constructor(
-    private readonly store: MaterializationStore,
-    private readonly cache: SuggestionCacheService,
+    @Inject(MATERIALIZATION_STORE_PORT)
+    private readonly store: MaterializationStorePort,
+    @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
     private readonly prisma: PrismaService,
   ) {}
 

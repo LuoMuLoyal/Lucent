@@ -1,6 +1,6 @@
 import { SuggestionService } from './suggestions.js';
 import type { ArbitrationResult } from '../../domain/policies/arbitration/arbiter.js';
-import type { CopyGenerationResult } from '../../adapters/queue/copy/writer.js';
+import type { CopyGenerationResult } from '../../types/copy-generation.types.js';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import {
   SuggestionType,
@@ -8,7 +8,7 @@ import {
 } from '../../domain/suggestion/suggestion.types.js';
 import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
 import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.js';
-import { SuggestionCacheService } from '../../infrastructure/cache/suggestions.js';
+import { buildExcludeKey } from '../../domain/suggestion/exclude-key.js';
 
 const mockCopyResult: CopyGenerationResult = {
   title: 'AI Title',
@@ -457,8 +457,7 @@ describe('SuggestionService', () => {
   it('caches the final result', async () => {
     await service.generate('user-1', '2026-07-09');
 
-    const expectedExcludeKey =
-      SuggestionCacheService.buildExcludeKey(undefined);
+    const expectedExcludeKey = buildExcludeKey(undefined);
     expect(deps.presentation.cacheResult).toHaveBeenCalledWith(
       'user-1',
       '2026-07-09',

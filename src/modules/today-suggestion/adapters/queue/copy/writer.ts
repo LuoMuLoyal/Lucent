@@ -10,27 +10,24 @@
  * Fallback path (Redis unavailable):
  *   generateSync() — inline LLM call with cache check.
  */
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'node:crypto';
-import { SuggestionCopyLlmService } from '../../../infrastructure/llm/copy-generator.js';
-import { SuggestionCacheService } from '../../../infrastructure/cache/suggestions.js';
+
+import { SUGGESTION_CACHE_PORT } from '../../../application/ports/suggestion-cache.js';
+import type { SuggestionCachePort } from '../../../application/ports/suggestion-cache.js';
 import { getFallbackCopy } from '../../../constants/copy-fallback.js';
 
 import { validateCopyTemplate } from '../../../constants/copy-templates.js';
+import type { GeneratedCopy } from '../../../schemas/copy.schema.js';
+import { buildCopyResultKey } from '../../../domain/suggestion/copy-result-key.js';
 import type {
+  CopyGenerationResult,
   CopyJobData,
   CopyPromptCopy,
 } from '../../../types/copy-generation.types.js';
 
-export interface CopyGenerationResult {
-  title: string;
-  reason: string;
-  boundary: string;
-  actionLabel: string;
-  aiGenerated: boolean;
-  fromCache: boolean;
-}
+export type { CopyGenerationResult } from '../../../types/copy-generation.types.js';
 
 /**
  * Minimal interface for the queue dependency used by the read path.
@@ -41,13 +38,28 @@ export interface CopyQueueLike {
   enqueue(data: CopyJobData): Promise<string | null>;
 }
 
+/**
+ * The slice of the copy generator this adapter drives.
+ *
+ * Declared as a structural contract rather than importing the
+ * `infrastructure/llm` implementation, so the dependency direction stays
+ * adapter → contract (ADR-0024 D3). The module binds the real generator.
+ */
+export interface CopyGeneratorLike {
+  hasAnalysisModel(): boolean;
+  generate(
+    context: CopyJobData,
+    promptCopy: CopyPromptCopy,
+  ): Promise<GeneratedCopy>;
+}
+
 @Injectable()
 export class SuggestionCopyService {
   private readonly logger = new Logger(SuggestionCopyService.name);
 
   constructor(
-    private readonly llmService: SuggestionCopyLlmService,
-    private readonly cache: SuggestionCacheService,
+    private readonly llmService: CopyGeneratorLike,
+    @Inject(SUGGESTION_CACHE_PORT) private readonly cache: SuggestionCachePort,
     private readonly i18n: I18nService,
   ) {}
 
@@ -99,25 +111,6 @@ export class SuggestionCopyService {
   }
 
   /**
-   * Builds a deterministic result-map key from template key and params.
-   *
-   * Two candidates that share the same `templateKey` but have different
-   * `params` (e.g. two water rules with different `completedCount`) must
-   * not collide in the batch result map. This key uniquely identifies
-   * a copy request by its template **and** parameter values.
-   */
-  static buildResultKey(
-    templateKey: string,
-    params: Record<string, string | number>,
-  ): string {
-    const sortedParams = Object.entries(params)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `${k}:${String(v)}`)
-      .join('|');
-    return `${templateKey}:${sortedParams}`;
-  }
-
-  /**
    * Batch read path. Calls getOrEnqueue for each request in parallel.
    */
   async getOrEnqueueBatch(
@@ -129,10 +122,7 @@ export class SuggestionCopyService {
       requests.map(async (request) => {
         const result = await this.getOrEnqueue(request, queue);
         results.set(
-          SuggestionCopyService.buildResultKey(
-            request.templateKey,
-            request.params,
-          ),
+          buildCopyResultKey(request.templateKey, request.params),
           result,
         );
       }),
@@ -258,10 +248,7 @@ export class SuggestionCopyService {
       requests.map(async (request) => {
         const result = await this.generateSync(request);
         results.set(
-          SuggestionCopyService.buildResultKey(
-            request.templateKey,
-            request.params,
-          ),
+          buildCopyResultKey(request.templateKey, request.params),
           result,
         );
       }),

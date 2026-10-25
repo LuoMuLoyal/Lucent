@@ -12,13 +12,14 @@ import {
   type TodaySuggestionMaterializationChangedPayload,
 } from '../../../../common/events/domain-events.js';
 import type {
+  MaterializationStorePort,
   MarkPendingInput,
   MaterializationReasonCode,
   MaterializationRow,
   MaterializationStatus,
   MaterializationStatusView,
   MaterializationVersionInput,
-} from './materialization.types.js';
+} from '../../application/ports/materialization.js';
 
 /**
  * Milliseconds in a second — the stale-age metric is reported in seconds.
@@ -30,7 +31,7 @@ import type {
 const MILLISECONDS_PER_SECOND = 1000;
 
 @Injectable()
-export class MaterializationStore {
+export class MaterializationStore implements MaterializationStorePort {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly publisher?: DomainEventPublisher,

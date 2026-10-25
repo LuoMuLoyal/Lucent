@@ -1,7 +1,7 @@
 import type { I18nService } from 'nestjs-i18n';
-import type { SuggestionCopyLlmService } from '../../../infrastructure/llm/copy-generator.js';
+import type { CopyGeneratorLike } from './writer.js';
 import type { CopyQueueLike } from './writer.js';
-import type { SuggestionCacheService } from '../../../infrastructure/cache/suggestions.js';
+import type { SuggestionCachePort } from '../../../application/ports/suggestion-cache.js';
 import { SuggestionCopyService } from './writer.js';
 import {
   SuggestionType,
@@ -71,8 +71,8 @@ describe('SuggestionCopyService', () => {
     queue = queueMock as unknown as CopyQueueLike;
 
     service = new SuggestionCopyService(
-      llmServiceMock as unknown as SuggestionCopyLlmService,
-      cacheMock as unknown as SuggestionCacheService,
+      llmServiceMock as unknown as CopyGeneratorLike,
+      cacheMock as unknown as SuggestionCachePort,
       {
         t: vi.fn((key: string, opts?: { lang?: string }) =>
           opts?.lang ? `${key} [${opts.lang}]` : key,
