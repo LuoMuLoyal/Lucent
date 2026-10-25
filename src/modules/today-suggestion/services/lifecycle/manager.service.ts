@@ -15,9 +15,10 @@ import {
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto.js';
 import type { Prisma } from '#generated/prisma/client.js';
 import {
-  SUGGESTION_ACTIVE_DURATION_MS,
-  SUGGESTION_FADING_DURATION_MS,
-} from '../../constants/lifecycle.constants.js';
+  fadeExpiryThreshold,
+  fadingThreshold,
+  lifecycleRank,
+} from '../../domain/suggestion/daily-suggestion.js';
 import {
   localizeEvidenceLabel,
   localizeEvidenceValue,
@@ -33,6 +34,22 @@ const HISTORY_CACHE_KEY_PREFIX = 'suggestion:history';
 /**
  * Manages suggestion card lifecycle: persisting new suggestions,
  * expiring stale ones, and querying active/dismissed state.
+ *
+ * ## Migration status — two paths coexist (temporarily)
+ *
+ * **Write side is migrating to domain judgement.** The state ladder and its
+ * thresholds now live in `domain/suggestion/daily-suggestion.ts`
+ * (`fadingThreshold`, `fadeExpiryThreshold`, `lifecycleRank`), and this class
+ * calls them instead of restating 8h/12h inline. The batch transitions stay as
+ * `updateMany` on purpose: it is idempotent and safe to run concurrently, which
+ * a load-modify-save loop would have to re-earn.
+ *
+ * **Read side still queries Prisma directly** (`getActiveSuggestions`,
+ * `getHistory`). Those are read models and move in D3 step 5.
+ *
+ * The two must not coexist long-term: "write through the domain rule, read
+ * straight from the table" is exactly the kind of intermediate state that keeps
+ * working, so nobody notices it never got finished. Tracked in `docs/TODO.md`.
  */
 @Injectable()
 export class LifecycleService {
@@ -399,8 +416,8 @@ export class LifecycleService {
           const existing = map.get(key);
           if (
             existing == null ||
-            LifecycleService.rank(existing.lifecycleState) <
-              LifecycleService.rank(r.lifecycleState as never)
+            lifecycleRank(existing.lifecycleState as never) <
+              lifecycleRank(r.lifecycleState as never)
           ) {
             map.set(key, {
               id: r.id,
@@ -460,14 +477,9 @@ export class LifecycleService {
    */
   async refreshLifecycleStates(): Promise<void> {
     const currentTime = now();
-    const activeThreshold = new Date(
-      currentTime.getTime() - SUGGESTION_ACTIVE_DURATION_MS,
-    );
-    const fadingThreshold = new Date(
-      currentTime.getTime() -
-        SUGGESTION_ACTIVE_DURATION_MS -
-        SUGGESTION_FADING_DURATION_MS,
-    );
+    // Thresholds come from the domain rule, not from arithmetic repeated here.
+    const activeThreshold = fadingThreshold(currentTime);
+    const expiryThreshold = fadeExpiryThreshold(currentTime);
 
     // ACTIVE → FADING
     const fadingResult = await this.prisma.userSuggestion.updateMany({
@@ -485,7 +497,7 @@ export class LifecycleService {
     const expiredResult = await this.prisma.userSuggestion.updateMany({
       where: {
         lifecycleState: SuggestionLifecycleState.FADING,
-        activatedAt: { lt: fadingThreshold },
+        activatedAt: { lt: expiryThreshold },
       },
       data: {
         lifecycleState: SuggestionLifecycleState.EXPIRED,
@@ -497,23 +509,6 @@ export class LifecycleService {
       this.logger.debug(
         `Lifecycle refresh: ${String(fadingResult.count)} active→fading, ${String(expiredResult.count)} fading→expired`,
       );
-    }
-  }
-
-  /**
-   * Ranks lifecycle states so that the most "current" state wins when
-   * deduplicating history by ruleId + subtype.
-   */
-  private static rank(state: SuggestionLifecycleState): number {
-    switch (state) {
-      case SuggestionLifecycleState.ACTIVE:
-        return 3;
-      case SuggestionLifecycleState.FADING:
-        return 2;
-      case SuggestionLifecycleState.DISMISSED:
-        return 1;
-      default:
-        return 0;
     }
   }
 

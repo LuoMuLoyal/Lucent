@@ -92,7 +92,20 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
   （`new` 8 条规则的唯一构造点）、`thresholds.ts`（阈值就是产品行为）、
   `symptom-severity.ts`（严重度序 → 可比数值）。
 - `domain/signal/` — 信号词汇（`signal.ts`、`observed-metric.ts`、`diet-facet.ts`）。
-- `domain/suggestion/` — 建议卡词汇（`suggestion.types.ts`、`suggestion-candidate.ts`）。
+- `domain/suggestion/` — 建议卡词汇与规则：`suggestion.types.ts`（类型/触发/置信度
+  枚举）、`suggestion-candidate.ts`（规则产出的候选），以及 `daily-suggestion.ts`：
+  **建议卡生命周期规则**（4 个状态：`active` / `fading` / `expired` / `dismissed`）
+  - 门槛计算（`fadingThreshold` 8h / `fadeExpiryThreshold` 12h）+ `lifecycleRank`。
+    **时间一律由调用方传入**（`at: Date`），域内不读时钟——「active 了 9 小时该不该
+    fading」因此能用固定时间戳精确断言，不靠 fake timer。
+    **门槛从这里导出让 SQL 谓词派生**（`updateMany` 的 `WHERE` 调 `fadingThreshold(...)`）：
+    一个定义、一次物化，而不是「TS 一份规则 + SQL 一份规则」两处漂移。
+    `generated` **不在域内建模**：Prisma 枚举里有，但 `persistActive` 直接建 `active`，
+    该状态无生产者。
+- `services/lifecycle/manager.service.ts` — 生命周期编排。**迁移中间态**：
+  写侧已改用上面的域规则（`updateMany` 保留——它幂等且并发安全，改成
+  load-modify-save 要重新赢得这个保证），**读侧（`getActiveSuggestions` /
+  `getHistory`）仍直连 Prisma**，待 D3 第 5 步。两条路径不应长期共存，见 `docs/TODO.md`。
 - `domain/baseline/` — 基线维度与记录。
 - `application/services/` — 两个注册表（`rule-registry.ts`、`rule-version-registry.ts`）。
   它们是**查找表**（Map 状态），不是领域对象，故在 application 层。
