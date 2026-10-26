@@ -30,7 +30,7 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 
 ## 内部结构
 
-四层已完整落到 ADR-0024 骨架（`plans/2026-10-26-ddd-migration-completion.md`）。
+四层已完整落到 ADR-0024 骨架。
 
 ### adapters
 

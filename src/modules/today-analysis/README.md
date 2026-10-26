@@ -73,7 +73,7 @@ today-suggestion 互补——分析面向解读,建议面向行动。
 
 ## 内部结构
 
-四层已完整落到 ADR-0024 骨架（`plans/2026-10-26-ddd-migration-completion.md`）。
+四层已完整落到 ADR-0024 骨架。
 
 ### adapters
 
