@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   refineReportRangeDates,
   REPORT_SUPPORTED_RANGES,
-} from './report-dashboard-query.dto.js';
+} from '../read_models/dashboard/report-dashboard-query.js';
 
 /**
  * Report-summary request body fields. Same shape and custom-range rule as

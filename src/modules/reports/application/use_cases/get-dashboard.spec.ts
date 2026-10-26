@@ -2,7 +2,7 @@ import { ReportsService } from './get-dashboard.js';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../../dto/report-dashboard-query.dto.js';
+} from '../../application/read_models/dashboard/report-dashboard-query.js';
 import type { ReportsComputationService } from '../read_models/dashboard/dashboard-computation.js';
 import type { DashboardContextPort } from '../ports/dashboard.js';
 

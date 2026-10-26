@@ -3,7 +3,7 @@ import type { LlmConfig } from '../../../../config/services/llm.config.js';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../../dto/report-dashboard-query.dto.js';
+} from '../../application/read_models/dashboard/report-dashboard-query.js';
 import type { ReportsAiSummaryContextService } from '../read_models/ai-summary/summary-context.js';
 import type { ReportsLlmSummaryCopyService } from '../services/summary-copy.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';

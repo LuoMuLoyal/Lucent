@@ -3,8 +3,8 @@ import { z } from 'zod';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_SUPPORTED_RANGES,
-} from '../application/read_models/dashboard/report-range.js';
-import type { ReportRange } from '../application/read_models/dashboard/report-range.js';
+} from '../../../application/read_models/dashboard/report-range.js';
+import type { ReportRange } from '../../../application/read_models/dashboard/report-range.js';
 
 /**
  * The range vocabulary lives in `application/read_models/dashboard/report-range.ts`
@@ -18,7 +18,7 @@ export {
   REPORT_RANGE_CUSTOM,
   REPORT_SUPPORTED_RANGES,
   type ReportRange,
-} from '../application/read_models/dashboard/report-range.js';
+} from '../../../application/read_models/dashboard/report-range.js';
 
 /**
  * Custom-range date-pair rule. Mirrors the former class-validator

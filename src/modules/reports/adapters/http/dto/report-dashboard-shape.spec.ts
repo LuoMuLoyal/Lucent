@@ -1,11 +1,11 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { ReportDashboardQuery } from '../application/ports/dashboard.js';
-import type { ReportRange } from '../application/read_models/dashboard/report-range.js';
+import type { ReportDashboardQuery } from '../../../application/ports/dashboard.js';
+import type { ReportRange } from '../../../application/read_models/dashboard/report-range.js';
 import type {
   ReportDashboardQueryDto,
   ReportRange as DtoRange,
-} from './report-dashboard-query.dto.js';
+} from '../../../application/read_models/dashboard/report-dashboard-query.js';
 
 /**
  * The dashboard query shape exists twice on purpose (ADR-0024 D2):

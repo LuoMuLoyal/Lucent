@@ -3,7 +3,7 @@ import { I18nService } from 'nestjs-i18n';
 import type {
   ReportFindingDto,
   ReportPatternDto,
-} from '../../../dto/report-dashboard-response.dto.js';
+} from '../../../application/read_models/dashboard/report-dashboard-response.js';
 
 import type { ReportRange } from './report-range.js';
 import type { MetricStatus } from './metrics.types.js';

@@ -9,11 +9,11 @@ import {
   buildReportSummarySystemPrompt,
   buildReportSummaryUserPrompt,
   type ReportSummaryPromptCopy,
-} from '../../prompts/report-summary.prompt.js';
+} from '../../infrastructure/llm/prompts/report-summary.js';
 import {
   reportSummarySchema,
   type ReportSummaryStructuredOutput,
-} from '../../schemas/report-summary.schema.js';
+} from '../../infrastructure/llm/schemas/report-summary.js';
 import type { ReportsAiSummaryContext } from '../../application/read_models/ai-summary/summary-context.js';
 
 @Injectable()

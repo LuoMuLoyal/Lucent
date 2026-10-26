@@ -4,7 +4,7 @@ import type {
   ReportMetricDto,
   ReportObservedMetricDto,
   ReportTrendDto,
-} from '../../../dto/report-dashboard-response.dto.js';
+} from '../../../application/read_models/dashboard/report-dashboard-response.js';
 import type {
   MetricDirection,
   MetricStatus,

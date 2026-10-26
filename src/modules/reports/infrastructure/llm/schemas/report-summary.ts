@@ -41,4 +41,4 @@ export const reportSummarySchema = z.object({
   disclaimer: z.string().trim().min(1).max(120),
 });
 
-export type ReportSummaryStructuredOutput = z.infer<typeof reportSummarySchema>;
+export type { ReportSummaryStructuredOutput } from '../../../application/ports/report-summary-output.js';

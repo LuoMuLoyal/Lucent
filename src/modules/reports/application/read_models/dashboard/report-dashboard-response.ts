@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { REPORT_SUPPORTED_RANGES } from './report-dashboard-query.dto.js';
+import { REPORT_SUPPORTED_RANGES } from '../../../application/read_models/dashboard/report-dashboard-query.js';
 
 /**
  * Report dashboard response schemas.

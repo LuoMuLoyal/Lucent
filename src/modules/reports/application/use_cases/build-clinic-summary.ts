@@ -24,7 +24,7 @@ import {
 import { isShareAccessible } from '../../domain/clinic-summary/share-access.js';
 import { calculateAge, now, nowIsoString } from '../../../../common/index.js';
 import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
-import { CLINIC_SUMMARY_MAX_RANGE_DAYS } from '../../dto/clinic-summary-request.dto.js';
+import { CLINIC_SUMMARY_MAX_RANGE_DAYS } from '../../application/use_cases/clinic-summary-request.js';
 import type {
   ClinicSummaryCoverageDto,
   ClinicSummaryCoverageEntryDto,
@@ -37,7 +37,7 @@ import type {
   ClinicSummaryShareDataDto,
   ClinicSummarySleepEntryDto,
   ClinicSummaryWaterEntryDto,
-} from '../../dto/clinic-summary-response.dto.js';
+} from '../../application/read_models/clinic-summary-response.js';
 import type {
   EventReviewCoverageSummary,
   EventReviewData,

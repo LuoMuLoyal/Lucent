@@ -36,10 +36,10 @@ import { EventReviewFactsService } from './application/read_models/event-review/
 import { EventReviewChangesService } from './application/read_models/event-review/changes.js';
 import { EventReviewActionsService } from './application/read_models/event-review/actions.js';
 import { EventReviewNextStepService } from './application/read_models/event-review/next-step.js';
-import { ReportsController } from './reports.controller.js';
-import { ClinicSummaryController } from './clinic-summary.controller.js';
+import { ReportsController } from './adapters/http/controllers/reports.controller.js';
+import { ClinicSummaryController } from './adapters/http/controllers/clinic-summary.controller.js';
 import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
-import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
+import { IReportSummaryReader } from './application/ports/report-summary-reader.js';
 import { REPORT_DASHBOARD_CONTEXT } from './application/ports/dashboard.js';
 import { REPORT_SUMMARY_GENERATOR } from './application/ports/summary.js';
 import { CLINIC_SUMMARY_PDF } from './application/ports/clinic-summary-pdf.js';

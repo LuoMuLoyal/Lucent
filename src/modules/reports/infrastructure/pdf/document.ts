@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
-import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
+import type { ClinicSummaryDto } from '../../application/read_models/clinic-summary-response.js';
 import {
   CONTENT_WIDTH,
   MARGIN_X,

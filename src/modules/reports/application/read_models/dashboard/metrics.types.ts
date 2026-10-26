@@ -3,7 +3,7 @@ import type {
   ReportMetricDto,
   ReportPatternDto,
   ReportTrendDto,
-} from '../../../dto/report-dashboard-response.dto.js';
+} from '../../../application/read_models/dashboard/report-dashboard-response.js';
 import type { ReportRange } from './report-range.js';
 import type { ObservedMetric } from '../../../../../common/index.js';
 

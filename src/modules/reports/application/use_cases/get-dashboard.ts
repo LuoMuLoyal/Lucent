@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { getActiveTraceIds } from '../../../../common/logger/trace-context.utils.js';
-import type { ReportDashboardDataDto } from '../../dto/report-dashboard-response.dto.js';
+import type { ReportDashboardDataDto } from '../../application/read_models/dashboard/report-dashboard-response.js';
 
 import { REPORT_DASHBOARD_CONTEXT } from '../ports/dashboard.js';
 import type {

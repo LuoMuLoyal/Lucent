@@ -28,31 +28,34 @@ import {
 import type { FastifyReply } from 'fastify';
 import { I18nLang, I18nService } from 'nestjs-i18n';
 
-import { ConfigKey } from '../../config/env/config-keys.enum.js';
-import { enqueueOrFallback } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser, Public } from '../auth/index.js';
+import { ConfigKey } from '../../../../../config/env/config-keys.enum.js';
+import { enqueueOrFallback } from '../../../../../common/index.js';
+import { registerResponseSchema } from '../../../../../common/api/response-schema.registry.js';
+import type { UserPayload } from '../../../../../modules/auth/index.js';
+import { CurrentUser, Public } from '../../../../../modules/auth/index.js';
 
 import {
   clinicSummaryExportAsyncResponseSchema,
   clinicSummaryResponseSchema,
   clinicSummaryShareResponseSchema,
-} from './dto/clinic-summary-response.dto.js';
-import { clinicSummaryShareListResponseSchema } from './dto/clinic-summary-share-list.dto.js';
+} from '../../../application/read_models/clinic-summary-response.js';
+import { clinicSummaryShareListResponseSchema } from '../../../application/read_models/clinic-summary-share-list.js';
 import {
   clinicSummaryRequestSchema,
   CLINIC_SUMMARY_SELECTABLE_FIELDS,
-} from './dto/clinic-summary-request.dto.js';
-import type { ClinicSummaryRequestDto } from './dto/clinic-summary-request.dto.js';
-import { ClinicSummaryPdfQueueService } from './adapters/queue/clinic-summary-pdf.js';
-import { ClinicSummaryPdfService } from './infrastructure/pdf/document.js';
+} from '../../../application/use_cases/clinic-summary-request.js';
+import type { ClinicSummaryRequestDto } from '../../../application/use_cases/clinic-summary-request.js';
+import { ClinicSummaryPdfQueueService } from '../../../adapters/queue/clinic-summary-pdf.js';
+import {
+  CLINIC_SUMMARY_PDF,
+  type ClinicSummaryPdf,
+} from '../../../application/ports/clinic-summary-pdf.js';
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
-} from './application/use_cases/build-clinic-summary.js';
-import type { ClinicSummaryOptions } from './application/use_cases/build-clinic-summary.js';
-import { ShareService } from './application/use_cases/clinic-summary-shares.js';
+} from '../../../application/use_cases/build-clinic-summary.js';
+import type { ClinicSummaryOptions } from '../../../application/use_cases/build-clinic-summary.js';
+import { ShareService } from '../../../application/use_cases/clinic-summary-shares.js';
 
 /** Milliseconds per day — used to materialize the default share range. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -74,7 +77,8 @@ export class ClinicSummaryController {
 
   constructor(
     private readonly clinicSummaryService: ClinicSummaryService,
-    private readonly clinicSummaryPdfService: ClinicSummaryPdfService,
+    @Inject(CLINIC_SUMMARY_PDF)
+    private readonly clinicSummaryPdfService: ClinicSummaryPdf,
     private readonly clinicSummaryPdfQueueService: ClinicSummaryPdfQueueService,
     private readonly shareService: ShareService,
     private readonly i18n: I18nService,

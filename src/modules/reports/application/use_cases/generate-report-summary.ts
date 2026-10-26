@@ -7,14 +7,14 @@ import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import type { PromptCopy } from '../../../../common/index.js';
-import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
+import type { GenerateReportSummaryDto } from '../../application/use_cases/generate-report-summary-command.js';
 
 import { REPORT_DASHBOARD_CONTEXT } from '../ports/dashboard.js';
 import type {
   DashboardContextPort,
   ReportDashboardQuery,
 } from '../ports/dashboard.js';
-import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto.js';
+import type { ReportSummaryDataDto } from '../../application/read_models/report-summary-response.js';
 import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,
@@ -24,7 +24,7 @@ import {
   REPORT_SUMMARY_GENERATOR,
   type SummaryGeneratorContract,
 } from '../ports/summary.js';
-import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema.js';
+import type { ReportSummaryStructuredOutput } from '../ports/report-summary-output.js';
 import { ReportsComputationService } from '../read_models/dashboard/dashboard-computation.js';
 
 interface PreparedReportSummary {

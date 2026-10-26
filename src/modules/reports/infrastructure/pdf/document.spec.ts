@@ -1,4 +1,4 @@
-import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
+import type { ClinicSummaryDto } from '../../application/read_models/clinic-summary-response.js';
 import { ClinicSummaryPdfService } from './document.js';
 import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 

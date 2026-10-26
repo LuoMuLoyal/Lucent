@@ -6,9 +6,9 @@ import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
-import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
+import type { GenerateReportSummaryDto } from '../../application/use_cases/generate-report-summary-command.js';
 
-import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto.js';
+import type { ReportSummaryDataDto } from '../../application/read_models/report-summary-response.js';
 import { ReportsAiSummaryService } from '../../application/use_cases/generate-report-summary.js';
 
 interface SummaryJobData {

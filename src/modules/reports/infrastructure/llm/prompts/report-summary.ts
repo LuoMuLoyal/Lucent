@@ -1,6 +1,6 @@
-import { buildUserPrompt } from '../../../common/index.js';
-import type { PromptCopy } from '../../../common/index.js';
-import type { ReportsAiSummaryContext } from '../application/read_models/ai-summary/summary-context.js';
+import { buildUserPrompt } from '../../../../../common/index.js';
+import type { PromptCopy } from '../../../../../common/index.js';
+import type { ReportsAiSummaryContext } from '../../../application/read_models/ai-summary/summary-context.js';
 
 export function buildReportSummarySystemPrompt(): string {
   return [

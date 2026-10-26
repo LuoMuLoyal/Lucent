@@ -4,7 +4,7 @@ import type {
   ClinicSummaryNoteEntryDto,
   ClinicSummarySleepEntryDto,
   ClinicSummaryWaterEntryDto,
-} from '../../dto/clinic-summary-response.dto.js';
+} from '../../application/read_models/clinic-summary-response.js';
 
 /**
  * Share-field keys that control non-section DTO fields (findings, coverage

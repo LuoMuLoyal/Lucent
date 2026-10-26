@@ -13,7 +13,7 @@
  * 300-line structure.
  */
 
-import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
+import type { ClinicSummaryDto } from '../../application/read_models/clinic-summary-response.js';
 import type { ClinicSummaryOptions } from '../use_cases/build-clinic-summary.js';
 
 /** Injection token for {@link ClinicSummaryPdf}. */
@@ -30,4 +30,7 @@ export interface ClinicSummaryPdf {
     locale: string,
     options?: ClinicSummaryOptions,
   ): Promise<Buffer>;
+
+  /** Renders a publicly shared summary; `null` when the share is not live. */
+  exportSharedPdf(token: string, locale: string): Promise<Buffer | null>;
 }

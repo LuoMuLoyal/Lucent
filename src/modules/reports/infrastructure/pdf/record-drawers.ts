@@ -7,7 +7,7 @@ import type {
   ClinicSummaryWaterEntryDto,
   ClinicSummarySleepEntryDto,
   ClinicSummaryNoteEntryDto,
-} from '../../dto/clinic-summary-response.dto.js';
+} from '../../application/read_models/clinic-summary-response.js';
 
 // ── Water ──────────────────────────────────────────────
 

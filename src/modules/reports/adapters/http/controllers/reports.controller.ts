@@ -21,33 +21,33 @@ import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import { RouteConfig } from '@nestjs/platform-fastify';
 
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
+import { registerResponseSchema } from '../../../../../common/api/response-schema.registry.js';
 import {
   endSse,
   prepareSse,
   SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
-} from '../../common/index.js';
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
+} from '../../../../../common/index.js';
+import type { UserPayload } from '../../../../../modules/auth/index.js';
+import { CurrentUser } from '../../../../../modules/auth/index.js';
 
-import { generateReportSummarySchema } from './dto/generate-report-summary.dto.js';
-import type { GenerateReportSummaryDto } from './dto/generate-report-summary.dto.js';
+import { generateReportSummarySchema } from '../../../application/use_cases/generate-report-summary-command.js';
+import type { GenerateReportSummaryDto } from '../../../application/use_cases/generate-report-summary-command.js';
 
-import { reportDashboardQuerySchema } from './dto/report-dashboard-query.dto.js';
-import type { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto.js';
+import { reportDashboardQuerySchema } from '../../../application/read_models/dashboard/report-dashboard-query.js';
+import type { ReportDashboardQueryDto } from '../../../application/read_models/dashboard/report-dashboard-query.js';
 
-import { reportDashboardResponseSchema } from './dto/report-dashboard-response.dto.js';
+import { reportDashboardResponseSchema } from '../../../application/read_models/dashboard/report-dashboard-response.js';
 
 import {
   reportSummaryAsyncResponseSchema,
   reportSummaryResponseSchema,
-} from './dto/report-summary-response.dto.js';
+} from '../../../application/read_models/report-summary-response.js';
 
-import { ReportSummaryQueueService } from './adapters/queue/summary.js';
-import { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
-import { ReportsService } from './application/use_cases/get-dashboard.js';
+import { ReportSummaryQueueService } from '../../../adapters/queue/summary.js';
+import { ReportsAiSummaryService } from '../../../application/use_cases/generate-report-summary.js';
+import { ReportsService } from '../../../application/use_cases/get-dashboard.js';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')

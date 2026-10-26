@@ -210,7 +210,7 @@ schema 校验又会让 v1 的 `mealAnalysis` 被判为形状不匹配并置 null
 ### F1：ReportTrendDto.values 的 legacyValues 迁移窗口（P3，2026-08-30 审查 W-1-legacy）
 
 考虑为 `ReportTrendDto` 增加废弃的 `legacyValues` 字段（补零、与日期窗口对齐）给前端一个迁移窗口
-（`src/modules/reports/dto/report-dashboard-response.dto.ts`，DTO 内仅留一行指针注释）。
+（`src/modules/reports/application/read_models/dashboard/report-dashboard-response.ts`，DTO 内仅留一行指针注释）。
 R-4 路线图清理完成时裁决去留：若 Luminous 已全面切换 `observedMetric` 对齐则直接放弃，不再实现。
 
 ### F2：Port 接口规范集中化（P3，2026-08-30 审查 Suggestion）

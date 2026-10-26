@@ -3,7 +3,7 @@ import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import type { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
-import { REPORT_RANGE_LAST_30_DAYS } from '../../dto/report-dashboard-query.dto.js';
+import { REPORT_RANGE_LAST_30_DAYS } from '../../application/read_models/dashboard/report-dashboard-query.js';
 import { ReportsAiSummaryGeneratorService } from './summary-generator.js';
 import type { ReportsAiSummaryContext } from '../../application/read_models/ai-summary/summary-context.js';
 

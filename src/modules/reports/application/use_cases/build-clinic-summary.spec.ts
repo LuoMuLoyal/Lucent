@@ -56,7 +56,7 @@ import {
 import type {
   ClinicSummaryDto,
   ClinicSummaryShareDataDto,
-} from '../../dto/clinic-summary-response.dto.js';
+} from '../../application/read_models/clinic-summary-response.js';
 
 /**
  * TDD red-lock surface (Workstream 2, VS2-VS4 will make these real).

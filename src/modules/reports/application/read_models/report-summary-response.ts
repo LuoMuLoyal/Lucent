@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { REPORT_SUPPORTED_RANGES } from './report-dashboard-query.dto.js';
+import { REPORT_SUPPORTED_RANGES } from './dashboard/report-dashboard-query.js';
 
 /**
  * AI report summary response schemas.

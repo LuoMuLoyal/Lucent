@@ -30,74 +30,92 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 
 ## 内部结构
 
-四层迁移进行中（`plans/2026-10-26-ddd-migration-completion.md`）。已完成
-`event-review` / `dashboard` / `ai-summary` 三个子域，`clinic-summary` 仍为旧结构。
+四层已完整落到 ADR-0024 骨架（`plans/2026-10-26-ddd-migration-completion.md`）。
 
-- `adapters/http/controllers/event-review.controller.ts` — 事件回顾三个只读端点。
-- `adapters/http/dto/` — `event-review-list-query` / `event-review-response`
-  （zod schema）。**形状归应用层**：读模型产出的类型定义在
-  `application/ports/event-review.ts`，DTO 只是校验与序列化，两者由
-  `event-review-response.spec.ts` 的双向 `expectTypeOf` 钉住——单向断言只能发现
-  「应用层缺字段」，发现不了「schema 加了字段而读模型从不填充」，而后者正是最
-  容易发生的漂移方向。
-- `application/ports/event-review.ts` — 事件回顾的读模型形状与查询入参词汇。
-  手工镜像一份是因为 `ddd-application-no-infra-or-adapters` 禁止应用层 import
-  投递层，方向反过来不成立。
-- `application/read_models/event-review/` — facts（结构化事实码）/changes/actions/
-  next-step（只读 medicines 的静态 `redFlags`，读失败降级空列表）/
-  review（current/list/by-event 只读模型）/ fact-arguments。全部经 reader port
-  读上游，**不直连 Prisma**。
-- `application/ports/dashboard.ts` — 仪表盘用例的入参词汇
-  （`ReportDashboardQuery`）、跨上下文读端口 `DashboardContextPort` 与其注入
-  token `REPORT_DASHBOARD_CONTEXT`。**用例只依赖端口**，模块用
-  `useExisting` 把 token 绑到 `adapters/acl/dashboard-context.ts`——反过来让用例
-  直接注入 ACL 类会触发 `ddd-application-no-infra-or-adapters`。
-- `application/read_models/dashboard/` — `report-range`（报告窗口词汇，
-  产品决定，DTO 反向 re-export 以保导入路径不变）、`metrics.types`、
-  `dashboard-computation`（指标计算，唯一入口 `compute`，内部仍调 presenter
-  产出 findings/patterns——**计算与呈现尚未拆开，属已知的下一步**）、
-  `dashboard-presenter`（本地化投影）。
-- `application/use_cases/get-dashboard.ts` — 编排用例（缓存 + 版本号失效）。
-- `adapters/acl/dashboard-context.ts` — 跨上下文数据收集：经
-  `IUserSettingsPort` / `MedicineDoseLogReaderPort` / `DailyRecordReaderPort`
-  三个 **reader port** 读上游，**不直连 Prisma**。
-- `adapters/queue/cache-invalidation.ts` — 事件驱动缓存失效，按 ADR-0025 走
-  `report-cache-invalidation` 队列，已无进程内监听器。
-- `domain/dashboard/query-reasons.ts` — 「为什么这个指标缺测」的原因码，属领域词汇。
-- `application/use_cases/generate-report-summary.ts` — AI 周期摘要用例（继承
-  `common/llm` 的 `BaseLlmSummaryService`）。
-- `application/read_models/ai-summary/summary-context.ts` — 摘要上下文投影（纯函数）。
-- `application/services/summary-copy.ts` — 摘要多语言文案。
-- `application/ports/summary.ts` — 摘要生成器的注入 token
-  `REPORT_SUMMARY_GENERATOR`。用例只依赖抽象契约，模块把 token 绑到
-  `infrastructure/llm/summary-generator.ts`。
-- `infrastructure/llm/summary-generator.ts` — LLM 结构化输出生成（提示词解析、
-  运行时 prompt 覆盖）。
-- `adapters/queue/summary.ts` — 摘要异步队列。
-- `services/clinic-summary/` — summary（聚合）、share（token 分享）、
-  pdf、pdf-queue。
+### adapters
+
+- `http/controllers/` — `reports` / `clinic-summary` / `event-review` 三个控制器。
+- `http/dto/` — 只有事件回顾的 DTO（`event-review-list-query` /
+  `event-review-response`）。**其余响应/请求形状归应用层**（见下）；理由见
+  「形状归属」。
+- `acl/dashboard-context.ts` — 仪表盘跨上下文读：经 `IUserSettingsPort` /
+  `MedicineDoseLogReaderPort` / `DailyRecordReaderPort` 三个 **reader port**
+  取数，**不直连上游表**。
+- `queue/` — `cache-invalidation`（ADR-0025，`report-cache-invalidation`）、
+  `summary`、`clinic-summary-pdf`。
+
+### application
+
+- `ports/` — 六个端口：`dashboard`（`DashboardContextPort`）、`event-review`
+  （读模型形状）、`clinic-summary`（`ClinicSummaryShares` /
+  `ClinicSummarySources`）、`clinic-summary-pdf`、`summary`
+  （`REPORT_SUMMARY_GENERATOR`）、`report-summary-output`、
+  `report-summary-reader`。
+- `use_cases/` — `get-dashboard`、`build-clinic-summary`、
+  `clinic-summary-shares`、`generate-report-summary`（+ 命令与请求形状）。
+- `read_models/` — `dashboard/`（计算、投影、窗口词汇、形状）、
+  `event-review/`（facts/changes/actions/next-step/review）、
+  `ai-summary/summary-context`、`clinic-summary-*`、`report-summary-*`。
+- `services/summary-copy.ts` — 摘要多语言文案。
+
+### domain
+
+- `clinic-summary/share-access.ts` — 分享可达性谓词（未撤销且未过期）。
+- `clinic-summary/share-scope.ts` — 分享范围校验。
+- `dashboard/query-reasons.ts` — 「为什么这个指标缺测」的原因码。
+
+### infrastructure
+
+- `persistence/clinic-summary.ts` — `ClinicSummaryShares` / `ClinicSummarySources`
+  的 Prisma 实现。
+- `pdf/` — 门诊摘要 PDF 渲染（`document` + `clinical-drawers` /
+  `record-drawers` / `copy`）。
+- `llm/` — `summary-generator`（结构化输出）、`prompts/`、`schemas/`。
+
+## 形状归属（重要）
+
+`ddd-application-no-infra-or-adapters` 与 `ddd-infrastructure-no-adapters` 禁止
+应用层/基础设施引用 `adapters/`。但读模型**产出**响应形状、PDF 渲染器**消费**它，
+所以这些形状归 `application/`：
+
+- `read_models/dashboard/dashboard-shapes.ts` 与
+  `read_models/dashboard/report-dashboard-response.ts`、
+  `read_models/clinic-summary-response.ts`、`read_models/report-summary-*`。
+- **zod schema 与类型同源**：schema 留在文件里，DTO 侧只做 re-export，因此不会
+  出现两份定义漂移。这条与事件回顾不同——那边 schema 在 `adapters/`，形状在
+  `application/ports/event-review.ts`，由 `event-review-response.spec.ts` 的双向
+  `expectTypeOf` 钉住。
+
+**为什么不是所有 DTO 都这样**：只有被应用层/基础设施层真正引用的形状才内移；
+纯 HTTP 形状（如 `event-review-*`）留在 `adapters/http/dto/`。
+
+## 跨上下文读的口径
+
+本模块**不直连任何上游表**：
+
+| 数据                         | 来源                                                          |
+| ---------------------------- | ------------------------------------------------------------- |
+| 日报                         | `daily-records` 的 `DailyRecordReaderPort`                    |
+| 剂量日志                     | `medicine-dose-logs` 的 `MedicineDoseLogReaderPort`           |
+| 用户设置                     | `user-settings` 的 `IUserSettingsPort`                        |
+| 过敏/病史/当前用药/生日/性别 | `user-health-context` 的 `IUserHealthContextReader`           |
+| 静态风险红旗                 | `medicines` 的 `MedicineRiskCheckService`（读失败降级空列表） |
+| 昵称                         | 本模块 `ClinicSummarySources`（`user` 表自有列，经端口）      |
 
 ## Dependencies
 
 - 引用：`assistant`（`HistoricalAiSummaryService` 历史摘要）、
-  `daily-records`、`health-events`、`medicines`（`MedicineRiskCheckService`
-  静态红旗）、`medicine-dose-logs`、`user-settings`、`product-events`、
-  LlmRuntime/LlmCommon。
-- 被引用：`notification-preferences`（经 `IReportSummaryReader` port 生成
-  周报洞察）、`data-export`（`ReportsService.getDashboard` 作为 PDF 数据源）。
+  `daily-records`、`health-events`、`medicines`、`medicine-dose-logs`、
+  `user-settings`、`user-health-context`、`product-events`、
+  LlmRuntime/LlmCommon、`data-export`（PDF 绘制工具）。
+- 被引用：`notification-preferences`（经 `IReportSummaryReader` 生成周报洞察）、
+  `data-export`（`ReportsService.getDashboard` 作为 PDF 数据源）。
 - Barrel 导出：`ReportsService`、`ReportsAiSummaryService`、
   `EventReviewService`、`IReportSummaryReader`。
 
 ## Tests
 
-`reports.controller.spec.ts`、`application/read_models/dashboard/*.spec.ts`、
-`application/read_models/ai-summary/*.spec.ts`、
-`application/use_cases/get-dashboard*.spec.ts`、
-`application/use_cases/generate-report-summary.spec.ts`、
-`application/services/*.spec.ts`、`adapters/acl/*.spec.ts`、
-`adapters/queue/*.spec.ts`、`infrastructure/llm/*.spec.ts`、
-`services/clinic-summary/*.spec.ts`（summary/share/pdf/pdf-queue）、
-`application/read_models/event-review/*.spec.ts`、
+`reports.controller.spec.ts`、`application/**/*.spec.ts`、`adapters/**/*.spec.ts`、
+`infrastructure/**/*.spec.ts`，以及两个形状镜像守卫：
 `adapters/http/dto/event-review-response.spec.ts` 与
-`dto/report-dashboard-shape.spec.ts`（形状镜像守卫）、
-`schemas/report-summary.schema.spec.ts`。
+`adapters/http/dto/report-dashboard-shape.spec.ts`。

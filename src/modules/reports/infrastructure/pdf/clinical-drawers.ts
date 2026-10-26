@@ -8,7 +8,7 @@ import type {
   ClinicSummaryAllergyDto,
   ClinicSummaryConditionDto,
   ClinicSummaryMedicineDto,
-} from '../../dto/clinic-summary-response.dto.js';
+} from '../../application/read_models/clinic-summary-response.js';
 
 /** Fixed 资料不足 finding code — localized on the PDF instead of raw. */
 export const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';

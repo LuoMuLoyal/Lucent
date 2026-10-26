@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { clinicSummaryShareScopeSchema } from './clinic-summary-response.dto.js';
+import { clinicSummaryShareScopeSchema } from './clinic-summary-response.js';
 
 /**
  * Share-management list response schemas.
