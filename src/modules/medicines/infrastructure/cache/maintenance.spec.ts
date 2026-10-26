@@ -161,4 +161,51 @@ describe('MedicinesCacheMaintenanceService', () => {
       expect.stringContaining('neither keys() nor a Redis client'),
     );
   });
+
+  it('Redis 客户端已关闭时降级为 warn，不把调用方的写入打成 500', async () => {
+    // 生产形态：@keyv/redis 的 node-redis 客户端断开后所有命令都抛
+    // `The client is closed`。那是依赖不可用，不是写入失败——曾经让
+    // POST /admin/content/safety-tips 变成 500。
+    const closed = vi.fn().mockRejectedValue(new Error('The client is closed'));
+    cache.stores = [
+      { store: { client: { keys: closed } } },
+    ] as unknown as typeof cache.stores;
+    const logger = (service as unknown as { logger: { warn: vi.Mock } }).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    await expect(service.invalidateAll()).resolves.toBe(0);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('The client is closed'),
+    );
+    expect(cache.del).not.toHaveBeenCalled();
+  });
+
+  it('个别键删除失败时返回实际删除数，而不是整体失败', async () => {
+    cache.stores = [
+      {
+        store: {
+          client: {
+            keys: vi
+              .fn()
+              .mockResolvedValue([
+                'medicines:detail:drugbank:DB01050',
+                'medicines:detail:cn:cn_ibuprofen_capsule',
+              ]),
+          },
+        },
+      },
+    ] as unknown as typeof cache.stores;
+    cache.del
+      .mockResolvedValueOnce(true)
+      .mockRejectedValueOnce(new Error('The client is closed'));
+    const logger = (service as unknown as { logger: { warn: vi.Mock } }).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    await expect(service.invalidateAll()).resolves.toBe(1);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('1/2 keys could not be deleted'),
+    );
+  });
 });

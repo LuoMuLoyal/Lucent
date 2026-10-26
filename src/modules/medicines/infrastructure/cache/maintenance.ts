@@ -33,14 +33,52 @@ export class MedicinesCacheMaintenanceService implements MedicinesCacheMaintenan
 
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
+  /**
+   * 清空全部 medicines 缓存键。
+   *
+   * 这是**尽力而为的失效**，不是写入路径的一部分：它由 admin 内容变更、
+   * 导入任务等调用，用来让下一次读回源。键列举或删除失败时抛出去会把一次
+   * 本来成功的写入变成 500，而且缓存没清干净也不等于写入没生效——所以这里
+   * 记 warn 后返回「已处理 0 条」，让调用方继续。
+   *
+   * 真实踩到的形态：`@keyv/redis` 的 node-redis 客户端在连接断开/关闭后，
+   * 任何命令都抛 `The client is closed`（例如应用启动早期 Redis 还没就绪、
+   * 或连接被对端掐断）。那是**依赖不可用**，不是本函数的逻辑错误。
+   */
   async invalidateAll(): Promise<number> {
-    const keys = await this.listMedicineKeys();
+    let keys: string[];
+    try {
+      keys = await this.listMedicineKeys();
+    } catch (error) {
+      this.logger.warn(
+        `Medicine cache invalidation skipped: key listing failed (${this.describe(error)}). ` +
+          'Entries will be served stale until the cache backend recovers or they expire.',
+      );
+      return 0;
+    }
+
     if (keys.length === 0) {
       return 0;
     }
 
-    await Promise.all(keys.map((key) => this.deleteCacheKey(key)));
-    return keys.length;
+    const deleted = await Promise.allSettled(
+      keys.map((key) => this.cache.del(key)),
+    );
+    const failures = deleted.filter(
+      (outcome) => outcome.status === 'rejected',
+    ).length;
+
+    if (failures > 0) {
+      this.logger.warn(
+        `Medicine cache invalidation partial: ${String(failures)}/${String(keys.length)} keys could not be deleted`,
+      );
+    }
+
+    return keys.length - failures;
+  }
+
+  private describe(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 
   private async listMedicineKeys(): Promise<string[]> {
@@ -58,7 +96,9 @@ export class MedicinesCacheMaintenanceService implements MedicinesCacheMaintenan
       try {
         source = await this.collectStoreKeys(store);
       } catch (error) {
-        this.logger.warn(`Medicine cache key listing failed: ${String(error)}`);
+        this.logger.warn(
+          `Medicine cache key listing failed: ${this.describe(error)}`,
+        );
         throw error;
       }
 
@@ -113,17 +153,6 @@ export class MedicinesCacheMaintenanceService implements MedicinesCacheMaintenan
     }
 
     return null;
-  }
-
-  private async deleteCacheKey(key: string): Promise<void> {
-    try {
-      await this.cache.del(key);
-    } catch (error) {
-      this.logger.warn(
-        `Medicine cache delete failed (key=${key}): ${String(error)}`,
-      );
-      throw error;
-    }
   }
 
   private resolveNamespacePrefix(store: KeyvLikeStore): string | null {
