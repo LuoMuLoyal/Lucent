@@ -382,6 +382,16 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
 `adapters/` 骨架，骨架比代码长；ADR-0024 自己写了「不为 CRUD 硬造富领域模型」。
 等它们长大（出现真实领域规则或跨上下文契约）再拆。
 
+### reports / today-analysis 未迁四层，user 处于半拆状态（2026-10-26 核查发现）
+
+上一节的收尾口径只记了「小模块不迁」，**遗漏了剩余最大的两块**：`reports`
+(6,875 行) 与 `today-analysis`(3,099 行) 仍是 `controller → services → Prisma`。
+另有 `user`(293 行) 有 `application/` + `infrastructure/` 却缺 `domain/` 与
+`adapters/` 的**半拆状态**——比完全没迁更容易误导后来人。
+
+执行源：`plans/2026-10-26-ddd-migration-completion.md`（§二 / §三 / §四.3）。
+该计划执行完毕时，连同本条一起删除。
+
 ### `domain-events-outbox.service.ts` 的 `tx` 参数
 
 `append(input, tx?: Prisma.TransactionClient)` 把 Prisma 事务客户端暴露在
