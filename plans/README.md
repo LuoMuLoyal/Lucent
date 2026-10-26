@@ -34,11 +34,12 @@ YYYY-MM-DD-short-task-name.md
 
 ## Current Plans
 
-> 更新于 2026-10-21。每份计划的状态以文件自身头部的状态段为准；此处只列当前仍在驱动工作、
+> 更新于 2026-10-26。每份计划的状态以文件自身头部的状态段为准；此处只列当前仍在驱动工作、
 > 或已裁决暂缓但保留触发条件的计划。
 
 | 计划                                                                                                                       | 状态                                   | 备注                                                                                                                                                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`2026-10-26-ddd-migration-completion.md`](2026-10-26-ddd-migration-completion.md)                                         | **待评审**                             | DDD 四层收尾：拆 `reports`(6875 行) / `today-analysis`(3099 行)、补完半拆的 `user`、校正三处已撒谎的 module README。**明确不含 MQ 引入与事件原子性改造**（ADR-0025 已裁决不引入 Kafka/RabbitMQ，前置是微服务裁决）                                                                        |
 | [`2026-10-24-medication-intelligence-plan.md`](2026-10-24-medication-intelligence-plan.md)                                 | **草案，待评审；P0 阻塞**              | 用药智能：关系查询地基 + 机理冲突解释 / 用药全景 / 半衰期感知漏服。**dev 库关系表为空（0 行），P0 数据就绪前不启动 P1–P3**                                                                                                                                                                |
 | [`2026-10-21-ddd-refactor-backend.md`](2026-10-21-ddd-refactor-backend.md)                                                 | **进行中：`medicines` 已迁移**         | 标准 DDD 首批：Identity & Access / Medicine Catalog / Daily Guidance / AI Assistant；先落 ADR-0024、上下文映射与聚合边界，再按上下文迁移；公开 OpenAPI 零 diff                                                                                                                            |
 | [`2026-10-18-nestjs-microservices-monorepo.md`](2026-10-18-nestjs-microservices-monorepo.md)                               | **未开工，待裁决**                     | 绞杀者渐进：Traefik 边缘逐片切出 identity/health/medicine/assistant/insights/notifications/content + admin BFF；P0.5 命名硬切一次；TS + Python（仅 `services/ontology`）、Turborepo 多语言任务图、RabbitMQ、每服务独立 database、service JWT、`apps/legacy` 标准布局；Nomad + rnacos 部署 |
