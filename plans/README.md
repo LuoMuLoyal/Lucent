@@ -65,5 +65,6 @@ YYYY-MM-DD-short-task-name.md
 ## 与其它目录的关系
 
 - 未完成项的唯一台账是 `docs/TODO.md`——计划文件只写「怎么做」，不复制待办清单。
-- `plans/_naming-lookup.json` 是 `feat(admin)` 期间生成的 OpenAPI operationId 查找表，
-  非计划文件。
+- operationId 不由任何查找表维护：它是端点自身的属性，写在 handler 的
+  `@ApiOperation({ operationId })` 上。原 `plans/_naming-lookup.json` 已删除，
+  导出时的唯一性与「标注 ↔ operation」对账见 `docs/howto/sync-openapi-client.md`。
