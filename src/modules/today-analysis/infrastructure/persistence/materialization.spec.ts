@@ -1,4 +1,4 @@
-import { TodayAnalysisMaterializationStore } from './store.service.js';
+import { TodayAnalysisMaterializationStore } from './materialization.js';
 
 describe('TodayAnalysisMaterializationStore', () => {
   let store: TodayAnalysisMaterializationStore;

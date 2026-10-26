@@ -41,7 +41,7 @@ import {
 import { TodayAnalysisGeneratorService } from './pipeline/generator.service.js';
 import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema.js';
 import { nowIsoString } from '../../../common/index.js';
-import { TodayAnalysisMaterializationStore } from './materialization/store.service.js';
+import { TodayAnalysisMaterializationStore } from '../infrastructure/persistence/materialization.js';
 import type { StreamSummaryEvent } from '../../../common/api/stream-summary.js';
 
 interface PreparedTodayAnalysis {
@@ -391,19 +391,19 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     data: TodayAnalysisDataDto,
   ): Promise<void> {
     await this.aiSummaryHistoryService.save({
-        userId,
-        kind: 'today',
-        scopeKey: `today:${data.date}`,
-        date: data.date,
-        generatedAt: data.generatedAt,
-        summary: data.summary,
-        bullets: data.bullets,
-        actionLabel: data.actionLabel,
-        action: data.action,
-        confidenceNote: data.confidenceNote,
-        aiGenerated: data.aiGenerated,
-        sourceVersion: data.sourceVersion ?? null,
-      });
+      userId,
+      kind: 'today',
+      scopeKey: `today:${data.date}`,
+      date: data.date,
+      generatedAt: data.generatedAt,
+      summary: data.summary,
+      bullets: data.bullets,
+      actionLabel: data.actionLabel,
+      action: data.action,
+      confidenceNote: data.confidenceNote,
+      aiGenerated: data.aiGenerated,
+      sourceVersion: data.sourceVersion ?? null,
+    });
   }
 
   /**

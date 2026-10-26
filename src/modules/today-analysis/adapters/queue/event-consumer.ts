@@ -8,7 +8,10 @@ import {
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
-import { TodayAnalysisMaterializationStore } from '../../services/materialization/store.service.js';
+import {
+  TODAY_ANALYSIS_MATERIALIZATION,
+  type TodayAnalysisMaterialization,
+} from '../../application/ports/materialization.js';
 import type { TodayAnalysisReasonCode } from '../../types/materialization.types.js';
 import {
   TODAY_ANALYSIS_QUEUE_PORT,
@@ -52,7 +55,8 @@ export class TodayAnalysisEventConsumerService implements OnModuleInit {
   private readonly logger = new Logger(TodayAnalysisEventConsumerService.name);
 
   constructor(
-    private readonly store: TodayAnalysisMaterializationStore,
+    @Inject(TODAY_ANALYSIS_MATERIALIZATION)
+    private readonly store: TodayAnalysisMaterialization,
     @Inject(TODAY_ANALYSIS_QUEUE_PORT)
     private readonly queue: TodayAnalysisQueuePort,
     private readonly contextService: TodayAnalysisContextService,

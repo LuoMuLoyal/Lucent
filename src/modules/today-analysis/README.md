@@ -83,7 +83,7 @@ today-suggestion 互补——分析面向解读,建议面向行动。
 - `services/pipeline/copy.service.ts` — 多语言文案(i18n)。
 - `services/pipeline/recommendations.service.ts` — 内置健康指南推荐。
 - `services/pipeline/trigger-evaluator.service.ts` — 见判定 B。
-- `services/materialization/store.service.ts` — 见判定 A。
+- `infrastructure/persistence/materialization.ts` + `application/ports/materialization.ts` — 见判定 A（物化表不建聚合；消费方依赖端口 `TODAY_ANALYSIS_MATERIALIZATION`）。
 - `adapters/queue/event-consumer.ts` — 消费领域事件触发重算;同时负责
   `invalidateContext` 与 `markPending`+`enqueue` 两半。**顺序有约束**(见该文件
   头注释):context 失效最先、`markPending` 必先于 `enqueue`,因为前者分配

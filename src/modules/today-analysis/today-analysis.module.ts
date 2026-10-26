@@ -17,9 +17,10 @@ import { TodayAnalysisGeneratorService } from './services/pipeline/generator.ser
 import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
 
 import { TodayAnalysisService } from './services/analysis.service.js';
-import { TodayAnalysisMaterializationStore } from './services/materialization/store.service.js';
+import { TodayAnalysisMaterializationStore } from './infrastructure/persistence/materialization.js';
 import { TodayAnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
 import { TODAY_ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
+import { TODAY_ANALYSIS_MATERIALIZATION } from './application/ports/materialization.js';
 
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
 import { TodayAnalysisController } from './today-analysis.controller.js';
@@ -45,6 +46,10 @@ import { TodayAnalysisController } from './today-analysis.controller.js';
     TodayAnalysisQueueService,
     TodayAnalysisMaterializationStore,
     TodayAnalysisEventConsumerService,
+    {
+      provide: TODAY_ANALYSIS_MATERIALIZATION,
+      useExisting: TodayAnalysisMaterializationStore,
+    },
     {
       provide: TODAY_ANALYSIS_QUEUE_PORT,
       useExisting: TodayAnalysisQueueService,

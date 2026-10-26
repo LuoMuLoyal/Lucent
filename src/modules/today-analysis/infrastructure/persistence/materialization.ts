@@ -2,6 +2,9 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
 import { parseDateOnly } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
+import type { TodayAnalysisMaterialization } from '../../application/ports/materialization.js';
+import type { TodayAnalysisGenerationClaim } from '../../application/ports/materialization.js';
+export type { TodayAnalysisGenerationClaim };
 import {
   TODAY_ANALYSIS_MAX_GENERATIONS_PER_DATE,
   TODAY_ANALYSIS_CLAIM_TIMEOUT_MS,
@@ -17,19 +20,8 @@ export interface TodayAnalysisPendingResult extends TodayAnalysisMaterialization
   shouldQueue: boolean;
 }
 
-export type TodayAnalysisGenerationClaim =
-  | {
-      claimed: true;
-      status: 'claimed';
-      activeVersion: number;
-    }
-  | {
-      claimed: false;
-      status: 'stale' | 'capped' | 'busy';
-    };
-
 @Injectable()
-export class TodayAnalysisMaterializationStore {
+export class TodayAnalysisMaterializationStore implements TodayAnalysisMaterialization {
   constructor(private readonly prisma: PrismaService) {}
 
   async readStatus(

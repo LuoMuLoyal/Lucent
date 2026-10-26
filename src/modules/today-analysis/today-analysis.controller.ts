@@ -38,7 +38,7 @@ import { TodayAnalysisQueueService } from './services/analysis-queue.service.js'
 import {
   TodayAnalysisMaterializationStore,
   type TodayAnalysisPendingResult,
-} from './services/materialization/store.service.js';
+} from './infrastructure/persistence/materialization.js';
 import type { TodayAnalysisMaterializationView } from './types/materialization.types.js';
 
 import { TodayAnalysisService } from './services/analysis.service.js';
