@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from '../../dashboard/metrics.types.js';
+} from '../../application/read_models/dashboard/metrics.types.js';
 
 export interface ReportsAiSummaryCoverageDimension {
   trackedDays: number;

@@ -31,7 +31,7 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 ## 内部结构
 
 四层迁移进行中（`plans/2026-10-26-ddd-migration-completion.md`）。已完成
-`event-review` 子域，其余仍为旧结构。
+`event-review` 与 `dashboard` 子域，`ai-summary` / `clinic-summary` 仍为旧结构。
 
 - `adapters/http/controllers/event-review.controller.ts` — 事件回顾三个只读端点。
 - `adapters/http/dto/` — `event-review-list-query` / `event-review-response`
@@ -47,10 +47,23 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
   next-step（只读 medicines 的静态 `redFlags`，读失败降级空列表）/
   review（current/list/by-event 只读模型）/ fact-arguments。全部经 reader port
   读上游，**不直连 Prisma**。
-- `dashboard/` — `computation.service`（指标计算）、`context.service`
-  （跨模块数据收集 + settings）、`presenter.service`、`dashboard.service`
-  （编排 `getDashboard`）、`cache-invalidation.queue.service`（事件驱动缓存
-  失效，按 ADR-0025 走 `report-cache-invalidation` 队列，不再有进程内监听器）。
+- `application/ports/dashboard.ts` — 仪表盘用例的入参词汇
+  （`ReportDashboardQuery`）、跨上下文读端口 `DashboardContextPort` 与其注入
+  token `REPORT_DASHBOARD_CONTEXT`。**用例只依赖端口**，模块用
+  `useExisting` 把 token 绑到 `adapters/acl/dashboard-context.ts`——反过来让用例
+  直接注入 ACL 类会触发 `ddd-application-no-infra-or-adapters`。
+- `application/read_models/dashboard/` — `report-range`（报告窗口词汇，
+  产品决定，DTO 反向 re-export 以保导入路径不变）、`metrics.types`、
+  `dashboard-computation`（指标计算，唯一入口 `compute`，内部仍调 presenter
+  产出 findings/patterns——**计算与呈现尚未拆开，属已知的下一步**）、
+  `dashboard-presenter`（本地化投影）。
+- `application/use_cases/get-dashboard.ts` — 编排用例（缓存 + 版本号失效）。
+- `adapters/acl/dashboard-context.ts` — 跨上下文数据收集：经
+  `IUserSettingsPort` / `MedicineDoseLogReaderPort` / `DailyRecordReaderPort`
+  三个 **reader port** 读上游，**不直连 Prisma**。
+- `adapters/queue/cache-invalidation.ts` — 事件驱动缓存失效，按 ADR-0025 走
+  `report-cache-invalidation` 队列，已无进程内监听器。
+- `domain/dashboard/query-reasons.ts` — 「为什么这个指标缺测」的原因码，属领域词汇。
 - `services/ai-summary/` — context/copy/generator/summary（继承
   `common/llm` 基类，bounded-linear 分层）+ `summary-queue.service`
   （异步队列）。
@@ -70,9 +83,10 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 
 ## Tests
 
-`reports.controller.spec.ts`、`dashboard/*.spec.ts`（computation/context/
-presenter/dashboard）、`services/ai-summary/*.spec.ts`、
-`services/clinic-summary/*.spec.ts`（summary/share/pdf/pdf-queue）、
-`application/read_models/event-review/*.spec.ts`、
-`adapters/http/dto/event-review-response.spec.ts`（形状镜像守卫）、
+`reports.controller.spec.ts`、`application/read_models/dashboard/*.spec.ts`、
+`application/use_cases/get-dashboard*.spec.ts`、`adapters/acl/*.spec.ts`、
+`services/ai-summary/*.spec.ts`、`services/clinic-summary/*.spec.ts`
+（summary/share/pdf/pdf-queue）、`application/read_models/event-review/*.spec.ts`、
+`adapters/http/dto/event-review-response.spec.ts` 与
+`dto/report-dashboard-shape.spec.ts`（形状镜像守卫）、
 `schemas/report-summary.schema.spec.ts`。

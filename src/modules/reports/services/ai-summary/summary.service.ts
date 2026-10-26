@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  createDomainFailure,
-} from '../../../../common/result/index.js';
+import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 
 import { HistoricalAiSummaryService } from '../../../assistant/index.js';
@@ -21,8 +19,8 @@ import {
 import { ReportsLlmSummaryCopyService } from './copy.service.js';
 import { ReportsAiSummaryGeneratorService } from './generator.service.js';
 import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema.js';
-import { ReportsComputationService } from '../../dashboard/computation.service.js';
-import { ReportsContextService } from '../../dashboard/context.service.js';
+import { ReportsComputationService } from '../../application/read_models/dashboard/dashboard-computation.js';
+import { ReportsContextService } from '../../adapters/acl/dashboard-context.js';
 
 interface PreparedReportSummary {
   context: ReportsAiSummaryContext;
@@ -106,19 +104,19 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     data: ReportSummaryDataDto,
   ): Promise<void> {
     await this.aiSummaryHistoryService.save({
-        userId,
-        kind: 'report',
-        scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
-        rangeKey: data.range,
-        startDate: data.startDate,
-        endDate: data.endDate,
-        generatedAt: data.generatedAt,
-        summary: data.summary,
-        coverage: data.coverage,
-        observedPattern: data.observedPattern,
-        lowRiskAction: data.lowRiskAction,
-        disclaimer: data.disclaimer,
-      });
+      userId,
+      kind: 'report',
+      scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
+      rangeKey: data.range,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      generatedAt: data.generatedAt,
+      summary: data.summary,
+      coverage: data.coverage,
+      observedPattern: data.observedPattern,
+      lowRiskAction: data.lowRiskAction,
+      disclaimer: data.disclaimer,
+    });
   }
 
   /**

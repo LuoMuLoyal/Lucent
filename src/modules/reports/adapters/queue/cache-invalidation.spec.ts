@@ -1,11 +1,11 @@
-import { ReportsCacheInvalidationQueueService } from './cache-invalidation.queue.service.js';
-import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
+import { ReportsCacheInvalidationQueueService } from './cache-invalidation.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import {
   EventConsumerRegistry,
   REPORT_CACHE_INVALIDATION_JOB,
-} from '../../../common/index.js';
-import type { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
-import type { ReportsService } from './dashboard.service.js';
+} from '../../../../common/index.js';
+import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import type { ReportsService } from '../../application/use_cases/get-dashboard.js';
 
 describe('ReportsCacheInvalidationQueueService', () => {
   let reportsService: { invalidateUserDashboard: vi.Mock };

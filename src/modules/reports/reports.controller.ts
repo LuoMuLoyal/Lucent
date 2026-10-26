@@ -47,7 +47,7 @@ import {
 
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
-import { ReportsService } from './dashboard/dashboard.service.js';
+import { ReportsService } from './application/use_cases/get-dashboard.js';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')

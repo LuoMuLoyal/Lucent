@@ -23,14 +23,14 @@ import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queu
 
 import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
 import { ShareService } from './services/clinic-summary/share.service.js';
-import { ReportsComputationService } from './dashboard/computation.service.js';
+import { ReportsComputationService } from './application/read_models/dashboard/dashboard-computation.js';
 
-import { ReportsContextService } from './dashboard/context.service.js';
+import { ReportsContextService } from './adapters/acl/dashboard-context.js';
 
-import { ReportsPresenterService } from './dashboard/presenter.service.js';
+import { ReportsPresenterService } from './application/read_models/dashboard/dashboard-presenter.js';
 
-import { ReportsService } from './dashboard/dashboard.service.js';
-import { ReportsCacheInvalidationQueueService } from './dashboard/cache-invalidation.queue.service.js';
+import { ReportsService } from './application/use_cases/get-dashboard.js';
+import { ReportsCacheInvalidationQueueService } from './adapters/queue/cache-invalidation.js';
 import { EventReviewService } from './application/read_models/event-review/review.js';
 import { EventReviewFactsService } from './application/read_models/event-review/facts.js';
 import { EventReviewChangesService } from './application/read_models/event-review/changes.js';
@@ -40,6 +40,7 @@ import { ReportsController } from './reports.controller.js';
 import { ClinicSummaryController } from './clinic-summary.controller.js';
 import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
 import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
+import { REPORT_DASHBOARD_CONTEXT } from './application/ports/dashboard.js';
 
 @Module({
   imports: [
@@ -78,6 +79,10 @@ import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
     EventReviewActionsService,
     EventReviewNextStepService,
     ReportsCacheInvalidationQueueService,
+    {
+      provide: REPORT_DASHBOARD_CONTEXT,
+      useExisting: ReportsContextService,
+    },
     { provide: IReportSummaryReader, useExisting: ReportsAiSummaryService },
   ],
   exports: [

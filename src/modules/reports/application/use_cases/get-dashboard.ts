@@ -1,13 +1,16 @@
-import { formatDateOnly } from '../../../common/index.js';
+import { formatDateOnly } from '../../../../common/index.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { getActiveTraceIds } from '../../../common/logger/trace-context.utils.js';
-import type { ReportDashboardDataDto } from '../dto/report-dashboard-response.dto.js';
+import { getActiveTraceIds } from '../../../../common/logger/trace-context.utils.js';
+import type { ReportDashboardDataDto } from '../../dto/report-dashboard-response.dto.js';
 
-import type { ReportDashboardQueryDto } from '../dto/report-dashboard-query.dto.js';
-import { ReportsComputationService } from './computation.service.js';
-import { ReportsContextService } from './context.service.js';
+import { REPORT_DASHBOARD_CONTEXT } from '../ports/dashboard.js';
+import type {
+  DashboardContextPort,
+  ReportDashboardQuery,
+} from '../ports/dashboard.js';
+import { ReportsComputationService } from '../read_models/dashboard/dashboard-computation.js';
 
 @Injectable()
 export class ReportsService {
@@ -29,14 +32,15 @@ export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
 
   constructor(
-    private readonly contextService: ReportsContextService,
+    @Inject(REPORT_DASHBOARD_CONTEXT)
+    private readonly contextService: DashboardContextPort,
     private readonly computationService: ReportsComputationService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async getDashboard(
     userId: string,
-    query: ReportDashboardQueryDto,
+    query: ReportDashboardQuery,
     locale: string,
   ): Promise<ReportDashboardDataDto> {
     const range = query.range ?? 'last_7_days';

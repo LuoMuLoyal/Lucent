@@ -1,10 +1,10 @@
-import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../dto/report-dashboard-query.dto.js';
-import { ReportsContextService } from './context.service.js';
+} from '../../dto/report-dashboard-query.dto.js';
+import { ReportsContextService } from './dashboard-context.js';
 
 /** v2 分析结果的最小合法形状；status 决定这一天的口径。 */
 function mealAnalysisFixture(analysisStatus: string) {

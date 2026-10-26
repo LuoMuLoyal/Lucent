@@ -1,15 +1,24 @@
 import { z } from 'zod';
 
-export const REPORT_RANGE_LAST_7_DAYS = 'last_7_days';
-export const REPORT_RANGE_LAST_30_DAYS = 'last_30_days';
-export const REPORT_RANGE_CUSTOM = 'custom';
-export const REPORT_SUPPORTED_RANGES = [
+import {
+  REPORT_RANGE_CUSTOM,
+  REPORT_SUPPORTED_RANGES,
+} from '../application/read_models/dashboard/report-range.js';
+import type { ReportRange } from '../application/read_models/dashboard/report-range.js';
+
+/**
+ * The range vocabulary lives in `application/read_models/dashboard/report-range.ts`
+ * — it is a product decision both the read model and the use case branch on, so
+ * it belongs to the application layer. Re-exported here so existing consumers
+ * keep their import path.
+ */
+export {
   REPORT_RANGE_LAST_7_DAYS,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_CUSTOM,
-] as const;
-
-export type ReportRange = (typeof REPORT_SUPPORTED_RANGES)[number];
+  REPORT_SUPPORTED_RANGES,
+  type ReportRange,
+} from '../application/read_models/dashboard/report-range.js';
 
 /**
  * Custom-range date-pair rule. Mirrors the former class-validator

@@ -1,6 +1,6 @@
-import { ReportsComputationService } from './computation.service.js';
-import type { ObservedMetric } from '../../../common/index.js';
-import type { ReportsPresenterService } from './presenter.service.js';
+import { ReportsComputationService } from './dashboard-computation.js';
+import type { ObservedMetric } from '../../../../../common/index.js';
+import type { ReportsPresenterService } from './dashboard-presenter.js';
 import type { ReportDashboardFacts } from './metrics.types.js';
 
 describe('ReportsComputationService', () => {

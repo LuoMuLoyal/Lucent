@@ -1,10 +1,10 @@
-import { ReportsService } from './dashboard.service.js';
+import { ReportsService } from './get-dashboard.js';
 import {
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
-} from '../dto/report-dashboard-query.dto.js';
-import type { ReportsComputationService } from './computation.service.js';
-import type { ReportsContextService } from './context.service.js';
+} from '../../dto/report-dashboard-query.dto.js';
+import type { ReportsComputationService } from '../read_models/dashboard/dashboard-computation.js';
+import type { DashboardContextPort } from '../ports/dashboard.js';
 
 /**
  * Minimal in-memory cache double.
@@ -51,7 +51,7 @@ function makeContextService(label: string) {
         failedDays: 0,
       },
     }),
-  } as unknown as ReportsContextService;
+  } as unknown as DashboardContextPort;
 }
 
 function makeComputationService(label: string) {

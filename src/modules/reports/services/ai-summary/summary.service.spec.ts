@@ -10,8 +10,8 @@ import type { ReportsAiSummaryGeneratorService } from './generator.service.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import { ReportsAiSummaryService } from './summary.service.js';
 import { okAsync } from '../../../../common/result/index.js';
-import type { ReportsComputationService } from '../../dashboard/computation.service.js';
-import type { ReportsContextService } from '../../dashboard/context.service.js';
+import type { ReportsComputationService } from '../../application/read_models/dashboard/dashboard-computation.js';
+import type { ReportsContextService } from '../../adapters/acl/dashboard-context.js';
 
 function modelGenerateSpy(service: ReportsAiSummaryService) {
   return vi.spyOn(

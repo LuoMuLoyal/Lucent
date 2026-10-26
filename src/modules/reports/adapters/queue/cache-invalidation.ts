@@ -1,12 +1,12 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
-import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import {
   EventConsumerRegistry,
   REPORT_CACHE_INVALIDATION_JOB,
   type DomainEventJobData,
-} from '../../../common/index.js';
-import { ReportsService } from './dashboard.service.js';
+} from '../../../../common/index.js';
+import { ReportsService } from '../../application/use_cases/get-dashboard.js';
 
 /** BullMQ queue the reports dashboard cache invalidation runs on. */
 export const REPORT_CACHE_INVALIDATION_QUEUE_NAME =

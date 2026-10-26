@@ -1,10 +1,10 @@
-import { ReportsService } from './dashboard.service.js';
+import { ReportsService } from './get-dashboard.js';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../dto/report-dashboard-query.dto.js';
-import type { ReportsComputationService } from './computation.service.js';
-import type { ReportsContextService } from './context.service.js';
+} from '../../dto/report-dashboard-query.dto.js';
+import type { ReportsComputationService } from '../read_models/dashboard/dashboard-computation.js';
+import type { DashboardContextPort } from '../ports/dashboard.js';
 
 describe('ReportsService', () => {
   it('builds a dashboard from facts and computed presentation', async () => {
@@ -26,7 +26,7 @@ describe('ReportsService', () => {
           failedDays: 0,
         },
       }),
-    } as unknown as ReportsContextService;
+    } as unknown as DashboardContextPort;
     const computationService = {
       compute: vi.fn().mockReturnValue({
         metrics: [
@@ -148,7 +148,7 @@ describe('ReportsService', () => {
           failedDays: 0,
         },
       }),
-    } as unknown as ReportsContextService;
+    } as unknown as DashboardContextPort;
     const computationService = {
       compute: vi.fn().mockReturnValue({
         metrics: [],
@@ -199,7 +199,7 @@ describe('ReportsService', () => {
           failedDays: 0,
         },
       }),
-    } as unknown as ReportsContextService;
+    } as unknown as DashboardContextPort;
     const computationService = {
       compute: vi.fn().mockReturnValue({
         metrics: [
@@ -275,7 +275,7 @@ describe('ReportsService', () => {
           failedDays: 0,
         },
       }),
-    } as unknown as ReportsContextService;
+    } as unknown as DashboardContextPort;
     const computationService = {
       compute: vi.fn().mockReturnValue({
         metrics: [],
@@ -323,7 +323,7 @@ describe('ReportsService', () => {
           failedDays: 0,
         },
       }),
-    } as unknown as ReportsContextService;
+    } as unknown as DashboardContextPort;
     const computationService = {
       compute: vi.fn().mockReturnValue({
         metrics: [],

@@ -1,45 +1,48 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createDomainFailure } from '../../../common/result/index.js';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
+import { createDomainFailure } from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import {
   summarizeWaterMetrics,
   toObservedWaterMetric,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import {
   formatDateOnly,
   parseDateOnly,
   now,
   nowIsoString,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import type {
   ObservedMetric,
   WaterMetricInput,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordReaderPort } from '../../daily-records/index.js';
-import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs/index.js';
-import { IUserSettingsPort } from '../../user-settings/index.js';
+import { DailyRecordReaderPort } from '../../../daily-records/index.js';
+import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
-} from '../../daily-records/index.js';
+} from '../../../daily-records/index.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-  type ReportDashboardQueryDto,
-} from '../dto/report-dashboard-query.dto.js';
+} from '../../application/read_models/dashboard/report-range.js';
+import type {
+  DashboardContextPort,
+  ReportDashboardQuery,
+} from '../../application/ports/dashboard.js';
 import type {
   ObservedMedicationMetric,
   ReportDashboardFacts,
-} from './metrics.types.js';
+} from '../../application/read_models/dashboard/metrics.types.js';
 import {
   REPORT_QUERY_REASON,
   type ReportQueryReason,
-} from './query-reasons.js';
+} from '../../domain/dashboard/query-reasons.js';
 
 @Injectable()
-export class ReportsContextService {
+export class ReportsContextService implements DashboardContextPort {
   private readonly logger = new Logger(ReportsContextService.name);
 
   constructor(
@@ -50,7 +53,7 @@ export class ReportsContextService {
 
   async build(
     userId: string,
-    query: ReportDashboardQueryDto,
+    query: ReportDashboardQuery,
   ): Promise<ReportDashboardFacts> {
     const range = query.range ?? REPORT_RANGE_LAST_7_DAYS;
     const endDate = this.resolveEndDate(range, query);
@@ -360,7 +363,7 @@ export class ReportsContextService {
 
   private resolveEndDate(
     range: ReportDashboardFacts['range'],
-    query: ReportDashboardQueryDto,
+    query: ReportDashboardQuery,
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.endDate) {
@@ -378,7 +381,7 @@ export class ReportsContextService {
   private resolveStartDate(
     endDate: Date,
     range: ReportDashboardFacts['range'],
-    query: ReportDashboardQueryDto,
+    query: ReportDashboardQuery,
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.startDate) {

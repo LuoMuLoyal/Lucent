@@ -38,7 +38,7 @@ import { EventReviewService } from './application/read_models/event-review/revie
 import { ReportsController } from './reports.controller.js';
 import { ClinicSummaryController } from './clinic-summary.controller.js';
 import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
-import { ReportsService } from './dashboard/dashboard.service.js';
+import { ReportsService } from './application/use_cases/get-dashboard.js';
 
 /** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */
 const SHARED_VIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
