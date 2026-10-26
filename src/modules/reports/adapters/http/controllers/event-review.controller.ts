@@ -32,14 +32,17 @@ export class EventReviewController {
   constructor(private readonly eventReviewService: EventReviewService) {}
 
   @Get('reviews/current')
-  @ApiOperation({ summary: 'Build the current event review' })
+  @ApiOperation({
+    operationId: 'getCurrentReview',
+    summary: 'Build the current event review',
+  })
   @SerializeOptions({ schema: eventReviewNullableResponseSchema })
   async getCurrentReview(@CurrentUser() user: UserPayload) {
     return await this.eventReviewService.buildCurrent(user.sub);
   }
 
   @Get('reviews')
-  @ApiOperation({ summary: 'Event review history' })
+  @ApiOperation({ operationId: 'listReviews', summary: 'Event review history' })
   @SerializeOptions({ schema: eventReviewListResponseSchema })
   async listReviews(
     @CurrentUser() user: UserPayload,
@@ -50,7 +53,10 @@ export class EventReviewController {
   }
 
   @Get('reviews/:eventId')
-  @ApiOperation({ summary: 'Rebuild and persist the event review' })
+  @ApiOperation({
+    operationId: 'getEventReview',
+    summary: 'Rebuild and persist the event review',
+  })
   @ApiParam({ name: 'eventId' })
   @SerializeOptions({ schema: eventReviewResponseSchema })
   async getEventReview(

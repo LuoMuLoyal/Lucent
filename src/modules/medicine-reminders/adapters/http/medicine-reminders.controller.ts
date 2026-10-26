@@ -46,7 +46,10 @@ export class MedicineRemindersController {
   constructor(private readonly remindersService: MedicineRemindersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List medicine reminder schedules' })
+  @ApiOperation({
+    operationId: 'listMedicineReminders',
+    summary: 'List medicine reminder schedules',
+  })
   @ApiQuery({
     name: 'activeOnly',
     required: false,
@@ -65,7 +68,10 @@ export class MedicineRemindersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a medicine reminder schedule' })
+  @ApiOperation({
+    operationId: 'createMedicineReminder',
+    summary: 'Create a medicine reminder schedule',
+  })
   @ApiResponse({ status: 201, description: 'The created medicine reminder.' })
   @SerializeOptions({ schema: medicineReminderResponseSchema })
   @ApiResponse({
@@ -87,7 +93,10 @@ export class MedicineRemindersController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a medicine reminder schedule' })
+  @ApiOperation({
+    operationId: 'updateMedicineReminder',
+    summary: 'Update a medicine reminder schedule',
+  })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, description: 'The updated medicine reminder.' })
   @SerializeOptions({ schema: medicineReminderResponseSchema })
@@ -117,7 +126,10 @@ export class MedicineRemindersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft-delete a medicine reminder schedule' })
+  @ApiOperation({
+    operationId: 'deleteMedicineReminder',
+    summary: 'Soft-delete a medicine reminder schedule',
+  })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 204, description: 'Medicine reminder deleted.' })
   @ApiResponse({
@@ -136,7 +148,10 @@ export class MedicineRemindersController {
   }
 
   @Put('group')
-  @ApiOperation({ summary: 'Upsert a whole medicine reminder group' })
+  @ApiOperation({
+    operationId: 'upsertGroup',
+    summary: 'Upsert a whole medicine reminder group',
+  })
   @ApiResponse({ status: 200, description: 'The upserted reminder group.' })
   @SerializeOptions({ schema: medicineReminderListResponseSchema })
   @ApiResponse({

@@ -56,7 +56,7 @@ export class SessionController {
   @Post('logout')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'User logout' })
+  @ApiOperation({ operationId: 'logout', summary: 'User logout' })
   @ApiResponse({ status: 204, description: 'Logged out.' })
   @ApiResponse({
     status: 401,
@@ -82,8 +82,8 @@ export class SessionController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'List signed-in devices for the current user',
     operationId: 'listSessions',
+    summary: 'List signed-in devices for the current user',
   })
   @ApiResponse({
     status: 200,
@@ -127,8 +127,8 @@ export class SessionController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Revoke a signed-in device',
     operationId: 'revokeSession',
+    summary: 'Revoke a signed-in device',
   })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
@@ -176,7 +176,7 @@ export class SessionController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh token' })
+  @ApiOperation({ operationId: 'refreshSession', summary: 'Refresh token' })
   @ApiResponse({
     status: 200,
     description: 'New token pair for the current session.',

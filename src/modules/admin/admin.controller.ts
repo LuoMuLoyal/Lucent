@@ -108,7 +108,7 @@ export class AdminController {
 
   @Get('me')
   @SerializeOptions({ schema: adminIdentityResponseSchema })
-  @ApiOperation({ summary: 'Get the current administrator identity and permissions' })
+  @ApiOperation({ operationId: 'getAdminIdentity', summary: 'Get the current administrator identity and permissions' })
   @ApiResponse({ status: 200, description: 'Current administrator identity.' })
   @ApiResponse({
     status: 401,
@@ -135,7 +135,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('metrics:read')
   @SerializeOptions({ schema: adminMetricsOverviewResponseSchema })
-  @ApiOperation({ summary: 'Get aggregate admin dashboard metrics' })
+  @ApiOperation({ operationId: 'getAdminMetricsOverview', summary: 'Get aggregate admin dashboard metrics' })
   @ApiResponse({ status: 200, description: 'Aggregate admin dashboard metrics.' })
   async getMetricsOverview() {
     return this.adminConsole.getOverview();
@@ -146,6 +146,7 @@ export class AdminController {
   @RequirePermission('ops:read')
   @SerializeOptions({ schema: adminDependenciesResponseSchema })
   @ApiOperation({
+    operationId: 'getAdminDependencies',
     summary: 'Get enablement of the optional assistant sidecars',
   })
   @ApiResponse({
@@ -160,7 +161,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:read')
   @SerializeOptions({ schema: adminUserListResponseSchema })
-  @ApiOperation({ summary: 'List user account summaries' })
+  @ApiOperation({ operationId: 'listAdminUsers', summary: 'List user account summaries' })
   @ApiResponse({ status: 200, description: 'Paginated user account summaries.' })
   async listUsers(
     @Query({ schema: adminUserListQuerySchema }) query: AdminUserListQueryDto,
@@ -172,7 +173,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:read')
   @SerializeOptions({ schema: adminUserSummarySchema })
-  @ApiOperation({ summary: 'Get one user account summary' })
+  @ApiOperation({ operationId: 'getAdminUser', summary: 'Get one user account summary' })
   @ApiResponse({ status: 200, description: 'User account summary.' })
   @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
   async getUser(@Param('id', { schema: z.uuid() }) id: string) {
@@ -189,7 +190,7 @@ export class AdminController {
   @Get('users/:id/related')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:read')
-  @ApiOperation({ summary: "List a user's related records grouped by domain" })
+  @ApiOperation({ operationId: 'getAdminUserRelated', summary: "List a user's related records grouped by domain" })
   @ApiResponse({ status: 200, description: 'Related records grouped by domain.' })
   @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
   async getUserRelated(
@@ -211,7 +212,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:write')
   @SerializeOptions({ schema: adminUserSummarySchema })
-  @ApiOperation({ summary: 'Activate or suspend a user account' })
+  @ApiOperation({ operationId: 'updateAdminUserStatus', summary: 'Activate or suspend a user account' })
   @ApiResponse({ status: 200, description: 'Updated user account summary.' })
   @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
   @ApiResponse({
@@ -249,7 +250,7 @@ export class AdminController {
   @Delete('users/:id')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:write')
-  @ApiOperation({ summary: 'Soft-delete a user account' })
+  @ApiOperation({ operationId: 'deleteAdminUser', summary: 'Soft-delete a user account' })
   @ApiResponse({ status: 204, description: 'User soft-deleted.' })
   @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
   @ApiResponse({
@@ -276,7 +277,7 @@ export class AdminController {
   @Delete('users/:id/sessions/:sessionId')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:write')
-  @ApiOperation({ summary: "Revoke one of a user's sessions" })
+  @ApiOperation({ operationId: 'revokeAdminUserSession', summary: "Revoke one of a user's sessions" })
   @ApiResponse({ status: 204, description: 'Session revoked.' })
   @ApiResponse({
     status: 404,
@@ -305,7 +306,7 @@ export class AdminController {
   @Delete('users/:id/shares/:shareId')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('users:write')
-  @ApiOperation({ summary: "Revoke one of a user's clinic-summary share links" })
+  @ApiOperation({ operationId: 'revokeAdminUserShare', summary: "Revoke one of a user's clinic-summary share links" })
   @ApiResponse({ status: 204, description: 'Share revoked.' })
   @ApiResponse({
     status: 404,
@@ -331,7 +332,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('admin:manage')
   @SerializeOptions({ schema: adminAdminListResponseSchema })
-  @ApiOperation({ summary: 'List administrator grants' })
+  @ApiOperation({ operationId: 'listAdminGrants', summary: 'List administrator grants' })
   @ApiResponse({ status: 200, description: 'Administrator grants.' })
   async listAdmins() {
     return this.admins.list();
@@ -341,7 +342,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('admin:manage')
   @SerializeOptions({ schema: adminAdminSummarySchema })
-  @ApiOperation({ summary: 'Grant or change an administrator role' })
+  @ApiOperation({ operationId: 'setAdminRole', summary: 'Grant or change an administrator role' })
   @ApiResponse({ status: 200, description: 'Updated administrator grant.' })
   @ApiResponse({ status: 404, description: 'User not found.', type: ProblemDetailsDto })
   @ApiResponse({
@@ -385,7 +386,7 @@ export class AdminController {
   @Delete('admins/:userId')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('admin:manage')
-  @ApiOperation({ summary: 'Revoke an administrator role' })
+  @ApiOperation({ operationId: 'removeAdminGrant', summary: 'Revoke an administrator role' })
   @ApiResponse({ status: 204, description: 'Administrator grant removed.' })
   @ApiResponse({ status: 404, description: 'Grant not found.', type: ProblemDetailsDto })
   @ApiResponse({
@@ -428,7 +429,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('audit:read')
   @SerializeOptions({ schema: adminAuditLogListResponseSchema })
-  @ApiOperation({ summary: 'List security audit log entries' })
+  @ApiOperation({ operationId: 'listAdminAuditLogs', summary: 'List security audit log entries' })
   @ApiResponse({ status: 200, description: 'Paginated security audit logs.' })
   async listAuditLogs(
     @Query({ schema: adminAuditLogListQuerySchema })
@@ -445,7 +446,7 @@ export class AdminController {
   // every item fail validation and the request answer 500. The array schema is
   // still what OpenAPI documents, via the registerResponseSchema call below.
   @SerializeOptions({ schema: adminLegalDocumentSchema })
-  @ApiOperation({ summary: 'List legal documents for administration' })
+  @ApiOperation({ operationId: 'listAdminLegalDocuments', summary: 'List legal documents for administration' })
   async listLegalDocuments() {
     return this.legalDocuments.list();
   }
@@ -454,7 +455,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
   @SerializeOptions({ schema: adminLegalDocumentSchema })
-  @ApiOperation({ summary: 'Update a legal document' })
+  @ApiOperation({ operationId: 'updateAdminLegalDocument', summary: 'Update a legal document' })
   async updateLegalDocument(
     @CurrentUser() user: UserPayload,
     @Param('docType', { schema: z.string().trim().min(1).max(100) })
@@ -478,7 +479,7 @@ export class AdminController {
   // NOTE: JSON array body — item schema for outbound validation, array schema
   // for OpenAPI. See the legal-documents list above.
   @SerializeOptions({ schema: adminSafetyTipSchema })
-  @ApiOperation({ summary: 'List medication safety tips for administration' })
+  @ApiOperation({ operationId: 'listAdminSafetyTips', summary: 'List medication safety tips for administration' })
   async listSafetyTips() {
     return this.safetyTips.list();
   }
@@ -487,7 +488,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
   @SerializeOptions({ schema: adminSafetyTipSchema })
-  @ApiOperation({ summary: 'Create a medication safety tip' })
+  @ApiOperation({ operationId: 'createAdminSafetyTip', summary: 'Create a medication safety tip' })
   async createSafetyTip(
     @CurrentUser() user: UserPayload,
     @Body({ schema: adminSafetyTipCreateSchema }) input: AdminSafetyTipCreateDto,
@@ -500,7 +501,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
   @SerializeOptions({ schema: adminSafetyTipSchema })
-  @ApiOperation({ summary: 'Update a medication safety tip' })
+  @ApiOperation({ operationId: 'updateAdminSafetyTip', summary: 'Update a medication safety tip' })
   async updateSafetyTip(
     @CurrentUser() user: UserPayload,
     @Param('id', { schema: z.uuid() }) id: string,
@@ -519,7 +520,7 @@ export class AdminController {
   @Delete('content/safety-tips/:id')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
-  @ApiOperation({ summary: 'Delete a medication safety tip' })
+  @ApiOperation({ operationId: 'deleteAdminSafetyTip', summary: 'Delete a medication safety tip' })
   @ApiResponse({ status: 204, description: 'Safety tip deleted.' })
   @HttpCode(204)
   async deleteSafetyTip(
@@ -540,6 +541,7 @@ export class AdminController {
   @RequirePermission('content:read')
   @SerializeOptions({ schema: adminQaChunkListResponseSchema })
   @ApiOperation({
+    operationId: 'listAdminQaChunks',
     summary: "List the assistant's open medical Q&A corpus chunks",
   })
   @ApiResponse({ status: 200, description: 'Paginated QA corpus chunks.' })
@@ -554,7 +556,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
   @SerializeOptions({ schema: adminQaChunkSchema })
-  @ApiOperation({ summary: 'Update a QA corpus chunk' })
+  @ApiOperation({ operationId: 'updateAdminQaChunk', summary: 'Update a QA corpus chunk' })
   @ApiResponse({ status: 200, description: 'Updated QA corpus chunk.' })
   async updateQaChunk(
     @CurrentUser() user: UserPayload,

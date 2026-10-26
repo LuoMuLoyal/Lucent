@@ -57,9 +57,9 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/mechanism-paths')
   @ApiOperation({
+    operationId: 'listMechanismPaths',
     summary:
       'Metabolic mechanism paths between drugs (INHIBITS/INDUCES x SUBSTRATE_OF)',
-    operationId: 'listMechanismPaths',
   })
   @ApiQuery({
     name: 'drugbankIds',
@@ -79,8 +79,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/shared-targets')
   @ApiOperation({
-    summary: 'Targets shared by a set of drugs',
     operationId: 'listSharedTargets',
+    summary: 'Targets shared by a set of drugs',
   })
   @ApiQuery({
     name: 'drugbankIds',
@@ -100,8 +100,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/cascade-paths')
   @ApiOperation({
-    summary: 'Four-hop metabolic cascade starting from one drug',
     operationId: 'listCascadePaths',
+    summary: 'Four-hop metabolic cascade starting from one drug',
   })
   @ApiQuery({ name: 'drugbankId', description: 'Starting DrugBank id' })
   @ApiResponse({
@@ -118,9 +118,9 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/substitutes')
   @ApiOperation({
+    operationId: 'listSubstituteCandidates',
     summary:
       'Structural candidates that do not use a given enzyme (not a prescription)',
-    operationId: 'listSubstituteCandidates',
   })
   @ApiQuery({ name: 'drugbankId', description: 'DrugBank id being replaced' })
   @ApiQuery({ name: 'enzymeGene', description: 'Enzyme to avoid, e.g. CYP2C9' })
@@ -141,8 +141,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/actions')
   @ApiOperation({
-    summary: 'What targets one drug acts on',
     operationId: 'listDrugActions',
+    summary: 'What targets one drug acts on',
   })
   @ApiQuery({ name: 'drugbankId', description: 'DrugBank id' })
   @ApiResponse({
@@ -159,8 +159,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/shortest-route')
   @ApiOperation({
-    summary: 'Shortest propagation route between two drugs',
     operationId: 'listShortestRoutes',
+    summary: 'Shortest propagation route between two drugs',
   })
   @ApiQuery({ name: 'fromDrugbankId', description: 'Source DrugBank id' })
   @ApiQuery({ name: 'toDrugbankId', description: 'Target DrugBank id' })
@@ -181,8 +181,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/target-drugs')
   @ApiOperation({
-    summary: 'All drugs acting on one target gene',
     operationId: 'listTargetDrugs',
+    summary: 'All drugs acting on one target gene',
   })
   @ApiQuery({
     name: 'geneName',
@@ -202,8 +202,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/transport-routes')
   @ApiOperation({
-    summary: 'Transporter routes (efflux/uptake) for one drug',
     operationId: 'listTransportRoutes',
+    summary: 'Transporter routes (efflux/uptake) for one drug',
   })
   @ApiQuery({ name: 'drugbankId', description: 'DrugBank id' })
   @ApiResponse({
@@ -220,8 +220,8 @@ export class MedicinesRelationsController {
   @Public()
   @Get('relations/enzyme-duel')
   @ApiOperation({
-    summary: 'Induction vs substrate pairs: opposite effect on exposure',
     operationId: 'listEnzymeDuels',
+    summary: 'Induction vs substrate pairs: opposite effect on exposure',
   })
   @ApiQuery({
     name: 'drugbankIds',

@@ -58,7 +58,10 @@ export class DataExportController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new data export request' })
+  @ApiOperation({
+    operationId: 'createRequest',
+    summary: 'Create a new data export request',
+  })
   @ApiResponse({
     status: 201,
     description: 'Data export request created.',
@@ -107,7 +110,10 @@ export class DataExportController {
   }
 
   @Get('latest')
-  @ApiOperation({ summary: 'Get the latest data export request' })
+  @ApiOperation({
+    operationId: 'getLatestRequest',
+    summary: 'Get the latest data export request',
+  })
   @ApiResponse({
     status: 200,
     description: 'Latest data export request, or null when none exists.',

@@ -194,34 +194,50 @@ function setIfMissing(key: string, value: string) {
   }
 }
 
-interface NamingLookup {
-  methodByKey: Record<string, string>;
-  requestByOpId: Record<string, string>;
-  responseByOld: Record<string, string>;
-}
-
 /**
- * Load the operationId / component naming lookup generated from the current
- * OpenAPI contract (see `plans/_naming-lookup.json`, produced by the naming
- * reform — AIP-190/136 semantic naming). Falls back to `{}` when absent so a
- * checkout without the plan assets still exports (with the legacy names).
+ * Collect every `operationId` annotated in `src/**` controller code.
+ *
+ * The operationId is a property of the endpoint, so it lives on the handler's
+ * `@ApiOperation` — next to the `@Get`/`@Post` it names. That keeps a rename
+ * and its operationId in one edit and one diff, and removes the failure mode a
+ * separate lookup table had: an unmapped or stale key silently exported the
+ * mechanical `Controller_method` name instead.
+ *
+ * Scanning the source (rather than reading the previous export) means the
+ * guard below sees what is *actually* annotated, including duplicates that
+ * would otherwise collapse into whichever handler Swagger reached last.
  */
-function loadNamingLookup(repoRoot: string): NamingLookup {
-  const lookupPath = path.resolve(repoRoot, 'plans', '_naming-lookup.json');
-  if (!fs.existsSync(lookupPath)) {
-    return { methodByKey: {}, requestByOpId: {}, responseByOld: {} };
+function collectAnnotatedOperationIds(repoRoot: string): Set<string> {
+  const ids = new Set<string>();
+  const duplicates: string[] = [];
+  const files: string[] = [];
+  const visit = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(full);
+      else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts'))
+        files.push(full);
+    }
+  };
+  const srcRoot = path.resolve(repoRoot, 'src');
+  if (!fs.existsSync(srcRoot)) return ids;
+  visit(srcRoot);
+  for (const file of files) {
+    const source = fs.readFileSync(file, 'utf-8');
+    for (const match of source.matchAll(/operationId:\s*'([^']+)'/g)) {
+      const id = match[1]!;
+      if (ids.has(id))
+        duplicates.push(`${id} (${path.relative(repoRoot, file)})`);
+      ids.add(id);
+    }
   }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-    const raw: any = JSON.parse(fs.readFileSync(lookupPath, 'utf-8'));
-    return {
-      methodByKey: raw.methodByKey ?? {},
-      requestByOpId: raw.requestByOpId ?? {},
-      responseByOld: raw.responseByOld ?? {},
-    };
-  } catch {
-    return { methodByKey: {}, requestByOpId: {}, responseByOld: {} };
+  if (duplicates.length > 0) {
+    throw new Error(
+      `[openapi-export] duplicate operationId annotated in src/: ${duplicates.join(', ')}. ` +
+        'operationId is the client method name, so it must be unique across the whole API.',
+    );
   }
+  return ids;
 }
 
 /** PascalCase a camelCase identifier: `changeEmail` → `ChangeEmail`. */
@@ -536,32 +552,28 @@ async function main() {
   });
   await setupApp(app, app.get(ConfigService));
 
-  const lookup = loadNamingLookup(repoRoot);
+  const annotatedOperationIds = collectAnnotatedOperationIds(repoRoot);
 
-  // Semantic operationId: map `<controllerKey>_<methodKey>` through the naming
-  // reform lookup (AIP-190/136). Falls back to the legacy form when unmapped so
-  // a checkout without the lookup assets still exports.
+  // operationId comes from the handler's `@ApiOperation({ operationId })` when
+  // it has one — Swagger passes an explicit `operationId` straight through and
+  // never calls this factory for that operation. Everything else falls back to
+  // Nest's mechanical `<Controller>_<method>`, which the check after the export
+  // rejects: every operation must carry a name, otherwise the generated client
+  // method is named after the controller wiring rather than the intent.
   const seenOperationIds = new Set<string>();
-  const seenControllerKeys = new Set<string>();
   const operationIdFactory = (
     controllerKey: string,
     methodKey: string,
     version?: string,
   ): string => {
-    seenControllerKeys.add(controllerKey);
     const key = controllerKey + '_' + methodKey;
-    const mapped = lookup.methodByKey[key] ?? key;
-    if (mapped === key && Object.keys(lookup.methodByKey).length > 0) {
-      // eslint-disable-next-line no-console
-      console.error('[openapi-export] naming lookup MISS for key: ' + key);
-    }
-    if (seenOperationIds.has(mapped)) {
+    if (seenOperationIds.has(key)) {
       throw new Error(
-        `[openapi-export] duplicate operationId after naming mapping: '${mapped}' (from '${key}'). The naming lookup in plans/_naming-lookup.json is inconsistent.`,
+        `[openapi-export] duplicate operationId '${key}' from two handlers.`,
       );
     }
-    seenOperationIds.add(mapped);
-    return mapped;
+    seenOperationIds.add(key);
+    return key;
   };
 
   const document = SwaggerModule.createDocument(
@@ -583,23 +595,46 @@ async function main() {
     },
   );
 
-  // Naming lookup prefix guard: every key prefix in plans/_naming-lookup.json
-  // must correspond to a controller that Swagger actually introspected.
-  // Stale prefixes (leftover after a controller rename/split) silently fall
-  // back to the legacy `Controller_method` shape — this guard surfaces them.
-  if (Object.keys(lookup.methodByKey).length > 0) {
-    const lookupPrefixes = new Set(
-      Object.keys(lookup.methodByKey).map((k) => k.split('_')[0]!),
-    );
-    const stalePrefixes = [...lookupPrefixes].filter(
-      (p) => !seenControllerKeys.has(p),
-    );
-    for (const prefix of stalePrefixes) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[openapi-export] naming lookup prefix '${prefix}' does not match any registered controller — plans/_naming-lookup.json may be stale`,
-      );
+  // Every exported operation must be named by an annotation, and every
+  // annotation must name an exported operation. Without this pair, an endpoint
+  // that lost its `@ApiOperation` silently shipped a `Controller_method` method
+  // name to both clients, and a renamed handler left a dead annotation behind
+  // that nothing referenced.
+  const exportedOperationIds = new Set<string>();
+  const unnamed: string[] = [];
+  for (const [route, pathItem] of Object.entries(document.paths ?? {})) {
+    for (const method of ['get', 'post', 'patch', 'put', 'delete']) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const op: any = (pathItem as any)?.[method];
+      if (!op) continue;
+      const id = op.operationId as string | undefined;
+      if (!id || !annotatedOperationIds.has(id)) {
+        unnamed.push(
+          `${method.toUpperCase()} ${route} (${id ?? 'no operationId'})`,
+        );
+        continue;
+      }
+      exportedOperationIds.add(id);
     }
+  }
+  if (unnamed.length > 0) {
+    throw new Error(
+      `[openapi-export] ${unnamed.length} operation(s) carry no @ApiOperation({ operationId }) from src/:\n  ` +
+        `${unnamed.join('\n  ')}\n` +
+        "Annotate the handler (e.g. `@ApiOperation({ operationId: 'listDoseLogs' })`) " +
+        'so the generated client method name is the endpoint intent, not the ' +
+        'controller wiring. The runtime testing-support controller is exempt ' +
+        'only because it is not part of the registered document.',
+    );
+  }
+  const staleAnnotations = [...annotatedOperationIds].filter(
+    (id) => !exportedOperationIds.has(id),
+  );
+  if (staleAnnotations.length > 0) {
+    throw new Error(
+      `[openapi-export] ${staleAnnotations.length} operationId annotation(s) in src/ name no exported operation: ` +
+        `${staleAnnotations.join(', ')}. Remove the annotation or restore the handler.`,
+    );
   }
 
   // Inject registered response schemas (Standard Schema / zod) as named

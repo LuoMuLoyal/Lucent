@@ -48,7 +48,10 @@ export class MedicineDoseLogsController {
   constructor(private readonly doseLogsService: MedicineDoseLogsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List dose logs for a date' })
+  @ApiOperation({
+    operationId: 'listDoseLogs',
+    summary: 'List dose logs for a date',
+  })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'pageSize', required: false, example: 50 })
@@ -73,7 +76,7 @@ export class MedicineDoseLogsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a dose log' })
+  @ApiOperation({ operationId: 'createDoseLog', summary: 'Create a dose log' })
   @ApiResponse({ status: 201, description: 'The created dose log.' })
   @SerializeOptions({ schema: doseLogResponseSchema })
   @ApiResponse({
@@ -101,6 +104,7 @@ export class MedicineDoseLogsController {
 
   @Post('mark')
   @ApiOperation({
+    operationId: 'mark',
     summary: 'Mark a dose log idempotently for one reminder slot',
   })
   @ApiResponse({
@@ -133,7 +137,7 @@ export class MedicineDoseLogsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a dose log' })
+  @ApiOperation({ operationId: 'updateDoseLog', summary: 'Update a dose log' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, description: 'The updated dose log.' })
   @SerializeOptions({ schema: doseLogResponseSchema })
@@ -152,7 +156,10 @@ export class MedicineDoseLogsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft-delete a dose log' })
+  @ApiOperation({
+    operationId: 'deleteDoseLog',
+    summary: 'Soft-delete a dose log',
+  })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 204, description: 'Dose log deleted.' })
   @ApiResponse({

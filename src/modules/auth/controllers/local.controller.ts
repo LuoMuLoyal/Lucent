@@ -65,7 +65,7 @@ export class LocalController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'User registration' })
+  @ApiOperation({ operationId: 'register', summary: 'User registration' })
   @ApiResponse({
     status: 201,
     description: 'Registered user with token pair.',
@@ -111,7 +111,7 @@ export class LocalController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login' })
+  @ApiOperation({ operationId: 'login', summary: 'User login' })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -152,7 +152,10 @@ export class LocalController {
 
   @Get('captcha')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Public human-verification widget configuration' })
+  @ApiOperation({
+    operationId: 'getCaptcha',
+    summary: 'Public human-verification widget configuration',
+  })
   @ApiResponse({
     status: 200,
     description:
@@ -170,7 +173,10 @@ export class LocalController {
 
   @Post('send-verification-code')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send email verification code' })
+  @ApiOperation({
+    operationId: 'sendVerificationCode',
+    summary: 'Send email verification code',
+  })
   @ApiResponse({
     status: 200,
     description: 'Cooldown seconds until the next code can be requested.',
@@ -205,7 +211,7 @@ export class LocalController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Forgot password' })
+  @ApiOperation({ operationId: 'forgotPassword', summary: 'Forgot password' })
   @ApiResponse({
     status: 200,
     description: 'Cooldown seconds until the next reset code can be requested.',
@@ -255,7 +261,7 @@ export class LocalController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password' })
+  @ApiOperation({ operationId: 'resetPassword', summary: 'Reset password' })
   @ApiResponse({
     status: 200,
     description: 'Password reset. Returns a confirmation message.',

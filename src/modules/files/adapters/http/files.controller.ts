@@ -32,7 +32,10 @@ export class FilesController {
 
   @Post('upload')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create a presigned upload URL for a file' })
+  @ApiOperation({
+    operationId: 'createUpload',
+    summary: 'Create a presigned upload URL for a file',
+  })
   @ApiResponse({
     status: 200,
     description: 'Presigned upload URL for the requested file.',

@@ -59,7 +59,10 @@ export class TodaySuggestionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get Today page suggestion cards' })
+  @ApiOperation({
+    operationId: 'getSuggestions',
+    summary: 'Get Today page suggestion cards',
+  })
   @ApiResponse({
     status: 200,
     description: 'Today page suggestion cards with materialization state.',
@@ -101,7 +104,10 @@ export class TodaySuggestionController {
   }
 
   @Post(':id/feedback')
-  @ApiOperation({ summary: 'Submit feedback for a suggestion card' })
+  @ApiOperation({
+    operationId: 'submitFeedback',
+    summary: 'Submit feedback for a suggestion card',
+  })
   @ApiResponse({ status: 201, type: SuggestionFeedbackResponse })
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async submitFeedback(
@@ -125,7 +131,10 @@ export class TodaySuggestionController {
   }
 
   @Post(':id/explain')
-  @ApiOperation({ summary: 'Get AI explanation for a suggestion card' })
+  @ApiOperation({
+    operationId: 'explainSuggestion',
+    summary: 'Get AI explanation for a suggestion card',
+  })
   // 201 主成功体注记:export-openapi 目前只回写 200;本端点按稳定组件名登记,
   // 导出脚本支持 201 回写后自动生效。
   @ApiResponse({
@@ -155,6 +164,7 @@ export class TodaySuggestionController {
 
   @Post(':id/explain/async')
   @ApiOperation({
+    operationId: 'enqueueSuggestionExplanation',
     summary: 'Enqueue async AI explanation for a suggestion card',
   })
   // 202 主成功体注记:export-openapi 目前只回写 200;本端点按稳定组件名登记,
@@ -191,7 +201,10 @@ export class TodaySuggestionController {
 
   @SkipThrottle()
   @Get('explain/status/:jobId')
-  @ApiOperation({ summary: 'Poll async suggestion explanation status' })
+  @ApiOperation({
+    operationId: 'explainSuggestionStatus',
+    summary: 'Poll async suggestion explanation status',
+  })
   @ApiResponse({
     status: 200,
     description: 'Job status (pending, completed, or failed)',
@@ -211,7 +224,10 @@ export class TodaySuggestionController {
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Get suggestion history for the Report page' })
+  @ApiOperation({
+    operationId: 'getHistory',
+    summary: 'Get suggestion history for the Report page',
+  })
   @ApiResponse({
     status: 200,
     description: 'Suggestion history items with the query window used.',

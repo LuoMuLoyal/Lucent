@@ -46,7 +46,10 @@ export class NotificationsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a notification (internal/test)' })
+  @ApiOperation({
+    operationId: 'createNotification',
+    summary: 'Create a notification (internal/test)',
+  })
   @ApiResponse({
     status: 201,
     description: 'Created notification.',
@@ -65,7 +68,10 @@ export class NotificationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List user notifications' })
+  @ApiOperation({
+    operationId: 'listNotifications',
+    summary: 'List user notifications',
+  })
   @ApiResponse({ status: 200, description: 'Paginated notification list.' })
   @SerializeOptions({ schema: notificationListSchema })
   async findAll(
@@ -82,7 +88,10 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
-  @ApiOperation({ summary: 'Get unread notification count' })
+  @ApiOperation({
+    operationId: 'getUnreadCount',
+    summary: 'Get unread notification count',
+  })
   @ApiResponse({ status: 200, description: 'Unread notification count.' })
   @SerializeOptions({ schema: unreadCountSchema })
   async getUnreadCount(@CurrentUser() user: UserPayload) {
@@ -91,7 +100,10 @@ export class NotificationsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a notification detail' })
+  @ApiOperation({
+    operationId: 'getNotification',
+    summary: 'Get a notification detail',
+  })
   @ApiResponse({ status: 200, description: 'Notification detail.' })
   @ApiResponse({
     status: 404,
@@ -104,7 +116,10 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
-  @ApiOperation({ summary: 'Mark a notification as read' })
+  @ApiOperation({
+    operationId: 'markAsRead',
+    summary: 'Mark a notification as read',
+  })
   @ApiResponse({ status: 200, description: 'Notification marked as read.' })
   @ApiResponse({
     status: 404,
@@ -119,7 +134,10 @@ export class NotificationsController {
   }
 
   @Patch(':id/unread')
-  @ApiOperation({ summary: 'Mark a notification as unread' })
+  @ApiOperation({
+    operationId: 'markAsUnread',
+    summary: 'Mark a notification as unread',
+  })
   @ApiResponse({ status: 200, description: 'Notification marked as unread.' })
   @ApiResponse({
     status: 404,
@@ -137,7 +155,10 @@ export class NotificationsController {
   }
 
   @Patch('mark-all-read')
-  @ApiOperation({ summary: 'Mark all notifications as read' })
+  @ApiOperation({
+    operationId: 'markAllAsRead',
+    summary: 'Mark all notifications as read',
+  })
   @ApiResponse({
     status: 200,
     description: 'Number of notifications marked as read.',
@@ -150,7 +171,7 @@ export class NotificationsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a notification' })
+  @ApiOperation({ operationId: 'remove', summary: 'Delete a notification' })
   @ApiResponse({
     status: 204,
     description: 'Notification deleted.',

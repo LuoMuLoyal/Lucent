@@ -44,6 +44,7 @@ export class ProductEventsController {
   // the global 100 req/min would allow five times as many rows per minute.
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @ApiOperation({
+    operationId: 'recordBatch',
     summary: 'Record a batch of privacy-minimal product events',
     description:
       'Write-only ingestion for product measurement. userId always comes from the session — a client-supplied userId is rejected by the whitelist. Raw events are retained 90 days, then deleted.',
@@ -72,6 +73,7 @@ export class ProductEventsController {
   @Get('funnel')
   @UseGuards(AdminGuard)
   @ApiOperation({
+    operationId: 'getFunnel',
     summary: 'Admin-only daily product funnel aggregation',
     description:
       'Internal admin surface: a valid JWT must belong to a user with an AdminUser role; regular users get 403. Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.',

@@ -48,7 +48,10 @@ export class UserHealthContextController {
 
   @Get()
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Get the current user health context aggregate' })
+  @ApiOperation({
+    operationId: 'getUserHealthContext',
+    summary: 'Get the current user health context aggregate',
+  })
   @ApiResponse({
     status: 200,
     description: 'The current user health-context aggregate.',
@@ -66,6 +69,7 @@ export class UserHealthContextController {
   @Patch('profile')
   @ApiBearerAuth('access-token')
   @ApiOperation({
+    operationId: 'updateUserHealthContextProfile',
     summary: 'Update the current user health-context profile',
   })
   @ApiResponse({
@@ -92,7 +96,10 @@ export class UserHealthContextController {
 
   @Post('allergies')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Create an allergy record' })
+  @ApiOperation({
+    operationId: 'createAllergy',
+    summary: 'Create an allergy record',
+  })
   // NOTE: 201 success body is the same aggregate as GET; the response
   // registry/export only wires 200 responses, so this endpoint stays
   // description-only in OpenAPI until the export side grows 201 support.
@@ -118,7 +125,10 @@ export class UserHealthContextController {
 
   @Patch('allergies/:id')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Update an allergy record' })
+  @ApiOperation({
+    operationId: 'updateAllergy',
+    summary: 'Update an allergy record',
+  })
   @ApiParam({ name: 'id', description: 'Allergy id' })
   @ApiResponse({
     status: 200,
@@ -148,7 +158,10 @@ export class UserHealthContextController {
 
   @Delete('allergies/:id')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Deactivate an allergy record (soft delete)' })
+  @ApiOperation({
+    operationId: 'deleteAllergy',
+    summary: 'Deactivate an allergy record (soft delete)',
+  })
   @ApiParam({ name: 'id', description: 'Allergy id' })
   @ApiResponse({
     status: 200,
@@ -178,7 +191,10 @@ export class UserHealthContextController {
 
   @Post('conditions')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Create a condition record' })
+  @ApiOperation({
+    operationId: 'createCondition',
+    summary: 'Create a condition record',
+  })
   // NOTE: 201 success body is the same aggregate as GET; the response
   // registry/export only wires 200 responses, so this endpoint stays
   // description-only in OpenAPI until the export side grows 201 support.
@@ -204,7 +220,10 @@ export class UserHealthContextController {
 
   @Patch('conditions/:id')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Update a condition record' })
+  @ApiOperation({
+    operationId: 'updateCondition',
+    summary: 'Update a condition record',
+  })
   @ApiParam({ name: 'id', description: 'Condition id' })
   @ApiResponse({
     status: 200,
@@ -234,7 +253,10 @@ export class UserHealthContextController {
 
   @Delete('conditions/:id')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Resolve a condition record (soft delete)' })
+  @ApiOperation({
+    operationId: 'deleteCondition',
+    summary: 'Resolve a condition record (soft delete)',
+  })
   @ApiParam({ name: 'id', description: 'Condition id' })
   @ApiResponse({
     status: 200,
@@ -264,7 +286,10 @@ export class UserHealthContextController {
 
   @Post('current-medicines')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Add a current medicine record' })
+  @ApiOperation({
+    operationId: 'createCurrentMedicine',
+    summary: 'Add a current medicine record',
+  })
   // NOTE: 201 success body is the same aggregate as GET; the response
   // registry/export only wires 200 responses, so this endpoint stays
   // description-only in OpenAPI until the export side grows 201 support.
@@ -290,7 +315,10 @@ export class UserHealthContextController {
 
   @Patch('current-medicines/:id')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Update a current medicine record' })
+  @ApiOperation({
+    operationId: 'updateCurrentMedicine',
+    summary: 'Update a current medicine record',
+  })
   @ApiParam({ name: 'id', description: 'Current medicine id' })
   @ApiResponse({
     status: 200,
@@ -321,6 +349,7 @@ export class UserHealthContextController {
   @Delete('current-medicines/:id')
   @ApiBearerAuth('access-token')
   @ApiOperation({
+    operationId: 'deleteCurrentMedicine',
     summary: 'Deactivate a current medicine record (soft delete)',
   })
   @ApiParam({ name: 'id', description: 'Current medicine id' })

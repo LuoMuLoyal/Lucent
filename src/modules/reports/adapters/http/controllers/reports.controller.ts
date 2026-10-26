@@ -64,7 +64,10 @@ export class ReportsController {
   ) {}
 
   @Get('dashboard')
-  @ApiOperation({ summary: 'Get authenticated user report dashboard' })
+  @ApiOperation({
+    operationId: 'getDashboard',
+    summary: 'Get authenticated user report dashboard',
+  })
   @ApiResponse({
     status: 200,
     description: 'Report dashboard with metric/trend/finding/pattern blocks.',
@@ -81,6 +84,7 @@ export class ReportsController {
 
   @Post('summary/generate')
   @ApiOperation({
+    operationId: 'generateSummary',
     summary: 'Generate authenticated user AI summary for report',
   })
   @ApiResponse({
@@ -99,6 +103,7 @@ export class ReportsController {
 
   @Post('summary/generate/async')
   @ApiOperation({
+    operationId: 'enqueueSummaryGeneration',
     summary: 'Enqueue AI report summary generation (async)',
   })
   @ApiResponse({
@@ -137,7 +142,10 @@ export class ReportsController {
 
   @SkipThrottle()
   @Get('summary/generate/status/:jobId')
-  @ApiOperation({ summary: 'Poll AI report summary generation status' })
+  @ApiOperation({
+    operationId: 'generateSummaryStatus',
+    summary: 'Poll AI report summary generation status',
+  })
   @ApiParam({ name: 'jobId' })
   async generateSummaryStatus(
     @CurrentUser() user: UserPayload,
@@ -156,6 +164,7 @@ export class ReportsController {
   @Post('summary/generate/stream')
   @RouteConfig({ compress: false })
   @ApiOperation({
+    operationId: 'generateSummaryStream',
     summary: 'Stream AI report summary generation events (SSE)',
     description:
       'Progress events (`progress`), LLM partials (`chunk`), a final ' +

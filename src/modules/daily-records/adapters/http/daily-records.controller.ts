@@ -69,7 +69,10 @@ export class DailyRecordsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List daily records for a given date' })
+  @ApiOperation({
+    operationId: 'listDailyRecords',
+    summary: 'List daily records for a given date',
+  })
   @ApiResponse({
     status: 200,
     description: 'Daily records for the date.',
@@ -91,7 +94,10 @@ export class DailyRecordsController {
   }
 
   @Get('summary')
-  @ApiOperation({ summary: 'Get daily record summary (counts by kind)' })
+  @ApiOperation({
+    operationId: 'summary',
+    summary: 'Get daily record summary (counts by kind)',
+  })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
   @ApiResponse({
     status: 200,
@@ -104,7 +110,10 @@ export class DailyRecordsController {
   }
 
   @Get('symptom-catalog')
-  @ApiOperation({ summary: 'List the symptom catalog (codes + labels)' })
+  @ApiOperation({
+    operationId: 'getSymptomCatalog',
+    summary: 'List the symptom catalog (codes + labels)',
+  })
   @ApiResponse({
     status: 200,
     description:
@@ -117,6 +126,7 @@ export class DailyRecordsController {
 
   @Post('attachments/images/presign-upload')
   @ApiOperation({
+    operationId: 'createImageUpload',
     summary: 'Create a signed URL for daily record image upload',
   })
   @ApiResponse({
@@ -139,6 +149,7 @@ export class DailyRecordsController {
   @Post('candidate-records/generate')
   @HttpCode(200)
   @ApiOperation({
+    operationId: 'generateCandidates',
     summary: 'Generate AI candidate daily records from a natural-language note',
   })
   @ApiResponse({
@@ -161,7 +172,10 @@ export class DailyRecordsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a daily record by id' })
+  @ApiOperation({
+    operationId: 'getDailyRecord',
+    summary: 'Get a daily record by id',
+  })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, description: 'The daily record.' })
   @SerializeOptions({ schema: dailyRecordResponseSchema })
@@ -180,7 +194,10 @@ export class DailyRecordsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a daily record' })
+  @ApiOperation({
+    operationId: 'createDailyRecord',
+    summary: 'Create a daily record',
+  })
   @ApiResponse({ status: 201, description: 'The created daily record.' })
   @SerializeOptions({ schema: dailyRecordResponseSchema })
   @ApiResponse({
@@ -207,7 +224,10 @@ export class DailyRecordsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a daily record' })
+  @ApiOperation({
+    operationId: 'updateDailyRecord',
+    summary: 'Update a daily record',
+  })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, description: 'The updated daily record.' })
   @SerializeOptions({ schema: dailyRecordResponseSchema })
@@ -237,7 +257,10 @@ export class DailyRecordsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft-delete a daily record' })
+  @ApiOperation({
+    operationId: 'deleteDailyRecord',
+    summary: 'Soft-delete a daily record',
+  })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 204, description: 'Daily record deleted.' })
   @ApiResponse({

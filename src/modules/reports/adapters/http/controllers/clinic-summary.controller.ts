@@ -154,6 +154,7 @@ export class ClinicSummaryController {
 
   @Post('clinic-summary/preview')
   @ApiOperation({
+    operationId: 'previewClinicSummary',
     summary:
       'Generate a de-identified clinic summary for sharing with a doctor',
   })
@@ -177,6 +178,7 @@ export class ClinicSummaryController {
 
   @Post('clinic-summary/share')
   @ApiOperation({
+    operationId: 'shareClinicSummary',
     summary:
       'Create a revocable share link for the clinic summary (7-day expiry)',
   })
@@ -248,6 +250,7 @@ export class ClinicSummaryController {
 
   @Get('clinic-summary/shares')
   @ApiOperation({
+    operationId: 'listClinicSummaryShares',
     summary: 'List the clinic summary shares of the authenticated user',
   })
   @ApiResponse({
@@ -287,6 +290,7 @@ export class ClinicSummaryController {
   @Public()
   @Get('clinic-summary/shared/:token')
   @ApiOperation({
+    operationId: 'getSharedClinicSummary',
     summary: 'Access a shared clinic summary by token (no auth required)',
     // Class-level @ApiBearerAuth would mark every operation as secured;
     // explicit empty security keeps this public route unauthenticated in the
@@ -320,6 +324,7 @@ export class ClinicSummaryController {
   @Delete('clinic-summary/shares/:shareId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
+    operationId: 'revokeClinicSummaryShare',
     summary: 'Revoke a clinic summary share (current user owns the share)',
   })
   @ApiParam({ name: 'shareId' })
@@ -349,6 +354,7 @@ export class ClinicSummaryController {
 
   @Post('clinic-summary/export/async')
   @ApiOperation({
+    operationId: 'enqueueClinicSummaryPdfExport',
     summary: 'Enqueue async clinic summary PDF export',
   })
   @ApiResponse({
@@ -404,6 +410,7 @@ export class ClinicSummaryController {
   @SkipThrottle()
   @Get('clinic-summary/export/status/:jobId')
   @ApiOperation({
+    operationId: 'exportClinicSummaryPdfStatus',
     summary: 'Poll async clinic summary PDF export status',
   })
   @ApiResponse({
@@ -429,6 +436,7 @@ export class ClinicSummaryController {
   @Header('Content-Type', 'application/pdf')
   @Header('Content-Disposition', 'attachment; filename="clinic-summary.pdf"')
   @ApiOperation({
+    operationId: 'downloadClinicSummaryPdf',
     summary:
       'Download a de-identified clinic summary as PDF (auth required) — ' +
       'POST so the request scope (eventId/date range + selectedFields) can ' +
@@ -459,6 +467,7 @@ export class ClinicSummaryController {
   @Header('Content-Type', 'application/pdf')
   @Header('Content-Disposition', 'attachment; filename="clinic-summary.pdf"')
   @ApiOperation({
+    operationId: 'downloadSharedClinicSummaryPdf',
     summary: 'Download a shared clinic summary as PDF (no auth required)',
     security: [],
   })

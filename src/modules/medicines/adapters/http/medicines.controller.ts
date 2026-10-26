@@ -89,7 +89,10 @@ export class MedicinesController {
   // Dead-code endpoint (no C-end consumer); see docs/TODO.md.
   @Public()
   @Get('safety-tips')
-  @ApiOperation({ summary: 'Get random medication safety tips' })
+  @ApiOperation({
+    operationId: 'getSafetyTips',
+    summary: 'Get random medication safety tips',
+  })
   @ApiQuery({
     name: 'exclude',
     required: false,
@@ -119,6 +122,7 @@ export class MedicinesController {
   @Public()
   @Get()
   @ApiOperation({
+    operationId: 'search',
     summary: 'Search medicines from a selected knowledge source',
   })
   @ApiHeader({
@@ -152,6 +156,7 @@ export class MedicinesController {
   @Public()
   @Get(':id')
   @ApiOperation({
+    operationId: 'getDetail',
     summary: 'Get medicine detail from a selected knowledge source',
   })
   @ApiHeader({
@@ -185,6 +190,7 @@ export class MedicinesController {
   @Public()
   @Get(':id/sequences')
   @ApiOperation({
+    operationId: 'getSequences',
     summary: 'Get medicine sequences (drug chains and target sequences)',
   })
   @ApiHeader({
@@ -232,7 +238,10 @@ export class MedicinesController {
   // ── Medicine Risk Check ──────────────────────────────────────────
 
   @Get('risk-check')
-  @ApiOperation({ summary: 'Get latest medicine risk check records' })
+  @ApiOperation({
+    operationId: 'getRiskCheck',
+    summary: 'Get latest medicine risk check records',
+  })
   @ApiResponse({
     status: 200,
     description: 'Latest static and LLM medicine risk check records.',
@@ -245,7 +254,10 @@ export class MedicinesController {
 
   @Post('risk-check')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Run medicine risk check (static or LLM)' })
+  @ApiOperation({
+    operationId: 'runRiskCheck',
+    summary: 'Run medicine risk check (static or LLM)',
+  })
   @ApiResponse({
     status: 200,
     description: 'The created medicine risk check record.',
@@ -278,6 +290,7 @@ export class MedicinesController {
   @Post('recognize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
+    operationId: 'recognize',
     summary: 'AI recognize medicine box image and extract medicine info',
   })
   @ApiResponse({
@@ -294,7 +307,10 @@ export class MedicinesController {
 
   @Post('recognize/async')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Enqueue async medicine box image recognition' })
+  @ApiOperation({
+    operationId: 'enqueueMedicineRecognition',
+    summary: 'Enqueue async medicine box image recognition',
+  })
   @ApiResponse({
     status: 200,
     description:
@@ -322,7 +338,10 @@ export class MedicinesController {
 
   @SkipThrottle()
   @Get('recognize/status/:jobId')
-  @ApiOperation({ summary: 'Poll async medicine recognition status' })
+  @ApiOperation({
+    operationId: 'recognizeStatus',
+    summary: 'Poll async medicine recognition status',
+  })
   @ApiResponse({
     status: 200,
     description: 'Job status (pending, completed, or failed)',

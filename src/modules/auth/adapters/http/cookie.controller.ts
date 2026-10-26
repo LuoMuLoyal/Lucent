@@ -133,8 +133,8 @@ export class CookieSessionController {
   @Post('browser/register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Register (httpOnly cookie session)',
     operationId: 'registerInBrowser',
+    summary: 'Register (httpOnly cookie session)',
   })
   @ApiResponse({
     status: 201,
@@ -183,8 +183,8 @@ export class CookieSessionController {
   @Post('browser/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Login (httpOnly cookie session)',
     operationId: 'loginInBrowser',
+    summary: 'Login (httpOnly cookie session)',
   })
   @ApiResponse({
     status: 200,
@@ -231,8 +231,8 @@ export class CookieSessionController {
   @Post('browser/refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Rotate the cookie session',
     operationId: 'refreshInBrowser',
+    summary: 'Rotate the cookie session',
   })
   @ApiResponse({
     status: 200,
@@ -280,8 +280,8 @@ export class CookieSessionController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Logout (clears the cookie session)',
     operationId: 'logoutInBrowser',
+    summary: 'Logout (clears the cookie session)',
   })
   @ApiResponse({ status: 204, description: 'Logged out; cookies cleared.' })
   @ApiResponse({

@@ -60,7 +60,10 @@ export class OAuthController {
 
   @Post('oauth/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create WeChat web OAuth authorize URL' })
+  @ApiOperation({
+    operationId: 'createWechatWebAuthorizeUrl',
+    summary: 'Create WeChat web OAuth authorize URL',
+  })
   @ApiResponse({
     status: 200,
     description: 'OAuth authorize URL with state and expiry.',
@@ -81,7 +84,10 @@ export class OAuthController {
 
   @Post('oauth/wechat-web/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'WeChat web OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithWechatWeb',
+    summary: 'WeChat web OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -134,7 +140,10 @@ export class OAuthController {
   // ── GET /api/v1/auth/oauth/wechat-web/callback ───────────────
 
   @Get('oauth/wechat-web/callback')
-  @ApiOperation({ summary: 'WeChat web OAuth browser redirect' })
+  @ApiOperation({
+    operationId: 'redirectWechatWebCallback',
+    summary: 'WeChat web OAuth browser redirect',
+  })
   @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
   @ApiResponse({
     status: 400,
@@ -155,7 +164,10 @@ export class OAuthController {
 
   @Post('oauth/wechat-mobile/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'WeChat mobile OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithWechatMobile',
+    summary: 'WeChat mobile OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -209,7 +221,10 @@ export class OAuthController {
 
   @Post('oauth/apple/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Apple Sign-In callback' })
+  @ApiOperation({
+    operationId: 'loginWithApple',
+    summary: 'Apple Sign-In callback',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -260,7 +275,10 @@ export class OAuthController {
 
   @Post('oauth/qq/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create QQ OAuth authorize URL' })
+  @ApiOperation({
+    operationId: 'createQqAuthorizeUrl',
+    summary: 'Create QQ OAuth authorize URL',
+  })
   @ApiResponse({
     status: 200,
     description: 'OAuth authorize URL with state and expiry.',
@@ -281,7 +299,10 @@ export class OAuthController {
 
   @Post('oauth/qq/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'QQ OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithQq',
+    summary: 'QQ OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -332,7 +353,10 @@ export class OAuthController {
 
   @Post('oauth/google/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create Google OAuth authorize URL' })
+  @ApiOperation({
+    operationId: 'createGoogleAuthorizeUrl',
+    summary: 'Create Google OAuth authorize URL',
+  })
   @ApiResponse({
     status: 200,
     description: 'OAuth authorize URL with state and expiry.',
@@ -353,7 +377,10 @@ export class OAuthController {
 
   @Post('oauth/google/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Google OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithGoogle',
+    summary: 'Google OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',

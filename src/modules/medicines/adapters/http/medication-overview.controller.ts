@@ -33,8 +33,8 @@ export class MedicationOverviewController {
 
   @Get('medication-overview')
   @ApiOperation({
-    summary: "Describe the caller's current medication combination",
     operationId: 'getMedicationOverview',
+    summary: "Describe the caller's current medication combination",
   })
   @ApiResponse({
     status: 200,

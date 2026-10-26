@@ -58,7 +58,7 @@ export class AdminDataController {
   @Get('data/:resource')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('data:read')
-  @ApiOperation({ summary: 'List rows of a registered admin resource' })
+  @ApiOperation({ operationId: 'listAdminResourceRows', summary: 'List rows of a registered admin resource' })
   @ApiResponse({ status: 200, description: 'Paginated resource rows.' })
   @ApiResponse({
     status: 404,
@@ -76,7 +76,7 @@ export class AdminDataController {
   @Get('data/:resource/:id')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('data:read')
-  @ApiOperation({ summary: 'Get one row of a registered admin resource' })
+  @ApiOperation({ operationId: 'getAdminResourceRow', summary: 'Get one row of a registered admin resource' })
   @ApiResponse({ status: 200, description: 'Resource row.' })
   @ApiResponse({
     status: 404,
@@ -100,7 +100,7 @@ export class AdminDataController {
   @Post('data/:resource')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('data:write')
-  @ApiOperation({ summary: 'Create a row of a registered admin resource' })
+  @ApiOperation({ operationId: 'createAdminResourceRow', summary: 'Create a row of a registered admin resource' })
   @ApiResponse({ status: 201, description: 'Created resource row.' })
   @ApiResponse({
     status: 403,
@@ -118,7 +118,7 @@ export class AdminDataController {
   @Put('data/:resource/:id')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('data:write')
-  @ApiOperation({ summary: 'Update a row of a registered admin resource' })
+  @ApiOperation({ operationId: 'updateAdminResourceRow', summary: 'Update a row of a registered admin resource' })
   @ApiResponse({ status: 200, description: 'Updated resource row.' })
   @ApiResponse({
     status: 404,
@@ -150,7 +150,7 @@ export class AdminDataController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('data:write')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Delete (or soft-delete) a row of a registered resource' })
+  @ApiOperation({ operationId: 'deleteAdminResourceRow', summary: 'Delete (or soft-delete) a row of a registered resource' })
   @ApiResponse({ status: 204, description: 'Row deleted.' })
   @ApiResponse({
     status: 404,

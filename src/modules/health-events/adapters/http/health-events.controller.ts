@@ -61,7 +61,10 @@ export class HealthEventsController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Start a user-confirmed health event' })
+  @ApiOperation({
+    operationId: 'createHealthEvent',
+    summary: 'Start a user-confirmed health event',
+  })
   @ApiResponse({ status: 201, description: 'The created health event.' })
   @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
@@ -84,7 +87,10 @@ export class HealthEventsController {
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Get the current active health event' })
+  @ApiOperation({
+    operationId: 'active',
+    summary: 'Get the current active health event',
+  })
   @ApiResponse({
     status: 200,
     description: 'The active health event, or null when none is active.',
@@ -100,7 +106,10 @@ export class HealthEventsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List the user health event history' })
+  @ApiOperation({
+    operationId: 'listHealthEvents',
+    summary: 'List the user health event history',
+  })
   @ApiResponse({
     status: 200,
     description: 'The user health event history page.',
@@ -119,7 +128,10 @@ export class HealthEventsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get one user health event' })
+  @ApiOperation({
+    operationId: 'getHealthEvent',
+    summary: 'Get one user health event',
+  })
   @ApiResponse({ status: 200, description: 'The health event.' })
   @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
@@ -145,7 +157,10 @@ export class HealthEventsController {
   }
 
   @Put(':id/check-ins/:date')
-  @ApiOperation({ summary: 'Upsert a user-confirmed daily event check-in' })
+  @ApiOperation({
+    operationId: 'upsertCheckIn',
+    summary: 'Upsert a user-confirmed daily event check-in',
+  })
   @ApiResponse({ status: 200, description: 'The updated health event.' })
   @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({
@@ -185,7 +200,10 @@ export class HealthEventsController {
   }
 
   @Post(':id/end')
-  @ApiOperation({ summary: 'End a health event with an explicit outcome' })
+  @ApiOperation({
+    operationId: 'end',
+    summary: 'End a health event with an explicit outcome',
+  })
   @ApiResponse({ status: 200, description: 'The ended health event.' })
   @SerializeOptions({ schema: healthEventResponseSchema })
   @ApiResponse({

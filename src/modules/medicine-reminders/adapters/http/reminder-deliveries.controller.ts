@@ -41,7 +41,10 @@ export class ReminderDeliveriesController {
 
   @Get()
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'List reminder delivery audit logs' })
+  @ApiOperation({
+    operationId: 'listReminderDeliveries',
+    summary: 'List reminder delivery audit logs',
+  })
   @ApiQuery({
     name: 'date',
     required: false,
@@ -74,6 +77,7 @@ export class ReminderDeliveriesController {
   @Post('receipts')
   @ApiBearerAuth('access-token')
   @ApiOperation({
+    operationId: 'recordReceipt',
     summary: 'Record a local notification delivery receipt (idempotent)',
   })
   @ApiResponse({ status: 201, description: 'The recorded delivery row.' })
@@ -102,7 +106,10 @@ export class ReminderDeliveriesController {
 
   @Put('local-capability')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Report client local scheduling capability' })
+  @ApiOperation({
+    operationId: 'reportLocalCapability',
+    summary: 'Report client local scheduling capability',
+  })
   @ApiResponse({
     status: 200,
     description: 'The persisted local scheduling capability state.',

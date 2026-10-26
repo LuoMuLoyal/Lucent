@@ -32,7 +32,10 @@ export class UserSettingsController {
   constructor(private readonly settingsService: UserSettingsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get authenticated user settings' })
+  @ApiOperation({
+    operationId: 'getSettings',
+    summary: 'Get authenticated user settings',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user settings.',
@@ -44,7 +47,10 @@ export class UserSettingsController {
 
   @Patch()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update authenticated user settings' })
+  @ApiOperation({
+    operationId: 'updateSettings',
+    summary: 'Update authenticated user settings',
+  })
   @ApiResponse({
     status: 200,
     description: 'Updated user settings.',

@@ -74,6 +74,7 @@ export class AssistantController {
 
   @Get('capabilities')
   @ApiOperation({
+    operationId: 'getCapabilities',
     summary: 'Get authenticated user assistant capabilities and permissions',
   })
   @ApiResponse({ status: 200, description: 'Assistant capabilities payload.' })
@@ -84,6 +85,7 @@ export class AssistantController {
 
   @Get('conversations')
   @ApiOperation({
+    operationId: 'listRecentConversations',
     summary: 'List recent persisted assistant conversations for the user',
   })
   // NOTE: JSON array body. Outbound validation uses the item schema (the
@@ -101,6 +103,7 @@ export class AssistantController {
 
   @Get('latest')
   @ApiOperation({
+    operationId: 'getLatestConversation',
     summary:
       'Get the authenticated user latest persisted assistant conversation',
   })
@@ -120,6 +123,7 @@ export class AssistantController {
 
   @Post('conversations/:conversationId/open')
   @ApiOperation({
+    operationId: 'openConversation',
     summary:
       'Activate one persisted assistant conversation and return its full history',
   })
@@ -139,6 +143,7 @@ export class AssistantController {
 
   @Post('conversations/:conversationId/confirm')
   @ApiOperation({
+    operationId: 'confirmProposal',
     summary:
       'Confirm or reject pending assistant write proposals and resume the graph thread',
   })
@@ -160,6 +165,7 @@ export class AssistantController {
 
   @Patch('conversations/:conversationId')
   @ApiOperation({
+    operationId: 'renameConversation',
     summary: 'Rename one persisted assistant conversation (title only)',
   })
   @ApiResponse({
@@ -184,6 +190,7 @@ export class AssistantController {
 
   @Delete('conversations/:conversationId')
   @ApiOperation({
+    operationId: 'deleteConversation',
     summary: 'Soft-delete one persisted assistant conversation',
   })
   @ApiResponse({
@@ -203,6 +210,7 @@ export class AssistantController {
 
   @Delete('memory')
   @ApiOperation({
+    operationId: 'clearMemory',
     summary: 'Erase all persisted assistant memories for the user',
   })
   @ApiResponse({
@@ -222,6 +230,7 @@ export class AssistantController {
 
   @Post('latest/clear')
   @ApiOperation({
+    operationId: 'clearLatestConversation',
     summary:
       'Archive the authenticated user latest active assistant conversation',
   })
@@ -239,6 +248,7 @@ export class AssistantController {
   @RouteConfig({ compress: false })
   @Post('messages/stream')
   @ApiOperation({
+    operationId: 'streamMessages',
     summary: 'Stream authenticated user assistant response',
   })
   @ApiResponse({
@@ -309,6 +319,7 @@ export class AssistantController {
   @RouteConfig({ compress: false })
   @Post('conversations/:conversationId/regenerate')
   @ApiOperation({
+    operationId: 'regenerateLastMessage',
     summary:
       'Regenerate the last assistant message of a persisted conversation (SSE)',
   })

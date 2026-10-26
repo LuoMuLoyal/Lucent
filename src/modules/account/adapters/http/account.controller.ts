@@ -70,7 +70,10 @@ export class AccountController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get authenticated account profile' })
+  @ApiOperation({
+    operationId: 'getAccount',
+    summary: 'Get authenticated account profile',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated account profile.',
@@ -86,7 +89,10 @@ export class AccountController {
   }
 
   @Patch()
-  @ApiOperation({ summary: 'Update authenticated account profile' })
+  @ApiOperation({
+    operationId: 'updateAccount',
+    summary: 'Update authenticated account profile',
+  })
   @ApiResponse({
     status: 200,
     description: 'Updated authenticated account profile.',
@@ -106,7 +112,10 @@ export class AccountController {
 
   @Post('password')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Change authenticated account password' })
+  @ApiOperation({
+    operationId: 'changePassword',
+    summary: 'Change authenticated account password',
+  })
   @ApiResponse({ status: 204, description: 'Password changed.' })
   @ApiResponse({
     status: 401,
@@ -141,6 +150,7 @@ export class AccountController {
   @Post('set-password')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
+    operationId: 'setPassword',
     summary:
       'Set initial password for OAuth-only account using email verification',
   })
@@ -177,7 +187,10 @@ export class AccountController {
 
   @Post('email')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Change authenticated account email' })
+  @ApiOperation({
+    operationId: 'changeEmail',
+    summary: 'Change authenticated account email',
+  })
   @ApiResponse({
     status: 200,
     description: 'Updated account email with verification time.',
@@ -231,7 +244,10 @@ export class AccountController {
 
   @Delete('identities/:identityId')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Unlink authenticated account OAuth identity' })
+  @ApiOperation({
+    operationId: 'unlinkIdentity',
+    summary: 'Unlink authenticated account OAuth identity',
+  })
   @ApiResponse({
     status: 200,
     description: 'Account profile with the identity unlinked.',
@@ -281,6 +297,7 @@ export class AccountController {
   @Post('identities/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
+    operationId: 'createWechatWebIdentityLinkAuthorizeUrl',
     summary: 'Create WeChat web OAuth authorize URL for linking',
   })
   @ApiResponse({ status: 200, description: 'OAuth authorize URL.' })
@@ -301,6 +318,7 @@ export class AccountController {
   @Post('identities/wechat-web/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
+    operationId: 'linkWechatWebIdentity',
     summary: 'Link WeChat web identity to authenticated account',
   })
   @ApiResponse({
@@ -358,6 +376,7 @@ export class AccountController {
   @Post('identities/wechat-mobile/callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
+    operationId: 'linkWechatMobileIdentity',
     summary: 'Link WeChat mobile identity to authenticated account',
   })
   @ApiResponse({
@@ -416,7 +435,10 @@ export class AccountController {
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete authenticated account' })
+  @ApiOperation({
+    operationId: 'deleteAccount',
+    summary: 'Delete authenticated account',
+  })
   @ApiResponse({ status: 204, description: 'Account deleted.' })
   @ApiResponse({
     status: 400,

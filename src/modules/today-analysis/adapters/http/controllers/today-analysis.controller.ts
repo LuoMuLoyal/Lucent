@@ -80,7 +80,10 @@ export class TodayAnalysisController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Read the latest persisted Today AI analysis' })
+  @ApiOperation({
+    operationId: 'read',
+    summary: 'Read the latest persisted Today AI analysis',
+  })
   @ApiQuery({ name: 'date', required: false, type: String })
   @ApiResponse({
     status: 200,
@@ -104,7 +107,10 @@ export class TodayAnalysisController {
   }
 
   @Post('refresh')
-  @ApiOperation({ summary: 'Request a bounded Today AI analysis refresh' })
+  @ApiOperation({
+    operationId: 'refreshTodayAnalysis',
+    summary: 'Request a bounded Today AI analysis refresh',
+  })
   // 201 主成功体是四态联合(fresh analysis / read state / pending / ready)。
   // 注册器/export 现只回填 200 的单组件 $ref;此处保留联合文档,四个成员组件按
   // 旧类名在本文件尾登记,导出脚本支持 201/多态回写后自动生效。
@@ -169,7 +175,10 @@ export class TodayAnalysisController {
   }
 
   @Post('generate')
-  @ApiOperation({ summary: 'Generate authenticated user today AI analysis' })
+  @ApiOperation({
+    operationId: 'generate',
+    summary: 'Generate authenticated user today AI analysis',
+  })
   // 200 主成功体是二态联合(fresh analysis / read state)。注册器/export 现只
   // 回填 200 的单组件 $ref,故本端点保留联合文档;成员组件(Data/ReadData)已按
   // 旧类名在 refresh(201)登记,导出脚本支持多态回写后自动生效。
@@ -215,7 +224,10 @@ export class TodayAnalysisController {
   }
 
   @Post('generate/async')
-  @ApiOperation({ summary: 'Enqueue async today AI analysis generation' })
+  @ApiOperation({
+    operationId: 'enqueueAnalysisGeneration',
+    summary: 'Enqueue async today AI analysis generation',
+  })
   // 202 主成功体是三态联合(job / synchronous result / status)。注册器/export
   // 现只回填 200,故保留联合文档;三个成员组件按旧类名在本文件尾登记(202 锚点),
   // 导出脚本支持 202/多态回写后自动生效。
@@ -286,7 +298,10 @@ export class TodayAnalysisController {
 
   @SkipThrottle()
   @Get('generate/status/:jobId')
-  @ApiOperation({ summary: 'Poll async today analysis generation status' })
+  @ApiOperation({
+    operationId: 'generateStatus',
+    summary: 'Poll async today analysis generation status',
+  })
   @ApiResponse({
     status: 200,
     description: 'Job status (pending, completed, or failed)',
@@ -300,7 +315,10 @@ export class TodayAnalysisController {
   }
 
   @Get('recommendations')
-  @ApiOperation({ summary: 'Get cold-start onboarding guide cards' })
+  @ApiOperation({
+    operationId: 'getRecommendations',
+    summary: 'Get cold-start onboarding guide cards',
+  })
   @ApiQuery({
     name: 'exclude',
     required: false,
@@ -336,6 +354,7 @@ export class TodayAnalysisController {
   @RouteConfig({ compress: false })
   @Post('generate/stream')
   @ApiOperation({
+    operationId: 'generateStream',
     summary: 'Stream authenticated user today AI analysis generation',
   })
   @ApiResponse({
