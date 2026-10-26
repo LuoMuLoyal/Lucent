@@ -232,15 +232,28 @@ pnpm typecheck && pnpm lint:check && pnpm arch:check && pnpm docs:verify && pnpm
 
 ### 4.3 `user` 半拆状态的处置
 
-`user` 293 行，现有 `application/{ports,use_cases}` + `infrastructure/persistence`，
-缺 `domain/` 与 `adapters/`。**处置口径二选一，本轮选前者**：
+> **2026-10-26 执行时更正**：本节初稿把 `user` 判为「半拆（缺 `domain/` 与
+> `adapters/`），建议补完」。实地读完代码后该判断**不成立**，已按实际结论改述。
+> 保留这段更正，因为它正是本轮在排查的那类错误：**凭目录形状下结论，没读代码**。
 
-- **补完**：controller 落 `adapters/http/`，补 `domain/`（若无聚合则不建，
-  按 ADR-0024「不为 CRUD 硬造富领域模型」）。293 行的模块这样是完整的。
-- **回退**：完全退回旧结构，与 `app-info` / `audit-log` 同一档。
+`user` 293 行，现有 `application/{ports,use_cases}` + `infrastructure/persistence`。
+**这是完整形态，不是半拆**：
 
-选「补完」的理由：`user` 已有 application 层在跑，回退会制造一次无收益的
-反向变更；补完只需搬 controller 并出一次聚合判定。**工作量约半天。**
+- **无 `adapters/` 是正确的**：该模块**刻意不设 controller**（README「模块意图」），
+  端点住在 auth 与 account。没有队列、没有事件、没有 ACL——不存在需要适配的交付面。
+  为它造 `adapters/` 只会得到空目录。
+- **无 `domain/` 是正确判定**：`User` 没有独立于表结构的不变量。仅有的两条规则
+  「P2002 → `RESOURCE_CONFLICT`」与「`create` 缺省建空 profile」都是持久层语义。
+  按 ADR-0024「不为 CRUD 硬造富领域模型」不建聚合。
+- **真正的缺陷是 README 过时**：`内部结构` 一节仍写 `services/user.service.ts` 与
+  `services/admin.service.ts`，实际是 `application/use_cases/{user,admin}.ts`；
+  且从未说明「为什么只有两层」。已重写，把分层判定写成**结论 + 判据 + 反例条件**
+  （「若将来出现真实领域规则再补 `domain/`，不要因为四层看起来更整齐而建空壳」）。
+
+**处置 = 只改文档，不动代码。** 本节不产生代码提交。
+
+**由此修正 §七 完成标准**：不再要求 `user` 具备「完整四层」，而是要求它的
+**分层形态有书面判定且与实际一致**。
 
 ### 4.4 修正既有 README 的引用错误
 
@@ -287,8 +300,8 @@ R4  reports/clinic-summary —— 最大，放最后
 
 ## 七、完成标准
 
-- `reports`、`today-analysis`、`user` 三个模块均具备完整四层结构，
-  `arch:check` 基线**不高于 174**。
+- `reports` 与 `today-analysis` 具备完整四层结构；`user` 的**分层形态有书面判定
+  且与实际一致**（判定见 §4.3：只两层是正确结论）。`arch:check` 基线**不高于 174**。
 - `src/modules/**/README.md` 的 `内部结构` 一节与实际文件一一对应
   （**本轮新增一条人工核对项**：commit 前 `Get-ChildItem` 对照 README 列表）。
 - `docs/TODO.md` 中 4.2 的临时条目删除。
