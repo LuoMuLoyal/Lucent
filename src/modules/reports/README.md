@@ -32,7 +32,8 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 
 - `dashboard/` — `computation.service`（指标计算）、`context.service`
   （跨模块数据收集 + settings）、`presenter.service`、`dashboard.service`
-  （编排 `getDashboard`）、`cache-invalidation.listener`（事件驱动缓存失效）。
+  （编排 `getDashboard`）、`cache-invalidation.queue.service`（事件驱动缓存
+  失效，按 ADR-0025 走 `report-cache-invalidation` 队列，不再有进程内监听器）。
 - `services/ai-summary/` — context/copy/generator/summary（继承
   `common/llm` 基类，bounded-linear 分层）+ `summary-queue.service`
   （异步队列）。
