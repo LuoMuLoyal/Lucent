@@ -7,6 +7,7 @@ import {
 } from '../../../../common/index.js';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
+import { TRIGGER_DIMENSIONS } from '../../domain/analysis/trigger-gate.js';
 import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
 import {
   TODAY_ANALYSIS_MATERIALIZATION,
@@ -23,12 +24,12 @@ import { TodayAnalysisContextService } from '../../services/pipeline/context.ser
 export const TODAY_ANALYSIS_EVENT_QUEUE_NAME = QUEUE_NAMES.todayAnalysis;
 
 /** Kinds of daily record whose signal strength is worth re-evaluating. */
-const DIMENSION_RECORD_KINDS: ReadonlySet<string> = new Set([
-  DailyRecordKind.water,
-  DailyRecordKind.meal,
-  DailyRecordKind.sleep,
-  DailyRecordKind.mood,
-]);
+// The whitelist is owned by domain/analysis/trigger-gate.ts (judgement B):
+// which dimensions matter is a product decision that belongs beside the
+// thresholds, not in the delivery layer.
+const DIMENSION_RECORD_KINDS: ReadonlySet<string> = new Set<string>(
+  TRIGGER_DIMENSIONS,
+);
 
 /**
  * Turns a fanned-out domain event into today-analysis work (ADR-0025).
