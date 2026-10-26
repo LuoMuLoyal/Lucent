@@ -1,9 +1,9 @@
 import { HealthEventKind, DailyRecordKind } from '#generated/prisma/client.js';
-import { TodayAnalysisEventConsumerService } from './event-consumer.service.js';
+import { TodayAnalysisEventConsumerService } from './event-consumer.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
-import type { TodayAnalysisMaterializationStore } from '../materialization/store.service.js';
-import type { TodayAnalysisQueueService } from '../analysis-queue.service.js';
-import type { TodayAnalysisContextService } from '../pipeline/context.service.js';
+import type { TodayAnalysisMaterializationStore } from '../../services/materialization/store.service.js';
+import type { TodayAnalysisQueueService } from '../../services/analysis-queue.service.js';
+import type { TodayAnalysisContextService } from '../../services/pipeline/context.service.js';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { EventConsumerRegistry } from '../../../../common/index.js';
 

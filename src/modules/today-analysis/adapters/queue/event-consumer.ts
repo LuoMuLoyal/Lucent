@@ -8,13 +8,13 @@ import {
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
-import { TodayAnalysisMaterializationStore } from '../materialization/store.service.js';
+import { TodayAnalysisMaterializationStore } from '../../services/materialization/store.service.js';
 import type { TodayAnalysisReasonCode } from '../../types/materialization.types.js';
 import {
   TODAY_ANALYSIS_QUEUE_PORT,
   type TodayAnalysisQueuePort,
-} from './analysis-queue.port.js';
-import { TodayAnalysisContextService } from '../pipeline/context.service.js';
+} from '../../application/ports/analysis-queue.js';
+import { TodayAnalysisContextService } from '../../services/pipeline/context.service.js';
 
 /** BullMQ queue the today-analysis event consumer runs on. */
 export const TODAY_ANALYSIS_EVENT_QUEUE_NAME = QUEUE_NAMES.todayAnalysis;

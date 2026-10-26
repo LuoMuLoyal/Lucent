@@ -26,7 +26,7 @@ today-suggestion 互补——分析面向解读,建议面向行动。
 - 被引用:无(无 `index.ts` 导出面;重算由 common/events 的
   `DAILY_RECORD_CHANGED` / `DOSE_LOG_CHANGED` / `HEALTH_EVENT_CHANGED` /
   `TODAY_SUGGESTION_MATERIALIZATION_CHANGED` 经
-  `services/recompute/event-consumer.service.ts` 消费,按 ADR-0025 走
+  `adapters/queue/event-consumer.ts` 消费,按 ADR-0025 走
   `today-analysis` 队列的 `event-trigger` job,无 Redis 时回退进程内直接调用)。
 
 ## 内部结构
@@ -39,10 +39,14 @@ today-suggestion 互补——分析面向解读,建议面向行动。
 - `services/pipeline/copy.service.ts` — 多语言文案(i18n)。
 - `services/pipeline/recommendations.service.ts` — 内置健康指南推荐。
 - `services/materialization/store.service.ts` — 版本化物化状态(claim/stale)。
-- `services/recompute/event-consumer.service.ts` — 消费领域事件触发重算;
-  同时负责 `invalidateContext` 与 `markPending`+`enqueue` 两半,顺序有约束
-  (见该文件头注释)。`analysis-queue.port.ts` 是它与队列服务之间的端口,避免
-  两者互相 import 成环。
+- `adapters/queue/event-consumer.ts` — 消费领域事件触发重算;同时负责
+  `invalidateContext` 与 `markPending`+`enqueue` 两半。**顺序有约束**(见该文件
+  头注释):context 失效最先、`markPending` 必先于 `enqueue`,因为前者分配
+  `sourceVersion` 而 worker 与之比对。spec 里 `invalidates the context before
+enqueueing` / `marks pending before enqueueing` / `enqueues with the version
+markPending just allocated` 三条钉住它。
+- `application/ports/analysis-queue.ts` — 消费端与队列服务之间的端口,避免两者
+  互相 import 成环。
 
 ## 测试承接
 

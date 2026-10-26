@@ -11,7 +11,7 @@ import {
   type DomainEventJobData,
 } from '../../../common/index.js';
 import { TodayAnalysisService } from './analysis.service.js';
-import { TodayAnalysisEventConsumerService } from './recompute/event-consumer.service.js';
+import { TodayAnalysisEventConsumerService } from '../adapters/queue/event-consumer.js';
 import type {
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,

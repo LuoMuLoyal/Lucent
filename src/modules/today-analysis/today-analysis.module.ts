@@ -18,8 +18,8 @@ import { TodayAnalysisQueueService } from './services/analysis-queue.service.js'
 
 import { TodayAnalysisService } from './services/analysis.service.js';
 import { TodayAnalysisMaterializationStore } from './services/materialization/store.service.js';
-import { TodayAnalysisEventConsumerService } from './services/recompute/event-consumer.service.js';
-import { TODAY_ANALYSIS_QUEUE_PORT } from './services/recompute/analysis-queue.port.js';
+import { TodayAnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
+import { TODAY_ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
 
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
 import { TodayAnalysisController } from './today-analysis.controller.js';

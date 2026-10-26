@@ -12,7 +12,7 @@ export const TODAY_ANALYSIS_QUEUE_PORT = Symbol('TodayAnalysisQueuePort');
 /**
  * What the event consumer needs from the analysis queue.
  *
- * Declared as a port so `event-consumer.service.ts` and
+ * Declared as a port so `event-consumer.ts` and
  * `analysis-queue.service.ts` do not import each other: the queue needs the
  * consumer (to dispatch `event-trigger` jobs) and the consumer needs the queue
  * (to enqueue the resolved analysis), which is a cycle. Both depend on this
