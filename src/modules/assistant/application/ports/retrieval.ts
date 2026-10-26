@@ -25,7 +25,6 @@ import type {
   SemanticaReasonOutcome,
 } from './semantica.types.js';
 
-
 /** DI tokens — strings so a Nest resolution error names the port readably. */
 export const ASSISTANT_LIGHTRAG = 'ASSISTANT_LIGHTRAG';
 export const ASSISTANT_SEMANTICA = 'ASSISTANT_SEMANTICA';
@@ -88,7 +87,9 @@ export interface SemanticaAvailability {
     params?: Record<string, unknown>;
     limit?: number;
   }): Promise<SemanticaResult<SemanticaQueryOutcome>>;
-  reason(input: Record<string, unknown>): Promise<SemanticaResult<SemanticaReasonOutcome>>;
+  reason(
+    input: Record<string, unknown>,
+  ): Promise<SemanticaResult<SemanticaReasonOutcome>>;
 }
 
 /** Re-exported for the tool adapters' parameter schemas. */

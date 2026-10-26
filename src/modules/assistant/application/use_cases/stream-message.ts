@@ -217,13 +217,12 @@ export class AssistantStreamOrchestratorService {
       );
     }
 
-    const conversation =
-      await this.assistantConversationService.persistTurn({
-        userId,
-        messages,
-        assistantContent: result.content,
-        usedTools: result.usedToolNames,
-      });
+    const conversation = await this.assistantConversationService.persistTurn({
+      userId,
+      messages,
+      assistantContent: result.content,
+      usedTools: result.usedToolNames,
+    });
 
     return {
       conversationId: conversation.id,
@@ -279,10 +278,11 @@ export class AssistantStreamOrchestratorService {
       throw new DomainFailureException(this.conversationNotFound());
     }
 
-    const { checkpointId } = await this.assistantAgentService.regenerateLastMessage(
-      userId,
-      conversationId,
-    );
+    const { checkpointId } =
+      await this.assistantAgentService.regenerateLastMessage(
+        userId,
+        conversationId,
+      );
 
     const { finalContent } =
       await this.assistantAgentService.replayFromCheckpoint(

@@ -131,12 +131,13 @@ export class AssistantProposalConfirmService {
       );
     }
 
-    const { finalContent } = await this.assistantAgentService.resumeConversation({
-      userId,
-      conversationId,
-      decision: dto.decision,
-      ...(dto.note != null ? { note: dto.note } : {}),
-    });
+    const { finalContent } =
+      await this.assistantAgentService.resumeConversation({
+        userId,
+        conversationId,
+        decision: dto.decision,
+        ...(dto.note != null ? { note: dto.note } : {}),
+      });
     return {
       conversationId,
       decision: dto.decision,

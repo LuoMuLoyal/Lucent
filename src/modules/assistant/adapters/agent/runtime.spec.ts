@@ -859,9 +859,7 @@ describe('AssistantRuntimeService', () => {
       return { service, repository, mockModel };
     }
 
-    function buildConversationState(
-      lastAssistantContent: string,
-    ): unknown {
+    function buildConversationState(lastAssistantContent: string): unknown {
       const now = new Date();
       return {
         id: CONVERSATION_ID,

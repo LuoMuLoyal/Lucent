@@ -81,8 +81,12 @@ describe('MedicationCollectorService', () => {
     }));
 
   it('returns an empty array when the user has no current medicines', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
+    );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -98,9 +102,9 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits pending_dose signal for a medicine with a matching reminder', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -121,11 +125,13 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits unconfirmed_medicine signal when no reminder matches', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     // No reminders
-    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
+    );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -139,9 +145,9 @@ describe('MedicationCollectorService', () => {
   });
 
   it('skips medicines that already have a taken dose log', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -164,9 +170,9 @@ describe('MedicationCollectorService', () => {
   });
 
   it('skips medicines that already have a skipped dose log', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -188,13 +194,17 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits a medication_summary signal with correct counts', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(
       mockMedicines([
         { id: 'med-1', displayName: 'Aspirin' },
         { id: 'med-2', displayName: 'Ibuprofen' },
       ]),
     );
-    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
+    );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       {
         currentMedicineId: 'med-2',
@@ -220,9 +230,9 @@ describe('MedicationCollectorService', () => {
   it('reports adherence coverage per reminder slot', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
@@ -320,9 +330,9 @@ describe('MedicationCollectorService', () => {
     async ({ statuses, expected }) => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-07-08T23:00:00.000Z'));
-      (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockMedicines(),
-      );
+      (
+        reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(mockMedicines());
       (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
         mockReminders([
           { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
@@ -359,10 +369,12 @@ describe('MedicationCollectorService', () => {
   );
 
   it('keeps temporary dose logs independent and does not calculate adherence without a plan', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
     );
-    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       {
         currentMedicineId: 'med-1',
@@ -401,9 +413,9 @@ describe('MedicationCollectorService', () => {
 
   it('filters reminders by daysOfWeek when set', async () => {
     // 2026-07-09 is a Thursday (weekday=4)
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([{ daysOfWeek: [1, 2, 3] }]), // Mon/Tue/Wed only
     );
@@ -421,9 +433,9 @@ describe('MedicationCollectorService', () => {
   it('calculates overdue minutes from a fixed instant in the user timezone', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -450,9 +462,9 @@ describe('MedicationCollectorService', () => {
   it('evaluates reminder slots against the user-local current time', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-07T02:00:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
@@ -487,10 +499,12 @@ describe('MedicationCollectorService', () => {
   it('does not infer an overdue slot from a dose fact without scheduledTime', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-07T02:00:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
     );
-    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       {
         currentMedicineId: 'med-1',
@@ -513,9 +527,9 @@ describe('MedicationCollectorService', () => {
   it('keeps two reminder slots independent when one is taken', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-07T02:45:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
@@ -561,9 +575,9 @@ describe('MedicationCollectorService', () => {
         currentMedicines: [],
       } as unknown as HealthContextResponseData),
     );
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -590,9 +604,9 @@ describe('MedicationCollectorService', () => {
         currentMedicines: [],
       } as unknown as HealthContextResponseData),
     );
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -620,9 +634,9 @@ describe('MedicationCollectorService', () => {
         currentMedicines: [],
       } as unknown as HealthContextResponseData),
     );
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([{ scheduledHour: 2, scheduledMinute: 30 }]),
     );
@@ -653,9 +667,9 @@ describe('MedicationCollectorService', () => {
         currentMedicines: [],
       } as unknown as HealthContextResponseData),
     );
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([{ scheduledHour: 1, scheduledMinute: 30 }]),
     );
@@ -671,9 +685,9 @@ describe('MedicationCollectorService', () => {
   });
 
   it('returns no signals for an impossible calendar date', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );
@@ -685,7 +699,9 @@ describe('MedicationCollectorService', () => {
   });
 
   it('counts reminder slots and no-reminder medicines together in the summary', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(
       mockMedicines([
         { id: 'med-1', displayName: 'Aspirin' },
         { id: 'med-2', displayName: 'Ibuprofen' },
@@ -725,9 +741,9 @@ describe('MedicationCollectorService', () => {
   it('matches a dose log to its reminderId when same-time reminders differ', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-a', scheduledHour: 8, scheduledMinute: 0 },
@@ -765,9 +781,9 @@ describe('MedicationCollectorService', () => {
   it('does not apply a legacy dose log to either of two same-time reminders', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders([
         { id: 'reminder-a', scheduledHour: 8, scheduledMinute: 0 },
@@ -805,8 +821,12 @@ describe('MedicationCollectorService', () => {
   });
 
   it('returns no signals and performs no reads for an invalid calendar date', async () => {
-    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
+    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue([]);
     (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
       okAsync({
         summary: {},
@@ -827,9 +847,9 @@ describe('MedicationCollectorService', () => {
   });
 
   it('matches a taken log by reminderId even when scheduledTime is null', async () => {
-    (reminders.listCurrentMedicines as ReturnType<typeof vi.fn>).mockResolvedValue(
-      mockMedicines(),
-    );
+    (
+      reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(mockMedicines());
     (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
       mockReminders(),
     );

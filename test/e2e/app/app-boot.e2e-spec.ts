@@ -28,14 +28,18 @@ import { AppModule } from '../../../src/app.module.js';
  * these three defects break.
  */
 describe('AppModule DI boot (e2e)', () => {
-  it('resolves every provider in the whole application', { timeout: 120000 }, async () => {
-    const builder = Test.createTestingModule({ imports: [AppModule] });
-    // Keep Nest's own logs out of the test output; a failure still throws.
-    builder.setLogger(new Logger());
+  it(
+    'resolves every provider in the whole application',
+    { timeout: 120000 },
+    async () => {
+      const builder = Test.createTestingModule({ imports: [AppModule] });
+      // Keep Nest's own logs out of the test output; a failure still throws.
+      builder.setLogger(new Logger());
 
-    const moduleRef = await builder.compile();
+      const moduleRef = await builder.compile();
 
-    expect(moduleRef).toBeDefined();
-    await moduleRef.close();
-  });
+      expect(moduleRef).toBeDefined();
+      await moduleRef.close();
+    },
+  );
 });

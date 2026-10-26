@@ -118,10 +118,7 @@ describe('HistoricalAiSummaryService', () => {
         '2026-07-10',
       );
 
-      expect(repo.findTodayByDate).toHaveBeenCalledWith(
-        'user-1',
-        '2026-07-10',
-      );
+      expect(repo.findTodayByDate).toHaveBeenCalledWith('user-1', '2026-07-10');
       expect(result).toEqual(mockTodayRow);
     });
 
@@ -147,10 +144,7 @@ describe('HistoricalAiSummaryService', () => {
         input,
       );
 
-      expect(repo.findReportByRange).toHaveBeenCalledWith(
-        'user-1',
-        input,
-      );
+      expect(repo.findReportByRange).toHaveBeenCalledWith('user-1', input);
       expect(result).toEqual(mockReportRow);
     });
 
@@ -166,10 +160,7 @@ describe('HistoricalAiSummaryService', () => {
         input,
       );
 
-      expect(repo.findReportByRange).toHaveBeenCalledWith(
-        'user-1',
-        input,
-      );
+      expect(repo.findReportByRange).toHaveBeenCalledWith('user-1', input);
       expect(result).toBeNull();
     });
   });

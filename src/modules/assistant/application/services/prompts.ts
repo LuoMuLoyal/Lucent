@@ -94,9 +94,7 @@ export function buildAssistantSystemPrompt(
  * Emphasizes the server-owned result envelope (coverage / confidence /
  * ambiguities) and forbids smoothing over partial or empty coverage.
  */
-export function buildReadSystemPrompt(
-  toolNames: readonly ToolName[],
-): string {
+export function buildReadSystemPrompt(toolNames: readonly ToolName[]): string {
   return [
     ...BASE_SYSTEM_LINES,
     toolListLine(toolNames),
@@ -117,9 +115,7 @@ export function buildReadSystemPrompt(
  * Emphasizes that proposal tools never write: they only return
  * confirmation-required drafts, and a missing target is a refusal to guess.
  */
-export function buildWriteSystemPrompt(
-  toolNames: readonly ToolName[],
-): string {
+export function buildWriteSystemPrompt(toolNames: readonly ToolName[]): string {
   return [
     ...BASE_SYSTEM_LINES,
     toolListLine(toolNames),

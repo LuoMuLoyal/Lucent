@@ -129,7 +129,9 @@ describe('startup and shutdown ordering (e2e)', () => {
         // so the port needs its own stub here.
         {
           provide: ReminderDispatcher,
-          useValue: { dispatchDueReminders: vi.fn().mockResolvedValue(undefined) },
+          useValue: {
+            dispatchDueReminders: vi.fn().mockResolvedValue(undefined),
+          },
         },
         {
           provide: WeeklyInsightSchedulerService,

@@ -135,9 +135,7 @@ export class AuthIdentityService {
    * 返回 `null` 表示邮箱未知。**调用方不得把「未知」与「密码不匹配」在响应上
    * 区分**（反枚举）——判定交给 `decideCredential`。
    */
-  findByEmail(
-    email: string,
-  ): ResultAsync<
+  findByEmail(email: string): ResultAsync<
     {
       userId: string;
       email: string | null;
@@ -236,9 +234,7 @@ export class AuthIdentityService {
    * 的事实不同（前者是登录、后者是账号自助），合成一个会让「谁在读密码」
    * 变模糊。
    */
-  findByUserId(
-    userId: string,
-  ): ResultAsync<
+  findByUserId(userId: string): ResultAsync<
     {
       userId: string;
       email: string | null;

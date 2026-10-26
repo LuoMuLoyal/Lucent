@@ -71,7 +71,7 @@ export function buildRespondNode(deps: {
     if (state.finalContent != null) {
       if (state.finalContent.trim().length === 0) {
         // eslint-disable-next-line error-handling/no-bare-throw-error -- an empty model stream is an LLM runtime anomaly, surfaced to the stream orchestrator unchanged
-      throw new Error('Assistant graph ended without any assistant content.');
+        throw new Error('Assistant graph ended without any assistant content.');
       }
       return {};
     }

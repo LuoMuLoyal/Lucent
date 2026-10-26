@@ -36,8 +36,7 @@ function settle(
   >,
 ): ResultAsync<ConversationView, DomainFailure> {
   return fromPromise(outcome, (error) => toDomainFailure(error)).andThen(
-    (result) =>
-      result.ok ? okAsync(result.view) : errAsync(result.failure),
+    (result) => (result.ok ? okAsync(result.view) : errAsync(result.failure)),
   );
 }
 
@@ -81,8 +80,7 @@ export class AssistantService {
   async getLatestConversation(
     userId: string,
   ): Promise<AssistantConversationView | null> {
-    const conversation =
-      await this.assistantConversationService.latest(userId);
+    const conversation = await this.assistantConversationService.latest(userId);
     return conversation == null ? null : conversation;
   }
 

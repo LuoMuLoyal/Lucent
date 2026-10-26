@@ -25,9 +25,7 @@ const KNOWLEDGE_TOOL_ORDER: readonly ToolName[] = [
   'search_drugbank_passages',
 ];
 
-function orderKnowledgeTools(
-  tools: readonly ToolName[],
-): ToolName[] {
+function orderKnowledgeTools(tools: readonly ToolName[]): ToolName[] {
   return [...tools].sort((left, right) => {
     const leftIndex = KNOWLEDGE_TOOL_ORDER.indexOf(left);
     const rightIndex = KNOWLEDGE_TOOL_ORDER.indexOf(right);

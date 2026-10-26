@@ -96,7 +96,8 @@ export class AssistantToolRuleReasoningService {
   private readonly logger = new Logger(AssistantToolRuleReasoningService.name);
 
   constructor(
-    @Inject(ASSISTANT_SEMANTICA) private readonly semantica: SemanticaAvailability,
+    @Inject(ASSISTANT_SEMANTICA)
+    private readonly semantica: SemanticaAvailability,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,

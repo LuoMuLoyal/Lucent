@@ -111,7 +111,10 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     AssistantSettingsProposalService,
     AssistantToolService,
     { provide: ASSISTANT_TOOL_EXECUTOR, useExisting: AssistantToolService },
-    { provide: ASSISTANT_CHECKPOINTER, useExisting: AssistantCheckpointerService },
+    {
+      provide: ASSISTANT_CHECKPOINTER,
+      useExisting: AssistantCheckpointerService,
+    },
     AssistantToolReadService,
     LightragClientService,
     // The tool adapters inject these ports by string token (see

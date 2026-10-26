@@ -3,7 +3,10 @@ import type { AssistantReadResultEnvelope } from '../../../../application/ports/
 import type { AssistantToolExecutionContext } from '../../../../application/ports/assistant.js';
 import type { MedicineSearchItemLike } from '../../../../../medicines/index.js';
 import { CnMedicinesService } from '../../../../../medicines/index.js';
-import { buildReadConfidence, buildReadEnvelope } from '../../../http/presenters/proposal.js';
+import {
+  buildReadConfidence,
+  buildReadEnvelope,
+} from '../../../http/presenters/proposal.js';
 import { AssistantDrugbankLookupService } from './drugbank-lookup.service.js';
 import { parseLookupPayload } from './lookup-payload.js';
 

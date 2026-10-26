@@ -4,10 +4,7 @@ import {
   HumanMessage,
 } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
-import {
-  buildAssistantRuntimeGraph,
-  selectPermittedTools,
-} from './graph.js';
+import { buildAssistantRuntimeGraph, selectPermittedTools } from './graph.js';
 import { TOOL_NAMES } from '../../domain/policies/tool-permission.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 
@@ -153,9 +150,7 @@ describe('AssistantFoundationGraph', () => {
   });
 
   it('derives allowed tools from enabled context sources', () => {
-    expect(
-      selectPermittedTools(['health_profile', 'sleep_records']),
-    ).toEqual([
+    expect(selectPermittedTools(['health_profile', 'sleep_records'])).toEqual([
       'get_today_summary_by_date',
       'get_report_summary_by_range',
       'get_recent_today_summaries',

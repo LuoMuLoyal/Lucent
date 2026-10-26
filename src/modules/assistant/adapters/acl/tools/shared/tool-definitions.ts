@@ -271,7 +271,6 @@ function buildToolParameters(
   };
 }
 
-
 /**
  * Builds LangChain tool definitions for the given tool names.
  *

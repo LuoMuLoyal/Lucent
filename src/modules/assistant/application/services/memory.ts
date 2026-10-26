@@ -74,9 +74,11 @@ export class AssistantMemoryService {
   private readonly pendingExtractions = new Map<string, PendingExtraction>();
 
   constructor(
-    @Inject(ASSISTANT_MEMORIES) private readonly memoryRepository: MemoryRepositoryPort,
+    @Inject(ASSISTANT_MEMORIES)
+    private readonly memoryRepository: MemoryRepositoryPort,
     private readonly llmRuntimeService: LlmRuntimeService,
-    @Inject(ASSISTANT_CONVERSATIONS) private readonly conversationRepository: ConversationRepositoryPort,
+    @Inject(ASSISTANT_CONVERSATIONS)
+    private readonly conversationRepository: ConversationRepositoryPort,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,
@@ -129,10 +131,12 @@ export class AssistantMemoryService {
           content,
         })),
       )
-      .then(() => undefined, (failure: unknown) => {
+      .then(
+        () => undefined,
+        (failure: unknown) => {
           const code =
             failure != null && typeof failure === 'object' && 'code' in failure
-              ? String((failure).code)
+              ? String(failure.code)
               : 'unknown';
           this.logger.warn(
             `Memory persistence failed for user "${userId}" conversation "${conversationId}": ${code}`,

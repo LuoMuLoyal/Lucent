@@ -43,7 +43,9 @@ describe('Memory', () => {
   });
 
   it('injects at most MAX_MEMORY_ITEMS memories, newest first', () => {
-    const items = Array.from({ length: MAX_MEMORY_ITEMS + 3 }, (_, index) => item(index));
+    const items = Array.from({ length: MAX_MEMORY_ITEMS + 3 }, (_, index) =>
+      item(index),
+    );
     const selected = selectInjectableMemories(items);
     expect(selected).toHaveLength(MAX_MEMORY_ITEMS);
     expect(selected[0]?.id).toBe('m0');

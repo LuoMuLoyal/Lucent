@@ -86,8 +86,20 @@ describe('PrismaConversations', () => {
     prisma.assistantConversation.findFirst.mockResolvedValue(
       row({
         messages: [
-          { id: 'm1', role: 'user', content: 'q', usedTools: [], createdAt: T0 },
-          { id: 'm2', role: 'assistant', content: 'a', usedTools: [], createdAt: T0 },
+          {
+            id: 'm1',
+            role: 'user',
+            content: 'q',
+            usedTools: [],
+            createdAt: T0,
+          },
+          {
+            id: 'm2',
+            role: 'assistant',
+            content: 'a',
+            usedTools: [],
+            createdAt: T0,
+          },
         ],
       }) as never,
     );
@@ -118,10 +130,12 @@ describe('PrismaConversations', () => {
   });
 
   it('archives the other active conversations and activates this one', async () => {
-    prisma.$transaction.mockImplementation(
-      async (fn: unknown) => (fn as (tx: unknown) => Promise<unknown>)(prisma),
+    prisma.$transaction.mockImplementation(async (fn: unknown) =>
+      (fn as (tx: unknown) => Promise<unknown>)(prisma),
     );
-    prisma.assistantConversation.updateMany.mockResolvedValue({ count: 1 } as never);
+    prisma.assistantConversation.updateMany.mockResolvedValue({
+      count: 1,
+    } as never);
     prisma.assistantConversation.update.mockResolvedValue(row() as never);
 
     await repository.activate('user-1', 'conv-1');
@@ -143,8 +157,8 @@ describe('PrismaConversations', () => {
   });
 
   it('writes every turn message with the timestamp the aggregate assigned', async () => {
-    prisma.$transaction.mockImplementation(
-      async (fn: unknown) => (fn as (tx: unknown) => Promise<unknown>)(prisma),
+    prisma.$transaction.mockImplementation(async (fn: unknown) =>
+      (fn as (tx: unknown) => Promise<unknown>)(prisma),
     );
     prisma.assistantMessage.create.mockResolvedValue({} as never);
     prisma.assistantConversation.update.mockResolvedValue(row() as never);

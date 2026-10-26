@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { AssistantReadResultEnvelope } from '../../../../application/ports/assistant.js';
 import type { AssistantToolExecutionContext } from '../../../../application/ports/assistant.js';
 import { DrugbankMedicinesService } from '../../../../../medicines/index.js';
-import { buildReadConfidence, buildReadEnvelope } from '../../../http/presenters/proposal.js';
+import {
+  buildReadConfidence,
+  buildReadEnvelope,
+} from '../../../http/presenters/proposal.js';
 import { parseLookupPayload } from './lookup-payload.js';
 
 const DETAIL_RESOLVE_LIMIT = 5;

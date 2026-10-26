@@ -4,7 +4,10 @@ import {
   DailyRecordReaderPort,
   parseMealRecordPayload,
 } from '../../../../../daily-records/index.js';
-import { formatDateOnly, parseDateOnly } from '../../../../../../common/index.js';
+import {
+  formatDateOnly,
+  parseDateOnly,
+} from '../../../../../../common/index.js';
 import type { IDailyRecordReader } from '../../../../application/ports/readers.js';
 import { DAILY_RECORD_READER } from '../../../../application/ports/readers.js';
 import type { AssistantToolExecutionContext } from '../../../../application/ports/assistant.js';

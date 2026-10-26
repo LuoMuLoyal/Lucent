@@ -30,7 +30,9 @@ export const createFileUploadSchema = z
   })
   .strict()
   // Pinned to the use-case contract: a wire change that drops a field fails here.
-  .describe('Create a presigned file upload.' satisfies string) as z.ZodType<CreateFileUploadRequest>;
+  .describe(
+    'Create a presigned file upload.' satisfies string,
+  ) as z.ZodType<CreateFileUploadRequest>;
 
 /** Strongly typed request body of `POST /files/upload`. */
 export type CreateFileUploadDto = CreateFileUploadRequest;

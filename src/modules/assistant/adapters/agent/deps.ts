@@ -12,7 +12,10 @@
  */
 import type { BaseCheckpointSaver } from '@langchain/langgraph';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { ToolName, ContextSource } from '../../domain/policies/tool-permission.js';
+import type {
+  ToolName,
+  ContextSource,
+} from '../../domain/policies/tool-permission.js';
 import type {
   AssistantToolCall,
   AssistantToolExecutionResult,

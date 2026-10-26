@@ -22,7 +22,11 @@ function entry(overrides: Partial<ProposalEntry> = {}): ProposalEntry {
     targetRecordId: 'record-1',
     expiresAt: LATER,
     status: 'pending',
-    payload: { type: 'update_daily_record', recordId: 'record-1', draft: { value: '300' } },
+    payload: {
+      type: 'update_daily_record',
+      recordId: 'record-1',
+      draft: { value: '300' },
+    },
     ...overrides,
   };
 }
@@ -41,7 +45,12 @@ describe('Proposal', () => {
   describe('rule 1 — only a pending review may be confirmed', () => {
     it('refuses when the thread is not suspended', () => {
       expect(
-        selectConfirmableProposals({ review: null, requestedIds: ['p1'], userId: 'user-1', at: NOW }),
+        selectConfirmableProposals({
+          review: null,
+          requestedIds: ['p1'],
+          userId: 'user-1',
+          at: NOW,
+        }),
       ).toEqual({ rule: 'no_pending_review' });
     });
 
@@ -69,24 +78,44 @@ describe('Proposal', () => {
 
     it('treats confirming nothing as a no-op selection, not an error', () => {
       expect(
-        selectConfirmableProposals({ review: review(), requestedIds: [], userId: 'user-1', at: NOW }),
+        selectConfirmableProposals({
+          review: review(),
+          requestedIds: [],
+          userId: 'user-1',
+          at: NOW,
+        }),
       ).toEqual({ proposals: [] });
     });
   });
 
   describe('rule 2 — confirmation happens exactly once', () => {
     it('moves a pending review to approved', () => {
-      const result = decide({ review: review(), decision: 'approved', proposalIds: ['p1'], at: NOW });
+      const result = decide({
+        review: review(),
+        decision: 'approved',
+        proposalIds: ['p1'],
+        at: NOW,
+      });
       if (!('next' in result)) throw new Error('expected a decision');
       expect(result.next.status).toBe('approved');
       expect(result.next.proposals[0]?.status).toBe('approved');
     });
 
     it('a second confirm of the same review is refused', () => {
-      const first = decide({ review: review(), decision: 'approved', proposalIds: ['p1'], at: NOW });
+      const first = decide({
+        review: review(),
+        decision: 'approved',
+        proposalIds: ['p1'],
+        at: NOW,
+      });
       if (!('next' in first)) throw new Error('expected a decision');
       expect(
-        decide({ review: first.next, decision: 'approved', proposalIds: ['p1'], at: NOW }),
+        decide({
+          review: first.next,
+          decision: 'approved',
+          proposalIds: ['p1'],
+          at: NOW,
+        }),
       ).toEqual({ rule: 'review_already_decided' });
     });
 
@@ -104,7 +133,10 @@ describe('Proposal', () => {
     it('does not silently reject the proposals the user did not name', () => {
       const result = decide({
         review: review({
-          proposals: [entry({ id: 'p1' }), entry({ id: 'p2', targetRecordId: 'record-2' })],
+          proposals: [
+            entry({ id: 'p1' }),
+            entry({ id: 'p2', targetRecordId: 'record-2' }),
+          ],
         }),
         decision: 'approved',
         proposalIds: ['p1'],
@@ -141,7 +173,9 @@ describe('Proposal', () => {
       expect(
         decide({
           review: review({
-            proposals: [entry({ id: 'stale', expiresAt: new Date(NOW.getTime() - 1) })],
+            proposals: [
+              entry({ id: 'stale', expiresAt: new Date(NOW.getTime() - 1) }),
+            ],
           }),
           decision: 'approved',
           proposalIds: ['stale'],
@@ -185,7 +219,11 @@ describe('Proposal', () => {
 
     it('binds a matching review', () => {
       expect(
-        isReviewBoundTo({ review: review(), userId: 'user-1', conversationId: 'conv-1' }),
+        isReviewBoundTo({
+          review: review(),
+          userId: 'user-1',
+          conversationId: 'conv-1',
+        }),
       ).toBe(true);
     });
 
@@ -207,14 +245,19 @@ describe('Proposal', () => {
     });
 
     it('an update/delete payload names the record it targets', () => {
-      expect(targetRecordIdOf({ type: 'delete_daily_record', recordId: 'record-9' })).toBe(
-        'record-9',
-      );
+      expect(
+        targetRecordIdOf({ type: 'delete_daily_record', recordId: 'record-9' }),
+      ).toBe('record-9');
     });
   });
 
   it('rejecting resolves the review without naming proposals', () => {
-    const result = decide({ review: review(), decision: 'rejected', proposalIds: ['p1'], at: NOW });
+    const result = decide({
+      review: review(),
+      decision: 'rejected',
+      proposalIds: ['p1'],
+      at: NOW,
+    });
     if (!('next' in result)) throw new Error('expected a decision');
     expect(result.next.status).toBe('rejected');
     expect(result.next.proposals[0]?.status).toBe('pending');

@@ -89,7 +89,9 @@ describe('UserService', () => {
     it('returns null when the email is unknown', async () => {
       repository.findByEmail.mockResolvedValue(null);
 
-      await expect(service.findByEmail('unknown@example.com')).resolves.toBeNull();
+      await expect(
+        service.findByEmail('unknown@example.com'),
+      ).resolves.toBeNull();
     });
   });
 
@@ -127,9 +129,12 @@ describe('UserService', () => {
 
       await service.updateByEmail('test@example.com', { nickname: 'Renamed' });
 
-      expect(repository.updateByEmail).toHaveBeenCalledWith('test@example.com', {
-        nickname: 'Renamed',
-      });
+      expect(repository.updateByEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        {
+          nickname: 'Renamed',
+        },
+      );
     });
 
     it('returns null when the email is unknown', async () => {

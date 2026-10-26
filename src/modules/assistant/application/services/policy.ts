@@ -69,8 +69,7 @@ export class AssistantPolicyService {
       settings.assistantEnabled && contextPermittedToolNames.includes(toolName);
     const implemented = foundation.implementedToolNames.includes(toolName);
     const retrievalReady =
-      !RETRIEVAL_TOOL_NAME_SET.has(toolName) ||
-      foundation.retrievalAvailable;
+      !RETRIEVAL_TOOL_NAME_SET.has(toolName) || foundation.retrievalAvailable;
     const oagReady =
       !OAG_TOOL_NAME_SET.has(toolName) || foundation.oagAvailable;
     const enabled =

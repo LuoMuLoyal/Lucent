@@ -34,9 +34,7 @@ function buildConversation(
   };
 }
 
-function buildMemory(
-  overrides: Partial<MemoryItem> = {},
-): MemoryItem {
+function buildMemory(overrides: Partial<MemoryItem> = {}): MemoryItem {
   return {
     id: 'mem-1',
     content: 'User prefers morning exercise.',
@@ -164,9 +162,7 @@ describe('AssistantMemoryService', () => {
     });
 
     it('skips the LLM when the conversation has no messages', async () => {
-      conversationRepository.find.mockResolvedValue(
-        buildConversation([]),
-      );
+      conversationRepository.find.mockResolvedValue(buildConversation([]));
 
       await service.extractAndStore('user-1', 'conv-1');
 
@@ -334,9 +330,7 @@ describe('AssistantMemoryService', () => {
 
     it('keeps extraction failures silent inside the flush loop', async () => {
       vi.useFakeTimers();
-      conversationRepository.find.mockRejectedValue(
-        new Error('db down'),
-      );
+      conversationRepository.find.mockRejectedValue(new Error('db down'));
 
       await service.scheduleExtraction('user-1', 'conv-1');
 

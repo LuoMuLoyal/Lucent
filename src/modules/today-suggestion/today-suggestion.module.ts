@@ -35,7 +35,10 @@ import { RecordCollectorService } from './adapters/acl/collectors/record.js';
 import { HealthEventCollectorService } from './adapters/acl/collectors/health-event.js';
 import { SuggestionCopyLlmService } from './infrastructure/llm/copy-generator.js';
 import { COPY_GENERATOR } from './adapters/queue/copy/writer.js';
-import { COPY_QUEUE, COPY_SERVICE } from './application/services/presentation.js';
+import {
+  COPY_QUEUE,
+  COPY_SERVICE,
+} from './application/services/presentation.js';
 import { SuggestionCopyQueueService } from './adapters/queue/copy/queue.js';
 import { SuggestionCopyService } from './adapters/queue/copy/writer.js';
 import { ExplanationGeneratorService } from './infrastructure/llm/explanation-generator.js';
@@ -130,10 +133,16 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     // Port tokens injected by name in the queue adapters and pipeline services.
     { provide: MATERIALIZATION_STORE_PORT, useExisting: MaterializationStore },
     { provide: BASELINE_PORT, useExisting: BaselineService },
-    { provide: MEDICATION_COLLECTOR_PORT, useExisting: MedicationCollectorService },
+    {
+      provide: MEDICATION_COLLECTOR_PORT,
+      useExisting: MedicationCollectorService,
+    },
     { provide: RECORD_COLLECTOR_PORT, useExisting: RecordCollectorService },
     { provide: PROFILE_COLLECTOR_PORT, useExisting: ProfileCollectorService },
-    { provide: HEALTH_EVENT_COLLECTOR_PORT, useExisting: HealthEventCollectorService },
+    {
+      provide: HEALTH_EVENT_COLLECTOR_PORT,
+      useExisting: HealthEventCollectorService,
+    },
     { provide: ESCALATION_PORT, useExisting: EscalationService },
     // Recompute trigger and materialization state
     MaterializationStore,
@@ -144,7 +153,10 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     EscalationService,
     // AI explanation
     ExplanationGeneratorService,
-    { provide: EXPLANATION_GENERATOR, useExisting: ExplanationGeneratorService },
+    {
+      provide: EXPLANATION_GENERATOR,
+      useExisting: ExplanationGeneratorService,
+    },
     ExplanationService,
     ExplanationQueueService,
     // AI copy generation

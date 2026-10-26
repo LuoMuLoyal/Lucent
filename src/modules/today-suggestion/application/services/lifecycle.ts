@@ -1,9 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import {
-  SuggestionLifecycleStore,
-} from '../ports/suggestion-lifecycle.js';
+import { SuggestionLifecycleStore } from '../ports/suggestion-lifecycle.js';
 import { now, nowIsoString, formatDateOnly } from '../../../../common/index.js';
 import type { SuggestionCandidate } from '../../domain/suggestion/suggestion-candidate.js';
 import type { SuggestionItemDto } from '../../dto/suggestion-response.dto.js';
@@ -84,7 +82,7 @@ export class LifecycleService {
       ...(sourceVersion != null ? { sourceVersion } : {}),
     });
   }
-/**
+  /**
    * Expires suggestions that are no longer active for the given user+date.
    * Called before generating new suggestions to clean up stale cards.
    */

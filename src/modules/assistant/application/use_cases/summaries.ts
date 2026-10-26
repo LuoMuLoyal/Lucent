@@ -29,7 +29,8 @@ export type { SummaryBullet } from '../../domain/summary/summaries.js';
 @Injectable()
 export class HistoricalAiSummaryService {
   constructor(
-    @Inject(ASSISTANT_SUMMARIES) private readonly repository: SummaryRepositoryPort,
+    @Inject(ASSISTANT_SUMMARIES)
+    private readonly repository: SummaryRepositoryPort,
   ) {}
 
   /**

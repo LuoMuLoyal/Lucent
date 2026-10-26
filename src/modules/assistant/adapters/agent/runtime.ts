@@ -9,7 +9,11 @@ import {
 import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { Command, type BaseCheckpointSaver, type StateSnapshot } from '@langchain/langgraph';
+import {
+  Command,
+  type BaseCheckpointSaver,
+  type StateSnapshot,
+} from '@langchain/langgraph';
 import {
   createDomainFailure,
   fromPromise,
@@ -108,13 +112,17 @@ export class AssistantRuntimeService {
 
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
-    @Inject(ASSISTANT_LIGHTRAG) private readonly lightragClient: LightragAvailability,
-    @Inject(ASSISTANT_SEMANTICA) private readonly semanticaClient: SemanticaAvailability,
+    @Inject(ASSISTANT_LIGHTRAG)
+    private readonly lightragClient: LightragAvailability,
+    @Inject(ASSISTANT_SEMANTICA)
+    private readonly semanticaClient: SemanticaAvailability,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    @Inject(ASSISTANT_CHECKPOINTER) private readonly checkpointerService: CheckpointerPort,
-    @Inject(ASSISTANT_CONVERSATIONS) private readonly conversationRepository: ConversationRepositoryPort,
+    @Inject(ASSISTANT_CHECKPOINTER)
+    private readonly checkpointerService: CheckpointerPort,
+    @Inject(ASSISTANT_CONVERSATIONS)
+    private readonly conversationRepository: ConversationRepositoryPort,
     private readonly streamService: AssistantStreamService,
     /**
      * 每轮工具选择器。生产由 Nest 注入（provider 已注册）；缺省时按图契约降级为
@@ -163,9 +171,7 @@ export class AssistantRuntimeService {
    * released one, else the code prompt. Resolved per invocation so a pushed
    * document applies to the next turn without rebuilding the graph.
    */
-  private resolveAssistantSystemPrompt(
-    toolNames: readonly ToolName[],
-  ): string {
+  private resolveAssistantSystemPrompt(toolNames: readonly ToolName[]): string {
     return resolveRuntimePrompt(
       this.runtimeConfigService,
       'assistantSystem',
@@ -235,7 +241,8 @@ export class AssistantRuntimeService {
     executeTools: ToolExecutorFn,
     onChunk?: (event: AssistantStreamChunkEvent) => void | Promise<void>,
   ): Promise<AssistantConversationResult> {
-    const checkpointer = this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
+    const checkpointer =
+      this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
     // HITL review (interrupt + confirm) only makes sense for a persisted
     // conversation; without `conversationId` the graph stays stateless and
     // never suspends, matching the degradation matrix.
@@ -465,7 +472,8 @@ export class AssistantRuntimeService {
     conversationId: string,
     onText?: (text: string) => void | Promise<void>,
   ) {
-    const checkpointer = this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
+    const checkpointer =
+      this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
     if (checkpointer == null) {
       throw new BadRequestException({
         code: 'VALIDATION_FAILED',
@@ -646,9 +654,9 @@ export class AssistantRuntimeService {
     }
 
     await this.conversationRepository.createRegeneration({
-        conversationId,
-        userId,
-        sourceMessageId: lastDbMessage.id,
+      conversationId,
+      userId,
+      sourceMessageId: lastDbMessage.id,
       checkpointId,
     });
 

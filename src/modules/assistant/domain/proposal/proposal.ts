@@ -102,7 +102,9 @@ export function selectConfirmableProposals(input: {
     return { proposals: [] };
   }
 
-  const byId = new Map(review.proposals.map((proposal) => [proposal.id, proposal]));
+  const byId = new Map(
+    review.proposals.map((proposal) => [proposal.id, proposal]),
+  );
   const selected: ProposalEntry[] = [];
   for (const id of requestedIds) {
     const proposal = byId.get(id);

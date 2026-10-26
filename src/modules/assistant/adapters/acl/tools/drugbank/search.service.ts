@@ -7,7 +7,10 @@ import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
 } from '../../../../application/ports/assistant.js';
-import { buildReadConfidence, buildReadEnvelope } from '../../../http/presenters/proposal.js';
+import {
+  buildReadConfidence,
+  buildReadEnvelope,
+} from '../../../http/presenters/proposal.js';
 import {
   buildVectorPage,
   buildVectorQueryHash,

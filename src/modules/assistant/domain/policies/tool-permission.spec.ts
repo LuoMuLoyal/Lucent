@@ -12,7 +12,9 @@ import {
 
 describe('tool permission gate', () => {
   it('permits every tool when all sources are on', () => {
-    expect(selectPermittedTools(CONTEXT_SOURCES)).toHaveLength(TOOL_NAMES.length);
+    expect(selectPermittedTools(CONTEXT_SOURCES)).toHaveLength(
+      TOOL_NAMES.length,
+    );
   });
 
   it('permits no data tool when no source is on, but keeps source-free tools', () => {
@@ -23,8 +25,12 @@ describe('tool permission gate', () => {
   });
 
   it('requires every declared source, not just one', () => {
-    expect(selectPermittedTools(['daily_records'])).toContain('get_today_records');
-    expect(selectPermittedTools(['sleep_records'])).not.toContain('get_today_records');
+    expect(selectPermittedTools(['daily_records'])).toContain(
+      'get_today_records',
+    );
+    expect(selectPermittedTools(['sleep_records'])).not.toContain(
+      'get_today_records',
+    );
   });
 
   it('declares sources for every tool', () => {
@@ -40,8 +46,8 @@ describe('tool permission gate', () => {
   });
 
   it('reports enabled sources in canonical order', () => {
-    expect(selectEnabledSources((source) => source === 'sleep_records')).toEqual([
-      'sleep_records',
-    ]);
+    expect(
+      selectEnabledSources((source) => source === 'sleep_records'),
+    ).toEqual(['sleep_records']);
   });
 });

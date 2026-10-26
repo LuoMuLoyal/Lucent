@@ -13,7 +13,10 @@ import {
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import type { AssistantGraphDeps } from './deps.js';
 import { AssistantRuntimeState } from './state.js';
-import { deriveIntent, type AssistantIntent } from '../../application/services/intent.js';
+import {
+  deriveIntent,
+  type AssistantIntent,
+} from '../../application/services/intent.js';
 import type { AssistantToolRoutingOutcome } from '../../application/services/intent.js';
 import { buildRespondNode } from './respond.js';
 import { createAgentNode, createToolsNode } from './nodes.js';
@@ -27,7 +30,10 @@ export {
   ASSISTANT_RUNTIME_NODE_NAMES,
 } from './state.js';
 export { selectPermittedTools } from '../../domain/policies/tool-permission.js';
-export { deriveIntent, type AssistantIntent } from '../../application/services/intent.js';
+export {
+  deriveIntent,
+  type AssistantIntent,
+} from '../../application/services/intent.js';
 export type { AssistantToolRoutingOutcome } from '../../application/services/intent.js';
 export { buildRespondNode } from './respond.js';
 export { buildReadSubGraph } from './subgraphs/read.js';
@@ -69,7 +75,6 @@ export const ASSISTANT_NODE_TIMEOUT_MS =
     RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
   ) +
   5_000;
-
 
 /**
  * 选本轮工具：正常走注入的模型路由端口；端口缺失时降级为**全部候选工具**。

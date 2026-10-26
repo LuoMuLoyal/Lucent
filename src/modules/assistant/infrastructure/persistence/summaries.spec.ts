@@ -75,7 +75,9 @@ describe('PrismaSummaries', () => {
     prisma.assistantSummaryHistory.findUnique.mockResolvedValue({
       sourceVersion: 3,
     } as never);
-    prisma.assistantSummaryHistory.updateMany.mockResolvedValue({ count: 1 } as never);
+    prisma.assistantSummaryHistory.updateMany.mockResolvedValue({
+      count: 1,
+    } as never);
 
     const result = await repository.save(todayWrite({ sourceVersion: 4 }));
 

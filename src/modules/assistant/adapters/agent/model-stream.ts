@@ -96,7 +96,7 @@ export async function streamModelResponse(
 
   if (aggregated == null) {
     // eslint-disable-next-line error-handling/no-bare-throw-error -- an empty model stream is an LLM runtime anomaly, surfaced to the stream orchestrator unchanged
-      throw new Error('Assistant stream ended without any AI message chunks.');
+    throw new Error('Assistant stream ended without any AI message chunks.');
   }
 
   return new AIMessage({

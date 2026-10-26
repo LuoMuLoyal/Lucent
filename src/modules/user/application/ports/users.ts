@@ -22,7 +22,10 @@
  */
 
 import type { Prisma, User, UserStatus } from '#generated/prisma/client.js';
-import type { DomainFailure, ResultAsync } from '../../../../common/result/index.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
 
 /** DI token — string so a Nest resolution error names the port readably. */
 export const USER_REPOSITORY = 'USER_REPOSITORY';

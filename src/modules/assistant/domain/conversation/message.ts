@@ -114,7 +114,12 @@ export function findAppendStartIndex(
   while (matched < existing.length && matched < incoming.length) {
     const a = existing[matched];
     const b = incoming[matched];
-    if (a == null || b == null || a.role !== b.role || a.content !== b.content) {
+    if (
+      a == null ||
+      b == null ||
+      a.role !== b.role ||
+      a.content !== b.content
+    ) {
       break;
     }
     matched += 1;

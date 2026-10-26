@@ -308,7 +308,9 @@ export class Conversations {
     record: ConversationState,
     messages: readonly ConversationMessage[],
   ): Promise<void> {
-    const firstUserMessage = messages.find((message) => message.role === 'user');
+    const firstUserMessage = messages.find(
+      (message) => message.role === 'user',
+    );
     if (
       firstUserMessage == null ||
       !this.llmRuntimeService.hasRoleConfig('chat')

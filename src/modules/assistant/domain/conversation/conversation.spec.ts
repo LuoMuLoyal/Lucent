@@ -21,7 +21,13 @@ function stored(
   content: string,
   offsetMs: number,
 ): StoredConversationMessage {
-  return { id, role, content, usedTools: [], createdAt: new Date(T0.getTime() + offsetMs) };
+  return {
+    id,
+    role,
+    content,
+    usedTools: [],
+    createdAt: new Date(T0.getTime() + offsetMs),
+  };
 }
 
 function state(overrides: Partial<ConversationState> = {}): ConversationState {
@@ -62,15 +68,30 @@ describe('Conversation', () => {
     it('re-spaces stored rows that share a millisecond (the archived-conversation defect)', () => {
       const shared = new Date(T0.getTime());
       const ordered = orderMessages([
-        { id: 'a', role: 'user', content: 'q', usedTools: [], createdAt: shared },
-        { id: 'b', role: 'assistant', content: 'a', usedTools: [], createdAt: shared },
+        {
+          id: 'a',
+          role: 'user',
+          content: 'q',
+          usedTools: [],
+          createdAt: shared,
+        },
+        {
+          id: 'b',
+          role: 'assistant',
+          content: 'a',
+          usedTools: [],
+          createdAt: shared,
+        },
       ]);
       expect(ordered[0]?.createdAt.getTime()).toBe(shared.getTime());
       expect(ordered[1]?.createdAt.getTime()).toBe(shared.getTime() + 1);
     });
 
     it('leaves an already-ordered history untouched', () => {
-      const messages = [stored('a', 'user', 'q', 0), stored('b', 'assistant', 'a', 10)];
+      const messages = [
+        stored('a', 'user', 'q', 0),
+        stored('b', 'assistant', 'a', 10),
+      ];
       expect(orderMessages(messages)).toEqual(messages);
     });
 
@@ -88,7 +109,10 @@ describe('Conversation', () => {
         assistantAt: new Date(T0.getTime() + 1_000),
       });
       if (!('turn' in plan)) throw new Error('expected a turn');
-      expect(plan.turn.messages.map((m) => m.content)).toEqual(['next', 'answer']);
+      expect(plan.turn.messages.map((m) => m.content)).toEqual([
+        'next',
+        'answer',
+      ]);
     });
 
     it('treats whitespace-only messages as absent', () => {
@@ -109,7 +133,9 @@ describe('Conversation', () => {
 
   describe('rule 2 — only the active conversation is current', () => {
     it('activates an archived conversation', () => {
-      const conversation = Conversation.fromState(state({ status: 'archived' }));
+      const conversation = Conversation.fromState(
+        state({ status: 'archived' }),
+      );
       expect(conversation.activate()).toBeNull();
       expect(conversation.status).toBe('active');
     });
@@ -161,7 +187,10 @@ describe('Conversation', () => {
 
     it('truncates the initial title', () => {
       const title = buildInitialTitle([
-        { role: 'user', content: 'x'.repeat(MAX_CONVERSATION_TITLE_LENGTH + 20) },
+        {
+          role: 'user',
+          content: 'x'.repeat(MAX_CONVERSATION_TITLE_LENGTH + 20),
+        },
       ]);
       expect(title).toHaveLength(MAX_CONVERSATION_TITLE_LENGTH);
     });
@@ -192,9 +221,13 @@ describe('Conversation', () => {
     });
 
     it('never lets a refined title overwrite a user rename', () => {
-      const conversation = Conversation.fromState(state({ title: 'truncated' }));
+      const conversation = Conversation.fromState(
+        state({ title: 'truncated' }),
+      );
       expect(conversation.canApplyRefinedTitle('user renamed')).toBe(false);
-      expect(conversation.applyRefinedTitle('user renamed', 'model title')).toBe(false);
+      expect(
+        conversation.applyRefinedTitle('user renamed', 'model title'),
+      ).toBe(false);
       expect(conversation.canApplyRefinedTitle('truncated')).toBe(true);
     });
 
@@ -243,13 +276,25 @@ describe('Conversation', () => {
   describe('regeneration', () => {
     it('appends the new answer after the old one', () => {
       const conversation = Conversation.fromState(
-        state({ messages: [stored('a', 'user', 'q', 0), stored('b', 'assistant', 'old', 10)] }),
+        state({
+          messages: [
+            stored('a', 'user', 'q', 0),
+            stored('b', 'assistant', 'old', 10),
+          ],
+        }),
       );
       const at = new Date(T0.getTime() + 100);
-      const plan = conversation.planStandaloneAssistantMessage({ content: 'new', at });
+      const plan = conversation.planStandaloneAssistantMessage({
+        content: 'new',
+        at,
+      });
       if (!('message' in plan)) throw new Error('expected a message');
       conversation.applyStandaloneAssistantMessage(plan.message, 'c');
-      expect(conversation.history().map((m) => m.content)).toEqual(['q', 'old', 'new']);
+      expect(conversation.history().map((m) => m.content)).toEqual([
+        'q',
+        'old',
+        'new',
+      ]);
       expect(conversation.lastMessageAt).toBe(at);
     });
 

@@ -14,7 +14,10 @@ import {
   REPORT_RANGE_LAST_7_DAYS,
   REPORT_RANGE_LAST_30_DAYS,
 } from '../../../../../reports/index.js';
-import { formatDateOnly, parseDateOnly } from '../../../../../../common/index.js';
+import {
+  formatDateOnly,
+  parseDateOnly,
+} from '../../../../../../common/index.js';
 
 describe('date-resolver', () => {
   // -----------------------------------------------------------------------

@@ -108,7 +108,8 @@ export class AssistantToolOntologyReasoningService {
   );
 
   constructor(
-    @Inject(ASSISTANT_SEMANTICA) private readonly semantica: SemanticaAvailability,
+    @Inject(ASSISTANT_SEMANTICA)
+    private readonly semantica: SemanticaAvailability,
     private readonly cypherGenerator: OntologyCypherGeneratorService,
     @Optional()
     @Inject(RuntimeConfigService)

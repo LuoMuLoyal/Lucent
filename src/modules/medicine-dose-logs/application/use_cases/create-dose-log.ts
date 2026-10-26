@@ -39,9 +39,8 @@ export class CreateDoseLog {
     userId: string,
     command: CreateDoseLogCommand,
   ): ResultAsync<DoseLogResource, DomainFailure> {
-    return fromPromise(
-      this.run(userId, command),
-      (error) => mapUnknownToInternalFailure(error),
+    return fromPromise(this.run(userId, command), (error) =>
+      mapUnknownToInternalFailure(error),
     );
   }
 

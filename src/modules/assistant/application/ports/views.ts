@@ -10,7 +10,10 @@
  * Types only — no zod, no Nest, no Prisma.
  */
 
-import type { ToolDisabledReason, ToolName } from '../../domain/policies/tool-permission.js';
+import type {
+  ToolDisabledReason,
+  ToolName,
+} from '../../domain/policies/tool-permission.js';
 import type { ProposedAction } from '../../domain/proposal/proposed-action.js';
 
 /** One tool's capability snapshot, as the capabilities endpoint reports it. */
