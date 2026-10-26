@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ClinicSummaryShareField,
   ProductEventName,
@@ -10,12 +10,15 @@ import type { UserClinicSummaryShare } from '#generated/prisma/client.js';
 import { now } from '../../../../common/index.js';
 import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
-import { PrismaService } from '../../../../prisma/index.js';
+import {
+  CLINIC_SUMMARY_SHARES,
+  type ClinicSummaryShares,
+} from '../ports/clinic-summary.js';
 import { ProductEventsService } from '../../../product-events/index.js';
 import {
   CLINIC_SUMMARY_REASON,
   type ClinicSummaryReason,
-} from './validation.js';
+} from '../../domain/clinic-summary/share-scope.js';
 
 /**
  * Default lifetime of a share link, in days. Intentionally longer than the
@@ -111,7 +114,8 @@ export class ShareService {
   private readonly logger = new Logger(ShareService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(CLINIC_SUMMARY_SHARES)
+    private readonly shares: ClinicSummaryShares,
     private readonly productEvents: ProductEventsService,
   ) {}
 
@@ -128,16 +132,14 @@ export class ShareService {
       now().getTime() + DEFAULT_SHARE_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
 
-    const record = await this.prisma.userClinicSummaryShare.create({
-      data: {
-        userId,
-        tokenHash,
-        eventId: scope.eventId,
-        dateFrom: scope.dateFrom,
-        dateTo: scope.dateTo,
-        selectedFields,
-        expiresAt,
-      },
+    const record = await this.shares.create({
+      userId,
+      tokenHash,
+      eventId: scope.eventId,
+      dateFrom: scope.dateFrom,
+      dateTo: scope.dateTo,
+      selectedFields,
+      expiresAt,
     });
 
     // Server-authoritative lifecycle event — emitted only after the share
@@ -176,23 +178,15 @@ export class ShareService {
     const tokenHash = this.hashToken(token);
     const nowDate = now();
 
-    const record = await this.prisma.userClinicSummaryShare.findFirst({
-      where: { tokenHash, revokedAt: null, expiresAt: { gt: nowDate } },
-    });
+    const record = await this.shares.findAccessibleByTokenHash(
+      tokenHash,
+      nowDate,
+    );
     if (!record) return null;
 
     const accessedAt = now();
-    const result = await this.prisma.userClinicSummaryShare.updateMany({
-      where: { id: record.id, revokedAt: null, expiresAt: { gt: nowDate } },
-      data: {
-        accessCount: { increment: 1 },
-        lastAccessedAt: accessedAt,
-        ...(record.firstAccessedAt === null
-          ? { firstAccessedAt: accessedAt }
-          : {}),
-      },
-    });
-    if (result.count === 0) return null;
+    const updated = await this.shares.recordAccess(record.id, accessedAt);
+    if (updated === null) return null;
 
     return { ...this.toReadModel(record), accessCount: record.accessCount + 1 };
   }
@@ -203,10 +197,7 @@ export class ShareService {
    * list item model is ever returned, so the token hash can never leak.
    */
   async listSharesForUser(userId: string): Promise<ShareListItemReadModel[]> {
-    const records = await this.prisma.userClinicSummaryShare.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const records = await this.shares.listByUser(userId);
     return records.map((record) => ({
       id: record.id,
       createdAt: record.createdAt,
@@ -226,11 +217,8 @@ export class ShareService {
 
   /** Ownership-scoped revoke. Returns false for unknown ids or non-owners. */
   async revokeShare(userId: string, shareId: string): Promise<boolean> {
-    const result = await this.prisma.userClinicSummaryShare.updateMany({
-      where: { id: shareId, userId },
-      data: { revokedAt: now() },
-    });
-    if (result.count > 0) {
+    const revoked = await this.shares.revoke(userId, shareId, now());
+    if (revoked) {
       // Server-authoritative lifecycle event — only after a real revocation.
       // Deterministic clientEventId dedupes retries of this idempotent revoke.
       await this.productEvents.emitServerEvent(userId, {
@@ -240,7 +228,7 @@ export class ShareService {
         clientEventId: `server-share-revoked-${shareId}`,
       });
     }
-    return result.count > 0;
+    return revoked;
   }
 
   /**

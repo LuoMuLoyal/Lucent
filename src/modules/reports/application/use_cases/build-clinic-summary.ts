@@ -11,7 +11,17 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client.js';
-import { PrismaService } from '../../../../prisma/index.js';
+import {
+  IUserHealthContextReader,
+  type HealthContextResponseData,
+} from '../../../user-health-context/index.js';
+import {
+  CLINIC_SUMMARY_SHARES,
+  CLINIC_SUMMARY_SOURCES,
+  type ClinicSummaryShares,
+  type ClinicSummarySources,
+} from '../ports/clinic-summary.js';
+import { isShareAccessible } from '../../domain/clinic-summary/share-access.js';
 import { calculateAge, now, nowIsoString } from '../../../../common/index.js';
 import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
 import { CLINIC_SUMMARY_MAX_RANGE_DAYS } from '../../dto/clinic-summary-request.dto.js';
@@ -29,23 +39,29 @@ import type {
   ClinicSummaryWaterEntryDto,
 } from '../../dto/clinic-summary-response.dto.js';
 import type {
-  EventReviewCoverageSummaryDto,
-  EventReviewDataDto,
-} from '../../adapters/http/dto/event-review-response.js';
+  EventReviewCoverageSummary,
+  EventReviewData,
+} from '../ports/event-review.js';
 import { EventReviewService } from '../../application/read_models/event-review/review.js';
 import { ProductEventsService } from '../../../product-events/index.js';
-import type { DailyRecordFact } from '../../../daily-records/index.js';
+import {
+  DailyRecordReaderPort,
+  type DailyRecordFact,
+} from '../../../daily-records/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
-} from './summary-view.js';
+} from '../../application/read_models/clinic-summary-view.js';
 import {
   CLINIC_SUMMARY_REASON,
   type ClinicSummaryReason,
-} from './validation.js';
+} from '../../domain/clinic-summary/share-scope.js';
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** `YYYY-MM-DD` → the four-digit year occupies the first slice of the string. */
+const DIAGNOSED_YEAR_SLICE_LENGTH = 4;
 
 /**
  * Canonical summary range labels — the single source of truth for the fixed
@@ -115,14 +131,19 @@ interface ResolvedScope {
    * day AFTER the last covered day; event scopes: the exact endedAt/now.
    */
   end: string;
-  review: EventReviewDataDto | null;
+  review: EventReviewData | null;
 }
 
 @Injectable()
 export class ClinicSummaryService {
   private readonly logger = new Logger(ClinicSummaryService.name);
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(CLINIC_SUMMARY_SHARES)
+    private readonly shares: ClinicSummaryShares,
+    @Inject(CLINIC_SUMMARY_SOURCES)
+    private readonly sources: ClinicSummarySources,
+    private readonly healthContext: IUserHealthContextReader,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
@@ -135,29 +156,44 @@ export class ClinicSummaryService {
     locale: string = 'en',
     options: ClinicSummaryOptions = {},
   ): Promise<ClinicSummaryDto> {
-    const user = await this.prisma.user.findFirstOrThrow({
-      where: { id: userId, deletedAt: null },
-      include: {
-        profile: {
-          select: { birthDate: true, sexAtBirth: true },
-        },
-        allergies: {
-          where: { isActive: true },
-          select: { label: true, reaction: true, severity: true },
-          orderBy: { label: 'asc' },
-        },
-        conditions: {
-          where: { status: 'active' },
-          select: { label: true, status: true, diagnosedAt: true },
-          orderBy: { label: 'asc' },
-        },
-        currentMedicines: {
-          where: { isCurrent: true },
-          select: { displayName: true, doseText: true },
-          orderBy: { displayName: 'asc' },
-        },
-      },
-    });
+    // Health data (allergies/conditions/medicines/profile) comes from its owner
+    // through `IUserHealthContextReader`; the nickname is `user`'s own column.
+    // The previous implementation joined all four tables here, which made
+    // `reports` a second reader of another context's schema.
+    const [health, nickname] = await Promise.all([
+      this.unwrapHealthContext(userId),
+      this.sources.findDisplayName(userId),
+    ]);
+    const user = {
+      nickname,
+      profile:
+        health.profile.birthDate === null && health.profile.sexAtBirth === null
+          ? null
+          : {
+              birthDate: health.profile.birthDate,
+              sexAtBirth: health.profile.sexAtBirth,
+            },
+      allergies: health.allergies
+        .filter((allergy) => allergy.isActive)
+        .map((allergy) => ({
+          label: allergy.label,
+          reaction: allergy.reaction,
+          severity: allergy.severity,
+        })),
+      conditions: health.conditions
+        .filter((condition) => condition.status === 'active')
+        .map((condition) => ({
+          label: condition.label,
+          status: condition.status,
+          diagnosedAt: condition.diagnosedAt,
+        })),
+      currentMedicines: health.currentMedicines
+        .filter((medicine) => medicine.isCurrent)
+        .map((medicine) => ({
+          displayName: medicine.displayName,
+          doseText: medicine.doseText,
+        })),
+    };
 
     const scope = await this.resolveScope(userId, options);
 
@@ -175,7 +211,10 @@ export class ClinicSummaryService {
         ({
           label: c.label,
           status: c.status,
-          diagnosedYear: c.diagnosedAt?.getFullYear() ?? null,
+          diagnosedYear:
+            c.diagnosedAt === null
+              ? null
+              : Number(c.diagnosedAt.slice(0, DIAGNOSED_YEAR_SLICE_LENGTH)),
         }) satisfies ClinicSummaryConditionDto,
     );
     const currentMedicines = user.currentMedicines.map(
@@ -259,30 +298,20 @@ export class ClinicSummaryService {
     // store record means a legacy pre-persistence share — the cache copy is
     // its only source of truth (expiry is handled by the cache TTL), so no
     // gate applies.
-    const record = await this.prisma.userClinicSummaryShare.findFirst({
-      where: { tokenHash: createHash('sha256').update(token).digest('hex') },
-    });
+    const record = await this.shares.findByTokenHash(
+      createHash('sha256').update(token).digest('hex'),
+    );
     if (record == null) return cached;
     const nowDate = now();
-    if (
-      record.revokedAt != null ||
-      record.expiresAt.getTime() <= nowDate.getTime()
-    ) {
+    if (!isShareAccessible(record, nowDate)) {
       return null;
     }
 
     // Guarded write closes the read→write race (ShareService pattern): the
     // WHERE re-checks revokedAt/expiresAt, so a share revoked mid-flight
     // records no access and yields null instead of serving the cached copy.
-    const result = await this.prisma.userClinicSummaryShare.updateMany({
-      where: { id: record.id, revokedAt: null, expiresAt: { gt: nowDate } },
-      data: {
-        accessCount: { increment: 1 },
-        lastAccessedAt: nowDate,
-        ...(record.firstAccessedAt == null ? { firstAccessedAt: nowDate } : {}),
-      },
-    });
-    if (result.count === 0) return null;
+    const accessed = await this.shares.recordAccess(record.id, nowDate);
+    if (accessed === null) return null;
 
     // Single share_opened emission per successful public read. Attributed to
     // the share OWNER's userId (the persisted grant is the only identity
@@ -323,6 +352,26 @@ export class ClinicSummaryService {
         ...(args == null ? {} : { args }),
       }),
     );
+  }
+
+  /**
+   * Unwraps the health-context `ResultAsync` into a value or a domain failure.
+   *
+   * `getForUser` returns `ResultAsync` because "this user has no health context
+   * row" is a business outcome (`not_found`), not an exception. The summary is
+   * built for an authenticated user who must have one, so a `not_found` here is
+   * surfaced as the registered `RESOURCE_NOT_FOUND` failure rather than being
+   * silently treated as "no allergies, no conditions, no medicines" — the
+   * latter would print a clinically empty summary that looks complete.
+   */
+  private async unwrapHealthContext(
+    userId: string,
+  ): Promise<HealthContextResponseData> {
+    const result = await this.healthContext.getForUser(userId);
+    if (result.isErr()) {
+      throw new DomainFailureException(result.error);
+    }
+    return result.value;
   }
 
   private async resolveScope(
@@ -437,7 +486,7 @@ export class ClinicSummaryService {
    * computable) the fixed 资料不足 statement `insufficient_coverage` is
    * returned — no generic AI conclusions are ever fabricated.
    */
-  private buildFindings(review: EventReviewDataDto | null): string[] {
+  private buildFindings(review: EventReviewData | null): string[] {
     if (review == null) return [INSUFFICIENT_COVERAGE_CODE];
     const findings: string[] = [];
     const { whatHappened, keyChanges, completedActions, nextStep } =
@@ -459,7 +508,7 @@ export class ClinicSummaryService {
 
   /** Unified water/dose/sleep coverage mapped from the event review sources. */
   private buildCoverage(
-    review: EventReviewDataDto | null,
+    review: EventReviewData | null,
   ): ClinicSummaryCoverageDto {
     if (review == null) {
       const empty = this.emptyCoverageEntry();
@@ -485,34 +534,15 @@ export class ClinicSummaryService {
     start: Date,
     end: Date,
   ): Promise<DailyRecordFact[]> {
-    const records = await this.prisma.userDailyRecord.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        occurredAt: { gte: start, lt: end },
-      },
-      orderBy: { occurredAt: 'asc' },
-      select: {
-        id: true,
-        kind: true,
-        occurredAt: true,
-        occurredTime: true,
-        title: true,
-        value: true,
-        unit: true,
-        note: true,
-        payload: true,
-        mealAnalysisStatus: true,
-        mealAnalysisUpdatedAt: true,
-        mealAnalysisFailureReason: true,
-        mealHeadline: true,
-        mealCalorieMin: true,
-        mealCalorieMax: true,
-        mealCalorieBucket: true,
-        createdAt: true,
-      },
-    });
-    return records;
+    // `DailyRecordReaderPort.listFactsInRange` uses an inclusive upper bound
+    // (`lte`), while this window has always been half-open (`lt end`). Pulling
+    // `end` back by one millisecond reproduces the original boundary exactly
+    // rather than silently widening the summary by one instant.
+    return await this.dailyRecordReader.listFactsInRange(
+      userId,
+      start,
+      new Date(end.getTime() - 1),
+    );
   }
 
   /**
@@ -631,7 +661,7 @@ export class ClinicSummaryService {
   }
 
   private toCoverageEntry(
-    entry: EventReviewCoverageSummaryDto[keyof EventReviewCoverageSummaryDto],
+    entry: EventReviewCoverageSummary[keyof EventReviewCoverageSummary],
   ): ClinicSummaryCoverageEntryDto {
     return {
       state: entry.state,
@@ -662,7 +692,7 @@ export class ClinicSummaryService {
     user: {
       nickname: string | null;
       profile: {
-        birthDate: Date | null;
+        birthDate: string | null;
         sexAtBirth: string | null;
       } | null;
     },
@@ -672,7 +702,7 @@ export class ClinicSummaryService {
 
     return {
       nickname: this.maskName(user.nickname, locale),
-      age: p?.birthDate ? calculateAge(p.birthDate) : null,
+      age: p?.birthDate ? calculateAge(new Date(p.birthDate)) : null,
       sexAtBirth: p?.sexAtBirth ?? null,
     };
   }

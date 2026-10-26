@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
-import { ClinicSummaryPdfQueueService } from './pdf-queue.service.js';
-import type { ClinicSummaryPdfService } from './pdf.service.js';
+import { ClinicSummaryPdfQueueService } from './clinic-summary-pdf.js';
+import type { ClinicSummaryPdf } from '../../application/ports/clinic-summary-pdf.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;
@@ -38,7 +38,7 @@ function buildFactory(available: boolean): {
 const mockCache = { get: vi.fn(), set: vi.fn() } as unknown as Cache;
 const mockClinicSummaryPdfService = {
   exportPdf: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-} as unknown as ClinicSummaryPdfService;
+} as unknown as ClinicSummaryPdf;
 
 describe('ClinicSummaryPdfQueueService', () => {
   it('is not configured when Redis is unavailable', () => {

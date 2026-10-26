@@ -45,14 +45,14 @@ import {
   CLINIC_SUMMARY_SELECTABLE_FIELDS,
 } from './dto/clinic-summary-request.dto.js';
 import type { ClinicSummaryRequestDto } from './dto/clinic-summary-request.dto.js';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
-import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
+import { ClinicSummaryPdfQueueService } from './adapters/queue/clinic-summary-pdf.js';
+import { ClinicSummaryPdfService } from './infrastructure/pdf/document.js';
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
-} from './services/clinic-summary/summary.service.js';
-import type { ClinicSummaryOptions } from './services/clinic-summary/summary.service.js';
-import { ShareService } from './services/clinic-summary/share.service.js';
+} from './application/use_cases/build-clinic-summary.js';
+import type { ClinicSummaryOptions } from './application/use_cases/build-clinic-summary.js';
+import { ShareService } from './application/use_cases/clinic-summary-shares.js';
 
 /** Milliseconds per day — used to materialize the default share range. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

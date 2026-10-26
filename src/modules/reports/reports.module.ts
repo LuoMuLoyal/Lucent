@@ -17,12 +17,12 @@ import { ReportsAiSummaryGeneratorService } from './infrastructure/llm/summary-g
 import { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
 
 import { ReportSummaryQueueService } from './adapters/queue/summary.js';
-import { ClinicSummaryService } from './services/clinic-summary/summary.service.js';
+import { ClinicSummaryService } from './application/use_cases/build-clinic-summary.js';
 
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
+import { ClinicSummaryPdfQueueService } from './adapters/queue/clinic-summary-pdf.js';
 
-import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
-import { ShareService } from './services/clinic-summary/share.service.js';
+import { ClinicSummaryPdfService } from './infrastructure/pdf/document.js';
+import { ShareService } from './application/use_cases/clinic-summary-shares.js';
 import { ReportsComputationService } from './application/read_models/dashboard/dashboard-computation.js';
 
 import { ReportsContextService } from './adapters/acl/dashboard-context.js';
@@ -42,6 +42,8 @@ import { EventReviewController } from './adapters/http/controllers/event-review.
 import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
 import { REPORT_DASHBOARD_CONTEXT } from './application/ports/dashboard.js';
 import { REPORT_SUMMARY_GENERATOR } from './application/ports/summary.js';
+import { CLINIC_SUMMARY_PDF } from './application/ports/clinic-summary-pdf.js';
+import { CLINIC_SUMMARY_PROVIDERS } from './infrastructure/persistence/clinic-summary.js';
 
 @Module({
   imports: [
@@ -80,9 +82,14 @@ import { REPORT_SUMMARY_GENERATOR } from './application/ports/summary.js';
     EventReviewActionsService,
     EventReviewNextStepService,
     ReportsCacheInvalidationQueueService,
+    ...CLINIC_SUMMARY_PROVIDERS,
     {
       provide: REPORT_DASHBOARD_CONTEXT,
       useExisting: ReportsContextService,
+    },
+    {
+      provide: CLINIC_SUMMARY_PDF,
+      useExisting: ClinicSummaryPdfService,
     },
     {
       provide: REPORT_SUMMARY_GENERATOR,
@@ -90,6 +97,7 @@ import { REPORT_SUMMARY_GENERATOR } from './application/ports/summary.js';
     },
     { provide: IReportSummaryReader, useExisting: ReportsAiSummaryService },
   ],
+
   exports: [
     ReportsService,
     ReportsAiSummaryService,

@@ -1,5 +1,5 @@
 import type { ClinicSummaryDto } from '../../dto/clinic-summary-response.dto.js';
-import { ClinicSummaryPdfService } from './pdf.service.js';
+import { ClinicSummaryPdfService } from './document.js';
 import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 describe('ClinicSummaryPdfService', () => {

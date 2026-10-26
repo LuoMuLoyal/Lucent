@@ -30,10 +30,10 @@ import { ReportSummaryQueueService } from './adapters/queue/summary.js';
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
-} from './services/clinic-summary/summary.service.js';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
-import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
-import { ShareService } from './services/clinic-summary/share.service.js';
+} from './application/use_cases/build-clinic-summary.js';
+import { ClinicSummaryPdfQueueService } from './adapters/queue/clinic-summary-pdf.js';
+import { ClinicSummaryPdfService } from './infrastructure/pdf/document.js';
+import { ShareService } from './application/use_cases/clinic-summary-shares.js';
 import { EventReviewService } from './application/read_models/event-review/review.js';
 import { ReportsController } from './reports.controller.js';
 import { ClinicSummaryController } from './clinic-summary.controller.js';

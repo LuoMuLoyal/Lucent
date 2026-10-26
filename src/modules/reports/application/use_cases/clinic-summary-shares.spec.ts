@@ -5,10 +5,9 @@ import {
   ProductEventResult,
   ProductEventSurface,
 } from '#generated/prisma/client.js';
-import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
-import type { PrismaService } from '../../../../prisma/index.js';
+import type { ClinicSummaryShares } from '../ports/clinic-summary.js';
 import type { ProductEventsService } from '../../../product-events/index.js';
-import { ShareService } from './share.service.js';
+import { ShareService } from './clinic-summary-shares.js';
 
 /**
  * Persisted-share store fake. Mirrors the generated `userClinicSummaryShare`
@@ -34,6 +33,8 @@ interface ShareRow {
 }
 
 type ShareStore = {
+  /** The backing rows, exposed so the port adapter can resolve by id. */
+  rows: ShareRow[];
   findFirst: vi.Mock;
   findMany: vi.Mock;
   create: vi.Mock;
@@ -42,6 +43,7 @@ type ShareStore = {
 
 function makeShareStore(rows: ShareRow[]): ShareStore {
   return {
+    rows,
     findFirst: vi.fn(
       (args: {
         where: { tokenHash: string; revokedAt: null; expiresAt: { gt: Date } };
@@ -103,6 +105,53 @@ function mockCreatedShare(shareStore: ShareStore): void {
   );
 }
 
+/**
+ * Exposes the in-memory store through the ClinicSummaryShares port.
+ *
+ * The store still backs the same rows, so the existing assertions on
+ * store.findFirst / store.updateMany keep describing real behaviour: they
+ * assert what the port implementation was asked to do, not a query shape the
+ * use case invented.
+ */
+function toSharesPort(store: ShareStore): ClinicSummaryShares {
+  return {
+    create: (data) => store.create({ data }) as Promise<never>,
+    findAccessibleByTokenHash: (tokenHash, at) =>
+      store.findFirst({
+        where: { tokenHash, revokedAt: null, expiresAt: { gt: at } },
+      }) as never,
+    findByTokenHash: (tokenHash) =>
+      store.findFirst({ where: { tokenHash } }) as never,
+    recordAccess: async (shareId, at) => {
+      // One guarded write, then hand back the pre-increment snapshot; the use
+      // case adds one to `accessCount` itself, exactly as it always did.
+      const before = store.rows.find((row) => row.id === shareId) ?? null;
+      const result = await store.updateMany({
+        where: { id: shareId, revokedAt: null, expiresAt: { gt: at } },
+        data: {
+          accessCount: { increment: 1 },
+          lastAccessedAt: at,
+          ...(before?.firstAccessedAt == null ? { firstAccessedAt: at } : {}),
+        },
+      });
+      if ((result as { count: number }).count === 0) return null;
+      return before === null ? null : ({ ...before } as never);
+    },
+    listByUser: (userId) =>
+      store.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      }) as never,
+    revoke: async (userId, shareId, at) => {
+      const result = await store.updateMany({
+        where: { id: shareId, userId },
+        data: { revokedAt: at },
+      });
+      return (result as { count: number }).count > 0;
+    },
+  };
+}
+
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -114,17 +163,13 @@ const validShareInput = {
 
 describe('ShareService', () => {
   let service: ShareService;
-  let prisma: DeepMocked<PrismaService>;
   let shareStore: ShareStore;
   let emitServerEvent: vi.Mock;
 
   beforeEach(() => {
     shareStore = makeShareStore([]);
-    prisma = {
-      userClinicSummaryShare: shareStore,
-    } as unknown as DeepMocked<PrismaService>;
     emitServerEvent = vi.fn().mockResolvedValue(undefined);
-    service = new ShareService(prisma, {
+    service = new ShareService(toSharesPort(shareStore), {
       emitServerEvent,
     } as unknown as ProductEventsService);
   });
@@ -320,10 +365,7 @@ describe('ShareService', () => {
     });
 
     const makeService = (store: ShareStore): ShareService => {
-      const testPrisma = {
-        userClinicSummaryShare: store,
-      } as unknown as DeepMocked<PrismaService>;
-      return new ShareService(testPrisma, {
+      return new ShareService(toSharesPort(store), {
         emitServerEvent,
       } as unknown as ProductEventsService);
     };
@@ -477,10 +519,7 @@ describe('ShareService', () => {
     });
 
     const makeService = (store: ShareStore): ShareService => {
-      const testPrisma = {
-        userClinicSummaryShare: store,
-      } as unknown as DeepMocked<PrismaService>;
-      return new ShareService(testPrisma, {
+      return new ShareService(toSharesPort(store), {
         emitServerEvent,
       } as unknown as ProductEventsService);
     };
@@ -675,10 +714,9 @@ describe('ShareService', () => {
           createdAt: new Date(),
         },
       ]);
-      const openService = new ShareService(
-        { userClinicSummaryShare: store } as unknown as PrismaService,
-        { emitServerEvent } as unknown as ProductEventsService,
-      );
+      const openService = new ShareService(toSharesPort(store), {
+        emitServerEvent,
+      } as unknown as ProductEventsService);
 
       const result = await openService.getSharedSummaryByToken('valid-token');
 

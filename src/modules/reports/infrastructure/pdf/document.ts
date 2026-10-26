@@ -20,8 +20,8 @@ import {
   wrapText,
   CJK_FONT_PATH,
 } from '../../../data-export/index.js';
-import type { ClinicSummaryOptions } from './summary.service.js';
-import { ClinicSummaryService } from './summary.service.js';
+import type { ClinicSummaryOptions } from '../../application/use_cases/build-clinic-summary.js';
+import { ClinicSummaryService } from '../../application/use_cases/build-clinic-summary.js';
 import {
   drawFindingsSection,
   drawProfileTable,
@@ -37,7 +37,7 @@ import {
 import {
   createClinicSummaryPdfTranslator,
   type ClinicSummaryTranslator,
-} from './pdf-copy.js';
+} from './copy.js';
 
 @Injectable()
 export class ClinicSummaryPdfService {

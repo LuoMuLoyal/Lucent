@@ -6,7 +6,10 @@ import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import { BaseAsyncQueueService } from '../../../../common/index.js';
-import { ClinicSummaryPdfService } from './pdf.service.js';
+import {
+  CLINIC_SUMMARY_PDF,
+  type ClinicSummaryPdf,
+} from '../../application/ports/clinic-summary-pdf.js';
 
 interface PdfExportJobData {
   userId: string;
@@ -36,13 +39,13 @@ export class ClinicSummaryPdfQueueService extends BaseAsyncQueueService<
   PdfExportJobData,
   PdfExportResult
 > {
-  private readonly clinicSummaryPdfService: ClinicSummaryPdfService;
+  private readonly clinicSummaryPdfService: ClinicSummaryPdf;
 
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    @Inject(ClinicSummaryPdfService)
-    clinicSummaryPdfService: ClinicSummaryPdfService,
+    @Inject(CLINIC_SUMMARY_PDF)
+    clinicSummaryPdfService: ClinicSummaryPdf,
     @Optional()
     @Inject(RuntimeConfigService)
     runtimeConfig?: RuntimeConfigPort,

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
-import { createClinicSummaryPdfTranslator } from './pdf-copy.js';
+import { createClinicSummaryPdfTranslator } from './copy.js';
 import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 /**
