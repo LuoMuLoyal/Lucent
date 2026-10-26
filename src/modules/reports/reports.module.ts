@@ -7,6 +7,7 @@ import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module.js';
 import { UserSettingsModule } from '../user-settings/user-settings.module.js';
+import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
 import { ProductEventsModule } from '../product-events/product-events.module.js';
 import { ReportsAiSummaryContextService } from './application/read_models/ai-summary/summary-context.js';
 
@@ -55,6 +56,7 @@ import { CLINIC_SUMMARY_PROVIDERS } from './infrastructure/persistence/clinic-su
     MedicinesModule,
     MedicineDoseLogsModule,
     UserSettingsModule,
+    UserHealthContextModule,
     ProductEventsModule,
   ],
   controllers: [
