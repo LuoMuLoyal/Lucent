@@ -14,7 +14,7 @@ import {
   reportSummarySchema,
   type ReportSummaryStructuredOutput,
 } from '../../schemas/report-summary.schema.js';
-import type { ReportsAiSummaryContext } from './context.service.js';
+import type { ReportsAiSummaryContext } from '../../application/read_models/ai-summary/summary-context.js';
 
 @Injectable()
 export class ReportsAiSummaryGeneratorService extends BaseLlmGeneratorService<

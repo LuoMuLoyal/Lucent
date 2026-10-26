@@ -31,7 +31,7 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 ## 内部结构
 
 四层迁移进行中（`plans/2026-10-26-ddd-migration-completion.md`）。已完成
-`event-review` 与 `dashboard` 子域，`ai-summary` / `clinic-summary` 仍为旧结构。
+`event-review` / `dashboard` / `ai-summary` 三个子域，`clinic-summary` 仍为旧结构。
 
 - `adapters/http/controllers/event-review.controller.ts` — 事件回顾三个只读端点。
 - `adapters/http/dto/` — `event-review-list-query` / `event-review-response`
@@ -64,9 +64,16 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 - `adapters/queue/cache-invalidation.ts` — 事件驱动缓存失效，按 ADR-0025 走
   `report-cache-invalidation` 队列，已无进程内监听器。
 - `domain/dashboard/query-reasons.ts` — 「为什么这个指标缺测」的原因码，属领域词汇。
-- `services/ai-summary/` — context/copy/generator/summary（继承
-  `common/llm` 基类，bounded-linear 分层）+ `summary-queue.service`
-  （异步队列）。
+- `application/use_cases/generate-report-summary.ts` — AI 周期摘要用例（继承
+  `common/llm` 的 `BaseLlmSummaryService`）。
+- `application/read_models/ai-summary/summary-context.ts` — 摘要上下文投影（纯函数）。
+- `application/services/summary-copy.ts` — 摘要多语言文案。
+- `application/ports/summary.ts` — 摘要生成器的注入 token
+  `REPORT_SUMMARY_GENERATOR`。用例只依赖抽象契约，模块把 token 绑到
+  `infrastructure/llm/summary-generator.ts`。
+- `infrastructure/llm/summary-generator.ts` — LLM 结构化输出生成（提示词解析、
+  运行时 prompt 覆盖）。
+- `adapters/queue/summary.ts` — 摘要异步队列。
 - `services/clinic-summary/` — summary（聚合）、share（token 分享）、
   pdf、pdf-queue。
 
@@ -84,9 +91,13 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 ## Tests
 
 `reports.controller.spec.ts`、`application/read_models/dashboard/*.spec.ts`、
-`application/use_cases/get-dashboard*.spec.ts`、`adapters/acl/*.spec.ts`、
-`services/ai-summary/*.spec.ts`、`services/clinic-summary/*.spec.ts`
-（summary/share/pdf/pdf-queue）、`application/read_models/event-review/*.spec.ts`、
+`application/read_models/ai-summary/*.spec.ts`、
+`application/use_cases/get-dashboard*.spec.ts`、
+`application/use_cases/generate-report-summary.spec.ts`、
+`application/services/*.spec.ts`、`adapters/acl/*.spec.ts`、
+`adapters/queue/*.spec.ts`、`infrastructure/llm/*.spec.ts`、
+`services/clinic-summary/*.spec.ts`（summary/share/pdf/pdf-queue）、
+`application/read_models/event-review/*.spec.ts`、
 `adapters/http/dto/event-review-response.spec.ts` 与
 `dto/report-dashboard-shape.spec.ts`（形状镜像守卫）、
 `schemas/report-summary.schema.spec.ts`。

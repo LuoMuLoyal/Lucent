@@ -9,7 +9,7 @@ import { BaseAsyncQueueService } from '../../../../common/index.js';
 import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
 
 import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto.js';
-import { ReportsAiSummaryService } from './summary.service.js';
+import { ReportsAiSummaryService } from '../../application/use_cases/generate-report-summary.js';
 
 interface SummaryJobData {
   userId: string;

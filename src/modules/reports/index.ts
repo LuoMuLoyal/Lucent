@@ -10,5 +10,5 @@ export {
 } from './dto/report-dashboard-query.dto.js';
 export { ReportsService } from './application/use_cases/get-dashboard.js';
 export { EventReviewService } from './application/read_models/event-review/review.js';
-export { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
+export { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
 export { IReportSummaryReader } from './ports/report-summary-reader.port.js';

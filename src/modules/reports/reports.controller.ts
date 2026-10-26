@@ -45,8 +45,8 @@ import {
   reportSummaryResponseSchema,
 } from './dto/report-summary-response.dto.js';
 
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
+import { ReportSummaryQueueService } from './adapters/queue/summary.js';
+import { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
 import { ReportsService } from './application/use_cases/get-dashboard.js';
 
 @ApiTags('Reports')

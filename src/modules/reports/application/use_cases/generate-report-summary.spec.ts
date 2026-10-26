@@ -4,14 +4,13 @@ import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
 } from '../../dto/report-dashboard-query.dto.js';
-import type { ReportsAiSummaryContextService } from './context.service.js';
-import type { ReportsLlmSummaryCopyService } from './copy.service.js';
-import type { ReportsAiSummaryGeneratorService } from './generator.service.js';
+import type { ReportsAiSummaryContextService } from '../read_models/ai-summary/summary-context.js';
+import type { ReportsLlmSummaryCopyService } from '../services/summary-copy.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
-import { ReportsAiSummaryService } from './summary.service.js';
+import { ReportsAiSummaryService } from './generate-report-summary.js';
 import { okAsync } from '../../../../common/result/index.js';
 import type { ReportsComputationService } from '../../application/read_models/dashboard/dashboard-computation.js';
-import type { ReportsContextService } from '../../adapters/acl/dashboard-context.js';
+import type { DashboardContextPort } from '../ports/dashboard.js';
 
 function modelGenerateSpy(service: ReportsAiSummaryService) {
   return vi.spyOn(
@@ -353,12 +352,10 @@ describe('ReportsAiSummaryService', () => {
     facts?: typeof baseFacts;
     context?: typeof baseAiContext;
   }) {
-    const prisma = {
-      userSetting: {
-        findFirst: vi.fn().mockResolvedValue({
-          value: options?.userSettingValue ?? true,
-        }),
-      },
+    const userSettings = {
+      getSettings: vi.fn().mockResolvedValue({
+        aiSummariesEnabled: options?.userSettingValue ?? true,
+      }),
     };
     const aiSummaryHistoryService = {
       save: vi.fn().mockReturnValue(okAsync(undefined)),
@@ -366,7 +363,7 @@ describe('ReportsAiSummaryService', () => {
 
     const reportsContextService = {
       build: vi.fn().mockResolvedValue(options?.facts ?? baseFacts),
-    } as unknown as ReportsContextService;
+    } as unknown as DashboardContextPort;
     const reportsComputationService = {
       compute: vi.fn().mockReturnValue(baseComputed),
     } as unknown as ReportsComputationService;
@@ -457,9 +454,9 @@ describe('ReportsAiSummaryService', () => {
           (options?.config ?? baseConfig).analysis.model != null,
         ),
       generate: vi.fn(),
-    } as unknown as ReportsAiSummaryGeneratorService;
+    } as unknown as ReportsAiSummaryService['generatorService'];
     return new ReportsAiSummaryService(
-      prisma as never,
+      userSettings as never,
       aiSummaryHistoryService as never,
       reportsContextService,
       reportsComputationService,

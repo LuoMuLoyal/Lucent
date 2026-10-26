@@ -139,7 +139,7 @@
     "eslint|no-magic-numbers|src/modules/reports/application/read_models/dashboard/dashboard-presenter.ts",
     "eslint|no-magic-numbers|src/modules/reports/adapters/http/dto/event-review-list-query.ts",
     "eslint|no-magic-numbers|src/modules/reports/schemas/report-summary.schema.ts",
-    "eslint|no-magic-numbers|src/modules/reports/services/ai-summary/context.service.ts",
+    "eslint|no-magic-numbers|src/modules/reports/application/read_models/ai-summary/summary-context.ts",
     "eslint|no-magic-numbers|src/modules/reports/services/clinic-summary/clinical-drawers.ts",
     "eslint|no-magic-numbers|src/modules/reports/services/clinic-summary/pdf.service.ts",
     "eslint|no-magic-numbers|src/modules/reports/services/clinic-summary/record-drawers.ts",

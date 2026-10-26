@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
-import { ReportSummaryQueueService } from './summary-queue.service.js';
-import type { ReportsAiSummaryService } from './summary.service.js';
+import { ReportSummaryQueueService } from './summary.js';
+import type { ReportsAiSummaryService } from '../../application/use_cases/generate-report-summary.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;

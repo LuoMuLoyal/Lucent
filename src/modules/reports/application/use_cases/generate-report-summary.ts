@@ -1,26 +1,31 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 
 import { HistoricalAiSummaryService } from '../../../assistant/index.js';
-import { PrismaService } from '../../../../prisma/index.js';
-import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../../../../common/constants/user-setting-keys.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import type { PromptCopy } from '../../../../common/index.js';
 import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto.js';
 
-import type { ReportDashboardQueryDto } from '../../dto/report-dashboard-query.dto.js';
-
+import { REPORT_DASHBOARD_CONTEXT } from '../ports/dashboard.js';
+import type {
+  DashboardContextPort,
+  ReportDashboardQuery,
+} from '../ports/dashboard.js';
 import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto.js';
 import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,
-} from './context.service.js';
-import { ReportsLlmSummaryCopyService } from './copy.service.js';
-import { ReportsAiSummaryGeneratorService } from './generator.service.js';
+} from '../read_models/ai-summary/summary-context.js';
+import { ReportsLlmSummaryCopyService } from '../services/summary-copy.js';
+import {
+  REPORT_SUMMARY_GENERATOR,
+  type SummaryGeneratorContract,
+} from '../ports/summary.js';
 import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema.js';
-import { ReportsComputationService } from '../../application/read_models/dashboard/dashboard-computation.js';
-import { ReportsContextService } from '../../adapters/acl/dashboard-context.js';
+import { ReportsComputationService } from '../read_models/dashboard/dashboard-computation.js';
 
 interface PreparedReportSummary {
   context: ReportsAiSummaryContext;
@@ -36,20 +41,20 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
 > {
   protected readonly logger = new Logger(ReportsAiSummaryService.name);
 
-  /**
-   * Own Prisma handle, used only for the AI-summary switch the base class asks
-   * about through `isAiSummariesEnabled`. The reports context owns this read.
-   */
-  private readonly prisma: PrismaService;
-
   constructor(
-    prisma: PrismaService,
+    private readonly userSettings: IUserSettingsPort,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
-    private readonly reportsContextService: ReportsContextService,
+    @Inject(REPORT_DASHBOARD_CONTEXT)
+    private readonly reportsContextService: DashboardContextPort,
     private readonly reportsComputationService: ReportsComputationService,
     private readonly reportsAiSummaryContextService: ReportsAiSummaryContextService,
     reportsLlmSummaryCopyService: ReportsLlmSummaryCopyService,
-    reportsAiSummaryGeneratorService: ReportsAiSummaryGeneratorService,
+    @Inject(REPORT_SUMMARY_GENERATOR)
+    reportsAiSummaryGeneratorService: SummaryGeneratorContract<
+      ReportsAiSummaryContext,
+      PromptCopy,
+      ReportSummaryStructuredOutput
+    >,
     reportsAiSummaryPolicyService: LlmSafetyPolicyService,
   ) {
     super(
@@ -57,7 +62,6 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
       reportsAiSummaryGeneratorService,
       reportsAiSummaryPolicyService,
     );
-    this.prisma = prisma;
   }
 
   protected async prepare(
@@ -65,7 +69,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     dto: GenerateReportSummaryDto,
     locale: string,
   ): Promise<PreparedReportSummary> {
-    const query: ReportDashboardQueryDto = this.toDashboardQuery(dto);
+    const query: ReportDashboardQuery = this.toDashboardQuery(dto);
     const facts = await this.reportsContextService.build(userId, query);
     const computed = this.reportsComputationService.compute(facts, locale);
     const context = this.reportsAiSummaryContextService.build(facts, computed);
@@ -120,14 +124,16 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
   }
 
   /**
-   * Template-method hook replacing the base class's Prisma dependency.
+   * Template-method hook the base class asks about before generating.
+   *
+   * Reads through `IUserSettingsPort` rather than own Prisma: the setting is
+   * `user-settings`' data, and reaching into its table from `reports` would be
+   * a cross-context read outside ADR-0009 — invisible to the dependency rules
+   * (a Prisma call is not an import) but still a boundary violation.
    */
   protected async isAiSummariesEnabled(userId: string): Promise<boolean> {
-    const setting = await this.prisma.userSetting.findFirst({
-      where: { userId, key: AI_SUMMARIES_ENABLED_SETTING_KEY },
-      select: { value: true },
-    });
-    return setting?.value !== false;
+    const settings = await this.userSettings.getSettings(userId);
+    return settings.aiSummariesEnabled;
   }
 
   protected buildLogContext(context: ReportsAiSummaryContext): string {
@@ -153,7 +159,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
 
   private toDashboardQuery(
     dto: GenerateReportSummaryDto,
-  ): ReportDashboardQueryDto {
+  ): ReportDashboardQuery {
     if (dto.range === undefined) {
       return {};
     }

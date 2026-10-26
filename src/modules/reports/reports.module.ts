@@ -8,15 +8,15 @@ import { MedicinesModule } from '../medicines/medicines.module.js';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module.js';
 import { UserSettingsModule } from '../user-settings/user-settings.module.js';
 import { ProductEventsModule } from '../product-events/product-events.module.js';
-import { ReportsAiSummaryContextService } from './services/ai-summary/context.service.js';
+import { ReportsAiSummaryContextService } from './application/read_models/ai-summary/summary-context.js';
 
-import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service.js';
+import { ReportsLlmSummaryCopyService } from './application/services/summary-copy.js';
 
-import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service.js';
+import { ReportsAiSummaryGeneratorService } from './infrastructure/llm/summary-generator.js';
 
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
+import { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
 
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
+import { ReportSummaryQueueService } from './adapters/queue/summary.js';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service.js';
 
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
@@ -41,6 +41,7 @@ import { ClinicSummaryController } from './clinic-summary.controller.js';
 import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
 import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
 import { REPORT_DASHBOARD_CONTEXT } from './application/ports/dashboard.js';
+import { REPORT_SUMMARY_GENERATOR } from './application/ports/summary.js';
 
 @Module({
   imports: [
@@ -82,6 +83,10 @@ import { REPORT_DASHBOARD_CONTEXT } from './application/ports/dashboard.js';
     {
       provide: REPORT_DASHBOARD_CONTEXT,
       useExisting: ReportsContextService,
+    },
+    {
+      provide: REPORT_SUMMARY_GENERATOR,
+      useExisting: ReportsAiSummaryGeneratorService,
     },
     { provide: IReportSummaryReader, useExisting: ReportsAiSummaryService },
   ],

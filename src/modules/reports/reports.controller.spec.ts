@@ -25,8 +25,8 @@ import type { ReportSummaryDataDto } from './dto/report-summary-response.dto.js'
 import type { EventReviewDataDto } from './adapters/http/dto/event-review-response.js';
 import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto.js';
 import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto.js';
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
+import { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
+import { ReportSummaryQueueService } from './adapters/queue/summary.js';
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,

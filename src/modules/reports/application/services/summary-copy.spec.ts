@@ -1,6 +1,6 @@
 import type { I18nService } from 'nestjs-i18n';
-import { ReportsLlmSummaryCopyService } from './copy.service.js';
-import type { ReportsAiSummaryContext } from './context.service.js';
+import { ReportsLlmSummaryCopyService } from './summary-copy.js';
+import type { ReportsAiSummaryContext } from '../read_models/ai-summary/summary-context.js';
 
 describe('ReportsLlmSummaryCopyService', () => {
   let service: ReportsLlmSummaryCopyService;

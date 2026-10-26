@@ -4,8 +4,8 @@ import type { MetricsService } from '../../../../common/metrics/metrics.service.
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import { REPORT_RANGE_LAST_30_DAYS } from '../../dto/report-dashboard-query.dto.js';
-import { ReportsAiSummaryGeneratorService } from './generator.service.js';
-import type { ReportsAiSummaryContext } from './context.service.js';
+import { ReportsAiSummaryGeneratorService } from './summary-generator.js';
+import type { ReportsAiSummaryContext } from '../../application/read_models/ai-summary/summary-context.js';
 
 function buildMetricsService() {
   return {

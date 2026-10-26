@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LocalizedCopyService } from '../../../../common/services/localized-copy.service.js';
-import type { ReportsAiSummaryContext } from './context.service.js';
+import type { ReportsAiSummaryContext } from '../read_models/ai-summary/summary-context.js';
 import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema.js';
 import type { ReportSummaryPromptCopy } from '../../prompts/report-summary.prompt.js';
 

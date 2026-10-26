@@ -1,10 +1,10 @@
-import { formatDateOnly } from '../../../../common/index.js';
-import type { ObservedMetric } from '../../../../common/index.js';
+import { formatDateOnly } from '../../../../../common/index.js';
+import type { ObservedMetric } from '../../../../../common/index.js';
 import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from '../../application/read_models/dashboard/metrics.types.js';
+} from '../dashboard/metrics.types.js';
 
 export interface ReportsAiSummaryCoverageDimension {
   trackedDays: number;
