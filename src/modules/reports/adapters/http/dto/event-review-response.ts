@@ -8,6 +8,13 @@ import {
 /**
  * Event Review read model response schemas.
  *
+ * The shapes are owned by `application/ports/event-review.ts` — the read model
+ * *produces* them, this module only validates and serializes them. Each schema
+ * is pinned to its application type with `satisfies z.ZodType<…>`, so drift on
+ * either side is a compile error. `event-review-response.spec.ts` adds the
+ * bidirectional assertion (one direction alone would miss a schema that grew a
+ * field the read model never fills, which is the likely drift direction).
+ *
  * The review envelope centers on one health event. The four fixed sections
  * each carry `state: available | unknown`; unknown sections expose a fixed
  * reason code and never fabricated copy. Coverage entries reuse the unified

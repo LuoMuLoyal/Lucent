@@ -22,7 +22,7 @@ import {
 import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto.js';
 
 import type { ReportSummaryDataDto } from './dto/report-summary-response.dto.js';
-import type { EventReviewDataDto } from './dto/event-review-response.dto.js';
+import type { EventReviewDataDto } from './adapters/http/dto/event-review-response.js';
 import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto.js';
 import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto.js';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
@@ -34,10 +34,10 @@ import {
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
 import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
 import { ShareService } from './services/clinic-summary/share.service.js';
-import { EventReviewService } from './services/event-review/review.service.js';
+import { EventReviewService } from './application/read_models/event-review/review.js';
 import { ReportsController } from './reports.controller.js';
 import { ClinicSummaryController } from './clinic-summary.controller.js';
-import { EventReviewController } from './event-review.controller.js';
+import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
 import { ReportsService } from './dashboard/dashboard.service.js';
 
 /** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */

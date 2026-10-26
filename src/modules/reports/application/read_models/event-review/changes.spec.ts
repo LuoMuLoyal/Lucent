@@ -7,7 +7,7 @@ import {
   type ReviewChangeCheckIn,
   type ReviewChangeDailyRecord,
   type ReviewChangeFacts,
-} from './changes.service.js';
+} from './changes.js';
 
 const DAY_10 = new Date('2026-08-10T00:00:00.000Z');
 const DAY_11 = new Date('2026-08-11T00:00:00.000Z');

@@ -30,6 +30,23 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 
 ## 内部结构
 
+四层迁移进行中（`plans/2026-10-26-ddd-migration-completion.md`）。已完成
+`event-review` 子域，其余仍为旧结构。
+
+- `adapters/http/controllers/event-review.controller.ts` — 事件回顾三个只读端点。
+- `adapters/http/dto/` — `event-review-list-query` / `event-review-response`
+  （zod schema）。**形状归应用层**：读模型产出的类型定义在
+  `application/ports/event-review.ts`，DTO 只是校验与序列化，两者由
+  `event-review-response.spec.ts` 的双向 `expectTypeOf` 钉住——单向断言只能发现
+  「应用层缺字段」，发现不了「schema 加了字段而读模型从不填充」，而后者正是最
+  容易发生的漂移方向。
+- `application/ports/event-review.ts` — 事件回顾的读模型形状与查询入参词汇。
+  手工镜像一份是因为 `ddd-application-no-infra-or-adapters` 禁止应用层 import
+  投递层，方向反过来不成立。
+- `application/read_models/event-review/` — facts（结构化事实码）/changes/actions/
+  next-step（只读 medicines 的静态 `redFlags`，读失败降级空列表）/
+  review（current/list/by-event 只读模型）/ fact-arguments。全部经 reader port
+  读上游，**不直连 Prisma**。
 - `dashboard/` — `computation.service`（指标计算）、`context.service`
   （跨模块数据收集 + settings）、`presenter.service`、`dashboard.service`
   （编排 `getDashboard`）、`cache-invalidation.queue.service`（事件驱动缓存
@@ -39,9 +56,6 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
   （异步队列）。
 - `services/clinic-summary/` — summary（聚合）、share（token 分享）、
   pdf、pdf-queue。
-- `services/event-review/` — facts（结构化事实码）/changes/actions/
-  next-step（只读 medicines 的静态 `redFlags`，读失败降级空列表）/
-  review（current/list/by-event 只读模型）。
 
 ## Dependencies
 
@@ -59,4 +73,6 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 `reports.controller.spec.ts`、`dashboard/*.spec.ts`（computation/context/
 presenter/dashboard）、`services/ai-summary/*.spec.ts`、
 `services/clinic-summary/*.spec.ts`（summary/share/pdf/pdf-queue）、
-`services/event-review/*.spec.ts`、`schemas/report-summary.schema.spec.ts`。
+`application/read_models/event-review/*.spec.ts`、
+`adapters/http/dto/event-review-response.spec.ts`（形状镜像守卫）、
+`schemas/report-summary.schema.spec.ts`。

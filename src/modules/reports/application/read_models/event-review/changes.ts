@@ -6,9 +6,9 @@ import {
 import {
   formatDateOnly,
   summarizeWaterMetrics,
-} from '../../../../common/index.js';
-import type { WaterMetricInput } from '../../../../common/index.js';
-import type { EventReviewSectionDto } from '../../dto/event-review-response.dto.js';
+} from '../../../../../common/index.js';
+import type { WaterMetricInput } from '../../../../../common/index.js';
+import type { EventReviewSection } from '../../ports/event-review.js';
 import { compactFactArguments } from './fact-arguments.js';
 
 /** Check-in rows ordered by date ascending within the event window. */
@@ -73,7 +73,7 @@ const OUTCOME_RANK: Record<HealthEventOutcome, number> = {
  */
 @Injectable()
 export class EventReviewChangesService {
-  build(input: ReviewChangeFacts): EventReviewSectionDto {
+  build(input: ReviewChangeFacts): EventReviewSection {
     const waterPoints = this.waterPoints(input.dailyRecords);
     const sleepPoints = this.sleepPoints(input.dailyRecords);
     const checkIns = this.outcomeTrend(input.checkIns);

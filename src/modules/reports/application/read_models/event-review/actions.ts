@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DoseLogStatus, HealthEventOutcome } from '#generated/prisma/client.js';
-import { formatDateOnly } from '../../../../common/index.js';
-import type { EventReviewSectionDto } from '../../dto/event-review-response.dto.js';
+import { formatDateOnly } from '../../../../../common/index.js';
+import type { EventReviewSection } from '../../ports/event-review.js';
 import { compactFactArguments } from './fact-arguments.js';
 
 /** Check-in rows ordered by date ascending within the event window. */
@@ -42,7 +42,7 @@ export interface ReviewDoseSlotCounts {
  */
 @Injectable()
 export class EventReviewActionsService {
-  build(input: ReviewActionFacts): EventReviewSectionDto {
+  build(input: ReviewActionFacts): EventReviewSection {
     const doseSlots = this.countDoseSlots(input.doseLogs);
     const checkIns = input.checkIns.map((checkIn) => ({
       date: formatDateOnly(checkIn.date),

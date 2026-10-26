@@ -31,14 +31,14 @@ import { ReportsPresenterService } from './dashboard/presenter.service.js';
 
 import { ReportsService } from './dashboard/dashboard.service.js';
 import { ReportsCacheInvalidationQueueService } from './dashboard/cache-invalidation.queue.service.js';
-import { EventReviewService } from './services/event-review/review.service.js';
-import { EventReviewFactsService } from './services/event-review/facts.service.js';
-import { EventReviewChangesService } from './services/event-review/changes.service.js';
-import { EventReviewActionsService } from './services/event-review/actions.service.js';
-import { EventReviewNextStepService } from './services/event-review/next-step.service.js';
+import { EventReviewService } from './application/read_models/event-review/review.js';
+import { EventReviewFactsService } from './application/read_models/event-review/facts.js';
+import { EventReviewChangesService } from './application/read_models/event-review/changes.js';
+import { EventReviewActionsService } from './application/read_models/event-review/actions.js';
+import { EventReviewNextStepService } from './application/read_models/event-review/next-step.js';
 import { ReportsController } from './reports.controller.js';
 import { ClinicSummaryController } from './clinic-summary.controller.js';
-import { EventReviewController } from './event-review.controller.js';
+import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
 import { IReportSummaryReader } from './ports/report-summary-reader.port.js';
 
 @Module({

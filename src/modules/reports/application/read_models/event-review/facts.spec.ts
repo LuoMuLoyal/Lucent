@@ -3,15 +3,12 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
-import type { EventReviewEventDto } from '../../dto/event-review-response.dto.js';
-import {
-  EventReviewFactsService,
-  type ReviewEventFactInput,
-} from './facts.service.js';
+import type { EventReviewEvent } from '../../ports/event-review.js';
+import { EventReviewFactsService, type ReviewEventFactInput } from './facts.js';
 
 function eventFixture(
-  overrides: Partial<EventReviewEventDto> = {},
-): EventReviewEventDto {
+  overrides: Partial<EventReviewEvent> = {},
+): EventReviewEvent {
   return {
     id: 'evt-1',
     kind: HealthEventKind.symptom,

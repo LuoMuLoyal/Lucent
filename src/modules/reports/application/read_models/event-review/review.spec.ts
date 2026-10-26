@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import {
   DailyRecordKind,
   DoseLogStatus,
@@ -7,15 +7,15 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
-import type { HealthEventsOwnershipService } from '../../../health-events/index.js';
-import type { DailyRecordReaderPort } from '../../../daily-records/index.js';
-import type { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
-import type { MedicineRiskCheckService } from '../../../medicines/index.js';
-import { EventReviewFactsService } from './facts.service.js';
-import { EventReviewChangesService } from './changes.service.js';
-import { EventReviewActionsService } from './actions.service.js';
-import { EventReviewNextStepService } from './next-step.service.js';
-import { EventReviewService } from './review.service.js';
+import type { HealthEventsOwnershipService } from '../../../../health-events/index.js';
+import type { DailyRecordReaderPort } from '../../../../daily-records/index.js';
+import type { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+import type { MedicineRiskCheckService } from '../../../../medicines/index.js';
+import { EventReviewFactsService } from './facts.js';
+import { EventReviewChangesService } from './changes.js';
+import { EventReviewActionsService } from './actions.js';
+import { EventReviewNextStepService } from './next-step.js';
+import { EventReviewService } from './review.js';
 
 const USER_ID = 'u1';
 const STARTED_AT = new Date('2026-08-01T08:00:00.000Z');

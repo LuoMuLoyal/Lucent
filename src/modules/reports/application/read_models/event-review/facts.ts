@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type {
-  EventReviewEventDto,
-  EventReviewSectionDto,
-} from '../../dto/event-review-response.dto.js';
+  EventReviewEvent,
+  EventReviewSection,
+} from '../../ports/event-review.js';
 import { compactFactArguments } from './fact-arguments.js';
 
 /** Window facts the whatHappened section needs beyond the event identity. */
 export interface ReviewEventFactInput {
-  event: EventReviewEventDto;
+  event: EventReviewEvent;
   /** Count of symptom daily records inside the event window (exact query). */
   symptomRecordCount: number;
   /** Count of user-confirmed check-ins for the event. */
@@ -29,7 +29,7 @@ export interface ReviewEventFactInput {
  */
 @Injectable()
 export class EventReviewFactsService {
-  build(input: ReviewEventFactInput): EventReviewSectionDto {
+  build(input: ReviewEventFactInput): EventReviewSection {
     const event = input.event;
     return {
       state: 'available',

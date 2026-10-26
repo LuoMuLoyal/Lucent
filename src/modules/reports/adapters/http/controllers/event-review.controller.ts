@@ -12,18 +12,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
+import type { UserPayload } from '../../../../auth/index.js';
+import { CurrentUser } from '../../../../auth/index.js';
+import { registerResponseSchema } from '../../../../../common/api/response-schema.registry.js';
 
-import { eventReviewListQuerySchema } from './dto/event-review-list-query.dto.js';
-import type { EventReviewListQueryDto } from './dto/event-review-list-query.dto.js';
+import { eventReviewListQuerySchema } from '../dto/event-review-list-query.js';
+import type { EventReviewListQueryDto } from '../dto/event-review-list-query.js';
 import {
   eventReviewListResponseSchema,
   eventReviewNullableResponseSchema,
   eventReviewResponseSchema,
-} from './dto/event-review-response.dto.js';
-import { EventReviewService } from './services/event-review/review.service.js';
+} from '../dto/event-review-response.js';
+import { EventReviewService } from '../../../application/read_models/event-review/review.js';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')

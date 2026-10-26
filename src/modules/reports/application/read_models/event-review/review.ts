@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createDomainFailure } from '../../../../common/result/index.js';
-import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import { createDomainFailure } from '../../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import {
   DailyRecordKind,
   HealthEventStatus,
@@ -12,32 +12,32 @@ import {
   now,
   nowIsoString,
   parseDateOnly,
-} from '../../../../common/index.js';
-import type { ObservedMetricSource } from '../../../../common/index.js';
+} from '../../../../../common/index.js';
+import type { ObservedMetricSource } from '../../../../../common/index.js';
 import {
   HealthEventsOwnershipService,
   type HealthEventCheckInRecord,
   type HealthEventCoverageRecord,
   type HealthEventRecord,
-} from '../../../health-events/index.js';
+} from '../../../../health-events/index.js';
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
-} from '../../../daily-records/index.js';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
-import { MedicineRiskCheckService } from '../../../medicines/index.js';
+} from '../../../../daily-records/index.js';
+import { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+import { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import type {
-  EventReviewDataDto,
-  EventReviewEventDto,
-  EventReviewListDataDto,
-  EventReviewTodayCheckInDto,
-} from '../../dto/event-review-response.dto.js';
-import type { EventReviewListQueryDto } from '../../dto/event-review-list-query.dto.js';
-import { EventReviewFactsService } from './facts.service.js';
-import { EventReviewChangesService } from './changes.service.js';
-import { EventReviewActionsService } from './actions.service.js';
-import { EventReviewNextStepService } from './next-step.service.js';
-import type { ReviewRedFlagInput } from './next-step.service.js';
+  EventReviewData,
+  EventReviewEvent,
+  EventReviewListData,
+  EventReviewListQuery,
+  EventReviewTodayCheckIn,
+} from '../../ports/event-review.js';
+import { EventReviewFactsService } from './facts.js';
+import { EventReviewChangesService } from './changes.js';
+import { EventReviewActionsService } from './actions.js';
+import { EventReviewNextStepService } from './next-step.js';
+import type { ReviewRedFlagInput } from './next-step.js';
 
 const DEFAULT_REVIEW_LIST_LIMIT = 20;
 
@@ -113,7 +113,7 @@ export class EventReviewService {
   async buildForEvent(
     userId: string,
     eventId: string,
-  ): Promise<EventReviewDataDto> {
+  ): Promise<EventReviewData> {
     const event = await this.healthEvents.ensureOwnedByUser(userId, eventId);
     const eventDto = this.toEventDto(event);
     const windowEnd = event.endedAt ?? now();
@@ -222,7 +222,7 @@ export class EventReviewService {
     );
   }
 
-  async buildCurrent(userId: string): Promise<EventReviewDataDto | null> {
+  async buildCurrent(userId: string): Promise<EventReviewData | null> {
     // Known simplification (follow-up for Task 2/3, see migration log
     // 2026-08-13): the selected event is read here and again inside
     // buildForEvent, which re-validates ownership. An internal assembler
@@ -246,8 +246,8 @@ export class EventReviewService {
    */
   async list(
     userId: string,
-    query: EventReviewListQueryDto,
-  ): Promise<EventReviewListDataDto> {
+    query: EventReviewListQuery,
+  ): Promise<EventReviewListData> {
     const limit = query.limit ?? DEFAULT_REVIEW_LIST_LIMIT;
     const cursor = this.resolveCursor(query.cursor);
     const page = await this.healthEvents.findPageByUser(userId, {
@@ -300,10 +300,10 @@ export class EventReviewService {
   }
 
   private assemble(
-    event: EventReviewEventDto,
-    todayCheckIn: EventReviewTodayCheckInDto | null,
+    event: EventReviewEvent,
+    todayCheckIn: EventReviewTodayCheckIn | null,
     facts: ReviewWindowFacts,
-  ): EventReviewDataDto {
+  ): EventReviewData {
     const checkInCount = facts.checkInCoverage.checkInCount;
     const windowEnd = facts.windowEnd.toISOString();
     return {
@@ -393,7 +393,7 @@ export class EventReviewService {
     return hasReminderLinkedDoseLog ? ['reminder_plan'] : ['manual'];
   }
 
-  private toEventDto(event: HealthEventRecord): EventReviewEventDto {
+  private toEventDto(event: HealthEventRecord): EventReviewEvent {
     // `kind` is optional on the repository record only for legacy ports; the
     // Prisma-backed read always populates it. Fail loudly on a missing value
     // instead of silently defaulting to `symptom` and mislabeling the event.
@@ -467,7 +467,7 @@ export class EventReviewService {
 
   private toTodayCheckIn(
     checkIn: HealthEventCheckInRecord,
-  ): EventReviewTodayCheckInDto {
+  ): EventReviewTodayCheckIn {
     return {
       date: formatDateOnly(checkIn.date),
       outcome: checkIn.outcome,

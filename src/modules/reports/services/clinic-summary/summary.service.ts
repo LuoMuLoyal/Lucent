@@ -31,8 +31,8 @@ import type {
 import type {
   EventReviewCoverageSummaryDto,
   EventReviewDataDto,
-} from '../../dto/event-review-response.dto.js';
-import { EventReviewService } from '../event-review/review.service.js';
+} from '../../adapters/http/dto/event-review-response.js';
+import { EventReviewService } from '../../application/read_models/event-review/review.js';
 import { ProductEventsService } from '../../../product-events/index.js';
 import type { DailyRecordFact } from '../../../daily-records/index.js';
 import {

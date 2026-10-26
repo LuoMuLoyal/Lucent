@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HealthEventStatus } from '#generated/prisma/client.js';
 import type {
-  EventReviewEventDto,
-  EventReviewSectionDto,
-} from '../../dto/event-review-response.dto.js';
+  EventReviewEvent,
+  EventReviewSection,
+} from '../../ports/event-review.js';
 import { compactFactArguments } from './fact-arguments.js';
 
 /**
@@ -21,7 +21,7 @@ export interface ReviewRedFlagInput {
 
 /** Facts the nextStep section consumes. */
 export interface ReviewNextStepInput {
-  event: EventReviewEventDto;
+  event: EventReviewEvent;
   hasTodayCheckIn: boolean;
   /** Static red flags from the reviewed medication risk check, may be empty. */
   redFlags: ReviewRedFlagInput[];
@@ -49,7 +49,7 @@ const REVIEWED_RED_FLAG_RULES: ReadonlySet<string> = new Set([
  */
 @Injectable()
 export class EventReviewNextStepService {
-  build(input: ReviewNextStepInput): EventReviewSectionDto {
+  build(input: ReviewNextStepInput): EventReviewSection {
     const redFlags = input.redFlags
       .filter((flag) => REVIEWED_RED_FLAG_RULES.has(flag.rule))
       .map((flag) => ({

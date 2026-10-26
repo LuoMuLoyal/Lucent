@@ -4,7 +4,7 @@ import {
   type ReviewActionCheckIn,
   type ReviewActionDoseLog,
   type ReviewActionFacts,
-} from './actions.service.js';
+} from './actions.js';
 
 const DAY_05 = new Date('2026-08-05T00:00:00.000Z');
 const DAY_06 = new Date('2026-08-06T00:00:00.000Z');
