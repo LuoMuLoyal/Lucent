@@ -13,12 +13,12 @@ import {
   TODAY_ANALYSIS_MATERIALIZATION,
   type TodayAnalysisMaterialization,
 } from '../../application/ports/materialization.js';
-import type { TodayAnalysisReasonCode } from '../../types/materialization.types.js';
+import type { TodayAnalysisReasonCode } from '../../domain/analysis/materialization-vocabulary.js';
 import {
   TODAY_ANALYSIS_QUEUE_PORT,
   type TodayAnalysisQueuePort,
 } from '../../application/ports/analysis-queue.js';
-import { TodayAnalysisContextService } from '../../services/pipeline/context.service.js';
+import { TodayAnalysisContextService } from '../acl/analysis-context.js';
 
 /** BullMQ queue the today-analysis event consumer runs on. */
 export const TODAY_ANALYSIS_EVENT_QUEUE_NAME = QUEUE_NAMES.todayAnalysis;

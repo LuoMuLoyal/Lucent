@@ -14,7 +14,7 @@ import {
   type MarkTodayAnalysisReadyInput,
   type TodayAnalysisMaterializationRow,
   type TodayAnalysisMaterializationView,
-} from '../../types/materialization.types.js';
+} from './materialization.types.js';
 
 export interface TodayAnalysisPendingResult extends TodayAnalysisMaterializationView {
   shouldQueue: boolean;

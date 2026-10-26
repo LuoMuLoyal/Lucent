@@ -1,5 +1,5 @@
 import type { I18nService } from 'nestjs-i18n';
-import { TodayAnalysisCopyService } from './copy.service.js';
+import { TodayAnalysisCopyService } from './analysis-copy.js';
 
 describe('TodayAnalysisCopyService', () => {
   const service = new TodayAnalysisCopyService({

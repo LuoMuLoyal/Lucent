@@ -1,17 +1,15 @@
-import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
-import type { LlmConfig } from '../../../config/services/llm.config.js';
-import type { TodayAnalysisCopyService } from './pipeline/copy.service.js';
-import type {
-  TodayAnalysisContext,
-  TodayAnalysisContextService,
-} from './pipeline/context.service.js';
-import type { NotificationsService } from '../../notifications/index.js';
-import type { TodayAnalysisGeneratorService } from './pipeline/generator.service.js';
-import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service.js';
-import { makeTestI18n } from '../../../common/tests/test-i18n.js';
-import { TodayAnalysisService } from './analysis.service.js';
-import { fromPromise, okAsync } from '../../../common/result/index.js';
-import type { PushDeliveryService } from '../../notifications/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import type { LlmConfig } from '../../../../config/services/llm.config.js';
+import type { TodayAnalysisCopyService } from '../services/analysis-copy.js';
+import type { TodayAnalysisContext } from '../read_models/analysis-context-shape.js';
+import type { AnalysisContextSource } from '../ports/analysis-pipeline.js';
+import type { NotificationsService } from '../../../notifications/index.js';
+import type { AnalysisGenerator } from '../ports/analysis-pipeline.js';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
+import { TodayAnalysisService } from '../../application/use_cases/generate-today-analysis.js';
+import { fromPromise, okAsync } from '../../../../common/result/index.js';
+import type { PushDeliveryService } from '../../../notifications/index.js';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
   return vi.spyOn(
@@ -842,22 +840,24 @@ describe('TodayAnalysisService', () => {
     claimActiveVersion?: number | null;
     context?: TodayAnalysisContext;
   }) {
-    const prisma = {
-      userSetting: {
-        findFirst: vi.fn().mockResolvedValue({
-          value: options?.userSettingValue ?? true,
-        }),
-      },
-      user: {
-        findUnique: vi.fn().mockResolvedValue({
+    // The use case reads settings and health context through ports now, so the
+    // doubles are port-shaped instead of Prisma-shaped.
+    const userSettings = {
+      getSettings: vi.fn().mockResolvedValue({
+        aiSummariesEnabled: options?.userSettingValue ?? true,
+      }),
+    };
+    const healthContext = {
+      getForUser: vi.fn().mockResolvedValue(
+        okAsync({
           profile: { timezone: options?.timezone ?? null },
         }),
-      },
+      ),
     };
 
     const contextService = {
       build: vi.fn().mockResolvedValue(options?.context ?? baseContext),
-    } as unknown as TodayAnalysisContextService;
+    } as unknown as AnalysisContextSource;
     const aiSummaryHistoryService = {
       save: vi.fn().mockReturnValue(okAsync(undefined)),
       getLatestTodaySummaryByDate: vi.fn().mockResolvedValue(
@@ -1007,7 +1007,7 @@ describe('TodayAnalysisService', () => {
         ),
       generate: vi.fn(),
       generateStream: vi.fn(),
-    } as unknown as TodayAnalysisGeneratorService;
+    } as unknown as AnalysisGenerator;
 
     const notificationsService = {
       create: vi.fn(),
@@ -1017,9 +1017,10 @@ describe('TodayAnalysisService', () => {
       sendToUser: vi.fn().mockResolvedValue({ sent: true }),
     } as unknown as PushDeliveryService;
     return new TodayAnalysisService(
-      prisma as never,
       aiSummaryHistoryService as never,
       contextService,
+      healthContext as never,
+      userSettings as never,
       copyService,
       generatorService,
       new LlmSafetyPolicyService({

@@ -5,6 +5,10 @@ import {
   WATER_TARGET_ML_PER_COUNT,
 } from '../../../../common/index.js';
 import type { ObservedMetric } from '../../../../common/index.js';
+import {
+  MEAL_ANALYSIS_MISSING_TITLE,
+  MEAL_ANALYSIS_TITLE,
+} from '../../application/read_models/meal-titles.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -20,7 +24,7 @@ import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
 } from '../../../user-settings/index.js';
-import { TriggerEvaluatorService } from './trigger-evaluator.service.js';
+import { TriggerEvaluatorService } from '../../application/services/trigger-evaluator.js';
 
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
@@ -39,8 +43,7 @@ const MAX_CURRENT_MEDICINE_NAMES = 5;
  * without re-running the evaluation) would change model input with no measured
  * benefit. See docs/TODO.md「AI 侧固定中文」.
  */
-export const MEAL_ANALYSIS_TITLE = '饮食分析';
-export const MEAL_ANALYSIS_MISSING_TITLE = '饮食分析缺失';
+
 export const MEAL_ANALYSIS_MISSING_NOTE =
   '未能识别饮食内容，缺少可使用的餐食分析数据';
 export const MEAL_DISHES_LABEL = '识别菜品：';

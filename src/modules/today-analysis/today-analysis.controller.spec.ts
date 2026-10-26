@@ -4,12 +4,12 @@ import {
   SseConnectionRegistry,
   SseProblemDetailsMapper,
 } from '../../common/index.js';
-import { TodayAnalysisService } from './services/analysis.service.js';
-import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
-import type { TodayAnalysisDataDto } from './dto/analysis-response.dto.js';
-import { generateTodayAnalysisSchema } from './dto/generate-today-analysis.dto.js';
-import { TodayAnalysisController } from './today-analysis.controller.js';
+import { TodayAnalysisService } from './application/use_cases/generate-today-analysis.js';
+import { TodayAnalysisQueueService } from './adapters/queue/analysis.js';
+import { TodayRecommendationsService } from './application/read_models/recommendations.js';
+import type { TodayAnalysisDataDto } from './adapters/http/dto/analysis-response.js';
+import { generateTodayAnalysisSchema } from './adapters/http/dto/generate-today-analysis.js';
+import { TodayAnalysisController } from './adapters/http/controllers/today-analysis.controller.js';
 
 describe('TodayAnalysisController', () => {
   let controller: TodayAnalysisController;

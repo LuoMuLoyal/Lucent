@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { SseProblemDetailsDto } from '../../../common/index.js';
-import type { TodayAnalysisDataDto } from './analysis-response.dto.js';
+import type { SseProblemDetailsDto } from '../../../../../common/index.js';
+import type { TodayAnalysisDataDto } from './analysis-response.js';
 
 /**
  * Standard Schema (zod 4) for the JSON payload of an SSE `summary` frame.

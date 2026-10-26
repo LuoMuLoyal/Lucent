@@ -7,23 +7,23 @@ import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../../prisma/index.js';
-import { TodayAnalysisContextService } from './services/pipeline/context.service.js';
-import { TriggerEvaluatorService } from './services/pipeline/trigger-evaluator.service.js';
+import { TodayAnalysisContextService } from './adapters/acl/analysis-context.js';
+import { TriggerEvaluatorService } from './application/services/trigger-evaluator.js';
 
-import { TodayAnalysisCopyService } from './services/pipeline/copy.service.js';
+import { TodayAnalysisCopyService } from './application/services/analysis-copy.js';
 
-import { TodayAnalysisGeneratorService } from './services/pipeline/generator.service.js';
+import { TodayAnalysisGeneratorService } from './infrastructure/llm/analysis-generator.js';
 
-import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
+import { TodayAnalysisQueueService } from './adapters/queue/analysis.js';
 
-import { TodayAnalysisService } from './services/analysis.service.js';
+import { TodayAnalysisService } from './application/use_cases/generate-today-analysis.js';
 import { TodayAnalysisMaterializationStore } from './infrastructure/persistence/materialization.js';
 import { TodayAnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
 import { TODAY_ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
 import { TODAY_ANALYSIS_MATERIALIZATION } from './application/ports/materialization.js';
 
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
-import { TodayAnalysisController } from './today-analysis.controller.js';
+import { TodayRecommendationsService } from './application/read_models/recommendations.js';
+import { TodayAnalysisController } from './adapters/http/controllers/today-analysis.controller.js';
 
 @Module({
   imports: [

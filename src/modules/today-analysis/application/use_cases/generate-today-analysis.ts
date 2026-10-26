@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -11,38 +12,45 @@ import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
   now,
-} from '../../../common/index.js';
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   type DomainFailure,
-} from '../../../common/result/index.js';
-import { DomainFailureException } from '../../../common/result/domain-failure.exception.js';
-import type { CreateNotificationDto } from '../../notifications/index.js';
-import { HistoricalAiSummaryService } from '../../assistant/index.js';
+} from '../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import type { CreateNotificationDto } from '../../../notifications/index.js';
+import { HistoricalAiSummaryService } from '../../../assistant/index.js';
 import {
   INotificationSender,
   PushDeliveryService,
-} from '../../notifications/index.js';
-import { PrismaService } from '../../../prisma/index.js';
-import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../../../common/constants/user-setting-keys.js';
-import { BaseLlmSummaryService } from '../../../common/llm/generators/base-llm-summary.service.js';
-import { LlmSafetyPolicyService } from '../../../common/llm/safety/llm-safety-policy.service.js';
-import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto.js';
+} from '../../../notifications/index.js';
+import { IUserHealthContextReader } from '../../../user-health-context/index.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
+import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
+import type { GenerateTodayAnalysisDto } from './generate-today-analysis-command.js';
 
 import type {
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,
-} from '../dto/analysis-response.dto.js';
-import { TodayAnalysisCopyService } from './pipeline/copy.service.js';
+} from '../read_models/analysis-response.js';
+import { TodayAnalysisCopyService } from '../services/analysis-copy.js';
+import type { TodayAnalysisContext } from '../read_models/analysis-context-shape.js';
 import {
-  TodayAnalysisContextService,
-  type TodayAnalysisContext,
-} from './pipeline/context.service.js';
-import { TodayAnalysisGeneratorService } from './pipeline/generator.service.js';
-import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema.js';
-import { nowIsoString } from '../../../common/index.js';
-import { TodayAnalysisMaterializationStore } from '../infrastructure/persistence/materialization.js';
-import type { StreamSummaryEvent } from '../../../common/api/stream-summary.js';
+  ANALYSIS_CONTEXT_SOURCE,
+  ANALYSIS_GENERATOR,
+} from '../ports/analysis-pipeline.js';
+import type {
+  AnalysisContextSource,
+  AnalysisGenerator,
+} from '../ports/analysis-pipeline.js';
+import type { TodayAnalysisStructuredOutput } from '../ports/analysis-output.js';
+import { nowIsoString } from '../../../../common/index.js';
+import {
+  TODAY_ANALYSIS_MATERIALIZATION,
+  type TodayAnalysisMaterialization,
+} from '../ports/materialization.js';
+import type { StreamSummaryEvent } from '../../../../common/api/stream-summary.js';
 
 interface PreparedTodayAnalysis {
   context: TodayAnalysisContext;
@@ -74,23 +82,25 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
    * it is also the source of the AI-summary switch (see
    * `isAiSummariesEnabled`). The base class no longer carries one.
    */
-  private readonly prisma: PrismaService;
 
   constructor(
-    prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
-    private readonly contextService: TodayAnalysisContextService,
+    @Inject(ANALYSIS_CONTEXT_SOURCE)
+    private readonly contextService: AnalysisContextSource,
+    private readonly healthContext: IUserHealthContextReader,
+    private readonly userSettings: IUserSettingsPort,
     copyService: TodayAnalysisCopyService,
-    generatorService: TodayAnalysisGeneratorService,
+    @Inject(ANALYSIS_GENERATOR)
+    generatorService: AnalysisGenerator,
     policyService: LlmSafetyPolicyService,
     private readonly notificationsService: INotificationSender,
     private readonly pushDeliveryService: PushDeliveryService,
     private readonly i18n: I18nService,
     @Optional()
-    private readonly materializationStore?: TodayAnalysisMaterializationStore,
+    @Inject(TODAY_ANALYSIS_MATERIALIZATION)
+    private readonly materializationStore?: TodayAnalysisMaterialization,
   ) {
     super(copyService, generatorService, policyService);
-    this.prisma = prisma;
   }
 
   async resolveDate(userId: string, date?: string): Promise<string> {
@@ -98,14 +108,9 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       return date;
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { profile: { select: { timezone: true } } },
-    });
-    return formatDateOnlyInTimezone(
-      now(),
-      user?.profile?.timezone ?? DEFAULT_USER_TIMEZONE,
-    );
+    const context = await this.healthContext.getForUser(userId);
+    const timezone = context.isOk() ? context.value.profile.timezone : null;
+    return formatDateOnlyInTimezone(now(), timezone ?? DEFAULT_USER_TIMEZONE);
   }
 
   /**
@@ -413,11 +418,8 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
    * answers here instead of the base class reaching into the table.
    */
   protected async isAiSummariesEnabled(userId: string): Promise<boolean> {
-    const setting = await this.prisma.userSetting.findFirst({
-      where: { userId, key: AI_SUMMARIES_ENABLED_SETTING_KEY },
-      select: { value: true },
-    });
-    return setting?.value !== false;
+    const settings = await this.userSettings.getSettings(userId);
+    return settings.aiSummariesEnabled;
   }
 
   protected buildLogContext(context: TodayAnalysisContext): string {
@@ -461,8 +463,8 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   }
 
   private async markFailedBestEffort(
-    store: TodayAnalysisMaterializationStore,
-    input: Parameters<TodayAnalysisMaterializationStore['markFailed']>[0],
+    store: TodayAnalysisMaterialization,
+    input: Parameters<TodayAnalysisMaterialization['markFailed']>[0],
   ): Promise<void> {
     try {
       await store.markFailed(input);
@@ -557,7 +559,14 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
           },
         );
     } catch (error) {
-      logFailure(error);
+      // Logged here rather than through `logFailure` so the warn is visible in
+      // the catch body (the lint rule inspects it statically and cannot see
+      // through the closure). Notification failures must not fail the request.
+      this.logger.warn(
+        `Failed to create scoped notification for user ${userId} (source=${scope.source}, date=${scope.date}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 

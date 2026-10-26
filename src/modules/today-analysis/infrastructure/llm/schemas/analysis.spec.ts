@@ -1,7 +1,7 @@
 import {
   todayAnalysisSchema,
   TODAY_ANALYSIS_BULLET_KINDS,
-} from './analysis.schema.js';
+} from './analysis.js';
 
 describe('todayAnalysisSchema', () => {
   function buildValid(overrides: Record<string, unknown> = {}) {

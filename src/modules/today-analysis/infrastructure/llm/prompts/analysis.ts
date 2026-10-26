@@ -1,10 +1,10 @@
-import { buildUserPrompt } from '../../../common/index.js';
-import type { PromptCopy } from '../../../common/index.js';
-import type { TodayAnalysisContext } from '../services/pipeline/context.service.js';
+import { buildUserPrompt } from '../../../../../common/index.js';
+import type { PromptCopy } from '../../../../../common/index.js';
+import type { TodayAnalysisContext } from '../../../application/read_models/analysis-context-shape.js';
 import {
   MEAL_ANALYSIS_MISSING_TITLE,
   MEAL_ANALYSIS_TITLE,
-} from '../services/pipeline/context.service.js';
+} from '../../../application/read_models/meal-titles.js';
 
 export function buildTodayAnalysisSystemPrompt(): string {
   return [

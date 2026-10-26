@@ -73,27 +73,48 @@ today-suggestion 互补——分析面向解读,建议面向行动。
 
 ## 内部结构
 
-迁移进行中（`plans/2026-10-26-ddd-migration-completion.md` T3–T5）。
+四层已完整落到 ADR-0024 骨架（`plans/2026-10-26-ddd-migration-completion.md`）。
 
-- `services/analysis.service.ts` — `TodayAnalysisService`:生成入口与流式摘要。
-- `services/analysis-queue.service.ts` — BullMQ 异步队列(队列名取自
-  `QUEUE_NAMES.todayAnalysis`),Redis 缺失时降级同步。
-- `services/pipeline/context.service.ts` — 汇聚日报/剂量/事件/用药上下文。
-- `services/pipeline/generator.service.ts` — LLM 结构化输出生成。
-- `services/pipeline/copy.service.ts` — 多语言文案(i18n)。
-- `services/pipeline/recommendations.service.ts` — 内置健康指南推荐。
-- `services/pipeline/trigger-evaluator.service.ts` — 见判定 B。
-- `infrastructure/persistence/materialization.ts` + `application/ports/materialization.ts` — 见判定 A（物化表不建聚合；消费方依赖端口 `TODAY_ANALYSIS_MATERIALIZATION`）。
-- `adapters/queue/event-consumer.ts` — 消费领域事件触发重算;同时负责
-  `invalidateContext` 与 `markPending`+`enqueue` 两半。**顺序有约束**(见该文件
-  头注释):context 失效最先、`markPending` 必先于 `enqueue`,因为前者分配
-  `sourceVersion` 而 worker 与之比对。spec 里 `invalidates the context before
-enqueueing` / `marks pending before enqueueing` / `enqueues with the version
-markPending just allocated` 三条钉住它。
-- `application/ports/analysis-queue.ts` — 消费端与队列服务之间的端口,避免两者
-  互相 import 成环。
+### adapters
+
+- `http/controllers/today-analysis.controller.ts` — 读/生成/流式三组端点。
+- `http/dto/` — 请求与流式响应形状。
+- `acl/analysis-context.ts` — 汇聚日报/剂量/事件/用药上下文（经各上游 reader
+  port）；同时产出 `TodayAnalysisContext`。**形状已移走**
+  （`application/read_models/analysis-context-shape.ts`），ACL 只负责产出。
+- `queue/event-consumer.ts` — 领域事件 → 重算任务，参见上文顺序约束。
+- `queue/analysis.ts` — BullMQ 队列，Redis 缺失时降级同步。
+
+### application
+
+- `ports/` — `materialization`（判定 A）、`materialization-shapes`、
+  `analysis-pipeline`（`ANALYSIS_CONTEXT_SOURCE` / `ANALYSIS_GENERATOR`）、
+  `analysis-output`（LLM 输出形状）、`analysis-queue`。
+- `use_cases/generate-today-analysis.ts` — 生成编排；另含命令形状。
+- `services/` — `trigger-gate`（判定 B 的取数层）、`trigger-evaluator`
+  （模块内注入点）、`analysis-copy`（多语言文案）。
+- `read_models/` — 上下文形状、推荐卡片、响应投影、餐食占位标题。
+
+### domain
+
+- `analysis/trigger-gate.ts` — 判定 B：维度白名单 + 阈值 + 聚合规则。
+- `analysis/materialization-vocabulary.ts` — 判定 A：生成上限、冷却与超时，
+  以及 `stale`/`empty` 这两个**派生状态**的说明。
+
+### infrastructure
+
+- `persistence/materialization.ts` + `.types.ts` — 物化行读写。
+- `llm/` — `analysis-generator`（结构化输出）、`prompts/`、`schemas/`。
+
+### 跨上下文读的口径
+
+本模块**不直连任何上游表**：日报与餐食解析走 `daily-records`、剂量走
+`medicine-dose-logs`、提醒走 `medicine-reminders`、时区与健康档案走
+`user-health-context`、AI 摘要开关走 `user-settings`，全部经各自的 port。
 
 ## 测试承接
 
-`today-analysis.contract.spec.ts`、`today-analysis.controller.spec.ts`、
-`schemas/analysis.schema.spec.ts`、`services/**/*.spec.ts`
+`today-analysis.contract.spec.ts`、`adapters/**/*.spec.ts`、
+`application/**/*.spec.ts`、`infrastructure/**/*.spec.ts`。
+触发门禁的顺序与阈值约束由 `adapters/queue/event-consumer.spec.ts` 与
+`domain/analysis/trigger-gate.ts` 的纯函数测试共同钉住。

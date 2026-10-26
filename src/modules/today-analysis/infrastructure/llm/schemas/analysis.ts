@@ -23,4 +23,4 @@ export const todayAnalysisSchema = z.object({
   confidenceNote: z.string().trim().min(1).max(80),
 });
 
-export type TodayAnalysisStructuredOutput = z.infer<typeof todayAnalysisSchema>;
+export type { TodayAnalysisStructuredOutput } from '../../../application/ports/analysis-output.js';

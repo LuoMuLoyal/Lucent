@@ -9,12 +9,12 @@ import {
   buildTodayAnalysisSystemPrompt,
   buildTodayAnalysisUserPrompt,
   type TodayAnalysisPromptCopy,
-} from '../../prompts/analysis.prompt.js';
+} from './prompts/analysis.js';
 import {
   todayAnalysisSchema,
   type TodayAnalysisStructuredOutput,
-} from '../../schemas/analysis.schema.js';
-import type { TodayAnalysisContext } from './context.service.js';
+} from './schemas/analysis.js';
+import type { TodayAnalysisContext } from '../../application/read_models/analysis-context-shape.js';
 
 @Injectable()
 export class TodayAnalysisGeneratorService extends BaseLlmGeneratorService<

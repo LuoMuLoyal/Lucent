@@ -1,31 +1,18 @@
-export const TODAY_ANALYSIS_MAX_GENERATIONS_PER_DATE = 3;
-export const TODAY_ANALYSIS_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
-export const TODAY_ANALYSIS_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
+export {
+  TODAY_ANALYSIS_MAX_GENERATIONS_PER_DATE,
+  TODAY_ANALYSIS_REFRESH_COOLDOWN_MS,
+  TODAY_ANALYSIS_CLAIM_TIMEOUT_MS,
+  TODAY_ANALYSIS_REASON_CODES,
+  type TodayAnalysisReasonCode,
+  type PersistedTodayAnalysisStatus,
+  type TodayAnalysisStatus,
+} from '../../domain/analysis/materialization-vocabulary.js';
 
-export const TODAY_ANALYSIS_REASON_CODES = [
-  'symptom_check_in',
-  'daily_record_changed',
-  'health_event_changed',
-  'dose_log_changed',
-  'suggestion_materialization_changed',
-  'manual_refresh',
-] as const;
-
-export type TodayAnalysisReasonCode =
-  (typeof TODAY_ANALYSIS_REASON_CODES)[number];
-
-export type PersistedTodayAnalysisStatus =
-  | 'pending'
-  | 'ready'
-  | 'failed'
-  | 'capped';
-
-export type TodayAnalysisStatus =
-  | 'pending'
-  | 'ready'
-  | 'failed'
-  | 'stale'
-  | 'empty';
+import type {
+  PersistedTodayAnalysisStatus,
+  TodayAnalysisReasonCode,
+  TodayAnalysisStatus,
+} from '../../domain/analysis/materialization-vocabulary.js';
 
 export interface TodayAnalysisMaterializationRow {
   id: string;

@@ -1,4 +1,4 @@
-import type { GenerateTodayAnalysisDto } from '../../dto/generate-today-analysis.dto.js';
+import type { GenerateTodayAnalysisDto } from '../use_cases/generate-today-analysis-command.js';
 
 /**
  * Injection token for {@link TodayAnalysisQueuePort}.

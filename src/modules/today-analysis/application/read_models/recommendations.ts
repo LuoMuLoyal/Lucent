@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import type { TodayRecommendationResponseDto } from '../../dto/recommendation-response.dto.js';
+import type { TodayRecommendationResponseDto } from './recommendation-response.js';
 
 interface GuideSource {
   id: string;

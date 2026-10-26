@@ -1,4 +1,4 @@
-import { TodayRecommendationsService } from './recommendations.service.js';
+import { TodayRecommendationsService } from './recommendations.js';
 import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
 
 describe('TodayRecommendationsService', () => {

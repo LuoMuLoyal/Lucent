@@ -1,23 +1,23 @@
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { BullmqQueueFactory } from '../../../common/queue/queue.factory.js';
-import { QUEUE_NAMES } from '../../../common/queue/queue-names.js';
-import { RuntimeConfigService } from '../../../config/runtime/runtime-config.service.js';
-import type { RuntimeConfigPort } from '../../../config/runtime/runtime-config.types.js';
+import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
+import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import {
   BaseAsyncQueueService,
   TODAY_ANALYSIS_EVENT_JOB,
   type DomainEventJobData,
-} from '../../../common/index.js';
-import { TodayAnalysisService } from './analysis.service.js';
-import { TodayAnalysisEventConsumerService } from '../adapters/queue/event-consumer.js';
+} from '../../../../common/index.js';
+import { TodayAnalysisService } from '../../application/use_cases/generate-today-analysis.js';
+import { TodayAnalysisEventConsumerService } from './event-consumer.js';
 import type {
   TodayAnalysisDataDto,
   TodayAnalysisReadDataDto,
-} from '../dto/analysis-response.dto.js';
+} from '../../application/read_models/analysis-response.js';
 
-import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto.js';
+import type { GenerateTodayAnalysisDto } from '../../application/use_cases/generate-today-analysis-command.js';
 
 export interface AnalysisJobData {
   userId: string;

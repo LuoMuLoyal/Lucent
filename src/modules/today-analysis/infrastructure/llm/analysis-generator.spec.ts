@@ -4,8 +4,8 @@ import type { MetricsService } from '../../../../common/metrics/metrics.service.
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
-import { buildTodayAnalysisSystemPrompt } from '../../prompts/analysis.prompt.js';
-import { TodayAnalysisGeneratorService } from './generator.service.js';
+import { buildTodayAnalysisSystemPrompt } from './prompts/analysis.js';
+import { TodayAnalysisGeneratorService } from './analysis-generator.js';
 
 const HEADER = ['RNACOS_SCHEMA_VERSION=3', 'RNACOS_REVISION=test.1', ''].join(
   '\n',

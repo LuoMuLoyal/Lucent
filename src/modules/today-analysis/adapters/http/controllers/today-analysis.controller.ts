@@ -1,4 +1,5 @@
 import {
+  Inject,
   Body,
   Controller,
   Get,
@@ -27,29 +28,30 @@ import {
   writeSseEvent,
   SseConnectionRegistry,
   SseProblemDetailsMapper,
-} from '../../common/index.js';
-import { extractErrorInfo } from '../../common/index.js';
-import { registerResponseSchema } from '../../common/api/response-schema.registry.js';
-import { createDomainFailure } from '../../common/result/index.js';
-import { DomainFailureException } from '../../common/result/domain-failure.exception.js';
-import type { UserPayload } from '../auth/index.js';
-import { CurrentUser } from '../auth/index.js';
-import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
+} from '../../../../../common/index.js';
+import { extractErrorInfo } from '../../../../../common/index.js';
+import { registerResponseSchema } from '../../../../../common/api/response-schema.registry.js';
+import { createDomainFailure } from '../../../../../common/result/index.js';
+import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
+import type { UserPayload } from '../../../../auth/index.js';
+import { CurrentUser } from '../../../../auth/index.js';
+import { TodayAnalysisQueueService } from '../../queue/analysis.js';
 import {
-  TodayAnalysisMaterializationStore,
+  TODAY_ANALYSIS_MATERIALIZATION,
+  type TodayAnalysisMaterialization,
   type TodayAnalysisPendingResult,
-} from './infrastructure/persistence/materialization.js';
-import type { TodayAnalysisMaterializationView } from './types/materialization.types.js';
+} from '../../../application/ports/materialization.js';
+import type { TodayAnalysisMaterializationView } from '../../../application/ports/materialization-shapes.js';
 
-import { TodayAnalysisService } from './services/analysis.service.js';
+import { TodayAnalysisService } from '../../../application/use_cases/generate-today-analysis.js';
 
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
-import { generateTodayAnalysisSchema } from './dto/generate-today-analysis.dto.js';
-import type { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto.js';
+import { TodayRecommendationsService } from '../../../application/read_models/recommendations.js';
+import { generateTodayAnalysisSchema } from '../dto/generate-today-analysis.js';
+import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.js';
 import {
   todayRecommendationResponseSchema,
   todayRecommendationsResponseSchema,
-} from './dto/recommendation-response.dto.js';
+} from '../dto/recommendation-response.js';
 import {
   todayAnalysisAsyncJobDataSchema,
   todayAnalysisAsyncResultDataSchema,
@@ -58,7 +60,7 @@ import {
   todayAnalysisReadDataSchema,
   todayAnalysisRefreshPendingDataSchema,
   todayAnalysisRefreshReadyDataSchema,
-} from './dto/analysis-response.dto.js';
+} from '../dto/analysis-response.js';
 
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')
@@ -73,7 +75,8 @@ export class TodayAnalysisController {
     private readonly sseRegistry: SseConnectionRegistry,
     private readonly sseProblemDetails: SseProblemDetailsMapper,
     @Optional()
-    private readonly materializationStore?: TodayAnalysisMaterializationStore,
+    @Inject(TODAY_ANALYSIS_MATERIALIZATION)
+    private readonly materializationStore?: TodayAnalysisMaterialization,
   ) {}
 
   @Get()

@@ -1,5 +1,5 @@
-import { TodayAnalysisContextService } from './context.service.js';
-import { TriggerEvaluatorService } from './trigger-evaluator.service.js';
+import { TodayAnalysisContextService } from './analysis-context.js';
+import { TriggerEvaluatorService } from '../../application/services/trigger-evaluator.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 
 function createMockCache() {

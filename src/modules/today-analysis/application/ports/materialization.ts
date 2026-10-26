@@ -19,7 +19,7 @@ import type {
   MarkTodayAnalysisPendingInput,
   MarkTodayAnalysisReadyInput,
   TodayAnalysisMaterializationView,
-} from '../../types/materialization.types.js';
+} from './materialization-shapes.js';
 
 /** Injection token for {@link TodayAnalysisMaterialization}. */
 export const TODAY_ANALYSIS_MATERIALIZATION = Symbol(
