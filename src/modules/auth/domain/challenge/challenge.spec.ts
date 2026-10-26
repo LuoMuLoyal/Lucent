@@ -24,7 +24,7 @@ function state(overrides: Partial<ChallengeState> = {}): ChallengeState {
     email: EMAIL,
     codeHash: deriveCodeHash(CODE, SCENE, EMAIL),
     attempts: 0,
-    issuedAt: new Date('2026-10-25T00:00:00.000Z'),
+    issuedAtMs: Date.parse('2026-10-25T00:00:00.000Z'),
     ...overrides,
   };
 }

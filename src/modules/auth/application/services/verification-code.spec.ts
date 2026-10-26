@@ -271,7 +271,7 @@ describe('VerificationCodeService', () => {
           .update('register:test@example.com:123456')
           .digest('hex'),
         attempts: 0,
-        issuedAt: new Date(),
+        issuedAtMs: Date.now(),
       };
       (cache.get as vi.Mock).mockResolvedValue(storedState);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
@@ -280,7 +280,6 @@ describe('VerificationCodeService', () => {
         service.verify('test@example.com', '123456', 'register'),
       );
 
-      expect(result.ok).toBe(true);
       if (!result.ok) throw new Error('expected verify success');
       expect(result.value).toBeUndefined();
       expect(cache.del).toHaveBeenCalledWith('vcode:register:test@example.com');
@@ -311,7 +310,7 @@ describe('VerificationCodeService', () => {
           .update('register:test@example.com:654321')
           .digest('hex'),
         attempts: 0,
-        issuedAt: new Date(),
+        issuedAtMs: Date.now(),
       };
       (cache.get as vi.Mock).mockResolvedValue(wrongState);
 
@@ -351,7 +350,7 @@ describe('VerificationCodeService', () => {
           .update(`register:test@example.com:${code}`)
           .digest('hex'),
         attempts,
-        issuedAt: new Date(),
+        issuedAtMs: Date.now(),
       };
     }
 
@@ -377,7 +376,7 @@ describe('VerificationCodeService', () => {
     it('写回用剩余 TTL，不延长码的寿命', async () => {
       // 否则攻击者可以靠不断猜错把码永远留住。
       const stale = challengeState(0);
-      stale.issuedAt = new Date(Date.now() - 200_000); // 已过去 200s，TTL 300s
+      stale.issuedAtMs = Date.now() - 200_000; // 已过去 200s，TTL 300s
       (cache.get as vi.Mock).mockResolvedValue(stale);
 
       await inspectResult(
@@ -406,6 +405,62 @@ describe('VerificationCodeService', () => {
         expect.objectContaining({ attempts: 5 }),
         expect.any(Number),
       );
+    });
+
+    it('缓存值经 JSON 往返后仍能写回（@keyv/redis 不保留 Date）', async () => {
+      // 生产缓存是 `@keyv/redis`：值 JSON 化落库，读回来可能不是原类型。
+      // 之前正是这里把「猜错验证码」这条正常路径打成 500
+      // （TypeError: issuedAt.getTime is not a function）。这里直接喂一个
+      // 已经 JSON 化的对象，复现读回侧的形态。
+      (cache.get as vi.Mock).mockResolvedValue({
+        ...challengeState(0),
+        issuedAtMs: Date.now(),
+      });
+
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_VERIFICATION_CODE_MISMATCH' },
+      });
+      const ttl = (cache.set as vi.Mock).mock.calls[0]?.[2] as number;
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(300_000);
+    });
+
+    it('兼容升级前写入的 issuedAt 日期字符串条目', async () => {
+      // 滚动升级时在途的码还是旧形状，读不出来就会被当场判失效——
+      // 用户看到的是「刚收到的码已过期」。
+      const legacy = {
+        ...challengeState(0),
+        issuedAtMs: undefined,
+        issuedAt: new Date().toISOString(),
+      };
+      (cache.get as vi.Mock).mockResolvedValue(legacy);
+
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_VERIFICATION_CODE_MISMATCH' },
+      });
+    });
+
+    it('缓存条目形状不认识时按「码已失效」处理，而不是抛 500', async () => {
+      (cache.get as vi.Mock).mockResolvedValue({ scene: 'register' });
+
+      const result = await inspectResult(
+        service.verify('test@example.com', '123456', 'register'),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_VERIFICATION_CODE_EXPIRED' },
+      });
     });
 
     it('【核心】猜爆之后，正确的码也不再通过', async () => {
@@ -470,7 +525,7 @@ describe('VerificationCodeService', () => {
           .update('login:user@test.com:111111')
           .digest('hex'),
         attempts: 0,
-        issuedAt: new Date(),
+        issuedAtMs: Date.now(),
       };
       (cache.get as vi.Mock).mockResolvedValue(storedState);
       (cache.del as vi.Mock).mockResolvedValue(undefined);

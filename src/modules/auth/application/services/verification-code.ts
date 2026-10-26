@@ -283,7 +283,7 @@ export class VerificationCodeService {
     const codeKey = this.codeKey(scene, email);
 
     return this.lift(this.cacheGet(codeKey)).andThen((value) => {
-      const state = value as ChallengeState | undefined;
+      const state = this.toChallengeState(value);
 
       if (state === undefined) {
         return errAsync(this.codeExpiredFailure());
@@ -306,7 +306,11 @@ export class VerificationCodeService {
       // 写回递增后的计数；猜爆时它已到上限，后续校验一律 exhausted。
       // TTL 用剩余 TTL 而不是原始 TTL：写回不该延长码的寿命。
       return this.lift(
-        this.cacheSet(codeKey, result.nextState, this.remainingTtlMs(state)),
+        this.cacheSet(
+          codeKey,
+          result.nextState,
+          this.remainingTtlMs(state.issuedAtMs),
+        ),
       ).andThen(() => errAsync(this.codeFailureFor(result.verdict)));
     });
   }
@@ -335,8 +339,8 @@ export class VerificationCodeService {
    * 用剩余值而不是完整 TTL，是为了让「猜错 4 次」不延长码的有效期——
    * 否则攻击者可以靠不断猜错把码永远留住。
    */
-  private remainingTtlMs(state: ChallengeState): number {
-    const elapsed = Date.now() - state.issuedAt.getTime();
+  private remainingTtlMs(issuedAtMs: number): number {
+    const elapsed = Date.now() - issuedAtMs;
     const remaining = this.readSettings().codeTtlMs - elapsed;
     // 下限 1ms：`cache.set` 传 0/负数在各后端行为不一致（有的当立即过期，
     // 有的当永不过期）。给一个极小的正值，语义是「马上过期」。
@@ -375,7 +379,7 @@ export class VerificationCodeService {
         email,
         codeHash: deriveCodeHash(code, scene, email),
         attempts: 0,
-        issuedAt: new Date(),
+        issuedAtMs: Date.now(),
       };
 
       // Store code hash in cache (never store plaintext codes)
@@ -428,6 +432,64 @@ export class VerificationCodeService {
       typeof candidate.count === 'number' &&
       typeof candidate.resetAt === 'number'
     );
+  }
+
+  /**
+   * 从缓存条目还原挑战状态。
+   *
+   * `@keyv/redis` 会把值 JSON 化后落库，`issuedAt: Date` 读回来是 ISO 字符串，
+   * 到 `remainingTtlMs` 里就成了 `TypeError: ...getTime is not a function`——
+   * 猜错验证码这条**正常业务路径**因此变成 500。所以反序列化必须和序列化对称，
+   * 收敛在这个唯一的存储边界上，而不是让每个调用方各自防御。
+   *
+   * 形状不认识就返回 `undefined`（等价于「该码不存在」）：缓存条目可能来自
+   * 旧版本或被打坏，那同样是不能用的码，不该抛成服务端故障。
+   */
+  private toChallengeState(value: unknown): ChallengeState | undefined {
+    if (typeof value !== 'object' || value === null) {
+      return undefined;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    // 兼容旧条目：更早的版本把这一格存成 `issuedAt: Date`（JSON 往返后是字符串），
+    // 读老数据仍要能算 TTL，否则升级瞬间在途的码会被当场判失效。
+    const issuedAtMs = this.toEpochMs(
+      candidate['issuedAtMs'] ?? candidate['issuedAt'],
+    );
+
+    if (
+      typeof candidate['scene'] !== 'string' ||
+      typeof candidate['email'] !== 'string' ||
+      typeof candidate['codeHash'] !== 'string' ||
+      typeof candidate['attempts'] !== 'number' ||
+      issuedAtMs === undefined
+    ) {
+      return undefined;
+    }
+
+    return {
+      scene: candidate['scene'],
+      email: candidate['email'],
+      codeHash: candidate['codeHash'],
+      attempts: candidate['attempts'],
+      issuedAtMs,
+    };
+  }
+
+  private toEpochMs(value: unknown): number | undefined {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : undefined;
+    }
+    if (typeof value === 'string') {
+      const parsed = Date.parse(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+    // 内存 store（无 Redis 时的回退）不做 JSON 往返，拿到的是真正的 Date。
+    if (value instanceof Date) {
+      const time = value.getTime();
+      return Number.isNaN(time) ? undefined : time;
+    }
+    return undefined;
   }
 
   private async cacheGet(key: string): Promise<unknown> {

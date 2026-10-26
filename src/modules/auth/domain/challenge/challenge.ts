@@ -50,6 +50,10 @@ export const MAX_CHALLENGE_ATTEMPTS = 5;
  * 挑战的持久化状态 —— 存进缓存的形状。
  *
  * 刻意是**扁平可序列化**的：它进的是缓存条目，不是关系表。
+ *
+ * `issuedAtMs` 是 epoch 毫秒数而不是 `Date`：`@keyv/redis` 会 JSON 化后落库，
+ * `Date` 往返一次就变成字符串，`instanceof Date` / `.getTime()` 全部失效——
+ * 曾经让「猜错验证码」这条正常路径抛 500。时间戳是纯值，往返无损。
  */
 export interface ChallengeState {
   /** 场景。参与指纹派生，所以它必须与码一起存（否则校验时无法重算指纹）。 */
@@ -60,8 +64,8 @@ export interface ChallengeState {
   codeHash: string;
   /** 已失败次数。达到 {@link MAX_CHALLENGE_ATTEMPTS} 即作废。 */
   attempts: number;
-  /** 写入时刻，仅用于诊断。 */
-  issuedAt: Date;
+  /** 写入时刻（epoch 毫秒），用于诊断与剩余 TTL 计算。 */
+  issuedAtMs: number;
 }
 
 /**

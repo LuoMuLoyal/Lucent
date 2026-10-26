@@ -193,7 +193,7 @@ export async function seedVerificationCode(
     email,
     codeHash: deriveCodeHash(code, scene, email),
     attempts: 0,
-    issuedAt: new Date(),
+    issuedAtMs: Date.now(),
   };
   await cache.set(`vcode:${scene}:${email}`, state, ttlMs);
 }
