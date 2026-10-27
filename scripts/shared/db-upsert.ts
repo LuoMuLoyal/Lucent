@@ -189,7 +189,10 @@ function createParserArgs(config, sourcePath, options) {
   // Extra parser flags declared by the dataset (e.g. `--column` for the parsers
   // that read several columns of the same parquet file). A flag value written
   // as `${NAME}` is substituted from the environment — used for values that only
-  // exist at run time, such as an allow-list file path.
+  // exist at run time, such as an allow-list file path. An unset variable
+  // becomes an empty string rather than the literal placeholder: parsers treat
+  // an empty optional value as "not provided", so a full import must not fail
+  // just because an optional allow-list is absent.
   if (Array.isArray(config.parserArgs)) {
     parserArgs.push(...config.parserArgs.map(substituteEnv));
   }
@@ -203,7 +206,7 @@ function substituteEnv(value) {
   }
   return value.replace(/\$\{([A-Z0-9_]+)\}/g, (match, name) => {
     const replacement = process.env[name];
-    return replacement === undefined ? match : replacement;
+    return replacement === undefined ? '' : replacement;
   });
 }
 
