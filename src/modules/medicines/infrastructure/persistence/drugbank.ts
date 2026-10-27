@@ -11,8 +11,6 @@ import {
   composeSubtitle,
   detectMatchedBy,
   firstNonEmpty,
-  toDrugbankDrugInteractions,
-  toDrugbankExternalIdentifiers,
   toDrugbankExternalLinks,
   toPagination,
   toStringList,
@@ -64,6 +62,12 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
         orderBy: [{ name: 'asc' }],
         skip,
         take: criteria.pageSize,
+        // `groups` and `synonyms` moved from JsonB columns to relation tables, so
+        // a search result now needs them selected explicitly.
+        include: {
+          groupRows: { select: { groupName: true } },
+          synonymRows: { select: { synonym: true } },
+        },
       }),
       this.prisma.drugbankDrug.count({ where }),
     ]);
@@ -83,6 +87,22 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
           orderBy: { createdAt: 'asc' },
         },
         structure: true,
+        // Promoted to relation tables: these used to be JsonB columns on the
+        // drug row. `take` caps the interaction list because a well-studied drug
+        // can carry hundreds of partners and the detail page shows a summary,
+        // not the whole graph (that is the ego-graph endpoint's job).
+        groupRows: true,
+        synonymRows: { select: { synonym: true }, orderBy: { synonym: 'asc' } },
+        externalIdentifierRows: { orderBy: { resource: 'asc' } },
+        interactions: {
+          select: {
+            interactsWithId: true,
+            interactsWithName: true,
+            description: true,
+          },
+          orderBy: { interactsWithId: 'asc' },
+          take: 200,
+        },
       },
     });
 
@@ -111,16 +131,26 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
       routeOfElimination: row.routeOfElimination,
       volumeOfDistribution: row.volumeOfDistribution,
       clearance: row.clearance,
-      groups: toStringList(row.groups),
+      groups: row.groupRows.map((g) => g.groupName),
       categories: toStringList(row.categories),
       atcCodes: toStringList(row.atcCodes),
-      synonyms: toStringList(row.synonyms),
+      synonyms: row.synonymRows.map((s) => s.synonym),
       foodInteractions: toStringList(row.foodInteractions),
-      drugInteractions: toDrugbankDrugInteractions(row.drugInteractions),
+      drugInteractions: row.interactions
+        // The API contract requires a description; a row without one carries no
+        // explanation and is dropped rather than emitted as an empty string.
+        .filter(
+          (i): i is typeof i & { description: string } => i.description != null,
+        )
+        .map((i) => ({
+          drugbankId: i.interactsWithId,
+          description: i.description,
+        })),
       targets: this.toTargets(row.targetRelations),
-      externalIdentifiers: toDrugbankExternalIdentifiers(
-        row.externalIdentifiers,
-      ),
+      externalIdentifiers: row.externalIdentifierRows.map((e) => ({
+        resource: e.resource,
+        identifier: e.identifier,
+      })),
       externalLinks: toDrugbankExternalLinks(row.externalLinks),
       sequenceSummary,
       structure: this.toStructure(row.structure),
@@ -319,17 +349,23 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     };
   }
 
-  private toSearchItem(row: DrugbankDrug, query: string) {
+  private toSearchItem(
+    row: DrugbankDrug & {
+      groupRows: { groupName: string }[];
+      synonymRows: { synonym: string }[];
+    },
+    query: string,
+  ) {
     const tags = uniqueNonEmptyStrings(
       [
-        ...toStringList(row.groups),
+        ...row.groupRows.map((g) => g.groupName),
         ...toStringList(row.categories),
         ...toStringList(row.atcCodes),
       ],
       4,
     );
 
-    const synonymList = toStringList(row.synonyms);
+    const synonymList = row.synonymRows.map((s) => s.synonym);
     return {
       id: row.drugbankId,
       source: 'drugbank' as const,
@@ -354,10 +390,12 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     };
   }
 
-  private toSubtitle(row: DrugbankDrug): string | null {
+  private toSubtitle(
+    row: DrugbankDrug & { groupRows: { groupName: string }[] },
+  ): string | null {
     return composeSubtitle(
       row.casNumber ? `CAS ${row.casNumber}` : null,
-      ...toStringList(row.groups).slice(0, 2),
+      ...row.groupRows.map((g) => g.groupName).slice(0, 2),
       row.drugType,
     );
   }

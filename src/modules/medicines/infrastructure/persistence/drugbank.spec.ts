@@ -49,16 +49,18 @@ describe('DrugbankMedicinesService', () => {
       routeOfElimination: null,
       volumeOfDistribution: null,
       clearance: null,
-      groups: ['approved'],
       categories: ['Analgesics'],
       atcCodes: ['A01AD05'],
-      synonyms: ['Acetylsalicylic acid'],
       foodInteractions: null,
-      drugInteractions: null,
-      targetRelations: [],
-      externalIdentifiers: null,
       externalLinks: null,
       structure: null,
+      targetRelations: [],
+      // `groups` and `synonyms` were promoted from JsonB columns to relation
+      // tables, so the row now carries them as relation arrays.
+      groupRows: [{ groupName: 'approved' }],
+      synonymRows: [{ synonym: 'Acetylsalicylic acid' }],
+      externalIdentifierRows: [],
+      interactions: [],
       ...overrides,
     };
   }
@@ -156,13 +158,19 @@ describe('DrugbankMedicinesService', () => {
       expect(result!.detail['kind']).toBe('drugbank');
     });
 
-    it('converts JSONB fields to string arrays', async () => {
+    it('converts relation rows to string arrays', async () => {
       prisma.drugbankDrug.findUnique.mockResolvedValue(
         makeRow({
-          groups: ['approved', 'investigational'],
+          groupRows: [
+            { groupName: 'approved' },
+            { groupName: 'investigational' },
+          ],
           categories: ['Analgesics', 'Anti-inflammatory'],
           atcCodes: ['A01AD05', 'N02BA01'],
-          synonyms: ['ASA', '2-acetoxybenzoic acid'],
+          synonymRows: [
+            { synonym: 'ASA' },
+            { synonym: '2-acetoxybenzoic acid' },
+          ],
           foodInteractions: ['Take with food'],
         }),
       );
@@ -174,9 +182,9 @@ describe('DrugbankMedicinesService', () => {
       expect(detail['synonyms']).toEqual(['ASA', '2-acetoxybenzoic acid']);
     });
 
-    it('handles null JSONB fields as empty arrays', async () => {
+    it('handles empty relation arrays as empty lists', async () => {
       prisma.drugbankDrug.findUnique.mockResolvedValue(
-        makeRow({ groups: null, categories: null, synonyms: null }),
+        makeRow({ groupRows: [], categories: null, synonymRows: [] }),
       );
 
       const result = await service.getDetail('DB00945');
@@ -186,7 +194,7 @@ describe('DrugbankMedicinesService', () => {
       expect(detail['synonyms']).toEqual([]);
     });
 
-    it('queries by drugbankId and eagerly loads target relations', async () => {
+    it('queries by drugbankId and eagerly loads the relation tables', async () => {
       prisma.drugbankDrug.findUnique.mockResolvedValue(makeRow());
 
       await service.getDetail('DB00945');
@@ -199,6 +207,22 @@ describe('DrugbankMedicinesService', () => {
             orderBy: { createdAt: 'asc' },
           },
           structure: true,
+          // Promoted from JsonB columns to relation tables.
+          groupRows: true,
+          synonymRows: {
+            select: { synonym: true },
+            orderBy: { synonym: 'asc' },
+          },
+          externalIdentifierRows: { orderBy: { resource: 'asc' } },
+          interactions: {
+            select: {
+              interactsWithId: true,
+              interactsWithName: true,
+              description: true,
+            },
+            orderBy: { interactsWithId: 'asc' },
+            take: 200,
+          },
         },
       });
     });
@@ -349,9 +373,11 @@ describe('DrugbankMedicinesService', () => {
     it('maps typed external identifiers and links', async () => {
       prisma.drugbankDrug.findUnique.mockResolvedValue(
         makeRow({
-          externalIdentifiers: [
+          // Identifiers are now rows in a relation table. Both columns are NOT
+          // NULL there, so the "half-populated entry" case is impossible by
+          // construction — the schema enforces it.
+          externalIdentifierRows: [
             { resource: 'PubChem Compound', identifier: '2244' },
-            { resource: 'broken' },
           ],
           externalLinks: [
             {
@@ -368,7 +394,6 @@ describe('DrugbankMedicinesService', () => {
         externalLinks: unknown;
       };
 
-      // The half-populated entry is dropped rather than surfacing a blank row.
       expect(detail.externalIdentifiers).toEqual([
         { resource: 'PubChem Compound', identifier: '2244' },
       ]);
