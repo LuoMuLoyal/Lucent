@@ -49,6 +49,13 @@ RETURN e.gene_name AS enzyme, a.name AS inhibitor, b.name AS substrate
 `probe_oag.py` 另有 `shared_targets`（共享靶点）、`cascade_metabolic_chain`（4 跳级联）、
 `inhibition_plus_interaction`（机制 + 直接相互作用联立）等探针，与 §三 的三个方向一一对应。
 
+> **2026-10-27 边界补充**：Prisma 侧现在也有关系表了（9 张，见 §2.5 修订注），
+> 但两者的分工不变——**多跳图的活归 Neo4j**。Prisma 那边能做的是单跳反查
+> （"这个药抑制哪些酶"、"哪些药作用于这个靶点"），做不到
+> `INHIBITS × SUBSTRATE_OF` 这种二跳组合，也没有路径/级联语义。
+> 判断标准：**一条结论需要跨两条边才能得出，就走 Neo4j**；单表单跳的，Prisma 更快也更可控。
+> 不要为了"统一数据源"把多跳搬到 SQL——那是本计划初稿犯过的方向。
+
 ### 2.2 边类型
 
 实测 21 种关系类型（ADR-0022 明确以实测为准，`VERIFICATION-SCALE.md` 的 26 种已过时）。
@@ -88,23 +95,32 @@ Neo4j 里只有 2,534 条原始单向边；`graph/orientation.py` 的 `mirror_ed
 （区分「服务不可用」与「图上查不到」）。**不要重写**——缺的是把它从 `assistant`
 之间「借」出来的合法路径（跨模块只能走 barrel 或 ADR-0009 的 reader port）。
 
-### 2.5 另一个独立事实：本机 dev 的 Prisma 知识库确实是空的
+### 2.5 另一个独立事实：本机 dev 的 Prisma 知识库仍然是抽样
 
 这不影响 §四 的方案（那条路走 Neo4j），但**一旦要回填 Lucent 自己的药品详情接口
 仍然需要**：
 
-| 表                      | 实际行数 | 应有规模   |
-| ----------------------- | -------- | ---------- |
-| `drugbank_drugs`        | 100      | 19,842     |
-| `drugbank_drug_targets` | **0**    | 10,009     |
-| `drugbank_targets`      | **0**    | ~14,000    |
-| `drugbank_structures`   | **0**    | 14,622     |
-| `cn_medicine_products`  | **0**    | ≈205,000   |
-| `medical_qa_chunks`     | **0**    | ≈1,350,000 |
+| 表                      | 实际行数（2026-10-27） | 应有规模   |
+| ----------------------- | ---------------------- | ---------- |
+| `drugbank_drugs`        | 100                    | 19,842     |
+| `drugbank_drug_targets` | **0**                  | 10,009     |
+| `drugbank_targets`      | **0**                  | ~14,000    |
+| `drugbank_structures`   | **0**                  | 14,622     |
+| `cn_medicine_products`  | **0**                  | ≈205,000   |
+| `medical_qa_chunks`     | **0**                  | ≈1,350,000 |
 
 → 降级为**独立工作项**（§八 的 P4），不再是本计划的前置阻塞项。
-另确认：`enzymes` 列在 Prisma 模型里**不存在**（PRODUCT.md §二 称其「已导入」是错的），
-这类关系**只存在于 Neo4j**。
+
+> **2026-10-27 修订**：本表初稿称 `enzymes` 列「在 Prisma 模型里不存在，这类关系只存在于
+> Neo4j」。该判断需要精确化——`drugbank_drug_targets.relation_kind` 恰好承载
+> `all` / `enzyme` / `carrier` / `transporter` 四类关系（CSV 导入写数据集名，XML 富化写
+> 真实关系类型），所以酶关系**有** Prisma 承载位，只是该表当前为空、且 Enzymes 的
+> `actions` 依赖 XML 富化。PRODUCT.md §二 的原描述不算错，只是没说清「列在哪张表」。
+>
+> 同次修订：`drugbank_drugs` 上的 6 个 JsonB 列（`groups` / `classification` / `synonyms` /
+> `products` / `drug_interactions` / `external_identifiers`）已提升为关系表并删除原列，
+> 详见 `src/modules/medicines/README.md`「DrugBank 多值字段：关系表」。这改变了 P4 的
+> 工作量构成：**schema 侧的事已做完，剩下的纯粹是跑导入**。
 
 ---
 
@@ -333,9 +349,23 @@ dev 库现状见 §2.5。这条路只影响 **Lucent 自己的药品详情接口
 
 | #    | 事项                                                   | 验收                                  |
 | ---- | ------------------------------------------------------ | ------------------------------------- |
-| P4-1 | 查明 dev 库为何只有 100 条药、关系表为空               | 结论：未导入 / 导入失败 / 重建丢失    |
+| P4-1 | ~~查明 dev 库为何只有 100 条药、关系表为空~~           | **已完成 2026-10-27**：未跑导入       |
 | P4-2 | 跑通全量导入                                           | `drugbank_drugs` ≥ 19,800；关系表 > 0 |
-| P4-3 | 修正 PRODUCT.md §二 关于 `enzymes`「已导入」的错误描述 | 文档与实际 schema 一致                |
+| P4-3 | ~~修正 PRODUCT.md §二 关于 `enzymes`「已导入」的描述~~ | **已澄清 2026-10-27**：见 §2.5 修订注 |
+
+**P4-1 的结论**：不是导入失败，是**从未执行**。`drug_source_imports` 台账里根本没有
+`drugbank_targets_*` / `drugbank_structures` 的记录；只有 drugs（100 行，`--limit` 抽样）、
+patents、properties、fingerprints、pathways、reactions、snp 跑过。
+
+**P4-2 的前置条件（2026-10-27 补）**：解析器依赖 `pyarrow`，PATH 上的 `python` 未必有，
+需用 `PYTHON_BIN` 指向装好依赖的解释器。见 `docs/howto/run-medicine-import.md`。
+注意 `drugbank_drugs` 必须先全量跑，否则任何带 `drugbank_id` 外键的表都会在
+`--limit` 分片时报外键冲突（实测：`drugbank-targets-all --limit 100` 直接失败）。
+
+**2026-10-27 完成的部分**：6 个 JsonB 列已提升为 9 张关系表（`drugbank_drug_interactions`
+/ `products` / `synonyms` / `dosages` / `external_identifiers` / `classifications` /
+`groups` / `manufacturers` / `packagers`），schema 与导入解析器均已就绪并抽样验证。
+**剩余工作只有 P4-2 的全量导入，不再有 schema 或代码改动。**
 
 ---
 
