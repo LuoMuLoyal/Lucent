@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-10-02
+updated: 2026-10-27
 ---
 
 # How-To: 运行药品数据导入
@@ -74,6 +74,27 @@ pnpm import:medicine:all -- --command drugbank-synonyms --limit 100
 不设置时回落到 `python`；缺依赖的表现是 `ModuleNotFoundError: No module named 'pyarrow'`
 后接 `Parser exited with code 1`——不是数据问题，换解释器即可。
 
+### 指纹导入的可选 ID 白名单：`DRUGBANK_ONLY_IDS`
+
+`drugbank-fingerprints` 的可选参数 `--only-ids` 接受一个换行分隔的 DrugBank ID 文件，
+只对其中已入库的药算指纹。**全量导入不需要设置它**：缺省时不限制，SDF 里每个
+`DATABASE_ID` 都会处理（已核验 SDF 的 14,622 个 ID 全部存在于 `drugbank_drugs`，
+不会触发外键）。
+
+需要分批补算时：
+
+```powershell
+# 只给已入库但还没有指纹的药算指纹（避免整份 SDF 重扫）
+psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -t -A -c `
+  "SELECT drugbank_id FROM drugbank_drugs d WHERE NOT EXISTS (SELECT 1 FROM drugbank_fingerprints f WHERE f.drugbank_id=d.drugbank_id)" `
+  | Set-Content $env:TEMP\missing-ids.txt
+$env:DRUGBANK_ONLY_IDS = "$env:TEMP\missing-ids.txt"
+pnpm import:medicine:all -- --command drugbank-fingerprints
+```
+
+未设置的环境变量会被替换成空串（而不是字面量 `${DRUGBANK_ONLY_IDS}`），解析器把空串
+当作"未提供"。
+
 ## 验证
 
 ```bash
@@ -106,8 +127,38 @@ psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -c \
 python -c "import pyarrow.parquet as pq; print(pq.ParquetFile('路径.parquet').metadata.num_rows)"
 ```
 
-对账口径：`cn_medicine_leaflets` = 21,142 · `cn_medicine_products` = 63,889 ·
-`cn_medicine_product_leaflet_links` = 63,889 · `drugbank_drugs` = 19,842。
+对账口径（2026-10-27 全量实测，dev 库）：
+
+| 表                              | 行数                                        |
+| ------------------------------- | ------------------------------------------- |
+| `drugbank_drugs`                | 19,842                                      |
+| `drugbank_external_links`       | 19,842                                      |
+| `drugbank_targets`              | 6,565（all.csv 5,096 + 活跃 1,469）         |
+| `drugbank_drug_targets`         | 34,441（按 `relation_kind` 分两套）         |
+| `drugbank_target_sequences`     | 9,822（蛋白 5,096 + 基因 4,726）            |
+| `drugbank_drug_sequences`       | 615                                         |
+| `drugbank_structures`           | 14,622（= SDF 记录数）                      |
+| `drugbank_fingerprints`         | 14,615（SDF 14,623 中 8 条 RDKit 解析失败） |
+| `drugbank_patents`              | 13,391                                      |
+| `drugbank_properties`           | 328,025（实验 7,244 + 计算 320,782）        |
+| `drugbank_groups`               | 23,864                                      |
+| `drugbank_classifications`      | 11,195                                      |
+| `drugbank_synonyms`             | 52,154                                      |
+| `drugbank_external_identifiers` | 95,541                                      |
+| `drugbank_dosages`              | 99,609                                      |
+| `drugbank_manufacturers`        | 5,971                                       |
+| `drugbank_packagers`            | 20,499                                      |
+| `drugbank_products`             | 468,460                                     |
+| `drugbank_drug_interactions`    | 2,911,156                                   |
+
+中文侧：`cn_medicine_leaflets` = 21,142 · `cn_medicine_products` = 63,889 ·
+`cn_medicine_product_leaflet_links` = 63,889。
+
+**两张表的行数会少于源行数，且这是正确的**：`dosages` 跳过 form/route/strength 全空的行；
+`products` 合并全字段完全相同的重复行。判断依据是「同一药品下，库内行数是否等于源数据按
+**身份键**去重后的数量」——不是直接和源数组长度比。`products` 的身份键必须覆盖全部稳定
+属性，早期只按 `(name, labeller, ndc-product-code)` 建身份，把没有 NDC 的 EU 产品并按
+EMA 编号合并，丢了 37,059 行（`Refludan` 20 mg 与 50 mg 变一条）。
 
 若目标表少于源文件，先查 `drug_source_imports` 里该批次的 `status`：
 

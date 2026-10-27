@@ -228,17 +228,22 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 **查询方式**而不是数据形状：只要需要反查（「哪些药和 X 有关系」）或按内部字段横向筛
 （「哪些药是 withdrawn」），就必须建表——JsonB 下这类查询要展开整列再过滤。
 
-| 表                              | 实测规模                   | 建表理由                                                                   |
-| ------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
-| `drugbank_drug_interactions`    | 4,631 药 / 291 万条        | 药集内部的相互作用对；`interacts_with_id` **不建外键**（对方可能不在本库） |
-| `drugbank_products`             | 4,465 药 / 47 万条         | 按 NDC / labeller / 退市日期筛                                             |
-| `drugbank_synonyms`             | 18,160 药 / 42,961 条      | 按同义词命中并区分 `language` / `coder`（INN）                             |
-| `drugbank_dosages`              | 5,276 药 / 100,085 条      | 剂型与给药途径横向筛                                                       |
-| `drugbank_external_identifiers` | 17,309 药 / 93,636 条      | 按外部 ID 反查本库药物                                                     |
-| `drugbank_classifications`      | 11,195 药                  | 按分类层级名称下钻；每药存一条完整路径                                     |
-| `drugbank_groups`               | 19,842 药全覆盖 / 7,466 条 | 撤市与研究性状态的横向筛选                                                 |
-| `drugbank_manufacturers`        | 829 药 / 5,669 条          | 按厂商反查                                                                 |
-| `drugbank_packagers`            | 1,215 药 / 20,355 条       | 同上                                                                       |
+| 表                              | 实测规模（全量）            | 建表理由                                                                   |
+| ------------------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| `drugbank_drug_interactions`    | 4,631 药 / 2,911,156 条     | 药集内部的相互作用对；`interacts_with_id` **不建外键**（对方可能不在本库） |
+| `drugbank_products`             | 4,465 药 / 468,460 条       | 按 NDC / labeller / 退市日期筛                                             |
+| `drugbank_synonyms`             | 18,160 药 / 52,154 条       | 按同义词命中并区分 `language` / `coder`（INN）                             |
+| `drugbank_dosages`              | 5,273 药 / 99,609 条        | 剂型与给药途径横向筛                                                       |
+| `drugbank_external_identifiers` | 17,309 药 / 95,541 条       | 按外部 ID 反查本库药物                                                     |
+| `drugbank_classifications`      | 11,195 药                   | 按分类层级名称下钻；每药存一条完整路径                                     |
+| `drugbank_groups`               | 19,842 药全覆盖 / 23,864 条 | 撤市与研究性状态的横向筛选                                                 |
+| `drugbank_manufacturers`        | 829 药 / 5,971 条           | 按厂商反查                                                                 |
+| `drugbank_packagers`            | 1,215 药 / 20,499 条        | 同上                                                                       |
+
+> 行数少于源文件的行不代表丢数据：`dosages` 会跳过 form/route/strength 全空的行，
+> `products` 会合并**全字段完全相同**的重复行（源里 USA 与 EMA 各列一次同一产品）。
+> 但身份键必须覆盖全部稳定属性——只按 `(name, labeller, ndc)` 建身份时，没有 NDC 的
+> EU 产品会被错误合并（`Refludan` 20 mg 与 50 mg 合成一条），实测因此丢 37,059 行。
 
 全部使用 `id` 主键 + 业务唯一键（如 `drugbank_groups` 的 `(drugbank_id, group_name)`），
 统一带 `import_run_id` 外键与 `ON DELETE CASCADE`。
