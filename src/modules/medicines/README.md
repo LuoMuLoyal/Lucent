@@ -243,6 +243,18 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 全部使用 `id` 主键 + 业务唯一键（如 `drugbank_groups` 的 `(drugbank_id, group_name)`），
 统一带 `import_run_id` 外键与 `ON DELETE CASCADE`。
 
+**表形状的统一口径**（2026-10-27 补齐）：除 1:1 关系和主表外，所有 `drugbank_*` 表都是
+`id` 主键 + `import_run_id` + `created_at` / `updated_at`。
+
+- `drugbank_drugs` / `drugbank_structures` / `drugbank_fingerprints` **没有 `id`**：
+  前者以 `drugbank_id` 为主键，后两者是它的一对一扩展，共用同一业务主键。给它们加代理
+  主键只会多一层无意义的间接。
+- `drugbank_passage_chunks` **没有 `import_run_id`**：它由 RAG 索引脚本
+  （`rebuild-drugbank-rag-index.ts`）写入，不是导入器；溯源走自己的
+  `source_version` / `source_hash`。
+- `drugbank_drug_targets` 本次补上 `import_run_id`——它是唯一一张被导入器写入却没有批次
+  链接的表（CSV 靶点与 XML 动作富化两个命令都写它），此前无法回答「这批关系来自哪次导入」。
+
 **保持 JsonB 的字段**：`pathways`（3.3%）、`reactions`（5.1%）、`snp_effects`（0.4%）、
 `snp_adverse_effects`（0.2%）、`categories`、`atc_codes`、`international_brands`、
 `food_interactions`、`external_links`。它们只做「按药取整块」，或覆盖率不足以支撑分析。
