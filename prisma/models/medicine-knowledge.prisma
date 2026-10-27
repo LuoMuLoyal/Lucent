@@ -23,6 +23,7 @@ model DrugSourceImport {
   drugbankDrugs         DrugbankDrug[]
   drugbankLinks         DrugbankExternalLink[]
   drugbankTargets       DrugbankTarget[]
+  drugbankDrugTargets   DrugbankDrugTarget[]
   drugbankTargetSeqs    DrugbankTargetSequence[]
   drugbankDrugSeqs      DrugbankDrugSequence[]
   drugbankStructures    DrugbankStructure[]
@@ -328,16 +329,18 @@ model DrugbankTarget {
 }
 
 model DrugbankDrugTarget {
-  id           String         @id @default(uuid())
-  drugbankId   String         @map("drugbank_id")
-  targetId     String         @map("target_id")
-  relationKind String?        @map("relation_kind")
-  actions      Json?          @db.JsonB
-  knownAction  String?        @map("known_action")
-  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  drug         DrugbankDrug   @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
-  target       DrugbankTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  id           String            @id @default(uuid())
+  importRunId  String?           @map("import_run_id")
+  drugbankId   String            @map("drugbank_id")
+  targetId     String            @map("target_id")
+  relationKind String?           @map("relation_kind")
+  actions      Json?             @db.JsonB
+  knownAction  String?           @map("known_action")
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun    DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug         DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+  target       DrugbankTarget    @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([drugbankId, targetId, relationKind])
   @@index([targetId])

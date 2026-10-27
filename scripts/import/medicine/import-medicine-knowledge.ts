@@ -1194,6 +1194,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
             record.source_target_id,
             drugbankId,
           ),
+          import_run_id: importRunId,
           drugbank_id: drugbankId,
           target_id: targetId,
           relation_kind: spec.sourceDataset,
@@ -1209,6 +1210,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
         tableName: 'drugbank_drug_targets',
         columns: [
           'id',
+          'import_run_id',
           'drugbank_id',
           'target_id',
           'relation_kind',
@@ -1216,7 +1218,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
           'known_action',
         ],
         conflictColumns: ['drugbank_id', 'target_id', 'relation_kind'],
-        updateColumns: ['actions', 'known_action'],
+        updateColumns: ['import_run_id', 'actions', 'known_action'],
       },
       relationRecords,
     );
@@ -1244,7 +1246,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
  * Relations with no CSV counterpart are inserted, which is what makes
  * enzyme/carrier/transporter relations appear for the first time.
  */
-async function applyXmlTargetActions(client, pending) {
+async function applyXmlTargetActions(client, pending, importRunId) {
   // Resolve every target once, by name *and* organism.
   //
   // A name-only map is not enough: `drugbank_targets` holds 306 names more than
@@ -1325,6 +1327,7 @@ async function applyXmlTargetActions(client, pending) {
           targetId,
           relationKind,
         ),
+        import_run_id: importRunId,
         drugbank_id: entry.drugbankId,
         target_id: targetId,
         relation_kind: relationKind,
@@ -1353,6 +1356,7 @@ async function applyXmlTargetActions(client, pending) {
         tableName: 'drugbank_drug_targets',
         columns: [
           'id',
+          'import_run_id',
           'drugbank_id',
           'target_id',
           'relation_kind',
@@ -1360,7 +1364,7 @@ async function applyXmlTargetActions(client, pending) {
           'known_action',
         ],
         conflictColumns: ['drugbank_id', 'target_id', 'relation_kind'],
-        updateColumns: ['actions', 'known_action'],
+        updateColumns: ['import_run_id', 'actions', 'known_action'],
       },
       chunk,
     );
@@ -1493,6 +1497,7 @@ async function runImport(command, cliOptions) {
       summary.xmlTargetRelations = await applyXmlTargetActions(
         client,
         pendingXmlTargets,
+        importRunId,
       );
     }
   } catch (error) {
