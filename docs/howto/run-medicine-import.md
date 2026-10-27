@@ -33,7 +33,7 @@ pnpm run | grep import:
 pnpm import:medicine:all
 ```
 
-默认顺序：`drugbank-drugs` → `drugbank-links` → `drugbank-targets-all` → `drugbank-targets-active` → `drugbank-target-proteins` → `drugbank-target-genes` → `drugbank-drug-sequences` → `drugbank-structures` → `cn-v3-leaflets` → `cn-v3-products` → `cn-v3-product-leaflet-links`。
+默认顺序：`drugbank-drugs` → `drugbank-links` → `drugbank-targets-all` → `drugbank-targets-active` → `drugbank-target-proteins` → `drugbank-target-genes` → `drugbank-drug-sequences` → `drugbank-structures` → `drugbank-patents` → `drugbank-experimental-properties` → `drugbank-calculated-properties` → `drugbank-pathways` → `drugbank-reactions` → `drugbank-snp-effects` → `drugbank-snp-adverse-effects` → `drugbank-fingerprints` → `drugbank-groups` → `drugbank-classification` → `drugbank-synonyms` → `drugbank-external-identifiers` → `drugbank-dosages` → `drugbank-manufacturers` → `drugbank-packagers` → `drugbank-products` → `drugbank-drug-interactions` → `cn-v3-leaflets` → `cn-v3-products` → `cn-v3-product-leaflet-links`。
 
 **按数据源分跑**（用 `--command` 指定）：
 | 数据源 | 命令 | 说明 |
@@ -44,6 +44,9 @@ pnpm import:medicine:all
 | DrugBank 靶点 | `--command drugbank-targets-all` / `drugbank-targets-active` | all.csv / pharmacologically_active.csv |
 | DrugBank 序列 | `--command drugbank-target-proteins` / `drugbank-target-genes` / `drugbank-drug-sequences` | FASTA 文件 |
 | DrugBank 结构描述符 | `--command drugbank-structures` | structures.sdf |
+| DrugBank 专利 | `--command drugbank-patents` | 按到期日可查 |
+| DrugBank 属性 | `--command drugbank-experimental-properties` / `drugbank-calculated-properties` | 键值对，保留来源 |
+| DrugBank 关系表 | `--command drugbank-groups` / `drugbank-classification` / `drugbank-synonyms` / `drugbank-external-identifiers` / `drugbank-dosages` / `drugbank-manufacturers` / `drugbank-packagers` / `drugbank-products` / `drugbank-drug-interactions` | 由 JsonB 提升而来，均对 `drugbank_drugs` 有外键 |
 
 可用命令完整列表见 `import-medicine-knowledge.ts` 的 `COMMANDS` 注册表。
 
@@ -58,6 +61,19 @@ pnpm import:medicine:all
 - `--limit <n>` — 只导入前 N 条（冒烟测试用）
 - `--batch-size <n>` — 每批 upsert 行数，默认 100
 
+### Python 解释器：`PYTHON_BIN`
+
+解析器是 Python 程序，依赖 `pyarrow`（`drugbank_fingerprints.py` 还需要 RDKit）。
+PATH 上的 `python` 未必装了它们，用 `PYTHON_BIN` 指向真正带依赖的解释器：
+
+```powershell
+$env:PYTHON_BIN = "D:\25080\Documents\VSCodeProject\Lumos\DrugDataBase\.venv312\Scripts\python.exe"
+pnpm import:medicine:all -- --command drugbank-synonyms --limit 100
+```
+
+不设置时回落到 `python`；缺依赖的表现是 `ModuleNotFoundError: No module named 'pyarrow'`
+后接 `Parser exited with code 1`——不是数据问题，换解释器即可。
+
 ## 验证
 
 ```bash
@@ -68,7 +84,16 @@ psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -c \
    UNION ALL SELECT 'cn_links', count(*) FROM cn_medicine_product_leaflet_links
    UNION ALL SELECT 'drugbank', count(*) FROM drugbank_drugs
    UNION ALL SELECT 'drugbank_targets', count(*) FROM drugbank_targets
-   UNION ALL SELECT 'drugbank_structures', count(*) FROM drugbank_structures;"
+   UNION ALL SELECT 'drugbank_structures', count(*) FROM drugbank_structures
+   UNION ALL SELECT 'db_groups', count(*) FROM drugbank_groups
+   UNION ALL SELECT 'db_classifications', count(*) FROM drugbank_classifications
+   UNION ALL SELECT 'db_synonyms', count(*) FROM drugbank_synonyms
+   UNION ALL SELECT 'db_external_ids', count(*) FROM drugbank_external_identifiers
+   UNION ALL SELECT 'db_dosages', count(*) FROM drugbank_dosages
+   UNION ALL SELECT 'db_manufacturers', count(*) FROM drugbank_manufacturers
+   UNION ALL SELECT 'db_packagers', count(*) FROM drugbank_packagers
+   UNION ALL SELECT 'db_products', count(*) FROM drugbank_products
+   UNION ALL SELECT 'db_interactions', count(*) FROM drugbank_drug_interactions;"
 ```
 
 ### 行数必须与源文件对账

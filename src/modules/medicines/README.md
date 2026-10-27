@@ -222,6 +222,33 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 一药一行）、`drugbank_passage_chunks`（DrugBank RAG）、
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
 
+### DrugBank 多值字段：关系表（2026-10-27 由 JsonB 提升）
+
+下列九张表取代了 `drugbank_drugs` 上原有的同名字段 JsonB 列（列已删除）。判断依据是
+**查询方式**而不是数据形状：只要需要反查（「哪些药和 X 有关系」）或按内部字段横向筛
+（「哪些药是 withdrawn」），就必须建表——JsonB 下这类查询要展开整列再过滤。
+
+| 表                              | 实测规模                   | 建表理由                                                                   |
+| ------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| `drugbank_drug_interactions`    | 4,631 药 / 291 万条        | 药集内部的相互作用对；`interacts_with_id` **不建外键**（对方可能不在本库） |
+| `drugbank_products`             | 4,465 药 / 47 万条         | 按 NDC / labeller / 退市日期筛                                             |
+| `drugbank_synonyms`             | 18,160 药 / 42,961 条      | 按同义词命中并区分 `language` / `coder`（INN）                             |
+| `drugbank_dosages`              | 5,276 药 / 100,085 条      | 剂型与给药途径横向筛                                                       |
+| `drugbank_external_identifiers` | 17,309 药 / 93,636 条      | 按外部 ID 反查本库药物                                                     |
+| `drugbank_classifications`      | 11,195 药                  | 按分类层级名称下钻；每药存一条完整路径                                     |
+| `drugbank_groups`               | 19,842 药全覆盖 / 7,466 条 | 撤市与研究性状态的横向筛选                                                 |
+| `drugbank_manufacturers`        | 829 药 / 5,669 条          | 按厂商反查                                                                 |
+| `drugbank_packagers`            | 1,215 药 / 20,355 条       | 同上                                                                       |
+
+全部使用 `id` 主键 + 业务唯一键（如 `drugbank_groups` 的 `(drugbank_id, group_name)`），
+统一带 `import_run_id` 外键与 `ON DELETE CASCADE`。
+
+**保持 JsonB 的字段**：`pathways`（3.3%）、`reactions`（5.1%）、`snp_effects`（0.4%）、
+`snp_adverse_effects`（0.2%）、`categories`、`atc_codes`、`international_brands`、
+`food_interactions`、`external_links`。它们只做「按药取整块」，或覆盖率不足以支撑分析。
+`carriers` 不单独建表——已由 `drugbank_drug_targets.relation_kind='carrier'` 承载。
+`ahfs_codes` 源里全为空，不入库。
+
 ## 导入策略（契约要点）
 
 > **药品目录导入不在本模块内。** 没有 `ImportCatalogService` 这类 Nest 服务——
@@ -231,10 +258,14 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 > 写入路径，而那里没有。
 
 - 入口 `pnpm import:medicine:all`：drugbank-drugs → links → targets-all →
-  targets-active → target-proteins → target-genes → drug-structures →
+  targets-active → target-proteins → target-genes → drug-structures → patents →
+  experimental-properties → calculated-properties → pathways → reactions →
+  snp-effects → snp-adverse-effects → fingerprints →
+  **groups → classification → synonyms → external-identifiers → dosages →
+  manufacturers → packagers → products → drug-interactions** →
   cn-v3-leaflets → cn-v3-products → cn-v3-product-leaflet-links
-  （顺序源于外键依赖：药序列对 `drugbank_drugs`
-  有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
+  （顺序源于外键依赖：药序列、patents、properties 以及上列九张关系表都对
+  `drugbank_drugs` 有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
 - **导入路径（仅 V3）**：`DrugEntityDedup/products_dedup.parquet` 等 Parquet 文件，
   已做去重 + 保健品删除 + 名称冲突修正 + 条码/国药码并集；导入命令为
   `cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`，
@@ -263,8 +294,9 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 - **DrugBank 源**：`DrugDataBase/derived/drugbank/drugbank_drugs.parquet` —— `full
 database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>` 的直接子元素
   `<drug>`」过滤掉 `<pathways>` 里的约 99.4 万条嵌套引用，因此解析器一药一行；
-  `full database.xml` 不再参与导入。落库仍是原来的 34 列，Parquet 多出的 `prices` /
-  `manufacturers` / `patents` / `dosages` / `pathways` / `snp_effects` 等尚无对应表列。
+  `full database.xml` 不再参与导入。药表保留 34 个标量与整块 JsonB 列；多值字段按上文
+  「关系表」一节拆出九张表。Parquet 里仍未进库的只剩 `prices`、`mixtures`、`salts`、
+  `synthesis-reference`、`affected-organisms`（无独立表，且查询需求尚未出现）。
 - DrugBank 映射：`drugbank_id` 主键、`secondary_drugbank_ids`、科学叙事字段
   清单化进 RAG chunks（仅 description/indication/MoA/pd/toxicity 等核准字段）；
   原始大文件不入 Git。
