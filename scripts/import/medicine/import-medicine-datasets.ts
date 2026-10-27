@@ -34,6 +34,16 @@ const VALID_COMMANDS = new Set([
   'drugbank-snp-effects',
   'drugbank-snp-adverse-effects',
   'drugbank-fingerprints',
+  // Promoted JsonB -> relation tables (see import-medicine-knowledge.ts).
+  'drugbank-groups',
+  'drugbank-classification',
+  'drugbank-synonyms',
+  'drugbank-external-identifiers',
+  'drugbank-dosages',
+  'drugbank-manufacturers',
+  'drugbank-packagers',
+  'drugbank-products',
+  'drugbank-drug-interactions',
 ]);
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
@@ -93,6 +103,17 @@ function main() {
           'drugbank-snp-effects',
           'drugbank-snp-adverse-effects',
           'drugbank-fingerprints',
+          // Promoted JsonB -> relation tables. All hold a foreign key onto
+          // `drugbank_drugs`, so they must follow it.
+          'drugbank-groups',
+          'drugbank-classification',
+          'drugbank-synonyms',
+          'drugbank-external-identifiers',
+          'drugbank-dosages',
+          'drugbank-manufacturers',
+          'drugbank-packagers',
+          'drugbank-products',
+          'drugbank-drug-interactions',
           // V3 (deduplicated) is the default Chinese source. V3 cn-v3-*
           // commands are the sole CN import path; V2 commands were removed.
           'cn-v3-leaflets',
