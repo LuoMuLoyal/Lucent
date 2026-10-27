@@ -29,6 +29,15 @@ model DrugSourceImport {
   drugbankPatents       DrugbankPatent[]
   drugbankProperties    DrugbankProperty[]
   drugbankFingerprints  DrugbankFingerprint[]
+  drugbankInteractions  DrugbankDrugInteraction[]
+  drugbankProducts      DrugbankProduct[]
+  drugbankSynonyms      DrugbankSynonym[]
+  drugbankManufacturers DrugbankManufacturer[]
+  drugbankPackagers     DrugbankPackager[]
+  drugbankDosages       DrugbankDosage[]
+  drugbankExternalIds   DrugbankExternalIdentifier[]
+  drugbankClassifications DrugbankClassification[]
+  drugbankGroups        DrugbankGroup[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
@@ -179,7 +188,6 @@ model DrugbankDrug {
   casNumber            String?                @map("cas_number")
   unii                 String?
   state                String?
-  groups               Json?                  @db.JsonB
   indication           String?
   pharmacodynamics     String?
   mechanismOfAction    String?                @map("mechanism_of_action")
@@ -191,15 +199,13 @@ model DrugbankDrug {
   routeOfElimination   String?                @map("route_of_elimination")
   volumeOfDistribution String?                @map("volume_of_distribution")
   clearance            String?
-  classification       Json?                  @db.JsonB
-  synonyms             Json?                  @db.JsonB
-  products             Json?                  @db.JsonB
+  /// International brand names. Kept as JSON: 11% coverage, read as a whole block.
   internationalBrands  Json?                  @map("international_brands") @db.JsonB
+  /// MeSH-style therapeutic categories. Kept as JSON: used as display tags only.
   categories           Json?                  @db.JsonB
+  /// ATC codes. Kept as JSON: ≤1 per drug, read as a whole block.
   atcCodes             Json?                  @map("atc_codes") @db.JsonB
   foodInteractions     Json?                  @map("food_interactions") @db.JsonB
-  drugInteractions     Json?                  @map("drug_interactions") @db.JsonB
-  externalIdentifiers  Json?                  @map("external_identifiers") @db.JsonB
   externalLinks        Json?                  @map("external_links") @db.JsonB
   /// SMPDB pathways. Kept as JSON because coverage is ~3% of drugs and the only
   /// read pattern is "fetch the whole block for one drug" — see PRODUCT §3.
@@ -224,6 +230,15 @@ model DrugbankDrug {
   patents              DrugbankPatent[]
   properties           DrugbankProperty[]
   fingerprint          DrugbankFingerprint?
+  interactions         DrugbankDrugInteraction[]
+  products             DrugbankProduct[]
+  synonymRows          DrugbankSynonym[]
+  manufacturers        DrugbankManufacturer[]
+  packagers            DrugbankPackager[]
+  dosageRows           DrugbankDosage[]
+  externalIdentifierRows DrugbankExternalIdentifier[]
+  classificationRow    DrugbankClassification?
+  groupRows            DrugbankGroup[]
 
   @@index([name])
   @@index([casNumber])
@@ -524,3 +539,250 @@ model DrugbankFingerprint {
 
   @@map("drugbank_fingerprints")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 从 JsonB 提升为关系表的多值字段
+//
+// 判断标准沿用「查询方式决定结构，而不是数据形状」：只有当一件事需要
+// **反查**（"哪些药和 X 相互作用""哪些商品由 Y 生产""哪些药属于 Z 分类"）
+// 或者需要**按内部字段过滤/排序**时，才建表。只是"按药取整块"的保持 JsonB。
+//
+// 每个 model 的注释都写明该字段的实测规模（19,842 个药样本），
+// 数据量太小、不支撑分析能力的字段不建表（见文件末尾的说明）。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// 药物-药物相互作用。**实测 4,631 个药、291 万条**，是 DrugBank 里最大的多值字段。
+///
+/// 建表的理由不是条数，而是**反查**：`PRODUCT.md` A4 要求"给一组药，列出它们
+/// 之间的相互作用对"，这是 `WHERE drugbank_id = ANY($set) AND interacts_with_id = ANY($set)`，
+/// JsonB 做不到（每次都要展开整列再过滤）。
+///
+/// `interactsWithId` 指向对方药物，**不建外键**：DrugBank 的相互作用里会出现
+/// 不在本库中的化合物（已撤市、外部数据源引入），硬外键会拒掉这些行。
+model DrugbankDrugInteraction {
+  id              String            @id @default(uuid())
+  importRunId     String?           @map("import_run_id")
+  drugbankId      String            @map("drugbank_id")
+  /// 对方药物的 DrugBank ID；可能不在 `drugbank_drugs` 里，故无外键。
+  interactsWithId String            @map("interacts_with_id")
+  /// 对方药物名称原文，用于无法 join 到主表时仍能展示。
+  interactsWithName String?         @map("interacts_with_name")
+  description     String?
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun       DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug            DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, interactsWithId])
+  @@index([interactsWithId])
+  @@map("drugbank_drug_interactions")
+}
+
+/// 药品商品/上市信息。**实测 4,465 个药、47 万条**。
+///
+/// 建表理由：要按 NDC、labeller、上市/退市日期查询（`PRODUCT.md` A10 的
+/// 撤市筛查、B1 的仿制药机会都要用到），这些是典型的关系查询。
+model DrugbankProduct {
+  id                String            @id @default(uuid())
+  importRunId       String?           @map("import_run_id")
+  drugbankId        String            @map("drugbank_id")
+  name              String
+  labeller          String?
+  ndcId             String?           @map("ndc_id")
+  ndcProductCode    String?           @map("ndc_product_code")
+  dpdId             String?           @map("dpd_id")
+  emaProductCode    String?           @map("ema_product_code")
+  emaMaNumber       String?           @map("ema_ma_number")
+  dosageForm        String?           @map("dosage_form")
+  strength          String?
+  route             String?
+  fdaApplicationNumber String?        @map("fda_application_number")
+  generic           Boolean?
+  overTheCounter    Boolean?          @map("over_the_counter")
+  approved          Boolean?
+  country           String?
+  startedMarketingOn DateTime?        @map("started_marketing_on") @db.Date
+  endedMarketingOn  DateTime?         @map("ended_marketing_on") @db.Date
+  source            String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun         DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug              DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@index([drugbankId])
+  @@index([name])
+  @@index([ndcProductCode])
+  @@index([labeller])
+  @@index([endedMarketingOn])
+  @@map("drugbank_products")
+}
+
+/// 药物同义词。**实测 18,160 个药、42,961 条（91.5% 覆盖）**。
+///
+/// 建表理由：搜索要**按同义词命中**并按语言 / INN 标记区分——原来的
+/// `search_text` 拼接列只取前 20 条且命中后无法知道命中的是哪个同义词。
+///
+/// `language` 与 `coder` 来自源 XML 的属性；`isInn` 在源里没有独立标记，
+/// 由 `coder == "inn"` 推导，未见该值时为 null（不臆测）。
+model DrugbankSynonym {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  synonym     String
+  language    String?
+  /// 源里的 `coder` 属性（如 `inn`）；空串归一为 null。
+  coder       String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, synonym])
+  @@index([synonym])
+  @@map("drugbank_synonyms")
+}
+
+/// 生产商。**实测 829 个药、5,669 条**。按厂商反查（"某厂生产哪些药"）。
+model DrugbankManufacturer {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  name        String
+  generic     Boolean?
+  url         String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, name])
+  @@index([name])
+  @@map("drugbank_manufacturers")
+}
+
+/// 分包装商。**实测 1,215 个药、20,355 条**。
+model DrugbankPackager {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  name        String
+  url         String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, name])
+  @@index([name])
+  @@map("drugbank_packagers")
+}
+
+/// 给药剂量/剂型/途径。**实测 5,276 个药、100,085 条**。
+///
+/// 建表理由：剂型与给药途径要能横向筛选（`PRODUCT.md` A12 的"制剂与给药方案参考"），
+/// 而不是只能按药取整块。
+model DrugbankDosage {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  form        String?
+  route       String?
+  strength    String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, form, route, strength])
+  @@index([form])
+  @@index([route])
+  @@map("drugbank_dosages")
+}
+
+/// 外部数据库标识符（ChEBI、PubChem、KEGG、PharmGKB、TTD、RxCUI...）。
+/// **实测 17,309 个药、93,636 条（5.4 条/药）**。
+///
+/// 建表理由：`PRODUCT.md` A5 要"把本工具接进用户已有工作流"，核心是**按外部 ID
+/// 反查本库药物**（用户手上是 ChEBI:15377，要找到对应的药）。JsonB 下这是全表扫描。
+model DrugbankExternalIdentifier {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  /// 源里的 `resource` 原文，如 `PubChem Compound`、`ChEBI`。
+  resource    String
+  identifier  String
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, resource, identifier])
+  @@index([resource, identifier])
+  @@map("drugbank_external_identifiers")
+}
+
+/// 化学分类层级（Kingdom → Superclass → Class → Subclass → Direct Parent）。
+/// **实测 11,195 个药**。
+///
+/// 建表理由：`PRODUCT.md` A9 要"按化学结构族浏览并逐层下钻"，
+/// 即按某一层级的**名称**筛出全部药物——这是关系查询，不是取整块。
+///
+/// 每行是该药物的**一条分类路径**（含各级），而不是一个节点：这样
+/// `WHERE kingdom = 'Organic Compounds'` 可直接命中，不必解析嵌套。
+model DrugbankClassification {
+  id            String            @id @default(uuid())
+  importRunId   String?           @map("import_run_id")
+  drugbankId    String            @map("drugbank_id")
+  kingdom       String?
+  superclass    String?
+  className     String?           @map("class")
+  subclass      String?
+  directParent  String?           @map("direct_parent")
+  description   String?
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun     DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug          DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId])
+  @@index([kingdom])
+  @@index([superclass])
+  @@index([className])
+  @@index([subclass])
+  @@map("drugbank_classifications")
+}
+
+/// 药物状态分组（approved / withdrawn / investigational / vet_approved）。
+/// **实测 19,842 个药全覆盖、7,466 条**。
+///
+/// 建表理由：`PRODUCT.md` A10 的"撤市与状态筛查"本质是
+/// `WHERE group = 'withdrawn'` 的横向筛选；0.4 条/药的规模不该由条数决定，
+/// 而由**查询方式**决定，这里需要横向筛。
+model DrugbankGroup {
+  drugbankId String            @map("drugbank_id")
+  groupName  String            @map("group_name")
+  importRunId String?          @map("import_run_id")
+  importRun  DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug       DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@id([drugbankId, groupName])
+  @@index([groupName])
+  @@map("drugbank_groups")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 不建表（保持 JsonB 或直接不入库）的字段及理由
+//
+// 实测覆盖率太低，或只支持"有则展示"、不支撑任何分析能力。建表会让
+// schema 变复杂而查询能力没有增加：
+//
+//   snp_effects                 0.4%（80 个药）   PRODUCT.md C1：样本太少，任何统计都不成立
+//   snp_adverse_drug_reactions  0.2%（45 个药）   同上
+//   sequences                   1.7%（335 个药） 本身是独立表 drugbank_drug_sequences
+//   carriers                    3.5%（695 个药） 已有 drugbank_drug_targets + relation_kind 承载
+//   pathways                    3.3%（652 个药） 按药取整块，不反查
+//   reactions                   5.1%（1,014 个药）链式结构，中间产物是 DBMET 代谢物不是药物
+//   atc_codes                   0.8 条/药        小集合，随药物整块读取
+//   categories                  56% 但只用于打标签   按药取整块，不反查
+//   ahfs_codes                  0%              源里全部为空
+// ─────────────────────────────────────────────────────────────────────────────
