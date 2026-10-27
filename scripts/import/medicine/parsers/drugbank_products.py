@@ -74,35 +74,62 @@ def main() -> None:
                 emit_error("Product without name", row_number)
                 continue
 
-            # A drug lists the same product name under several NDAs/labellers, so
-            # the identity includes both to stay unique.
+            # Identity covers every stable product attribute, not just
+            # name/labeller/NDC: EU products carry no NDC at all and are told
+            # apart only by their EMA marketing-authorisation number and
+            # strength (e.g. Refludan 20 mg vs 50 mg). Keying on name/labeller/
+            # NDC alone silently merged them — 37k of 475k product rows.
             labeller = text_of(product, "labeller")
+            ndc_id = text_of(product, "ndc-id")
             ndc_code = text_of(product, "ndc-product-code")
+            dpd_id = text_of(product, "dpd-id")
+            ema_product_code = text_of(product, "ema-product-code")
+            ema_ma_number = text_of(product, "ema-ma-number")
+            dosage_form = text_of(product, "dosage-form")
+            strength = text_of(product, "strength")
+            route = text_of(product, "route")
+            fda_application_number = text_of(product, "fda-application-number")
+            country = text_of(product, "country")
+            source = text_of(product, "source")
 
             emit_record(
                 {
                     "id": stable_uuid(
-                        "drugbank_products", source_id, name, labeller or "", ndc_code or ""
+                        "drugbank_products",
+                        source_id,
+                        name,
+                        labeller or "",
+                        ndc_id or "",
+                        ndc_code or "",
+                        dpd_id or "",
+                        ema_product_code or "",
+                        ema_ma_number or "",
+                        dosage_form or "",
+                        strength or "",
+                        route or "",
+                        fda_application_number or "",
+                        country or "",
+                        source or "",
                     ),
                     "drugbank_id": source_id,
                     "name": name,
                     "labeller": labeller,
-                    "ndc_id": text_of(product, "ndc-id"),
+                    "ndc_id": ndc_id,
                     "ndc_product_code": ndc_code,
-                    "dpd_id": text_of(product, "dpd-id"),
-                    "ema_product_code": text_of(product, "ema-product-code"),
-                    "ema_ma_number": text_of(product, "ema-ma-number"),
-                    "dosage_form": text_of(product, "dosage-form"),
-                    "strength": text_of(product, "strength"),
-                    "route": text_of(product, "route"),
-                    "fda_application_number": text_of(product, "fda-application-number"),
+                    "dpd_id": dpd_id,
+                    "ema_product_code": ema_product_code,
+                    "ema_ma_number": ema_ma_number,
+                    "dosage_form": dosage_form,
+                    "strength": strength,
+                    "route": route,
+                    "fda_application_number": fda_application_number,
                     "generic": parse_flag(product.get("generic")),
                     "over_the_counter": parse_flag(product.get("over-the-counter")),
                     "approved": parse_flag(product.get("approved")),
-                    "country": text_of(product, "country"),
+                    "country": country,
                     "started_marketing_on": parse_date(product.get("started-marketing-on")),
                     "ended_marketing_on": parse_date(product.get("ended-marketing-on")),
-                    "source": text_of(product, "source"),
+                    "source": source,
                 }
             )
 
