@@ -995,8 +995,8 @@ const COMMANDS = {
     sourceName: 'drugbank_groups_parquet',
     tableName: 'drugbank_groups',
     parserArgs: ['--column', 'groups'],
-    columns: ['drugbank_id', 'group_name', 'import_run_id'],
-    conflictColumns: ['drugbank_id', 'group_name'],
+    columns: ['id', 'import_run_id', 'drugbank_id', 'group_name'],
+    conflictColumns: ['id'],
     updateColumns: ['import_run_id'],
   },
 };

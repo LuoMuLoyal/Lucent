@@ -1,13 +1,15 @@
--- 把 DrugBank 的多值 JsonB 字段提升为关系表。
+-- Promote DrugBank's multi-valued JsonB fields to relation tables.
 --
--- 判断标准是**查询方式**而不是数据形状（与 PRODUCT.md §三 一致）：只有当一件事
--- 需要反查（"哪些药和 X 相互作用"）或按内部字段筛选（"哪些药属于 withdrawn"）
--- 时才建表。规模见每张表的注释（19,842 个药的实测值）。
+-- The criterion is the *query shape*, not the data shape: a field becomes a
+-- table only when something needs a reverse lookup ("which drugs interact with
+-- X") or an inner-field filter ("which drugs are withdrawn"). Sizes in the
+-- section headers are measured over the 19,842-drug corpus.
 --
--- 被取代的 JsonB 列在同一迁移里 DROP：留着会出现两份事实源，而 JsonB 那份
--- 在导入器改写后将不再更新，属于典型的"静默过期"。
+-- The superseded JsonB columns are dropped in this same migration: leaving them
+-- would create a second source of truth that the rewritten importer never
+-- updates again, i.e. silent staleness.
 
--- ── 1. 药物-药物相互作用（4,631 药 / 291 万条）────────────────────────────
+-- ── 1. Drug-drug interaction (4,631 drugs / 2.9M rows) ────────────────────
 CREATE TABLE "drugbank_drug_interactions" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -17,16 +19,18 @@ CREATE TABLE "drugbank_drug_interactions" (
     "description" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_drug_interactions_pkey" PRIMARY KEY ("id")
 );
 
--- 对方药物可能不在 drugbank_drugs 里（已撤市/外部来源），因此不建外键。
+-- The partner drug may be absent from drugbank_drugs (withdrawn products,
+-- entities from other sources), so there is deliberately no foreign key here.
 CREATE UNIQUE INDEX "drugbank_drug_interactions_drugbank_id_interacts_with_id_key"
     ON "drugbank_drug_interactions"("drugbank_id", "interacts_with_id");
 CREATE INDEX "drugbank_drug_interactions_interacts_with_id_idx"
     ON "drugbank_drug_interactions"("interacts_with_id");
 
--- ── 2. 商品/上市信息（4,465 药 / 47 万条）────────────────────────────────
+-- ── 2. Product / label information (4,465 drugs / 474k rows) ──────────────
 CREATE TABLE "drugbank_products" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -51,6 +55,7 @@ CREATE TABLE "drugbank_products" (
     "source" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_products_pkey" PRIMARY KEY ("id")
 );
 
@@ -58,10 +63,10 @@ CREATE INDEX "drugbank_products_drugbank_id_idx" ON "drugbank_products"("drugban
 CREATE INDEX "drugbank_products_name_idx" ON "drugbank_products"("name");
 CREATE INDEX "drugbank_products_ndc_product_code_idx" ON "drugbank_products"("ndc_product_code");
 CREATE INDEX "drugbank_products_labeller_idx" ON "drugbank_products"("labeller");
--- 撤市筛查按退市日期过滤
+-- Withdrawal screening filters on the marketing end date.
 CREATE INDEX "drugbank_products_ended_marketing_on_idx" ON "drugbank_products"("ended_marketing_on");
 
--- ── 3. 同义词（18,160 药 / 42,961 条，91.5% 覆盖）───────────────────────
+-- ── 3. Synonyms (18,160 drugs / 42,961 rows, 91.5%) ──────────────────────
 CREATE TABLE "drugbank_synonyms" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -71,15 +76,16 @@ CREATE TABLE "drugbank_synonyms" (
     "coder" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_synonyms_pkey" PRIMARY KEY ("id")
 );
 
 CREATE UNIQUE INDEX "drugbank_synonyms_drugbank_id_synonym_key"
     ON "drugbank_synonyms"("drugbank_id", "synonym");
--- 按同义词搜索；pg_trgm 已在本库启用（1.6）
+-- Synonym search; pg_trgm is already installed in this database (1.6).
 CREATE INDEX "drugbank_synonyms_synonym_idx" ON "drugbank_synonyms"("synonym");
 
--- ── 4. 生产商（829 药 / 5,669 条）────────────────────────────────────────
+-- ── 4. Manufacturers (829 drugs / 5,669 rows) ────────────────────────────
 CREATE TABLE "drugbank_manufacturers" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -89,6 +95,7 @@ CREATE TABLE "drugbank_manufacturers" (
     "url" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_manufacturers_pkey" PRIMARY KEY ("id")
 );
 
@@ -96,7 +103,7 @@ CREATE UNIQUE INDEX "drugbank_manufacturers_drugbank_id_name_key"
     ON "drugbank_manufacturers"("drugbank_id", "name");
 CREATE INDEX "drugbank_manufacturers_name_idx" ON "drugbank_manufacturers"("name");
 
--- ── 5. 分包装商（1,215 药 / 20,355 条）──────────────────────────────────
+-- ── 5. Packagers (1,215 drugs / 20,355 rows) ─────────────────────────────
 CREATE TABLE "drugbank_packagers" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -105,6 +112,7 @@ CREATE TABLE "drugbank_packagers" (
     "url" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_packagers_pkey" PRIMARY KEY ("id")
 );
 
@@ -112,7 +120,7 @@ CREATE UNIQUE INDEX "drugbank_packagers_drugbank_id_name_key"
     ON "drugbank_packagers"("drugbank_id", "name");
 CREATE INDEX "drugbank_packagers_name_idx" ON "drugbank_packagers"("name");
 
--- ── 6. 剂量/剂型/途径（5,276 药 / 100,085 条）───────────────────────────
+-- ── 6. Dosage form / route / strength (5,276 drugs / 100,085 rows) ───────
 CREATE TABLE "drugbank_dosages" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -122,6 +130,7 @@ CREATE TABLE "drugbank_dosages" (
     "strength" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_dosages_pkey" PRIMARY KEY ("id")
 );
 
@@ -130,7 +139,7 @@ CREATE UNIQUE INDEX "drugbank_dosages_drugbank_id_form_route_strength_key"
 CREATE INDEX "drugbank_dosages_form_idx" ON "drugbank_dosages"("form");
 CREATE INDEX "drugbank_dosages_route_idx" ON "drugbank_dosages"("route");
 
--- ── 7. 外部标识符（17,309 药 / 93,636 条）───────────────────────────────
+-- ── 7. External identifiers (17,309 drugs / 93,636 rows) ─────────────────
 CREATE TABLE "drugbank_external_identifiers" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -139,16 +148,17 @@ CREATE TABLE "drugbank_external_identifiers" (
     "identifier" TEXT NOT NULL,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_external_identifiers_pkey" PRIMARY KEY ("id")
 );
 
 CREATE UNIQUE INDEX "drugbank_external_identifiers_drugbank_id_resource_identifier_key"
     ON "drugbank_external_identifiers"("drugbank_id", "resource", "identifier");
--- 按外部 ID 反查本库药物（A5：用户手上有 ChEBI:15377）
+-- Reverse lookup: a user holding a ChEBI or PubChem id finding the drug.
 CREATE INDEX "drugbank_external_identifiers_resource_identifier_idx"
     ON "drugbank_external_identifiers"("resource", "identifier");
 
--- ── 8. 化学分类（11,195 药，每药一条路径）───────────────────────────────
+-- ── 8. Chemical classification path (11,195 drugs, one row each) ─────────
 CREATE TABLE "drugbank_classifications" (
     "id" TEXT NOT NULL,
     "import_run_id" TEXT,
@@ -161,6 +171,7 @@ CREATE TABLE "drugbank_classifications" (
     "description" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "drugbank_classifications_pkey" PRIMARY KEY ("id")
 );
 
@@ -171,20 +182,23 @@ CREATE INDEX "drugbank_classifications_superclass_idx" ON "drugbank_classificati
 CREATE INDEX "drugbank_classifications_class_idx" ON "drugbank_classifications"("class");
 CREATE INDEX "drugbank_classifications_subclass_idx" ON "drugbank_classifications"("subclass");
 
--- ── 9. 状态分组（19,842 药全覆盖 / 7,466 条）────────────────────────────
+-- ── 9. Approval group membership (all 19,842 drugs / 7,466 rows) ─────────
 CREATE TABLE "drugbank_groups" (
+    "id" TEXT NOT NULL,
+    "import_run_id" TEXT,
     "drugbank_id" TEXT NOT NULL,
     "group_name" TEXT NOT NULL,
-    "import_run_id" TEXT,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "drugbank_groups_pkey" PRIMARY KEY ("drugbank_id","group_name")
+    CONSTRAINT "drugbank_groups_pkey" PRIMARY KEY ("id")
 );
 
+CREATE UNIQUE INDEX "drugbank_groups_drugbank_id_group_name_key"
+    ON "drugbank_groups"("drugbank_id", "group_name");
 CREATE INDEX "drugbank_groups_group_name_idx" ON "drugbank_groups"("group_name");
 
--- ── 10. 外键（全部 ON DELETE CASCADE，随药物删除）───────────────────────
+-- ── 10. Foreign keys (all ON DELETE CASCADE: rows die with their drug) ───
 ALTER TABLE "drugbank_drug_interactions"
     ADD CONSTRAINT "drugbank_drug_interactions_import_run_id_fkey"
     FOREIGN KEY ("import_run_id") REFERENCES "drug_source_imports"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -248,8 +262,9 @@ ALTER TABLE "drugbank_groups"
     ADD CONSTRAINT "drugbank_groups_drugbank_id_fkey"
     FOREIGN KEY ("drugbank_id") REFERENCES "drugbank_drugs"("drugbank_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- ── 11. 删除被取代的 JsonB 列 ──────────────────────────────────────────
--- 这些列的数据在新表里重建（导入器已改写），留着会成为不再更新的第二份事实源。
+-- ── 11. Drop the superseded JsonB columns ────────────────────────────────
+-- Their data is rebuilt into the tables above by the rewritten importers;
+-- keeping them would leave a second source of truth that never updates again.
 ALTER TABLE "drugbank_drugs" DROP COLUMN IF EXISTS "groups";
 ALTER TABLE "drugbank_drugs" DROP COLUMN IF EXISTS "classification";
 ALTER TABLE "drugbank_drugs" DROP COLUMN IF EXISTS "synonyms";

@@ -114,6 +114,7 @@ def main() -> None:
                 continue
             emit_record(
                 {
+                    "id": stable_uuid("drugbank_groups", source_id, group_name),
                     "drugbank_id": source_id,
                     "group_name": group_name,
                 }
