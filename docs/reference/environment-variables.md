@@ -437,7 +437,7 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
 
 运维家族的运行时覆盖：
 
-- `LOG_LEVEL` 发布后立即改写 Winston 的 `logger.level` 与每个 transport 的级别，无需
+- `LOG_LEVEL` 发布后立即改写 pino 根 logger 的 `level`（`PinoLogger.root.level`），无需
   重启；启动时按 `NODE_ENV` 解析出的级别是基线。
 - `SLOW_REQUEST_THRESHOLD_MS` / `SLOW_QUERY_THRESHOLD_MS` 在**每次观测**读取快照：
   改动只影响之后的请求与查询，已记录的慢日志不受影响。
@@ -685,7 +685,7 @@ OTEL_TRACES_SAMPLER_ARG
 VICTORIALOGS_URL
 ```
 
-- `LOG_LEVEL` — Winston log level (`error` / `warn` / `info` / `debug` / `verbose`).
+- `LOG_LEVEL` — pino log level (`error` / `warn` / `info` / `debug` / `verbose`).
   **未设置**时按环境取默认（在 `src/common/logger/logger.config.ts` 的 `resolveLevel` 解析）：
   development = `debug`、test = `error`、production = `info`。显式设置的值总是优先。
   校验层刻意**不**给它默认值 —— 写死默认值会让该校验结果先于按环境解析生效，
@@ -748,7 +748,7 @@ VICTORIALOGS_URL
   没有"而非报错。Grafana 侧用内置 `jaeger` 数据源读它
   （`http://victoriatraces:10428/select/jaeger`，同机走容器网络）。
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
-  Winston batches log entries as newline-delimited JSON and POSTs them directly
+  the logger batches entries as newline-delimited JSON and POSTs them directly
   to this URL (no Vector sidecar needed).
   **默认回落到** `http://victorialogs:9428/insert/jsonline`（写在 `compose.yaml` 的
   app 服务里，供单机全栈部署使用）。监控栈在另一台机器时容器名在本机解析不了，

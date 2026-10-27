@@ -80,7 +80,7 @@ What becomes easier or harder as a result of this decision?
   - Status: accepted
   - Date: 2026-07-09
 - [0007](0007-logging-pino-to-winston.md)
-  - Title: Logging Framework — Pino → Winston Migration
+  - Title: Logging Framework — Pino (via `nestjs-pino`); revised 2026-10-27
   - Status: accepted
   - Date: 2026-07-12
 - [0008](0008-no-cn-drugbank-medicine-mapping.md)

@@ -109,7 +109,8 @@ ADR-0006 预设的触发条件「AI 管道延迟调试需要 span 级可见性�
 ### 不变
 
 - 指标支柱：prom-client + Prometheus/Grafana 策略（ADR-0006）继续有效
-- 日志框架：Winston（ADR-0007）不变，仅格式层新增 trace 字段注入
+- 日志框架：ADR-0007（2026-10-27 修订后为 Pino / `nestjs-pino`）不变，仅格式层新增
+  trace 字段注入（现为 pino `mixin`）
 - 测试：无 `OTEL_ENABLED=true` 时 SDK 不启动，行为与之前一致
 - BullMQ worker span：已被 ADR-0016 补全（bullmq-otel），不再是非目标
 - 非目标：`generateStream` 手动 span、App 端错误上报页展示 traceId

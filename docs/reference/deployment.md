@@ -104,7 +104,7 @@ VM 与 Grafana 同机会让同一份数据在公网上往返两次并穿过窄�
 | 图库机 | `semantica`       | `<registry>/lucent-semantica:latest-amd64` | `8099`                | 英文侧 OAG;bearer 鉴权(`API_TOKEN` / `SEMANTICA_API_KEY`)                                                                           |
 | 监控机 | `victoriametrics` | `victoria-metrics:v1.151.0`                | `8428`                | 抓主站 `3000`/`9100`                                                                                                                |
 | 监控机 | `grafana`         | `grafana:12.1.0`                           | `3001`                | provisioning/dashboards 来自 `monitoring/grafana/`                                                                                  |
-| 监控机 | `victorialogs`    | `victoria-logs:v1.51.1`                    | `9428`                | 接收 Winston JSON 日志                                                                                                              |
+| 监控机 | `victorialogs`    | `victoria-logs:v1.51.1`                    | `9428`                | 接收应用 JSON 日志（pino）                                                                                                          |
 | 监控机 | `victoriatraces`  | `victoria-traces:v0.12.0`                  | `10428`               | OTLP trace 入口                                                                                                                     |
 
 所有服务 `restart: unless-stopped`,主机重启后自动恢复。

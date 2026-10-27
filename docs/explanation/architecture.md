@@ -82,7 +82,7 @@ spec 承接(触发条件、过滤与副作用断言);完整事件/订阅矩阵�
 
 ## 可观测性
 
-Winston(`nest-winston`)统一日志:开发环境彩色 printf,生产/测试单行 JSON
+Pino(`nestjs-pino`)统一日志:开发环境彩色格式化(进程内流),生产/测试单行 JSON
 (`LOG_FORMAT=pretty|json` 可覆写);OpenTelemetry span 激活时每条日志注入顶层
 `trace_id`/`span_id`(无 span 不注入),旧 requestId 机制已退役。Prometheus 指标由全局
 `MetricsService` 收集(Node 运行时、HTTP、BullMQ、LLM 与建议重算计数),`/metrics` 是

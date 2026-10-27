@@ -251,12 +251,15 @@ ESM 化后遗留清单与后续跟进：
 - `cos-nodejs-sdk-v5`（default import）当前互操作正常，无需改动；若上游导出形态变化，
   按计划口径复核。
 
-### @nestjs/throttler 与 nest-winston 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）
+### @nestjs/throttler 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）
 
-`@nestjs/throttler@6.5.0`（npm latest）与 `nest-winston@1.10.2` 的 peerDependencies 尚未纳入
-`@nestjs/* ^12`（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；框架升级后 e2e 全量运行时行为已验证正常
-（rate-limiting 套件与日志链路通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
+`@nestjs/throttler@6.5.0`（npm latest）的 peerDependencies 尚未纳入 `@nestjs/* ^12`
+（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；框架升级后 e2e 全量运行时行为已验证正常
+（rate-limiting 套件通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
 评估替代方案或 fork peer 声明。
+
+> 同一条目里原先还挂着 `nest-winston@1.10.2` 的 peer 告警 —— 2026-10-27 日志底座迁回
+> Pino（`nestjs-pino`，见 ADR-0007 修订记录）后该依赖已移除，这一半事项随之关闭。
 
 ### 高级可观测性进阶项
 
