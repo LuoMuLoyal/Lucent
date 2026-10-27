@@ -139,15 +139,16 @@ export abstract class BaseLlmGeneratorService<
         'success',
         (performance.now() - start) / 1000,
       );
-      // Structured success log: nest-winston's WinstonLogger destructures the
-      // `message`/`level` keys out of an object message and merges the rest as
-      // metadata, so otelTraceFormat injects top-level trace_id/span_id.
-      this.logger.log({
-        message: `${this.options.streamName} generate ok`,
-        modelName,
-        durationMs: Math.round(performance.now() - start),
-        status: 'success',
-      });
+      // Structured success log: pino-native argument order — metadata first,
+      // message second — so the fields land at the top level of the entry.
+      this.logger.log(
+        {
+          modelName,
+          durationMs: Math.round(performance.now() - start),
+          status: 'success',
+        },
+        `${this.options.streamName} generate ok`,
+      );
       return result;
     } catch (error) {
       this.circuitBreaker.recordFailure();

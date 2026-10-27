@@ -254,7 +254,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
   private fetchQqApi(url: string): ResultAsync<Response, DomainFailure> {
     return fromPromise(fetchWithRetry(url), (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`QQ API request failed: ${reason}`, stack);
+      this.logger.error({ stack }, `QQ API request failed: ${reason}`);
       return classifyFetchError(error);
     });
   }
@@ -263,8 +263,8 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
     return fromPromise(response.json() as Promise<T>, (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
+        { stack },
         `Failed to decode QQ API JSON response: ${reason}`,
-        stack,
       );
       return dependencyBadGateway(error);
     });
@@ -286,10 +286,10 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
     try {
       return ok(JSON.parse(text) as Record<string, unknown>);
     } catch (error) {
-      this.logger.warn('Failed to parse QQ OAuth JSON response', {
-        text: text.slice(0, 200),
-        error,
-      });
+      this.logger.warn(
+        { text: text.slice(0, 200), error },
+        'Failed to parse QQ OAuth JSON response',
+      );
       return err(dependencyBadGateway());
     }
   }

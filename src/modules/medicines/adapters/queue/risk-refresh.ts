@@ -165,7 +165,10 @@ export class MedicineRiskRefreshQueueService implements OnModuleInit {
       () => undefined,
       (error) => {
         // Keep stale=true: the next event or a manual trigger retries.
-        this.logger.warn(`Async static risk check failed for ${userId}`, error);
+        this.logger.warn(
+          { error },
+          `Async static risk check failed for ${userId}`,
+        );
       },
     );
   }

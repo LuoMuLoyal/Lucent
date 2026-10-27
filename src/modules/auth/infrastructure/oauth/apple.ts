@@ -162,7 +162,10 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
             clockTolerance: 30, // 30s leeway for clock skew
           }),
           (error) => {
-            this.logger.warn('Apple identity token verification failed', error);
+            this.logger.warn(
+              { error },
+              'Apple identity token verification failed',
+            );
             // A verification failure means the client-supplied token is
             // invalid (bad signature, expired, wrong issuer/audience) — a
             // client input problem, not an upstream dependency failure.
@@ -204,7 +207,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
       }),
       (error) => {
         const { message: reason, stack } = extractErrorInfo(error);
-        this.logger.error(`Failed to fetch Apple JWKS: ${reason}`, stack);
+        this.logger.error({ stack }, `Failed to fetch Apple JWKS: ${reason}`);
         return classifyFetchError(error);
       },
     )

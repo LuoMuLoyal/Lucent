@@ -2,6 +2,7 @@ import { performance } from 'node:perf_hooks';
 
 import {
   BadRequestException,
+  Logger,
   StandardSchemaSerializerInterceptor,
   StandardSchemaValidationPipe,
   VersioningType,
@@ -12,9 +13,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCompress from '@fastify/compress';
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nContext, I18nService } from 'nestjs-i18n';
-import type { Logger as WinstonLogger } from 'winston';
 import { resolveHttpsHeaderPolicy, safeCompare } from './common/index.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
@@ -177,7 +176,9 @@ export async function setupApp(
   });
 
   // ── HTTP access log (one structured entry per completed request) ──
-  const winstonLogger = app.get<WinstonLogger>(WINSTON_MODULE_PROVIDER);
+  // Emitted through pino via the substituted Nest logger; metadata lands at
+  // the top level of the JSON entry.
+  const accessLogger = new Logger('HttpAccess');
 
   void fastify.addHook('onResponse', (request, reply, done) => {
     // Skip high-frequency probes (/api/v1/health*, /metrics) to avoid noise.
@@ -193,7 +194,11 @@ export async function setupApp(
       elapsedMs: reply.elapsedTime,
     });
     const { level, message, ...meta } = entry;
-    winstonLogger.log(level, message, meta);
+    if (level === 'error') {
+      accessLogger.error(meta, message);
+    } else {
+      accessLogger.log(meta, message);
+    }
     done();
   });
 

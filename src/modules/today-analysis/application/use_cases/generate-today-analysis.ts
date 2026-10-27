@@ -476,8 +476,8 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       const stack =
         cleanupError instanceof Error ? cleanupError.stack : undefined;
       this.logger.error(
+        { stack },
         `Failed to mark Today analysis generation as failed: ${message}`,
-        stack,
       );
     }
   }
@@ -488,8 +488,8 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   ): void {
     const cause = error instanceof Error ? error : new Error(String(error));
     this.logger.error(
+      { stack: cause.stack },
       `Today analysis ${operation} failed: ${cause.message}`,
-      cause.stack,
     );
     trace.getActiveSpan()?.recordException(cause);
   }

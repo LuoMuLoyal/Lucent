@@ -186,10 +186,10 @@ export class AuthOAuthStateService {
     try {
       parsed = new URL(trimmed);
     } catch (error) {
-      this.logger.warn('Invalid OAuth callback URI', {
-        uri: trimmed,
-        error: extractErrorInfo(error).message,
-      });
+      this.logger.warn(
+        { uri: trimmed, error: extractErrorInfo(error).message },
+        'Invalid OAuth callback URI',
+      );
       return err(this.invalidUri());
     }
 

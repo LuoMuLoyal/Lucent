@@ -297,10 +297,10 @@ export class VerificationCodeService {
       }
 
       if (result.verdict.kind === 'exhausted') {
-        this.logger.warn('Verification challenge exhausted', {
-          scene,
-          attempts: MAX_CHALLENGE_ATTEMPTS,
-        });
+        this.logger.warn(
+          { scene, attempts: MAX_CHALLENGE_ATTEMPTS },
+          'Verification challenge exhausted',
+        );
       }
 
       // 写回递增后的计数；猜爆时它已到上限，后续校验一律 exhausted。

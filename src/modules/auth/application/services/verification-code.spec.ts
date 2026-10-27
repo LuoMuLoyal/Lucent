@@ -490,8 +490,8 @@ describe('VerificationCodeService', () => {
       );
 
       expect(warn).toHaveBeenCalledWith(
-        'Verification challenge exhausted',
         expect.objectContaining({ scene: 'register' }),
+        'Verification challenge exhausted',
       );
       // 日志里不能出现剩余次数。
       expect(JSON.stringify(warn.mock.calls)).not.toContain(

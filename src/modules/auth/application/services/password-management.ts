@@ -296,20 +296,23 @@ export class PasswordManagementService implements CredentialsSelfService {
       });
       if (result.isErr()) {
         this.logger.error(
-          'Notification delivery failed during password change',
           {
             userId,
             event: 'password_change_notification_failed',
             error: result.error,
           },
+          'Notification delivery failed during password change',
         );
       }
     } catch (error) {
-      this.logger.error('Notification delivery failed during password change', {
-        userId,
-        event: 'password_change_notification_failed',
-        error,
-      });
+      this.logger.error(
+        {
+          userId,
+          event: 'password_change_notification_failed',
+          error,
+        },
+        'Notification delivery failed during password change',
+      );
     }
   }
 

@@ -85,7 +85,7 @@ export abstract class WechatBaseOAuthProvider {
   protected fetchWechat<T>(url: string): ResultAsync<T, DomainFailure> {
     return fromPromise(fetch(url), (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`WeChat OAuth request failed: ${reason}`, stack);
+      this.logger.error({ stack }, `WeChat OAuth request failed: ${reason}`);
       return classifyFetchError(error);
     }).andThen((response) => {
       if (!response.ok) {
@@ -96,8 +96,8 @@ export abstract class WechatBaseOAuthProvider {
         if (isDomainFailure(error)) return error;
         const { message: reason, stack } = extractErrorInfo(error);
         this.logger.error(
+          { stack },
           `Failed to decode WeChat OAuth JSON response: ${reason}`,
-          stack,
         );
         return dependencyBadGateway(error);
       }).andThen((payload) => {

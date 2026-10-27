@@ -149,8 +149,8 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     });
     queue.on('error', (error) => {
       this.logger.error(
+        { stack: error.stack },
         `Queue "${options.name}" error: ${error.message}`,
-        error.stack,
       );
     });
 
@@ -179,20 +179,20 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     worker.on('failed', (job, error) => {
       this.metricsService.recordBullmqJob(options.name, 'failed');
       this.logger.error(
-        `Job in "${options.name}" failed: id=${job?.id ?? 'unknown'}, ${error.message}`,
-        error.stack,
         {
           queue: options.name,
           jobId: job?.id,
           attemptsMade: job?.attemptsMade,
           failedReason: error.message,
+          stack: error.stack,
         },
+        `Job in "${options.name}" failed: id=${job?.id ?? 'unknown'}, ${error.message}`,
       );
     });
     worker.on('error', (error) => {
       this.logger.error(
+        { stack: error.stack },
         `Worker "${options.name}" error: ${error.message}`,
-        error.stack,
       );
     });
 

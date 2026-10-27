@@ -73,7 +73,7 @@ export class CacheHealthIndicator {
       });
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`Cache health probe failed: ${reason}`, stack);
+      this.logger.error({ stack }, `Cache health probe failed: ${reason}`);
       return down(reason);
     }
   }

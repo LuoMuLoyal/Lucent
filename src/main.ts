@@ -1,7 +1,7 @@
 import './tracing.js';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'nestjs-pino';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
@@ -28,7 +28,9 @@ async function bootstrap() {
       routeConflictPolicy: { duplicate: 'error', shadow: 'warn' },
     },
   );
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+  // Substitute pino for Nest's built-in logger. Every `new Logger(X.name)`
+  // in the codebase then emits through pino without changing its call sites.
+  app.useLogger(app.get(Logger));
 
   const configService = app.get(ConfigService);
   await setupApp(app, configService);

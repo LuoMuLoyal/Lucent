@@ -1,13 +1,12 @@
 import {
   Inject,
   Injectable,
+  Logger,
   OnModuleDestroy,
   OnModuleInit,
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import type { Logger as WinstonLogger } from 'winston';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '#generated/prisma/client.js';
 import { EnvKey } from '../config/env/env-keys.enum.js';
@@ -45,13 +44,12 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly _extended: ExtendedPrismaClient;
-  private readonly _winstonLogger: WinstonLogger;
+  private readonly _logger = new Logger(PrismaService.name);
   private readonly _envSlowQueryThresholdMs: number;
   private readonly _configService: ConfigService;
 
   constructor(
     configService: ConfigService,
-    @Inject(WINSTON_MODULE_PROVIDER) winstonLogger: WinstonLogger,
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,
@@ -73,7 +71,6 @@ export class PrismaService
       ],
     });
 
-    this._winstonLogger = winstonLogger;
     this._configService = configService;
     this._envSlowQueryThresholdMs = Number(
       configService.get<string>(EnvKey.SLOW_QUERY_THRESHOLD_MS),
@@ -94,12 +91,16 @@ export class PrismaService
       ) => void
     )('query', (e) => {
       if (e.duration >= this.slowQueryThresholdMs) {
-        this._winstonLogger.warn('Slow query detected', {
-          durationMs: e.duration,
-          query: e.query,
-          target: e.target,
-          traceId: getActiveTraceId(),
-        });
+        // pino-native argument order: metadata first, message second.
+        this._logger.warn(
+          {
+            durationMs: e.duration,
+            query: e.query,
+            target: e.target,
+            traceId: getActiveTraceId(),
+          },
+          'Slow query detected',
+        );
       }
     });
 

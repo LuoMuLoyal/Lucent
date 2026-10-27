@@ -304,8 +304,8 @@ export class AssistantController {
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
+        { stack },
         `Assistant stream failed for user ${user.sub}: ${reason}`,
-        stack,
       );
       writeSseEvent(reply.raw, {
         event: 'error',
@@ -374,8 +374,8 @@ export class AssistantController {
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
+        { stack },
         `Assistant regenerate failed for user ${user.sub} conversation ${conversationId}: ${reason}`,
-        stack,
       );
       writeSseEvent(reply.raw, {
         event: 'error',

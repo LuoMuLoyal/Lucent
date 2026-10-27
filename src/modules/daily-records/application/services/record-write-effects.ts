@@ -62,10 +62,10 @@ export class RecordWriteEffects {
       });
     } catch (error) {
       // 队列不可用时适配器已退化为同步执行；这里兜底只记日志——写入不该因此失败。
-      this.logger.warn('Failed to enqueue meal analysis job', {
-        recordId: item.id,
-        error,
-      });
+      this.logger.warn(
+        { recordId: item.id, error },
+        'Failed to enqueue meal analysis job',
+      );
     }
     this.logger.debug(
       `Queued meal analysis for record ${item.id} (revision ${String(revision)})`,

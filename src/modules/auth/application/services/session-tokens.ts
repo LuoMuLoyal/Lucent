@@ -406,12 +406,12 @@ export class SessionTokens {
     ).andThen((reloaded) => {
       if (reloaded === null) {
         this.logger.warn(
-          'Session vanished while resolving a lost refresh claim',
           {
             code: 'AUTH_REFRESH_TOKEN_INVALID',
             reason: 'vanished-during-claim',
             userId: session.owner.userId,
           },
+          'Session vanished while resolving a lost refresh claim',
         );
         return this.refreshTokenInvalid();
       }
@@ -465,11 +465,11 @@ export class SessionTokens {
     ).andThen((revoked) => {
       const entry = refreshLogEntry(decision, refreshTokenHash, revoked);
       this.logger.error(
-        'Refresh token reuse detected, session family revoked',
         {
           code: 'AUTH_REFRESH_TOKEN_INVALID',
           ...entry,
         },
+        'Refresh token reuse detected, session family revoked',
       );
       return this.refreshTokenInvalid();
     });
@@ -498,11 +498,14 @@ export class SessionTokens {
     refreshTokenHash: string,
     reason: 'not-found' | 'expired' | 'revoked',
   ): void {
-    this.logger.warn('Refresh token invalid', {
-      code: 'AUTH_REFRESH_TOKEN_INVALID',
-      reason,
-      refreshTokenHash: refreshTokenDigestPrefix(refreshTokenHash),
-    });
+    this.logger.warn(
+      {
+        code: 'AUTH_REFRESH_TOKEN_INVALID',
+        reason,
+        refreshTokenHash: refreshTokenDigestPrefix(refreshTokenHash),
+      },
+      'Refresh token invalid',
+    );
   }
 
   /**

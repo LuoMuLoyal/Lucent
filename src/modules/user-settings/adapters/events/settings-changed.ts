@@ -44,10 +44,10 @@ export class PublishedSettingsEvents extends SettingsEvents {
         userId,
       } satisfies SettingsChangedPayload);
     } catch (error) {
-      this.logger.warn('Failed to publish settings.changed event', {
-        userId,
-        error,
-      });
+      this.logger.warn(
+        { userId, error },
+        'Failed to publish settings.changed event',
+      );
     }
   }
 }

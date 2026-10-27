@@ -188,10 +188,10 @@ export class UserHealthContextService {
       // Best-effort domain event: cache/suggestion consumers tolerate a
       // dropped event, but the failure must stay observable (structured
       // log) instead of failing the user-facing write.
-      this.logger.warn('Failed to publish health-context.changed event', {
-        userId,
-        error,
-      });
+      this.logger.warn(
+        { userId, error },
+        'Failed to publish health-context.changed event',
+      );
     }
   }
 }

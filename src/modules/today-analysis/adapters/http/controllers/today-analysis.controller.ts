@@ -422,8 +422,8 @@ export class TodayAnalysisController {
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
+        { stack },
         `Today analysis stream failed for user ${user.sub}: ${reason}`,
-        stack,
       );
       writeSseEvent(reply.raw, {
         event: 'error',

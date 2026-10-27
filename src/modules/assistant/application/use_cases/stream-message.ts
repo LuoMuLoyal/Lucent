@@ -335,8 +335,8 @@ export class AssistantStreamOrchestratorService {
       });
       if (!parsed.success) {
         this.logger.warn(
+          { error: parsed.error },
           `Ignoring malformed tool detail metadata for tool "${result.name}".`,
-          parsed.error,
         );
         return { name: result.name };
       }
@@ -404,8 +404,8 @@ export class AssistantStreamOrchestratorService {
       // 没有计数器就只能看到"客户端永远没有引用"而查不出原因。
       this.metricsService.recordToolCitationsDropped('schema_mismatch');
       this.logger.warn(
+        { error: parsed.error },
         `Ignoring malformed citations for tool "${name}".`,
-        parsed.error,
       );
       return undefined;
     }

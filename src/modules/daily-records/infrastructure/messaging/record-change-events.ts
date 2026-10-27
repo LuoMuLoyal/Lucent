@@ -36,10 +36,10 @@ export class OutboxRecordChangeEvents extends RecordChangeEvents {
         `daily-record.changed:${event.recordId ?? `${event.userId}:${event.date}`}`,
       );
     } catch (error) {
-      this.logger.warn('Failed to publish daily-record.changed event', {
-        userId: event.userId,
-        error,
-      });
+      this.logger.warn(
+        { userId: event.userId, error },
+        'Failed to publish daily-record.changed event',
+      );
     }
   }
 }

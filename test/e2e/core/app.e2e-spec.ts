@@ -7,7 +7,6 @@ import { FastifyAdapter, RouteConfig } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { TerminusModule } from '@nestjs/terminus';
 import type { FastifyReply } from 'fastify';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
 import { gunzipSync } from 'node:zlib';
 import request from 'supertest';
@@ -92,10 +91,6 @@ describe('Lucent API (e2e)', () => {
               throw new Error(`Config key not mocked: ${key}`);
             }),
           },
-        },
-        {
-          provide: WINSTON_MODULE_PROVIDER,
-          useValue: { log: vi.fn() },
         },
         {
           provide: I18nService,

@@ -221,8 +221,8 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
           (error) => {
             const { message: reason, stack } = extractErrorInfo(error);
             this.logger.error(
+              { stack },
               `Google ID token verification failed: ${reason}`,
-              stack,
             );
             return dependencyBadGateway(error);
           },
@@ -278,8 +278,8 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
       (error) => {
         const { message: reason, stack } = extractErrorInfo(error);
         this.logger.error(
+          { stack },
           `Failed to convert Google JWK to PEM: ${reason}`,
-          stack,
         );
         return dependencyBadGateway(error);
       },
@@ -364,7 +364,7 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
   ): ResultAsync<Response, DomainFailure> {
     return fromPromise(fetchWithRetry(url, init), (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`Google API request failed: ${reason}`, stack);
+      this.logger.error({ stack }, `Google API request failed: ${reason}`);
       return classifyFetchError(error);
     });
   }
@@ -373,8 +373,8 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     return fromPromise(response.json() as Promise<T>, (error) => {
       const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
+        { stack },
         `Failed to decode Google API JSON response: ${reason}`,
-        stack,
       );
       return dependencyBadGateway(error);
     });

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-26",
+  "updatedAt": "2026-10-27",
   "ruleExpiry": {
     "no-magic-numbers": "2027-01-21",
     "no-restricted-syntax": "2027-01-21"
@@ -38,7 +38,6 @@
     "eslint|no-magic-numbers|src/common/logger/access-log.utils.ts",
     "eslint|no-magic-numbers|src/common/logger/lifecycle.service.ts",
     "eslint|no-magic-numbers|src/common/logger/logger.config.ts",
-    "eslint|no-magic-numbers|src/common/logger/victorialogs-transport.ts",
     "eslint|no-magic-numbers|src/common/metrics/metrics.service.ts",
     "eslint|no-magic-numbers|src/common/queue/base-async-queue.service.ts",
     "eslint|no-magic-numbers|src/common/queue/queue.factory.ts",

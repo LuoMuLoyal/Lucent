@@ -342,8 +342,8 @@ export class Conversations {
     } catch (error) {
       const cause = error instanceof Error ? error : new Error(String(error));
       this.logger.warn(
+        { stack: cause.stack },
         `Title refinement skipped for conversation ${record.id}: ${cause.message}`,
-        cause.stack,
       );
       trace.getActiveSpan()?.addEvent('assistant.title_refinement.failed', {
         conversation_id: record.id,

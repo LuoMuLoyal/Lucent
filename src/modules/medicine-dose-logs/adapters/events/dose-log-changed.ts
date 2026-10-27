@@ -51,10 +51,10 @@ export class PublishedDoseLogEvents extends DoseLogEvents {
         ...(input.doseLogId != null ? { doseLogId: input.doseLogId } : {}),
       } satisfies DoseLogChangedPayload);
     } catch (error) {
-      this.logger.warn('Failed to publish dose-log.changed event', {
-        userId: input.userId,
-        error,
-      });
+      this.logger.warn(
+        { userId: input.userId, error },
+        'Failed to publish dose-log.changed event',
+      );
     }
   }
 }

@@ -197,7 +197,7 @@ export class ReportsController {
         data: result,
       });
     } catch (error: unknown) {
-      this.logger.error('Report summary stream failed', error);
+      this.logger.error({ error }, 'Report summary stream failed');
       writeSseEvent(reply.raw, {
         event: 'error',
         data: this.sseProblemDetails.build(error, { lang: language }),

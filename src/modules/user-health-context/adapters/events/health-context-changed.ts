@@ -40,10 +40,10 @@ export class PublishedHealthContextEvents extends HealthContextEvents {
         userId,
       } satisfies HealthContextChangedPayload);
     } catch (error) {
-      this.logger.warn('Failed to publish health-context.changed event', {
-        userId,
-        error,
-      });
+      this.logger.warn(
+        { userId, error },
+        'Failed to publish health-context.changed event',
+      );
     }
   }
 }

@@ -715,8 +715,8 @@ export class AssistantRuntimeService {
         'Assistant regeneration ended without any content.',
       );
       this.logger.error(
+        { stack: cause.stack },
         `Assistant regeneration produced no content (conversationId=${conversationId}, checkpointId=${checkpointId}).`,
-        cause.stack,
       );
       trace.getActiveSpan()?.recordException(cause);
       trace.getActiveSpan()?.addEvent('assistant.regeneration.no_content', {

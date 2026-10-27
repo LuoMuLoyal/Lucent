@@ -189,8 +189,8 @@ describe('enqueueOrFallback', () => {
 
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ stack: expect.any(String) }),
       expect.stringContaining('Enqueue failed for queue "test-queue"'),
-      expect.any(String),
     );
   });
 });
