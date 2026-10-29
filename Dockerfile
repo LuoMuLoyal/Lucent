@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Stage 1: deps ──────────────────────────────────────────────
-FROM node:26.11-alpine AS deps
+FROM node:26.13-alpine AS deps
 # 直接装 pnpm，不经 corepack。corepack 会在每条 `pnpm ...` 时临时去 registry
 # 下载 pnpm 二进制，arm64 走 @pnpm/exe.linux-arm64-musl，30 秒超时就整个 build
 # 失败（`Could not download the pnpm 12.0.0 binary: timed out after 30s`）。
@@ -15,7 +15,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
 # ── Stage 2: builder ───────────────────────────────────────────
-FROM node:26.11-alpine AS builder
+FROM node:26.13-alpine AS builder
 # See the deps stage: pnpm is installed directly rather than through corepack.
 RUN npm install --global pnpm@12.0.0
 WORKDIR /app
@@ -70,7 +70,7 @@ RUN set -eux; \
 # own lockfile; it is built here and copied into the runtime image at
 # /app/admin/dist, which is the default ADMIN_CONSOLE_DIR resolved by
 # src/admin-console/setup.ts.
-FROM node:26.11-alpine AS admin-console
+FROM node:26.13-alpine AS admin-console
 # See the deps stage: pnpm is installed directly rather than through corepack.
 RUN npm install --global pnpm@12.0.0
 WORKDIR /app/admin
@@ -84,7 +84,7 @@ COPY admin/public ./public
 RUN pnpm build
 
 # ── Stage 3: production ────────────────────────────────────────
-FROM node:26.11-alpine AS production
+FROM node:26.13-alpine AS production
 RUN apk add --no-cache tini curl
 WORKDIR /app
 # 创建非 root 用户
