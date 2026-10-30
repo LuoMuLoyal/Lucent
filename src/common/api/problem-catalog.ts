@@ -168,6 +168,50 @@ const definitions = {
     retryable: false,
   },
   /**
+   * The `surface` path segment is not one this backend knows.
+   *
+   * Split out of the generic `VALIDATION_FAILED` because a client sending an
+   * unknown surface is running ahead of (or behind) this backend's surface
+   * list, not sending a malformed request — the two warrant different client
+   * reactions (downgrade/upgrade vs. fix the payload).
+   */
+  LAYOUT_SURFACE_UNKNOWN: {
+    status: 400,
+    titleKey: 'common.problem_layout_surface_unknown_title',
+    detailKey: 'common.problem_layout_surface_unknown_detail',
+    retryable: false,
+  },
+  /**
+   * The layout document was written by a client whose format this backend
+   * cannot store (older than `LAYOUT_SCHEMA_VERSION_MIN` or newer than
+   * `LAYOUT_SCHEMA_VERSION_MAX`).
+   *
+   * 422 rather than 400: the request is well-formed, it just carries a
+   * document shape this server refuses to hold. Neither clamping nor
+   * downgrading is safe — a half-understood layout is worse than letting the
+   * client fall back to its built-in defaults.
+   */
+  LAYOUT_SCHEMA_VERSION_UNSUPPORTED: {
+    status: 422,
+    titleKey: 'common.problem_layout_schema_version_unsupported_title',
+    detailKey: 'common.problem_layout_schema_version_unsupported_detail',
+    retryable: false,
+  },
+  /**
+   * `ifVersion` did not match the stored version, or a conditional write
+   * targeted a layout the server does not have.
+   *
+   * Separate from the generic `RESOURCE_CONFLICT` so the client can tell
+   * "another device wrote first — re-read then retry" apart from other
+   * conflicts, and surface the stale-device hint accordingly.
+   */
+  LAYOUT_VERSION_CONFLICT: {
+    status: 409,
+    titleKey: 'common.problem_layout_version_conflict_title',
+    detailKey: 'common.problem_layout_version_conflict_detail',
+    retryable: false,
+  },
+  /**
    * The body is well-formed but carries no way to identify the dose-log slot
    * it targets (no `reminderId`, and no current medicine to fall back on).
    * Split out of the generic `VALIDATION_FAILED` 400 so a client — notably

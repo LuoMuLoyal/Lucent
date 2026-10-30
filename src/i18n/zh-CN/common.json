@@ -71,5 +71,11 @@
   "problem_server_shutdown_title": "服务器正在关闭",
   "problem_server_shutdown_detail": "服务器正在关闭，请稍后重新发起请求。",
   "problem_stream_cancelled_title": "流式请求已取消",
-  "problem_stream_cancelled_detail": "流式请求在完成前被取消。"
+  "problem_stream_cancelled_detail": "流式请求在完成前被取消。",
+  "problem_layout_surface_unknown_title": "未知的界面表面",
+  "problem_layout_surface_unknown_detail": "请求中的界面表面「{surface}」不被支持，请更新客户端。",
+  "problem_layout_schema_version_unsupported_title": "布局格式版本不受支持",
+  "problem_layout_schema_version_unsupported_detail": "布局文档格式版本 {schemaVersion} 超出服务端支持范围，请更新客户端后重试。",
+  "problem_layout_version_conflict_title": "布局已在其他设备更新",
+  "problem_layout_version_conflict_detail": "布局已被其他设备修改（当前版本 {currentVersion}），请刷新后重新调整。"
 }
