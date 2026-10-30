@@ -7,20 +7,29 @@ import { z } from 'zod';
  * parses the handler's return value through this schema, and zod rejects a raw
  * `Date`. The controller converts (see `toWire`) — this file only states what
  * goes on the wire.
+ *
+ * Every field carries an `example`: the contract test
+ * (`test/contract/openapi-metadata.e2e-spec.ts`) requires each 2xx JSON response
+ * schema to be self-documenting, so generated clients get a usable sample.
  */
 export const layoutResponseSchema = z
   .object({
-    surface: z.string().describe('Surface identifier this layout belongs to.'),
+    surface: z
+      .string()
+      .describe('Surface identifier this layout belongs to.')
+      .meta({ example: 'today' }),
     version: z
       .number()
       .int()
       .describe(
         'Optimistic-concurrency token. Send it back as `ifVersion` on the next write.',
-      ),
+      )
+      .meta({ example: 3 }),
     schemaVersion: z
       .number()
       .int()
-      .describe('Shape version of `payload`, owned by the client.'),
+      .describe('Shape version of `payload`, owned by the client.')
+      .meta({ example: 1 }),
     /**
      * Any JSON value, not just an object.
      *
@@ -32,8 +41,19 @@ export const layoutResponseSchema = z
       .unknown()
       .describe(
         'Client-owned layout document. The server stores it verbatim and never interprets it.',
-      ),
-    updatedAt: z.string().describe('ISO-8601 timestamp of the last write.'),
+      )
+      .meta({
+        example: {
+          placements: [
+            { id: 'summary.metrics', size: 'wide' },
+            { id: 'water.trend', size: 'compact' },
+          ],
+        },
+      }),
+    updatedAt: z
+      .string()
+      .describe('ISO-8601 timestamp of the last write.')
+      .meta({ example: '2026-10-30T12:00:00.000Z' }),
   })
   .describe('One surface layout.');
 
@@ -57,7 +77,18 @@ export const layoutListResponseSchema = z
       .record(z.string(), layoutResponseSchema)
       .describe(
         'Stored layouts keyed by surface. A missing surface means the user never customised it.',
-      ),
+      )
+      .meta({
+        example: {
+          today: {
+            surface: 'today',
+            version: 3,
+            schemaVersion: 1,
+            payload: { placements: [{ id: 'summary.metrics', size: 'wide' }] },
+            updatedAt: '2026-10-30T12:00:00.000Z',
+          },
+        },
+      }),
   })
   .describe('All stored layouts of the authenticated user.');
 
