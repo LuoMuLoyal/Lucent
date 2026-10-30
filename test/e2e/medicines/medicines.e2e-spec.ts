@@ -142,7 +142,9 @@ describe('Medicines API (e2e)', () => {
         name: 'Ibuprofen',
         casNumber: '15687-27-1',
         description: 'A non-steroidal anti-inflammatory drug.',
-        groups: ['approved', 'small molecule'],
+        groupRows: {
+          create: [{ groupName: 'approved' }, { groupName: 'small molecule' }],
+        },
         categories: ['Analgesics'],
         atcCodes: ['M01AE01'],
         searchText: 'ibuprofen DB01050 15687-27-1',
@@ -217,10 +219,12 @@ describe('Medicines API (e2e)', () => {
         indication: 'Used for pain, fever, and inflammation.',
         mechanismOfAction: 'Inhibits prostaglandin synthesis.',
         pharmacodynamics: 'Anti-inflammatory, analgesic, and antipyretic.',
-        groups: ['approved', 'small molecule'],
+        groupRows: {
+          create: [{ groupName: 'approved' }, { groupName: 'small molecule' }],
+        },
         categories: ['Analgesics'],
         atcCodes: ['M01AE01'],
-        synonyms: ['Ibuprofen'],
+        synonymRows: { create: [{ synonym: 'Ibuprofen' }] },
         foodInteractions: ['Avoid alcohol.'],
       },
     });
@@ -251,7 +255,9 @@ describe('Medicines API (e2e)', () => {
         data: {
           drugbankId: 'DB00002',
           name: 'Cetuximab',
-          groups: ['approved', 'biotech'],
+          groupRows: {
+            create: [{ groupName: 'approved' }, { groupName: 'biotech' }],
+          },
         },
       });
       await prisma.drugbankDrugSequence.createMany({
@@ -335,7 +341,7 @@ describe('Medicines API (e2e)', () => {
         data: {
           drugbankId: 'DB00002',
           name: 'Cetuximab',
-          groups: ['approved'],
+          groupRows: { create: [{ groupName: 'approved' }] },
         },
       });
       await prisma.drugbankDrugSequence.create({
@@ -393,7 +399,7 @@ describe('Medicines API (e2e)', () => {
         data: {
           drugbankId: 'DB01050',
           name: 'Ibuprofen',
-          groups: ['approved'],
+          groupRows: { create: [{ groupName: 'approved' }] },
         },
       });
 
@@ -426,7 +432,7 @@ describe('Medicines API (e2e)', () => {
       data: {
         drugbankId: 'DB00945',
         name: 'Aspirin',
-        groups: ['approved'],
+        groupRows: { create: [{ groupName: 'approved' }] },
       },
     });
     await prisma.drugbankStructure.create({
@@ -469,7 +475,11 @@ describe('Medicines API (e2e)', () => {
 
   it('should return a null structure when the drug has none', async () => {
     await prisma.drugbankDrug.create({
-      data: { drugbankId: 'DB01050', name: 'Ibuprofen', groups: ['approved'] },
+      data: {
+        drugbankId: 'DB01050',
+        name: 'Ibuprofen',
+        groupRows: { create: [{ groupName: 'approved' }] },
+      },
     });
 
     const response = await request(app.getHttpServer())
