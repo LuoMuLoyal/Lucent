@@ -41,9 +41,14 @@ export const saveLayoutSchema = z
         'Shape version of `payload`; must be within the server-supported range.',
       ),
     payload: z
-      .record(z.string(), z.unknown())
+      .unknown()
       .describe(
-        'Client-owned layout document. Stored verbatim; the server never interprets it.',
+        'Client-owned layout document. Stored verbatim; the server never interprets it. ' +
+          'An object for page layouts, an array for tab_chrome.',
+      )
+      .refine(
+        (value) => value !== undefined && value !== null,
+        'payload is required',
       ),
   })
   .describe('Layout document to persist for one surface.');

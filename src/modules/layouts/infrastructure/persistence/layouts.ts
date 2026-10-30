@@ -27,7 +27,7 @@ import { mapPrismaKnownRequestError } from '../../../../common/helpers/prisma/pr
 import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import type { LayoutState } from '../../domain/layout/layout.js';
+import type { LayoutPayload, LayoutState } from '../../domain/layout/layout.js';
 import { LayoutRepository } from '../../domain/layout/layouts.js';
 import type { LayoutWrite } from '../../domain/layout/layouts.js';
 import type { LayoutSurface } from '../../domain/layout/surface.js';
@@ -149,16 +149,14 @@ function toState(row: LayoutRow): LayoutState {
 }
 
 /**
- * Narrows `Prisma.JsonValue` to the domain's opaque payload.
+ * `Prisma.JsonValue` is already the domain's opaque payload type.
  *
- * The column is `jsonb NOT NULL` and the request schema only accepts objects,
- * so a non-object can only be legacy/corrupt data. Falling back to an empty
- * object keeps the read total — the client treats a payload it cannot use
- * exactly like a missing layout (falls back to its built-in defaults).
+ * No narrowing happens here on purpose: the server does not know whether a
+ * given surface's document is an object (page layouts) or an array
+ * (`tab_chrome`), and deciding would mean teaching storage about layout
+ * semantics. The column is `jsonb NOT NULL`, so the only alternative is `null`,
+ * which the request schema refuses — nothing to sanitise.
  */
-function asPayload(value: Prisma.JsonValue): Record<string, unknown> {
-  if (value != null && typeof value === 'object' && !Array.isArray(value)) {
-    return value;
-  }
-  return {};
+function asPayload(value: Prisma.JsonValue): LayoutPayload {
+  return value;
 }

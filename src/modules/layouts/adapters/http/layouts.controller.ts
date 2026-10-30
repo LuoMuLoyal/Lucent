@@ -28,6 +28,7 @@ import {
 } from '../../../../common/result/index.js';
 import { ReadLayouts } from '../../application/use_cases/read-layouts.js';
 import { SaveLayout } from '../../application/use_cases/save-layout.js';
+import type { LayoutState } from '../../domain/layout/layout.js';
 import { LAYOUT_SURFACES } from '../../domain/layout/surface.js';
 import { isLayoutSurface } from '../../domain/layout/surface.js';
 import {
@@ -67,7 +68,17 @@ export class LayoutsController {
   @SerializeOptions({ schema: layoutListResponseSchema })
   async listLayouts(@CurrentUser() user: UserPayload) {
     const layouts = await this.readLayouts.list(user.sub);
-    return { surfaces: layouts };
+    // Convert every entry here, not only the single-get path: the serializer
+    // parses the return value through the schema, so a raw `Date` in any entry
+    // would fail the whole response.
+    return {
+      surfaces: Object.fromEntries(
+        Object.entries(layouts).map(([surface, layout]) => [
+          surface,
+          toWire(layout),
+        ]),
+      ),
+    };
   }
 
   @Get(':surface')
@@ -106,7 +117,10 @@ export class LayoutsController {
         }),
       );
     }
-    return await unwrapResult(this.readLayouts.get(user.sub, surface));
+    // `toWire` also converts `updatedAt` to an ISO string — the serializer
+    // parses this return value through `layoutResponseSchema`, which rejects a
+    // raw `Date`.
+    return toWire(await unwrapResult(this.readLayouts.get(user.sub, surface)));
   }
 
   @Put(':surface')
@@ -175,13 +189,7 @@ export class LayoutsController {
 }
 
 /** Domain state → wire shape. One place, so the DTO cannot drift. */
-function toWire(layout: {
-  surface: string;
-  version: number;
-  schemaVersion: number;
-  payload: Record<string, unknown>;
-  updatedAt: Date;
-}) {
+function toWire(layout: LayoutState) {
   return {
     surface: layout.surface,
     version: layout.version,

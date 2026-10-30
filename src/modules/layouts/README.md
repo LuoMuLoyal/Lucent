@@ -15,6 +15,8 @@
 
 - **不解释 `payload`**。组件 id、顺序、尺寸、tab 自定义文本全部由客户端定义。
   服务端解析它就等于把布局格式的演进绑到后端发布节奏上。
+  `payload` 的 TS 类型是 `unknown` 而不是 `Record<string, unknown>`：页面布局是对象，
+  但 `tab_chrome` 是数组，收窄类型会强迫服务端知道「哪个 surface 是哪种形状」。
 - **不做合并**。布局是有序列表，两个不同顺序没有「正确的合并结果」。
 - **不渲染**。本模块没有任何 UI 概念，`surface` 对它只是一个字符串。
 - **不删除**。布局随用户级联删除（`onDelete: Cascade`）；「恢复默认」由客户端写入默认布局，
@@ -87,6 +89,17 @@ infrastructure/persistence/
 
 无缓存层：布局在应用启动时读一次、用户显式操作时写一次，加缓存只会引入失效问题。
 （`user-settings` 有缓存是因为它几乎出现在每个请求路径上，布局不是。）
+
+## 实现时踩到的两个坑（都不是显而易见的）
+
+1. **`updatedAt` 必须是 ISO 字符串，不能直接返回 `Date`。**
+   NestJS 12 的 `@SerializeOptions({ schema })` 会用 zod schema **解析**返回值，
+   而 `z.string()` 拒绝 `Date`。列表与单条都要过 `toWire` —— 只转一处时，另一处
+   会在运行时抛 `Serialization failed: expected string, received Date`。
+
+2. **`payload` 不能声明成 `z.record`。**
+   `tab_chrome` 的文档是数组（`[{tabId, customLabel, orderIndex, visible}]`），
+   `z.record` 会把它当 400 拒掉。正确做法是 `z.unknown()` + 只拒绝 `undefined`/`null`。
 
 ## 演进约束
 
