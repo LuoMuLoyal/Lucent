@@ -1,0 +1,47 @@
+// Domain: User Profile (interface layout preferences)
+// Owning modules: layouts
+
+/// One user's layout for one surface.
+///
+/// `payload` is a client-owned JSON document: it says which components are
+/// mounted on that surface, in which order, at which size. The server never
+/// interprets it — it only guards the envelope (`schemaVersion` range and
+/// monotonic `version`). That is what keeps layout format changes a
+/// client-only concern.
+///
+/// One row per `(userId, surface)`; `GET /layouts` reads them all in one query.
+///
+/// Named `layouts` rather than `user_layouts` to match the resource path
+/// `/layouts`: the table IS the resource. The `user_id` column already carries
+/// "row belongs to a user", so a `user_` prefix would not add information —
+/// 43 of the 64 existing tables have no prefix either.
+model Layout {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Surface identifier: today / record / medicine / review / mine / tab_chrome.
+  ///
+  /// Deliberately a plain string with no foreign key: surfaces are a client
+  /// concept, and adding one must not require a migration here. Validation
+  /// happens in the request schema, not in the database.
+  surface String
+
+  /// Optimistic-concurrency token, incremented on every successful write.
+  ///
+  /// Orthogonal to `schemaVersion`: this one protects against concurrent
+  /// overwrites, that one against format incompatibility.
+  version Int @default(1)
+
+  /// Shape version of the client-owned `payload`.
+  schemaVersion Int @map("schema_version")
+
+  /// The client's layout document.
+  payload Json @db.JsonB
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([userId, surface])
+  @@map("layouts")
+}

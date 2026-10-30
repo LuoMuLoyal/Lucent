@@ -104,6 +104,7 @@ model User {
   healthEvents           HealthEvent[]
   clinicSummaryShares    UserClinicSummaryShare[]
   productEvents          UserProductEvent[]
+  layouts                Layout[]
 
   // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
