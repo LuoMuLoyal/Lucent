@@ -233,6 +233,12 @@ src/modules/layouts/
 
 等客户端生成式 UI 就绪后单独立项。
 
+> **2026-10-31 修订**：该端点已实现（计划实施完毕文件已删，见当日迁移日志）。
+> 实现**推翻了本文「属于 `assistant` 域」的归属判断**：判据应是**产物归属**
+> 而非实现手段——产物是一份可持久化的界面文档（与 `PUT /layouts/:surface` 的
+> `payload` 同性质），不是对话消息；`today-analysis` 同样调 LLM 却自成模块。
+> 故端点仍是 `/layouts/:surface/generate`，落在 `layouts` 模块。
+
 ## 五、客户端配合（`Luminous` 侧）
 
 本计划只需保证契约正确。客户端侧对应改动已在
