@@ -77,5 +77,13 @@
   "problem_layout_schema_version_unsupported_title": "Unsupported layout format version",
   "problem_layout_schema_version_unsupported_detail": "Layout document schema version {schemaVersion} is outside the supported range. Please update the client and retry.",
   "problem_layout_version_conflict_title": "Layout updated on another device",
-  "problem_layout_version_conflict_detail": "The layout was modified on another device (current version {currentVersion}). Refresh and rearrange again."
+  "problem_layout_version_conflict_detail": "The layout was modified on another device (current version {currentVersion}). Refresh and rearrange again.",
+  "problem_generative_surface_unsupported_title": "This screen cannot be generated",
+  "problem_generative_surface_unsupported_detail": "The screen \"{surface}\" does not support generated content. Try one of the main pages instead.",
+  "problem_generative_prompt_empty_title": "Describe what you want to see",
+  "problem_generative_prompt_empty_detail": "Enter an instruction before generating.",
+  "problem_generative_prompt_too_long_title": "Instruction is too long",
+  "problem_generative_prompt_too_long_detail": "Keep the instruction under {maxLength} characters.",
+  "problem_generative_output_rejected_title": "The generated layout was rejected",
+  "problem_generative_output_rejected_detail": "The result did not pass the safety check, so it was not shown. Try rephrasing your instruction."
 }

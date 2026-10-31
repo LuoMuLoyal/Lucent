@@ -198,6 +198,59 @@ const definitions = {
     retryable: false,
   },
   /**
+   * The surface exists (it is a stored layout target) but cannot be composed:
+   * `tab_chrome` is the bottom bar, not a page, so a generated tree has nowhere
+   * to mount.
+   *
+   * 400 rather than 404: the caller named a surface this backend has, it just
+   * is not composable. A 404 would read like "unknown endpoint".
+   */
+  GENERATIVE_SURFACE_UNSUPPORTED: {
+    status: 400,
+    titleKey: 'common.problem_generative_surface_unsupported_title',
+    detailKey: 'common.problem_generative_surface_unsupported_detail',
+    retryable: false,
+  },
+  /**
+   * The instruction is blank after trimming. Separate from the generic
+   * `VALIDATION_FAILED` so the client can point at the input field rather than
+   * showing a generic "invalid request".
+   */
+  GENERATIVE_PROMPT_EMPTY: {
+    status: 400,
+    titleKey: 'common.problem_generative_prompt_empty_title',
+    detailKey: 'common.problem_generative_prompt_empty_detail',
+    retryable: false,
+  },
+  /**
+   * The instruction exceeds `GENERATIVE_PROMPT_MAX_LENGTH`.
+   *
+   * 422 rather than 400: the request is well-formed, it just carries more than
+   * this feature is willing to send to a model (cost and latency both scale
+   * with prompt length).
+   */
+  GENERATIVE_PROMPT_TOO_LONG: {
+    status: 422,
+    titleKey: 'common.problem_generative_prompt_too_long_title',
+    detailKey: 'common.problem_generative_prompt_too_long_detail',
+    retryable: false,
+  },
+  /**
+   * The model produced a tree that violates the admission policy — an unknown
+   * component, a fabricated numeric value, or a property a domain component
+   * does not allow.
+   *
+   * 502 rather than 400: the caller's request was fine, the *dependency*
+   * misbehaved. The client keeps the previously rendered surface, so this is
+   * recoverable by asking again.
+   */
+  GENERATIVE_OUTPUT_REJECTED: {
+    status: 502,
+    titleKey: 'common.problem_generative_output_rejected_title',
+    detailKey: 'common.problem_generative_output_rejected_detail',
+    retryable: true,
+  },
+  /**
    * `ifVersion` did not match the stored version, or a conditional write
    * targeted a layout the server does not have.
    *

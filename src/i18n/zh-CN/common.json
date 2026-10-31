@@ -77,5 +77,13 @@
   "problem_layout_schema_version_unsupported_title": "布局格式版本不受支持",
   "problem_layout_schema_version_unsupported_detail": "布局文档格式版本 {schemaVersion} 超出服务端支持范围，请更新客户端后重试。",
   "problem_layout_version_conflict_title": "布局已在其他设备更新",
-  "problem_layout_version_conflict_detail": "布局已被其他设备修改（当前版本 {currentVersion}），请刷新后重新调整。"
+  "problem_layout_version_conflict_detail": "布局已被其他设备修改（当前版本 {currentVersion}），请刷新后重新调整。",
+  "problem_generative_surface_unsupported_title": "该界面不支持生成",
+  "problem_generative_surface_unsupported_detail": "界面「{surface}」不支持生成内容，请换一个主页面试试。",
+  "problem_generative_prompt_empty_title": "请描述你想看到的内容",
+  "problem_generative_prompt_empty_detail": "生成前需要先输入一句指示。",
+  "problem_generative_prompt_too_long_title": "指示过长",
+  "problem_generative_prompt_too_long_detail": "请把指示控制在 {maxLength} 个字符以内。",
+  "problem_generative_output_rejected_title": "生成结果未通过校验",
+  "problem_generative_output_rejected_detail": "结果未通过安全检查，已不予展示。可以换个说法再试一次。"
 }
