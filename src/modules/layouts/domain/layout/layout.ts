@@ -16,7 +16,6 @@
  */
 
 import type { DomainFailure } from '../../../../common/result/index.js';
-import { createDomainFailure } from '../../../../common/result/index.js';
 import { isSupportedSchemaVersion } from './schema-version.js';
 import type { LayoutSurface } from './surface.js';
 import { isLayoutSurface } from './surface.js';
@@ -58,19 +57,21 @@ export function validateSaveRequest(
   request: LayoutSaveRequest,
 ): DomainFailure | null {
   if (!isLayoutSurface(request.surface)) {
-    return createDomainFailure({
+    return {
+      _tag: 'DomainFailure',
       kind: 'validation',
       code: 'LAYOUT_SURFACE_UNKNOWN',
       args: { surface: request.surface },
-    });
+    };
   }
 
   if (!isSupportedSchemaVersion(request.schemaVersion)) {
-    return createDomainFailure({
+    return {
+      _tag: 'DomainFailure',
       kind: 'validation',
       code: 'LAYOUT_SCHEMA_VERSION_UNSUPPORTED',
       args: { schemaVersion: request.schemaVersion },
-    });
+    };
   }
 
   return null;
@@ -95,19 +96,21 @@ export function validateVersionPrecondition(
   // A conditional write against a missing row can only be a stale client: it
   // thinks it has a layout the server does not have.
   if (stored == null) {
-    return createDomainFailure({
+    return {
+      _tag: 'DomainFailure',
       kind: 'conflict',
       code: 'LAYOUT_VERSION_CONFLICT',
       args: { ifVersion, currentVersion: 0 },
-    });
+    };
   }
 
   if (stored.version !== ifVersion) {
-    return createDomainFailure({
+    return {
+      _tag: 'DomainFailure',
       kind: 'conflict',
       code: 'LAYOUT_VERSION_CONFLICT',
       args: { ifVersion, currentVersion: stored.version },
-    });
+    };
   }
 
   return null;
