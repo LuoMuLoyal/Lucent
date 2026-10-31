@@ -5,10 +5,14 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
+  Post,
   Put,
+  Res,
   SerializeOptions,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -16,21 +20,39 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RouteConfig } from '@nestjs/platform-fastify';
+import type { FastifyReply } from 'fastify';
+import { I18nLang } from 'nestjs-i18n';
 
 import type { UserPayload } from '../../../auth/index.js';
 import { CurrentUser } from '../../../auth/index.js';
 import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
-import { ProblemDetailsDto } from '../../../../common/index.js';
+import {
+  endSse,
+  extractErrorInfo,
+  prepareSse,
+  ProblemDetailsDto,
+  SseConnectionRegistry,
+  SseProblemDetailsMapper,
+  writeSseEvent,
+} from '../../../../common/index.js';
 import {
   createDomainFailure,
   DomainFailureException,
   unwrapResult,
 } from '../../../../common/result/index.js';
+import { GenerateSurface } from '../../application/use_cases/generate-surface.js';
 import { ReadLayouts } from '../../application/use_cases/read-layouts.js';
 import { SaveLayout } from '../../application/use_cases/save-layout.js';
 import type { LayoutState } from '../../domain/layout/layout.js';
 import { LAYOUT_SURFACES } from '../../domain/layout/surface.js';
 import { isLayoutSurface } from '../../domain/layout/surface.js';
+import {
+  GENERATIVE_SURFACES,
+  validateGenerationRequest,
+} from '../../domain/generative/generation-request.js';
+import { generateSurfaceSchema } from './dto/generate-surface.js';
+import type { GenerateSurfaceDto } from './dto/generate-surface.js';
 import {
   layoutListResponseSchema,
   layoutResponseSchema,
@@ -51,9 +73,14 @@ import type { SaveLayoutDto } from './dto/save-layout.js';
 @ApiBearerAuth('access-token')
 @Controller('layouts')
 export class LayoutsController {
+  private readonly logger = new Logger(LayoutsController.name);
+
   constructor(
     private readonly readLayouts: ReadLayouts,
     private readonly saveLayout: SaveLayout,
+    private readonly generateSurface: GenerateSurface,
+    private readonly sseRegistry: SseConnectionRegistry,
+    private readonly sseProblemDetails: SseProblemDetailsMapper,
   ) {}
 
   @Get()
@@ -123,6 +150,130 @@ export class LayoutsController {
     return toWire(await unwrapResult(this.readLayouts.get(user.sub, surface)));
   }
 
+  @SkipThrottle()
+  @RouteConfig({ compress: false })
+  @Post(':surface/generate')
+  @ApiOperation({
+    operationId: 'generateLayoutSurface',
+    summary: 'Stream an AI-composed A2UI surface for this screen',
+  })
+  @ApiParam({
+    name: 'surface',
+    enum: GENERATIVE_SURFACES,
+    description: 'Surface to compose. The tab bar is not composable.',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Server-Sent Events stream without the API envelope. Each event has an "event" ' +
+      'field (chunk | result | error | done) and a JSON "data" field.',
+    content: {
+      'text/event-stream': {
+        schema: {
+          type: 'string',
+          description:
+            'Each frame is UTF-8 SSE text. event=chunk data=A2uiMessage; ' +
+            'event=result data=SurfaceStreamResult; ' +
+            'event=error data=ProblemDetails; event=done data={}.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Empty prompt or a surface that cannot be composed (GENERATIVE_PROMPT_EMPTY / GENERATIVE_SURFACE_UNSUPPORTED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Prompt exceeds the length bound (GENERATIVE_PROMPT_TOO_LONG)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'Model output rejected by the catalog (GENERATIVE_OUTPUT_REJECTED)',
+    type: ProblemDetailsDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'No model configured (LLM_NOT_CONFIGURED)',
+    type: ProblemDetailsDto,
+  })
+  async generate(
+    @CurrentUser() user: UserPayload,
+    @Param('surface') surface: string,
+    @Body({ schema: generateSurfaceSchema }) dto: GenerateSurfaceDto,
+    @I18nLang() language: string,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    // Validate BEFORE the stream starts. `prepareSse` fixes the HTTP status at
+    // 200, so anything rejected after it can only surface as an in-stream
+    // `event: error` — making a malformed request look successful to any client
+    // that only inspects the status line. Cheap, pure checks belong outside the
+    // stream; only generation-time failures belong inside it.
+    const shapeFailure = validateGenerationRequest({
+      surface,
+      prompt: dto.prompt,
+      ...(dto.range == null ? {} : { range: dto.range }),
+    });
+    if (shapeFailure != null) {
+      throw new DomainFailureException(shapeFailure);
+    }
+
+    // Language decides the copy of BOTH the errors and the generated strings:
+    // it is forwarded to the generator through the use case, and to the error
+    // mapper below. Dropping it here would show English errors to a zh-CN user.
+    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+
+    try {
+      let streamed = 0;
+      const result = await this.generateSurface.execute(
+        {
+          surface,
+          prompt: dto.prompt,
+          ...(dto.range == null ? {} : { range: dto.range }),
+          language,
+        },
+        (message) => {
+          streamed += 1;
+          writeSseEvent(reply.raw, { event: 'chunk', data: message });
+        },
+      );
+
+      writeSseEvent(reply.raw, {
+        event: 'result',
+        data: {
+          surface: result.surface,
+          messages: result.messages,
+          usage: result.usage,
+        },
+      });
+      this.logger.log(
+        {
+          userId: user.sub,
+          surface: result.surface,
+          messages: result.messages.length,
+          streamed,
+        },
+        'Generative surface composed',
+      );
+      writeSseEvent(reply.raw, { event: 'done', data: {} });
+    } catch (error) {
+      const { message: reason, stack } = extractErrorInfo(error);
+      this.logger.error(
+        { stack },
+        `Surface generation failed for user ${user.sub}: ${reason}`,
+      );
+      writeSseEvent(reply.raw, {
+        event: 'error',
+        data: this.sseProblemDetails.build(error, { lang: language }),
+      });
+    } finally {
+      endSse(reply.raw, this.sseRegistry);
+    }
+  }
   @Put(':surface')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
