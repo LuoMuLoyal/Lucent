@@ -1,4 +1,8 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import {
+  Test,
+  type TestingModule,
+  type TestingModuleBuilder,
+} from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -29,6 +33,17 @@ const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 /** Convenience type alias for a NestJS Fastify app wired to the supertest App type. */
 export type E2eApp = NestFastifyApplication;
 
+/**
+ * One builder mutation applied to the testing module before compilation.
+ *
+ * Lets a spec substitute a provider (a fake LLM, a fixed clock) without
+ * re-implementing the app bootstrap, so guards, filters and parsers stay
+ * identical to production.
+ */
+export type TestModuleOverride = (
+  builder: TestingModuleBuilder,
+) => TestingModuleBuilder;
+
 export interface E2eTestContext {
   app: E2eApp;
   prisma: PrismaService;
@@ -41,10 +56,16 @@ export interface E2eTestContext {
  * Call `cleanupDatabase(ctx.prisma)` afterwards to reset state,
  * and `await ctx.app.close()` in afterAll.
  */
-export async function createTestApp(): Promise<E2eTestContext> {
-  const moduleFixture: TestingModule = await Test.createTestingModule({
-    imports: [AppModule],
-  }).compile();
+export async function createTestApp(
+  overrides: readonly TestModuleOverride[] = [],
+): Promise<E2eTestContext> {
+  // `overrideProvider` mutates the builder, so overrides are applied in order
+  // rather than pre-built into one call.
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+  for (const override of overrides) {
+    builder = override(builder);
+  }
+  const moduleFixture: TestingModule = await builder.compile();
 
   const configService = moduleFixture.get(ConfigService);
   const trustProxy =
