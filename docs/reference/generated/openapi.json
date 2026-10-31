@@ -8734,6 +8734,93 @@
         "summary": "Create or replace one surface layout",
         "tags": ["Layouts"]
       }
+    },
+    "/api/v1/layouts/{surface}/generate": {
+      "post": {
+        "operationId": "generateLayoutSurface",
+        "parameters": [
+          {
+            "name": "surface",
+            "required": true,
+            "in": "path",
+            "description": "Surface to compose. The tab bar is not composable.",
+            "schema": {
+              "enum": ["today", "record", "medicine", "review", "mine"],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLayoutSurfaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (chunk | result | error | done) and a JSON \"data\" field.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Each frame is UTF-8 SSE text. event=chunk data=A2uiMessage; event=result data=SurfaceStreamResult; event=error data=ProblemDetails; event=done data={}."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty prompt or a surface that cannot be composed (GENERATIVE_PROMPT_EMPTY / GENERATIVE_SURFACE_UNSUPPORTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Prompt exceeds the length bound (GENERATIVE_PROMPT_TOO_LONG)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Model output rejected by the catalog (GENERATIVE_OUTPUT_REJECTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No model configured (LLM_NOT_CONFIGURED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Stream an AI-composed A2UI surface for this screen",
+        "tags": ["Layouts"]
+      }
     }
   },
   "info": {
@@ -14936,6 +15023,24 @@
         },
         "required": ["schemaVersion", "payload"],
         "description": "Layout document to persist for one surface."
+      },
+      "GenerateLayoutSurfaceRequest": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural-language instruction describing what to show, in the user's own words.",
+            "example": "把每日饮水做成三张并排的小卡，再配一句这周的整体情况"
+          },
+          "range": {
+            "description": "Preferred time range; the model may ignore it.",
+            "example": "7d",
+            "type": "string",
+            "enum": ["7d", "30d"]
+          }
+        },
+        "required": ["prompt"],
+        "description": "Instruction for one generative surface."
       },
       "NotificationListResponseItems": {
         "type": "object",
