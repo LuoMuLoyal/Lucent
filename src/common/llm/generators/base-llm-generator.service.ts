@@ -165,10 +165,24 @@ export abstract class BaseLlmGeneratorService<
   }
 
   // Streaming path intentionally unwrapped for now; manual span comes in a later change.
+  /**
+   * Streams a structured output, reporting progress through two callbacks.
+   *
+   * - `onSummary` fires whenever the parsed `summary` field changes. It exists
+   *   for generators whose output starts with a human-readable line.
+   * - `onPartial` fires on **every** parsed chunk with the current partial
+   *   object. Generators that emit an array (e.g. A2UI messages) use it to
+   *   forward each element as soon as it is complete; `onSummary` is too coarse
+   *   for that because it only reports one field.
+   *
+   * Both are optional in practice: existing callers pass only the third
+   * argument and keep their behaviour unchanged.
+   */
   async generateStream(
     context: TContext,
     promptCopy: TPromptCopy,
     onSummary: (summary: string) => void | Promise<void>,
+    onPartial?: (partial: Partial<TOutput>) => void | Promise<void>,
   ): Promise<TOutput> {
     const model = this.createStreamingModel();
     const parser = new JsonOutputKeyToolsParser<TOutput>({
@@ -268,6 +282,14 @@ export abstract class BaseLlmGeneratorService<
         if (summary.trim().length > 0 && summary !== lastSummary) {
           lastSummary = summary;
           await onSummary(summary);
+        }
+
+        // `partial` is whatever the parser could decode so far — a partially
+        // filled object, not a valid `TOutput`. Callers that forward array
+        // elements (A2UI messages) tolerate that: they only act on elements
+        // that are already complete.
+        if (onPartial != null) {
+          await onPartial(partial as Partial<TOutput>);
         }
       }
 
