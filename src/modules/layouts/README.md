@@ -21,6 +21,9 @@
 - **不渲染**。本模块没有任何 UI 概念，`surface` 对它只是一个字符串。
 - **不删除**。布局随用户级联删除（`onDelete: Cascade`）；「恢复默认」由客户端写入默认布局，
   不需要删行。
+- **生成式端点不落库**。`POST /layouts/:surface/generate` 只产出一次 A2UI 消息序列并流式
+  返回；结果由客户端写本地。生成物是**可重生成的展示缓存**，不是需要多设备一致的权威
+  文档——为它建表、加版本号、做冲突合并，是在为缓存付权威副本的代价。
 
 ## 契约
 
@@ -117,3 +120,92 @@ infrastructure/persistence/
 - `domain/layout/layout.spec.ts` — 形状校验、版本前置条件、`nextVersion`
 - `domain/layout/schema-version.spec.ts` — 区间边界（MIN-1 / MIN / MAX / MAX+1）
 - `test/layouts/` — e2e：跨用户 404、版本冲突 409、`schemaVersion` 422、未知 surface 400
+
+## 生成式端点：`POST /layouts/:surface/generate`
+
+按用户的自然语言指示，让模型在**受限词汇表**内拼装一棵 A2UI 树，以 SSE 流式返回。
+
+```text
+POST /layouts/:surface/generate
+  body: { prompt: string, range?: "7d" | "30d" }
+  → 200 text/event-stream
+       event: chunk  data: <一条 A2UI 消息>
+       event: result data: { surface, messages, usage }
+       event: error  data: ProblemDetails
+       event: done   data: {}
+```
+
+| operationId             | 端点                              |
+| ----------------------- | --------------------------------- |
+| `generateLayoutSurface` | `POST /layouts/:surface/generate` |
+
+`surface` 只接受 `today` / `record` / `medicine` / `review` / `mine` ——
+`tab_chrome` 是底部栏不是页面，生成一棵树没有地方挂。这与存储端点的六值词表
+**故意不同**：两件事回答的是不同问题。
+
+### 为什么在 layouts 而不是 assistant
+
+判据是**产物归属**，不是实现手段。产物是一份可持久化的界面文档（与 `PUT` 存的
+`payload` 同性质），不是对话消息。`today-analysis` 同样调 LLM 却自成模块 ——
+「要调模型」不等于「属于 assistant 域」。
+
+### 三条安全边界
+
+模型只决定**展示什么、怎么排**，不决定数值，也不能生成动作：
+
+| 风险            | 落点                                                                            |
+| --------------- | ------------------------------------------------------------------------------- |
+| AI 编造健康数值 | `domain/generative/surface-policy.ts`：领域组件只接受引用键，任何数值一律判违规 |
+| AI 生成可写动作 | catalog 不含 `Button` / `TextField` / 表单                                      |
+| AI 改写医学结论 | `finding` 只接受 `findingId`，任何文案属性都在白名单外                          |
+
+提示词让违规**不太可能**，准入校验让违规**不可能上线**。违规时**整次生成失败**
+（`GENERATIVE_OUTPUT_REJECTED`），而不是剔除坏组件继续——剔除等于替模型猜意图，
+而最危险的一类（编造数值）被悄悄删掉后，剩下的内容会显得像完整结论。
+
+### 语言
+
+错误文案与**模型生成的展示文字**都跟随客户端的 `Accept-Language`
+（支持 `zh-CN` / `en`，兜底 `en`）。`@I18nLang()` 取到的语言既进
+`SseProblemDetailsMapper`（错误），也进提示词（生成内容）。
+
+进提示词前必须归一化（`toContentLocale`）：浏览器常发
+`zh-CN,zh;q=0.9,en;q=0.8` 这样的加权串，直接塞进去会诱发中英混杂输出。
+
+**「值」与「键」分开**：展示文字跟随语言，`component` 名与 `kind` / `kinds` /
+`range` / `findingId` 的取值必须保持固定 ASCII —— 否则模型会把 `water`
+「翻译」成中文，整棵树解析不了。
+
+`finding` 是唯一例外：它的文案来自后端原文，**不翻译**。
+
+## 生成式的结构
+
+```text
+domain/generative/
+  generation-request.ts  请求校验（surface 可生成性、prompt 边界）+ 纯失败形状
+  surface-policy.ts      A2UI 消息准入规则（安全边界，纯函数）
+  generated-surface.ts   产物值类型（消息序列 + usage）
+application/
+  ports/surface-generator.ts  模型端口
+  use_cases/generate-surface.ts  校验 → 可用性 → 生成 → 准入
+adapters/http/dto/
+  generate-surface.ts    请求 schema + 流式响应 schema（带 describe/example）
+infrastructure/llm/
+  surface-generator.ts   LlmSurfaceGenerator（extends BaseLlmGeneratorService）
+  prompts/surface.ts     系统提示词（词汇表 + 语言规则）与 toContentLocale
+  schemas/surface.ts     模型结构化输出 schema
+```
+
+### 流式怎么工作
+
+`BaseLlmGeneratorService.generateStream` 每收到一个 chunk 就解析一次部分输出。
+`messages` 是数组，部分解析会给出「若干完整元素 + 一个正在写的元素」，所以生成器
+按**已转发条数**推进，只转发完整的那些 —— 这正是控制器写 `event: chunk` 所需的粒度。
+重复或跳过都会让客户端重放缓冲区错位。
+
+`summary` 字段只服务于基类的进度回调，不出网。
+
+### 与客户端的契约
+
+服务端提示词里的组件词汇表必须与客户端 `GenerativeCatalog.typeNames` 一致。
+两边各存一份（跨端共享包要求后端引入 TS 共享包，超出本模块范围），靠测试快照对账。
