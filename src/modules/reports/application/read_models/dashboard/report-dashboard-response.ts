@@ -66,8 +66,27 @@ export const reportTrendSchema = z.object({
 /** Strongly typed trend item of the report dashboard. */
 export type ReportTrendDto = z.infer<typeof reportTrendSchema>;
 
-/** Replaces `ReportFindingDto`. */
+/**
+ * Replaces `ReportFindingDto`.
+ *
+ * `id` is the **stable identifier** of the finding, not a database key: findings
+ * are computed from fixed rules (one per i18n key suffix), so the id is the
+ * rule's name — `hydration_low`, `medication_stable`, `sleep_insufficient`.
+ *
+ * Clients need it to *reference* a finding without rewriting it: the generative
+ * UI catalog accepts only `findingId`, and resolves the text from this payload,
+ * so the model can choose which finding to show but never author its copy
+ * (see `Lucent/plans/2026-10-31-generative-surface-endpoint.md` §一/§3.6).
+ * Deriving the id from `kind` would be wrong — several rules share a kind.
+ */
 export const reportFindingSchema = z.object({
+  id: z
+    .string()
+    .describe(
+      'Stable rule identifier of this finding, e.g. "hydration_low". ' +
+        'Stable across requests and languages; safe to reference.',
+    )
+    .meta({ example: 'hydration_low' }),
   kind: z.enum(['medication', 'hydration', 'sleep', 'general']),
   title: z.string(),
   body: z.string(),

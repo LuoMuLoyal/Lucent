@@ -8,6 +8,22 @@ import type {
 import type { ReportRange } from './report-range.js';
 import type { MetricStatus } from './metrics.types.js';
 
+/**
+ * 稳定标识：findings 由固定规则生成，每条规则一个 id。
+ *
+ * 取值与 `reports-dashboard.findings.<id>_title/_body` 的 i18n key 后缀同源，
+ * 但两者是独立的东西：id 是**跨语言稳定**的引用键（进 API 契约、进生成式 UI
+ * 的 `findingId`），i18n 后缀是实现细节。命名相同只为让「规则 ↔ 文案」一眼
+ * 对得上；改文案 key 时不要顺手改这里的 id，那是契约变更。
+ *
+ * 不能拿 `kind` 当 id：多条规则共用同一个 kind，kind 无法唯一标识一条 finding。
+ */
+const FINDING_IDS = {
+  hydrationLow: 'hydration_low',
+  medicationStable: 'medication_stable',
+  sleepInsufficient: 'sleep_insufficient',
+} as const;
+
 @Injectable()
 export class ReportsPresenterService {
   // ── Findings thresholds ──
@@ -57,6 +73,7 @@ export class ReportsPresenterService {
       lowWaterDays >= ReportsPresenterService.HYDRATION_LOW_DAYS_THRESHOLD
     ) {
       findings.push({
+        id: FINDING_IDS.hydrationLow,
         kind: 'hydration',
         title: this.i18n.t('reports-dashboard.findings.hydration_low_title', {
           lang: locale,
@@ -84,6 +101,7 @@ export class ReportsPresenterService {
         ReportsPresenterService.MEDICATION_STRONG_DAYS_THRESHOLD
     ) {
       findings.push({
+        id: FINDING_IDS.medicationStable,
         kind: 'medication',
         title: this.i18n.t(
           'reports-dashboard.findings.medication_stable_title',
@@ -101,6 +119,7 @@ export class ReportsPresenterService {
 
     if (input.sleepStatus === 'insufficient_data') {
       findings.push({
+        id: FINDING_IDS.sleepInsufficient,
         kind: 'sleep',
         title: this.i18n.t(
           'reports-dashboard.findings.sleep_insufficient_title',

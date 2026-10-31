@@ -18779,6 +18779,11 @@
       "ReportDashboardResponseFindings": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable rule identifier of this finding, e.g. \"hydration_low\". Stable across requests and languages; safe to reference.",
+            "example": "hydration_low"
+          },
           "kind": {
             "type": "string",
             "enum": ["medication", "hydration", "sleep", "general"]
@@ -18790,7 +18795,7 @@
             "type": "string"
           }
         },
-        "required": ["kind", "title", "body"],
+        "required": ["id", "kind", "title", "body"],
         "additionalProperties": false
       },
       "ReportDashboardResponsePatterns": {

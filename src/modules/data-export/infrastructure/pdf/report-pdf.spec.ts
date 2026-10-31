@@ -106,6 +106,8 @@ function sampleReport(input?: {
       },
     ],
     findings: Array.from({ length: findingsCount }, (_, index) => ({
+      // 这个 fixture 刻意造多条同文案 finding 来撑页数，所以 id 拼上序号。
+      id: `hydration_low_${String(index + 1)}`,
       kind: 'hydration' as const,
       title: `饮水偏低 ${String(index + 1)}`,
       body: '过去 7 天有 4 天饮水低于 1.5L，需要尽快恢复到白天主动补水的节奏，并结合服药时间做提醒。',
