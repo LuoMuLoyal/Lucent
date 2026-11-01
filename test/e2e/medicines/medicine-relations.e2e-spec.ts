@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import type { E2eApp, E2eTestContext } from '../../helpers/e2e-helpers.js';
 import { createTestApp } from '../../helpers/e2e-helpers.js';
 
@@ -99,6 +101,112 @@ describe('Medicine relations graph API (e2e)', () => {
 
       expect(body.status).toBe('notConfigured');
       expect(body.paths).toBeUndefined();
+    });
+
+    it('信封里只有 status，没有多余字段', async () => {
+      // 200 + status 是契约的公开面。失败态下多出一个 `paths: []` 会让客户端
+      // 把「查不了」读成「没有」，所以这里连键的存在性一起断言。
+      const { body } = await get('/actions?drugbankId=DB00682');
+
+      expect(Object.keys(body)).toEqual(['status']);
+    });
+  });
+
+  describe('响应 schema 已进契约', () => {
+    /**
+     * 这组用例守的是**契约有没有 body schema**，不是图上有没有数据。
+     *
+     * 九个端点此前只有 `@ApiResponse({ description })`，没有 schema，
+     * 于是导出物里 operation 的 200 不带 content，生成客户端把返回值落成
+     * `void`——前端就算调了也拿不到任何字段。这里直接断言导出的 openapi.json，
+     * 让「忘了 registerResponseSchema」变成红灯而不是静默。
+     */
+    let paths: Record<string, any>;
+    let schemas: Record<string, any>;
+
+    beforeAll(async () => {
+      const specPath = new URL(
+        '../../../docs/reference/generated/openapi.json',
+        import.meta.url,
+      );
+      const raw = await readFile(specPath, 'utf8');
+      const spec = JSON.parse(raw);
+      paths = spec.paths;
+      schemas = spec.components.schemas;
+    });
+
+    const endpoints: [string, string, string][] = [
+      [
+        '/api/v1/medicines/relations/mechanism-paths',
+        'MedicineMechanismPathsResponse',
+        'paths',
+      ],
+      [
+        '/api/v1/medicines/relations/shared-targets',
+        'MedicineSharedTargetsResponse',
+        'targets',
+      ],
+      [
+        '/api/v1/medicines/relations/cascade-paths',
+        'MedicineCascadePathsResponse',
+        'cascades',
+      ],
+      [
+        '/api/v1/medicines/relations/substitutes',
+        'MedicineSubstituteCandidatesResponse',
+        'candidates',
+      ],
+      [
+        '/api/v1/medicines/relations/actions',
+        'MedicineDrugActionsResponse',
+        'actions',
+      ],
+      [
+        '/api/v1/medicines/relations/shortest-route',
+        'MedicineShortestRoutesResponse',
+        'routes',
+      ],
+      [
+        '/api/v1/medicines/relations/target-drugs',
+        'MedicineTargetDrugsResponse',
+        'drugs',
+      ],
+      [
+        '/api/v1/medicines/relations/transport-routes',
+        'MedicineTransportRoutesResponse',
+        'routes',
+      ],
+      [
+        '/api/v1/medicines/relations/enzyme-duel',
+        'MedicineEnzymeDuelsResponse',
+        'duels',
+      ],
+    ];
+
+    it.each(endpoints)('%s 的 200 引用 %s 组件', (path, component) => {
+      expect(paths[path]?.get?.responses?.['200']?.content).toBeDefined();
+      expect(
+        paths[path].get.responses['200'].content['application/json'].schema,
+      ).toEqual({ $ref: `#/components/schemas/${component}` });
+    });
+
+    it.each(endpoints)(
+      '%s 的组件把数据键声明为可选、status 必填',
+      (_path, component, dataKey) => {
+        // 数据键**必须**可选：失败态下控制器根本不写它，声明成必填会让客户端在
+        // 最需要安静降级的那条路径上解析失败。
+        const schema = schemas[component];
+        expect(schema.required ?? []).not.toContain(dataKey);
+        expect(schema.required ?? []).toContain('status');
+      },
+    );
+
+    it('medication-overview 的 200 也有 body', () => {
+      const response =
+        paths['/api/v1/medicines/medication-overview'].get.responses['200'];
+      expect(response.content['application/json'].schema).toEqual({
+        $ref: '#/components/schemas/MedicationOverviewResponse',
+      });
     });
   });
 

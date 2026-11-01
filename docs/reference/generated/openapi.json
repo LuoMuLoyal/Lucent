@@ -4479,7 +4479,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Mechanism paths, or a status explaining why none."
+            "description": "Mechanism paths, or a status explaining why none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineMechanismPathsResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Metabolic mechanism paths between drugs (INHIBITS/INDUCES x SUBSTRATE_OF)",
@@ -4503,7 +4510,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Shared targets, or a status explaining why none."
+            "description": "Shared targets, or a status explaining why none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSharedTargetsResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Targets shared by a set of drugs",
@@ -4528,7 +4542,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Cascade chains, or a status explaining why none."
+            "description": "Cascade chains, or a status explaining why none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineCascadePathsResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Four-hop metabolic cascade starting from one drug",
@@ -4566,7 +4587,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Structural candidates with their shared target."
+            "description": "Structural candidates with their shared target.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSubstituteCandidatesResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Structural candidates that do not use a given enzyme (not a prescription)",
@@ -4591,7 +4619,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Target action spectrum of the drug."
+            "description": "Target action spectrum of the drug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineDrugActionsResponse"
+                }
+              }
+            }
           }
         },
         "summary": "What targets one drug acts on",
@@ -4627,7 +4662,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Shortest routes, with nodes and edge types."
+            "description": "Shortest routes, with nodes and edge types.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineShortestRoutesResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Shortest propagation route between two drugs",
@@ -4654,7 +4696,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Drugs acting on the target, with relation type."
+            "description": "Drugs acting on the target, with relation type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineTargetDrugsResponse"
+                }
+              }
+            }
           }
         },
         "summary": "All drugs acting on one target gene",
@@ -4679,7 +4728,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Transporter routes, with edge direction."
+            "description": "Transporter routes, with edge direction.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineTransportRoutesResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Transporter routes (efflux/uptake) for one drug",
@@ -4703,7 +4759,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Inducer/substrate pairs sharing one enzyme."
+            "description": "Inducer/substrate pairs sharing one enzyme.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineEnzymeDuelsResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Induction vs substrate pairs: opposite effect on exposure",
@@ -4716,7 +4779,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Duplicate ingredients and source grouping for the current medicines. Empty aggregates when the user has no medicines — that is an answer, not an error."
+            "description": "Duplicate ingredients and source grouping for the current medicines. Empty aggregates when the user has no medicines — that is an answer, not an error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationOverviewResponse"
+                }
+              }
+            }
           },
           "401": {
             "description": "Access token invalid or expired"
@@ -9799,6 +9869,197 @@
             "$ref": "#/components/schemas/MedicineRecognitionJobResult"
           }
         },
+        "additionalProperties": false
+      },
+      "MedicineMechanismPathsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineMechanismPathsResponsePaths"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineSharedTargetsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSharedTargetsResponseTargets"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineCascadePathsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "cascades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineCascadePathsResponseCascades"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineSubstituteCandidatesResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSubstituteCandidatesResponseCandidates"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineDrugActionsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineDrugActionsResponseActions"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineShortestRoutesResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineShortestRoutesResponseRoutes"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineTargetDrugsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "drugs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineTargetDrugsResponseDrugs"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineTransportRoutesResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineTransportRoutesResponseRoutes"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineEnzymeDuelsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "duels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineEnzymeDuelsResponseDuels"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicationOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "totalMedicines": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Every current medicine on record."
+          },
+          "resolvableMedicines": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many could be resolved to ingredients. The rest cannot participate in duplicate detection."
+          },
+          "duplicates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicationOverviewResponseDuplicates"
+            },
+            "description": "One entry per shared ingredient; empty when nothing overlaps."
+          },
+          "sourceOverlaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicationOverviewResponseSourceOverlaps"
+            },
+            "description": "Entries grouped by health event, plus unattributed ones."
+          }
+        },
+        "required": [
+          "totalMedicines",
+          "resolvableMedicines",
+          "duplicates",
+          "sourceOverlaps"
+        ],
         "additionalProperties": false
       },
       "AdminMetricsOverview": {
@@ -16533,6 +16794,297 @@
           }
         },
         "required": ["name", "approvalNumber", "specification", "manufacturer"],
+        "additionalProperties": false
+      },
+      "MedicineMechanismPathsResponsePaths": {
+        "type": "object",
+        "properties": {
+          "enzymeGene": {
+            "type": "string",
+            "description": "Metabolising enzyme gene symbol."
+          },
+          "enzymeName": {
+            "type": "string",
+            "description": "Enzyme display name."
+          },
+          "otherDrugId": {
+            "type": "string",
+            "description": "Other drug DrugBank id."
+          },
+          "otherDrugName": {
+            "type": "string",
+            "description": "Other drug display name."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the first drug does to the enzyme (INHIBITS/INDUCES)."
+          }
+        },
+        "required": [
+          "enzymeGene",
+          "enzymeName",
+          "otherDrugId",
+          "otherDrugName",
+          "relation"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineSharedTargetsResponseTargets": {
+        "type": "object",
+        "properties": {
+          "targetGene": {
+            "type": "string",
+            "description": "Shared target gene symbol."
+          },
+          "targetName": {
+            "type": "string",
+            "description": "Shared target display name."
+          },
+          "drugCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many of the queried drugs hit this target."
+          },
+          "drugIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "DrugBank ids hitting this target."
+          },
+          "drugNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Display names hitting this target."
+          }
+        },
+        "required": [
+          "targetGene",
+          "targetName",
+          "drugCount",
+          "drugIds",
+          "drugNames"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineCascadePathsResponseCascades": {
+        "type": "object",
+        "properties": {
+          "startDrug": {
+            "type": "string",
+            "description": "Starting drug name."
+          },
+          "enzymeOne": {
+            "type": "string",
+            "description": "First enzyme in the chain."
+          },
+          "middleDrug": {
+            "type": "string",
+            "description": "Drug occupying the middle of the chain."
+          },
+          "enzymeTwo": {
+            "type": "string",
+            "description": "Second enzyme in the chain."
+          },
+          "endDrug": {
+            "type": "string",
+            "description": "Drug whose exposure is affected downstream."
+          }
+        },
+        "required": [
+          "startDrug",
+          "enzymeOne",
+          "middleDrug",
+          "enzymeTwo",
+          "endDrug"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineSubstituteCandidatesResponseCandidates": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "description": "Candidate DrugBank id."
+          },
+          "name": {
+            "type": "string",
+            "description": "Candidate display name."
+          },
+          "sharedTarget": {
+            "nullable": true,
+            "description": "Target shared with the source drug (the structural reason for candidacy).",
+            "type": "string"
+          }
+        },
+        "required": ["drugbankId", "name", "sharedTarget"],
+        "additionalProperties": false
+      },
+      "MedicineDrugActionsResponseActions": {
+        "type": "object",
+        "properties": {
+          "targetGene": {
+            "type": "string",
+            "description": "Target gene symbol."
+          },
+          "targetName": {
+            "type": "string",
+            "description": "Target display name."
+          },
+          "relation": {
+            "type": "string",
+            "description": "Relation type (INHIBITS/INDUCES/ACTS_ON/SUBSTRATE_OF)."
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Action labels on the edge, when present."
+          }
+        },
+        "required": ["targetGene", "targetName", "relation", "actions"],
+        "additionalProperties": false
+      },
+      "MedicineShortestRoutesResponseRoutes": {
+        "type": "object",
+        "properties": {
+          "stepCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of hops in the path."
+          },
+          "pathNodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Node display names, in path order."
+          },
+          "pathRelations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Edge types, aligned with pathNodes."
+          }
+        },
+        "required": ["stepCount", "pathNodes", "pathRelations"],
+        "additionalProperties": false
+      },
+      "MedicineTargetDrugsResponseDrugs": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "description": "DrugBank id of a drug acting on the target."
+          },
+          "name": {
+            "type": "string",
+            "description": "Drug display name."
+          },
+          "relation": {
+            "type": "string",
+            "description": "Relation type to the target."
+          }
+        },
+        "required": ["drugbankId", "name", "relation"],
+        "additionalProperties": false
+      },
+      "MedicineTransportRoutesResponseRoutes": {
+        "type": "object",
+        "properties": {
+          "transporterGene": {
+            "type": "string",
+            "description": "Transporter gene symbol."
+          },
+          "transporterName": {
+            "type": "string",
+            "description": "Transporter display name."
+          },
+          "inverted": {
+            "type": "boolean",
+            "description": "True when the edge points transporter -> drug (do not draw a same-direction arrow)."
+          }
+        },
+        "required": ["transporterGene", "transporterName", "inverted"],
+        "additionalProperties": false
+      },
+      "MedicineEnzymeDuelsResponseDuels": {
+        "type": "object",
+        "properties": {
+          "enzymeGene": {
+            "type": "string",
+            "description": "Enzyme where induction and metabolism meet."
+          },
+          "inducerDrug": {
+            "type": "string",
+            "description": "Drug inducing the enzyme (lowers substrate exposure)."
+          },
+          "inhibitedSubstrate": {
+            "type": "string",
+            "description": "Substrate drug whose exposure falls."
+          }
+        },
+        "required": ["enzymeGene", "inducerDrug", "inhibitedSubstrate"],
+        "additionalProperties": false
+      },
+      "MedicationOverviewResponseDuplicates": {
+        "type": "object",
+        "properties": {
+          "ingredientKey": {
+            "type": "string",
+            "description": "Shared ingredient key that made these entries duplicates."
+          },
+          "entryIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of the current-medicine entries involved."
+          },
+          "displayNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Display names of those entries."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["medium", "high"],
+            "description": "high when three or more entries share the ingredient, or when they span two knowledge sources."
+          }
+        },
+        "required": ["ingredientKey", "entryIds", "displayNames", "severity"],
+        "additionalProperties": false
+      },
+      "MedicationOverviewResponseSourceOverlaps": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Health event id, or \"unattributed\" when no event links the medicine."
+          },
+          "medicineCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many entries this medicine group holds."
+          },
+          "displayNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Display names in this group."
+          }
+        },
+        "required": ["source", "medicineCount", "displayNames"],
         "additionalProperties": false
       },
       "AdminMetricsOverviewUsers": {

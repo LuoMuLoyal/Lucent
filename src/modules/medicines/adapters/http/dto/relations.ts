@@ -220,3 +220,81 @@ export const graphQueryStatusSchema = z.enum([
 ]);
 
 export type GraphQueryStatus = z.infer<typeof graphQueryStatusSchema>;
+
+// ── 响应信封 ───────────────────────────────────────────────────
+// 9 个端点共用 `{ status, <数据键?> }` 形态：`status: 'ok'` 时带数据键（数组可为空），
+// 其余 status 时**不带**数据键。信封无法表达「status 与数据键的互斥」，因为那需要
+// 判别式联合，而 OpenAPI 3.0 的 `oneOf` 会让 dart-dio 生成器产出把两个分支字段
+// 全部标成 required 的包装类（本仓在 `medicine detail` 上已踩过这个坑）。
+// 因此用「数据键可选」的宽松对象表达，互斥语义由 e2e 断言承接。
+
+/**
+ * 关系查询的响应信封工厂。
+ *
+ * 数据键声明为 `.optional()`：失败态下控制器根本不写这个键，线上响应里也确实
+ * 没有它。声明成必填会让生成的 Dart 模型在失败态解析时炸掉——而那恰好是
+ * 客户端最需要安静降级的路径。
+ */
+const graphEnvelopeSchema = (key: string, value: z.ZodType) =>
+  z.object({
+    status: graphQueryStatusSchema,
+    [key]: value.optional(),
+  });
+
+export const mechanismPathsResponseSchema = graphEnvelopeSchema(
+  'paths',
+  z.array(mechanismPathSchema),
+);
+
+export const sharedTargetsResponseSchema = graphEnvelopeSchema(
+  'targets',
+  z.array(sharedTargetSchema),
+);
+
+export const cascadePathsResponseSchema = graphEnvelopeSchema(
+  'cascades',
+  z.array(cascadePathSchema),
+);
+
+export const substituteCandidatesResponseSchema = graphEnvelopeSchema(
+  'candidates',
+  z.array(substituteCandidateSchema),
+);
+
+export const drugActionsResponseSchema = graphEnvelopeSchema(
+  'actions',
+  z.array(drugActionSchema),
+);
+
+export const shortestRoutesResponseSchema = graphEnvelopeSchema(
+  'routes',
+  z.array(shortestRouteSchema),
+);
+
+export const targetDrugsResponseSchema = graphEnvelopeSchema(
+  'drugs',
+  z.array(targetDrugSchema),
+);
+
+export const transportRoutesResponseSchema = graphEnvelopeSchema(
+  'routes',
+  z.array(transportRouteSchema),
+);
+
+export const enzymeDuelsResponseSchema = graphEnvelopeSchema(
+  'duels',
+  z.array(enzymeDuelSchema),
+);
+
+/** 数据键名，供 e2e 与控制器共享，避免字符串漂移。 */
+export const GRAPH_RESPONSE_DATA_KEYS = {
+  mechanismPaths: 'paths',
+  sharedTargets: 'targets',
+  cascadePaths: 'cascades',
+  substituteCandidates: 'candidates',
+  drugActions: 'actions',
+  shortestRoutes: 'routes',
+  targetDrugs: 'drugs',
+  transportRoutes: 'routes',
+  enzymeDuels: 'duels',
+} as const;

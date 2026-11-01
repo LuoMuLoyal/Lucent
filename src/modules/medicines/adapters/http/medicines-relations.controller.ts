@@ -1,18 +1,35 @@
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Query,
+  SerializeOptions,
+} from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
 import { Public } from '../../../auth/index.js';
 import type { RelationQueryOutcome } from '../../domain/relations/relation.js';
 import {
   MEDICINES_GRAPH_READER,
   type GraphReader,
 } from '../../domain/relations/relations.js';
+import { medicationOverviewResponseSchema } from './dto/medication-overview.js';
 import {
+  cascadePathsResponseSchema,
+  drugActionsResponseSchema,
+  enzymeDuelsResponseSchema,
+  mechanismPathsResponseSchema,
   multiDrugQuerySchema,
   routeQuerySchema,
+  sharedTargetsResponseSchema,
+  shortestRoutesResponseSchema,
   singleDrugQuerySchema,
+  substituteCandidatesResponseSchema,
   substituteQuerySchema,
+  targetDrugsResponseSchema,
   targetQuerySchema,
+  transportRoutesResponseSchema,
   type GraphQueryStatus,
   type MultiDrugQueryDto,
   type RouteQueryDto,
@@ -69,6 +86,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Mechanism paths, or a status explaining why none.',
   })
+  @SerializeOptions({ schema: mechanismPathsResponseSchema })
   async mechanismPaths(
     @Query({ schema: multiDrugQuerySchema }) query: MultiDrugQueryDto,
   ) {
@@ -90,6 +108,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Shared targets, or a status explaining why none.',
   })
+  @SerializeOptions({ schema: sharedTargetsResponseSchema })
   async sharedTargets(
     @Query({ schema: multiDrugQuerySchema }) query: MultiDrugQueryDto,
   ) {
@@ -108,6 +127,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Cascade chains, or a status explaining why none.',
   })
+  @SerializeOptions({ schema: cascadePathsResponseSchema })
   async cascadePaths(
     @Query({ schema: singleDrugQuerySchema }) query: SingleDrugQueryDto,
   ) {
@@ -128,6 +148,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Structural candidates with their shared target.',
   })
+  @SerializeOptions({ schema: substituteCandidatesResponseSchema })
   async substitutes(
     @Query({ schema: substituteQuerySchema }) query: SubstituteQueryDto,
   ) {
@@ -149,6 +170,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Target action spectrum of the drug.',
   })
+  @SerializeOptions({ schema: drugActionsResponseSchema })
   async actions(
     @Query({ schema: singleDrugQuerySchema }) query: SingleDrugQueryDto,
   ) {
@@ -168,6 +190,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Shortest routes, with nodes and edge types.',
   })
+  @SerializeOptions({ schema: shortestRoutesResponseSchema })
   async shortestRoute(
     @Query({ schema: routeQuerySchema }) query: RouteQueryDto,
   ) {
@@ -192,6 +215,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Drugs acting on the target, with relation type.',
   })
+  @SerializeOptions({ schema: targetDrugsResponseSchema })
   async targetDrugs(
     @Query({ schema: targetQuerySchema }) query: TargetQueryDto,
   ) {
@@ -210,6 +234,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Transporter routes, with edge direction.',
   })
+  @SerializeOptions({ schema: transportRoutesResponseSchema })
   async transportRoutes(
     @Query({ schema: singleDrugQuerySchema }) query: SingleDrugQueryDto,
   ) {
@@ -231,6 +256,7 @@ export class MedicinesRelationsController {
     status: 200,
     description: 'Inducer/substrate pairs sharing one enzyme.',
   })
+  @SerializeOptions({ schema: enzymeDuelsResponseSchema })
   async enzymeDuel(
     @Query({ schema: multiDrugQuerySchema }) query: MultiDrugQueryDto,
   ) {
@@ -254,3 +280,92 @@ export class MedicinesRelationsController {
     return { status: 'ok', ...wrap(outcome.value) };
   }
 }
+
+/**
+ * 响应 schema 登记。
+ *
+ * Swagger 不内省 `@SerializeOptions`，所以每个端点必须在注册表里再声明一次
+ * 组件名，`scripts/contract/export-openapi.ts` 才会把 `200` 指向真实 body。
+ * 不登记的表现是契约里只有 description、没有 schema——生成客户端于是把返回
+ * 值落成 `void`，前端只能手写 Dio 取原始 JSON。
+ */
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/mechanism-paths',
+  method: 'get',
+  componentName: 'MedicineMechanismPathsResponse',
+  schema: mechanismPathsResponseSchema,
+  description: 'Mechanism paths, or a status explaining why none.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/shared-targets',
+  method: 'get',
+  componentName: 'MedicineSharedTargetsResponse',
+  schema: sharedTargetsResponseSchema,
+  description: 'Shared targets, or a status explaining why none.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/cascade-paths',
+  method: 'get',
+  componentName: 'MedicineCascadePathsResponse',
+  schema: cascadePathsResponseSchema,
+  description: 'Cascade chains, or a status explaining why none.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/substitutes',
+  method: 'get',
+  componentName: 'MedicineSubstituteCandidatesResponse',
+  schema: substituteCandidatesResponseSchema,
+  description: 'Structural candidates with their shared target.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/actions',
+  method: 'get',
+  componentName: 'MedicineDrugActionsResponse',
+  schema: drugActionsResponseSchema,
+  description: 'Target action spectrum of the drug.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/shortest-route',
+  method: 'get',
+  componentName: 'MedicineShortestRoutesResponse',
+  schema: shortestRoutesResponseSchema,
+  description: 'Shortest routes, with nodes and edge types.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/target-drugs',
+  method: 'get',
+  componentName: 'MedicineTargetDrugsResponse',
+  schema: targetDrugsResponseSchema,
+  description: 'Drugs acting on the target, with relation type.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/transport-routes',
+  method: 'get',
+  componentName: 'MedicineTransportRoutesResponse',
+  schema: transportRoutesResponseSchema,
+  description: 'Transporter routes, with edge direction.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/relations/enzyme-duel',
+  method: 'get',
+  componentName: 'MedicineEnzymeDuelsResponse',
+  schema: enzymeDuelsResponseSchema,
+  description: 'Inducer/substrate pairs sharing one enzyme.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/medication-overview',
+  method: 'get',
+  componentName: 'MedicationOverviewResponse',
+  schema: medicationOverviewResponseSchema,
+  description:
+    'Duplicate ingredients and source grouping for the current medicines.',
+});
