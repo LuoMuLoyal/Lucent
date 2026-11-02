@@ -33,13 +33,30 @@ const dependencies: Array<{
   },
 ]
 
+/**
+ * True once every sidecar section is present. Refine hands `result.data` an
+ * empty object until the query resolves (see the dashboard), so the declared
+ * type is the partial snapshot: without this guard `status[key].enabled` throws
+ * on the first render and on any failed request, and the root error boundary
+ * turns that into the 500 page instead of the error card below.
+ */
+function isDependencyStatus(
+  value: Partial<Dependencies>
+): value is Dependencies {
+  return (
+    value.lightrag !== undefined &&
+    value.semantica !== undefined &&
+    value.generatedAt !== undefined
+  )
+}
+
 export function Dependencies() {
-  const { result, query } = useCustom<Dependencies>({
+  const { result, query } = useCustom<Partial<Dependencies>>({
     url: '/admin/dependencies',
     method: 'get',
     queryOptions: { retry: false },
   })
-  const status = result.data
+  const status = isDependencyStatus(result.data) ? result.data : undefined
 
   return (
     <AdminPage
