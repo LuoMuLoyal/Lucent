@@ -42,9 +42,11 @@ export function filterNavGroups(
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
-        const url = 'url' in item ? item.url : undefined
-        if (url === undefined) return true
-        const rule = accessRuleForUrl(String(url))
+        // External entries (the queue panel) have no router `url`; their rule is
+        // keyed by the external target, which is what the backend enforces.
+        const target = item.external ?? item.url
+        if (target === undefined) return true
+        const rule = accessRuleForUrl(String(target))
         if (rule === undefined) return true
         return typeof rule === 'string'
           ? permissions.includes(rule)
