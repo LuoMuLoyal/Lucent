@@ -203,13 +203,19 @@ export async function setupApp(
   });
 
   // ── Metrics endpoint (with optional Basic Auth) ─────────────────
+  // Every branch returns the reply: an async handler that only calls
+  // `reply.send()` resolves to `undefined`, and Fastify then sends an empty
+  // body when the response has not been flushed yet. `@fastify/compress`
+  // flushes synchronously only below its 4 KiB threshold, so the (large)
+  // Prometheus payload would otherwise arrive empty.
   void fastify.get('/metrics', async (request, reply) => {
     if (metricsUser && metricsPassword) {
       const authHeader = request.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Basic ')) {
-        reply.header('WWW-Authenticate', 'Basic realm="Metrics"');
-        reply.code(401).send('Unauthorized');
-        return;
+        return reply
+          .header('WWW-Authenticate', 'Basic realm="Metrics"')
+          .code(401)
+          .send('Unauthorized');
       }
       const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
       const colonIndex = decoded.indexOf(':');
@@ -219,13 +225,15 @@ export async function setupApp(
         !safeCompare(user, metricsUser) ||
         !safeCompare(pass, metricsPassword)
       ) {
-        reply.header('WWW-Authenticate', 'Basic realm="Metrics"');
-        reply.code(401).send('Unauthorized');
-        return;
+        return reply
+          .header('WWW-Authenticate', 'Basic realm="Metrics"')
+          .code(401)
+          .send('Unauthorized');
       }
     }
-    reply.type(metricsService.getContentType());
-    reply.send(await metricsService.getMetrics());
+    return reply
+      .type(metricsService.getContentType())
+      .send(await metricsService.getMetrics());
   });
 
   // ── NestJS global configuration ─────────────────────────────────

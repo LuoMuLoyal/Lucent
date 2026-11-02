@@ -1,4 +1,11 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { gunzipSync } from 'node:zlib';
+
+import compress from '@fastify/compress';
+import Fastify, {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+} from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ADMIN_CONSOLE_ROOT_PATH } from '../constants/console.constants.js';
@@ -114,6 +121,41 @@ describe('registerAdminConsoleRoutes', () => {
 
     expect(assets.read).toHaveBeenCalledWith('content/safety-tips');
     expect(reply.type).toHaveBeenCalledWith('text/html; charset=utf-8');
+  });
+
+  it('serves an asset body above the compression sync threshold in full', async () => {
+    // `@fastify/compress` streams any payload above its 4 KiB sync threshold.
+    // An async handler that only calls `reply.send()` resolves to `undefined`,
+    // and Fastify then flushes an empty body — which blanked the SPA shell and
+    // every bundle. The handler must return the reply instead.
+    const shell = Buffer.from(
+      `<html><body>${'<script type="module" src="/admin/assets/chunk.js"></script>'.repeat(120)}</body></html>`,
+    );
+    const fastify = Fastify();
+    await fastify.register(compress, { global: true, encodings: ['gzip'] });
+    registerAdminConsoleRoutes(
+      fastify,
+      buildAssetsStub({
+        body: shell,
+        contentType: 'text/html; charset=utf-8',
+        cacheControl: 'no-cache',
+      }),
+    );
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: `${ADMIN_CONSOLE_ROOT_PATH}/`,
+      headers: { 'accept-encoding': 'gzip' },
+    });
+    await fastify.close();
+
+    expect(shell.byteLength).toBeGreaterThan(4096);
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-encoding']).toBe('gzip');
+    expect(response.rawPayload.byteLength).toBeGreaterThan(0);
+    expect(gunzipSync(response.rawPayload).toString('utf-8')).toBe(
+      shell.toString('utf-8'),
+    );
   });
 
   it('answers 404 when the asset cannot be served', async () => {
