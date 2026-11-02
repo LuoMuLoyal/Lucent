@@ -16,25 +16,56 @@ owner: backend
 - Catalog 聚合根：`Medicine`（双源）、`ImportBatch`（导入对账）、
   `SafetyTip`（安全提示内容）。搜索/详情/序列是 **MedicineFact 只读投影**，
   为读模型，不承担不变量。
-- Safety 聚合根：`RiskAssessment`（一次请求一次评估，结果不可改写）。
-- 领域事件（计划）：`medicine_imported`、`risk_assessment_completed` 等，
-  经 outbox 发布；目录事实以 `MedicineFact` 契约面向下游发布。
+- Safety 聚合根：`RiskAssessment`（`domain/safety/`，一次请求一次评估，完成后不可
+  改写）。它的两条真不变量：**静态评估的分数必须由 findings 派生**（调用方给不了
+  分，分数与 findings 因此无法漂移）、**覆盖恒等式
+  `currentMedicineCount === checkedMedicineCount + coverageIssues.length`**
+  （查不到详情的药必须显式计入 coverage，不能静默消失）。两条都有脱离 Prisma 的
+  纯单测（`domain/safety/risk-assessment.spec.ts`）。
+  「一次请求一次评估」是应用层职责、「落库后无 update 路径」是持久化层职责——
+  它们不是聚合不变量，别塞进聚合。
+  **违反不变量时 `check-risk` 报 `INTERNAL_ERROR` 且不落库**——宁可不给结论，
+  也不给一个比事实更自信的结论。
+- **写路径唯一**：聚合经 `RiskAssessmentStore`
+  （`infrastructure/persistence/risk-assessments.ts`）落库；`MEDICINE_RISK_RECORDS`
+  端口**只读**（`listRecords` / `markAllStale` / `loadHealthContext` / `listReminders`）。
+  它原来的 `upsertRecord` 已从端口定义**删除**，所以「两条写路径」不可能再回来
+  ——这是类型保证，不是约定。
+- 领域事件：**已发布** `risk-assessment.completed`。`check-risk` 落库后经
+  `DomainEventPublisher` 发布，payload 用聚合的 `riskLevel`（四档）与
+  `noteworthyFindingCount`，`dedupeKey = risk-assessment.completed:<assessmentId>`。
+  **在写事务之外**——`publish` 不接受事务句柄；做到事务内需要 E0 提供 tx-aware
+  发布器，这里不做假原子。该事件**当前无订阅者**，这是有意的：它的价值是事实
+  持久化、可回放。
+- 领域事件（计划）：`medicine_imported` 等，经 outbox 发布；
+  目录事实以 `MedicineFact` 契约面向下游发布。
 
 ### 层内布局
 
-- `domain/` — `medicine/medicine_source.ts`（来源枚举与默认源）、
-  `services/{risk_model,risk_scoring,allergy_severity,ingredient_canonicalization}.ts`。
+- `domain/` — `medicine/medicine-source.ts`（来源枚举与默认源）、
+  `relations/{relation,relations}.ts`（图关系类型与 `GraphReader` port）、
+  `safety/{risk-assessment,risk-finding,risk-assessments}.ts`（Medication Safety
+  聚合与它的 repository port）、
+  `services/{risk-model,risk-scoring,risk-mechanism,allergy-severity,ingredient-canonicalization,half-life,half-life-gap}.ts`。
   纯领域，不 import 上层。
-- `application/ports/` — 每个外部依赖一个端口（`knowledge` / `cache` /
-  `cache_maintenance` / `risk_records` / `risk_llm` / `safety_tips` / `qa_chunks`），
-  同时导出 `const XXX = 'XXX'` 的 DI token。application 层不 import
-  `infrastructure/`、`adapters/` 或 Prisma。
-- `application/use_cases/` — `medicines`（搜索/详情/识别/贴士）、`check_risk`、
-  `import_catalog`、`rebuild_index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
+- `application/ports/` — 每个外部依赖一个端口（`knowledge` / `knowledge-view` /
+  `cache` / `cache-maintenance` / `risk-records` / `risk-llm` / `risk-check` /
+  `safety-tips`），同时导出 `const XXX = 'XXX'` 的 DI token。
+  application 层不 import `infrastructure/`、`adapters/` 或 Prisma。
+  `knowledge-view.ts` 是**投影形状**（卡片 / 判别联合详情 / 序列）的唯一定义处：
+  持久层生产它、HTTP zod schema 与它结构兼容，两侧都只向内指。
+- `application/read_models/` — 查询侧三件套：`medicine-card`（搜索卡片页）、
+  `medicine-detail`（判别联合详情 + `source` 参数解析与 not_found 映射）、
+  `medicine-sequence`（序列正文）。读模型不建 repository、不承担不变量；
+  `medicine-card.format.ts` 是三个投影共用的纯格式化函数（持久层也要用，
+  故不能留在 `adapters/`）。
+- `application/use_cases/` — 只剩**有副作用**的用例：`medicines`（识别 + 安全贴士）、
+  `check-risk`、`safety-tips-admin`（安全贴士内容管理）、`medication-overview`、
+  `rebuild-index`（薄门面，委托 `MEDICINES_CACHE_MAINTENANCE`）。
 - `adapters/http/` — controller + zod DTO，`presenters/medicine.ts` 承载
   `utils/data-format.ts` 迁来的展示格式化。
-- `infrastructure/` — `persistence/`（cn、drugbank、risk_records、safety_tips、
-  qa_chunks）、`cache/`（store、maintenance）、`llm/`（risk_check + prompts + schemas）。
+- `infrastructure/` — `persistence/`（cn、drugbank、risk-records、safety-tips）、
+  `cache/`（store、maintenance）、`llm/`（risk-check + prompts + schemas）。
 - 端口在 `medicines.module.ts` 用 `{ provide: TOKEN, useExisting: Impl }` 绑定；
   新增实现只改 module 一处。
 
@@ -65,6 +96,14 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - `POST risk-check`（static/LLM 用药风险检查；`candidate` 预检仅支持
   static：解析来源详情即时静态检查，不落库不写 records 缓存，不产生最新
   记录；已在药箱的候选不重复加入）/ `GET risk-check`（最近记录，30 分钟缓存）。
+
+  **交互类 finding 会带 `mechanism`**：图证据说明冲突经哪个酶/靶点/转运体发生
+  （`domain/services/risk-mechanism.ts`）。机制是**增强不是阻塞**——图不可用时每条
+  finding 带 `mechanism: { status: 'unavailable' }`，风险检查照常出结果。只认当前
+  finding 涉及的两个药；机制查询用一次多药查询取回，不是每条 finding 打一次。
+  `status` 的五态里 `notFound`（图上确实没有）与 `unavailable`/`timeout`/`notConfigured`
+  （我们无法回答）**必须分开**，合并会让界面把知识缺口显示成「机制上没问题」。
+
 - `POST recognize`（同步）/ `POST recognize/async` + `GET recognize/status/:jobId`
   （AI 药盒图片识别；同步端点直接返回识别资源，异步端点 `jobId|result` 互斥，
   队列不可用时同步兜底）。识别结果四个字段恒在、取不到时为 `null`，否则生成客户端
@@ -72,11 +111,106 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - `GET safety-tips` — 随机安全贴士（公开读）；管理写操作经 Admin `content:write`
   API（`/api/v1/admin/content/safety-tips`）调用本模块 owner service
   `SafetyTipsAdminService`，每次都记审计（actor + 前后摘要）并失效药品缓存。
-- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]` — 公开端无对应读取；管理面经
-  Admin `content:read`/`content:write` 调用本模块 owner service
-  `QaChunksAdminService`（列表分页/`q`/`safetyLabel` 过滤，写作审计 actor + 前后摘要）。
-  `qaId` 不可改（语料身份，检索索引文档名为 `qa:<qaId>:0`）；行只落库，
-  assistant 检索走 LightRAG `qa` workspace，需重建索引才可见；重新导入覆盖整表。
+- `GET/PUT /api/v1/admin/content/qa-chunks[/:id]` — **端点路径不变，但 owner 已改**：
+  问答语料 `medical_qa_chunks` 是 assistant 的检索事实源（LightRAG `qa` workspace
+  由这些行构建），编辑面归 assistant 的 `QaChunksAdminService`。本模块不再持有
+  这张表、也不再提供它的 port 或 repository。端点路径保持稳定是因为 admin 面板
+  链接与已生成的客户端依赖它——改 owner 不改 URL。
+
+### 图关系查询（`/api/v1/medicines/relations/*`）
+
+9 个多跳图查询，数据来自 **Neo4j**（与 Prisma 的药品知识表是两套数据，不要混淆）。
+普通过滤、排序、正则扫描表达不了的图语义都在这里：二跳机理链、4 跳级联、
+最短路径、反模式排除。
+
+| 端点                                           | 回答什么                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| `mechanism-paths?drugbankIds=`                 | 两药经同一酶形成的通路（`INHIBITS`/`INDUCES` × `SUBSTRATE_OF`） |
+| `shared-targets?drugbankIds=`                  | 这组药共同作用的靶点                                            |
+| `cascade-paths?drugbankId=`                    | 4 跳级联：A 抑制酶1 → C → 酶2 ← B                               |
+| `substitutes?drugbankId=&enzymeGene=`          | 不走该酶、共享靶点的**候选**（结构事实，非处方建议）            |
+| `actions?drugbankId=`                          | 单药作用谱                                                      |
+| `shortest-route?fromDrugbankId=&toDrugbankId=` | 两药最短传播路径                                                |
+| `target-drugs?geneName=`                       | 某靶点上的全部药物                                              |
+| `transport-routes?drugbankId=`                 | 转运体外排/摄取（带边方向）                                     |
+| `enzyme-duel?drugbankIds=`                     | 酶诱导 × 底物：浓度方向相反的间接相互作用                       |
+
+**统一信封**：`{ status, ... }`，`status ∈ ok | notConfigured | unavailable | timeout`。
+`ok` + 空数组 = 「图上确实没有」；其余 = 「我们无法回答」。**不要把两者合成空结果**——
+用药场景里，把知识缺口渲染成「无风险」是最危险的静默降级。
+
+**安全边界**：Cypher 固定在 `infrastructure/graph/schema.ts`，端点只收 DrugBank id /
+基因名这类**参数**，没有任何接受 Cypher 或 GraphQL 的字段。schema **不出现在路由上**，
+只在服务端内部经 OGM 执行。
+
+**实现分层**：`domain/relations/`（类型与 port，零依赖）→ `infrastructure/graph/schema.ts`
+（图模型 + `@cypher`）→ `executor.ts`（OGM 单例、变量注入、失败分类）→ `reader.ts`
+（领域参数 → 受控查询）。
+
+**两个排查要点**：
+
+1. **`@cypher` 列表字段必须 `RETURN { ... } AS result` + `columnName: "result"`**。
+   写成多列 + `columnName: "第一列"` 时查询**不报错但每行都是 null**。
+2. **`INTERACTS_WITH` 在库中单向**（2,534 条），反向边由 semantica 出图时合成，
+   直连走不到。涉及相互作用必须用无向匹配 `-[r]-`。
+
+## 用药全景（`GET /api/v1/medicines/medication-overview`）
+
+回答「**我实际在吃什么组合**」，而 `/risk-check` 回答「这一组药有没有冲突」。
+两者的数据源相同（当前在服药品），但结论性质不同：前者是**描述**（同一成分几份、
+条目按来源如何归类），后者是**判定**（风险等级）。所以这个响应里没有「风险等级」字段。
+
+**需要登录**：与其余 `/medicines/*` 不同——那些是公共药品知识，这里涉及用户自己的
+用药集合，`userId` 只从 token 取、不接受参数。
+
+**两个聚合**（`domain/services/medication-overview.ts`，纯函数）：
+
+- `duplicates`：按**成分键**而非药名分组。按药名比对永远发现不了「芬必得」与
+  「布洛芬缓释胶囊」是同一成分——而患者自己加购时最常见的重复正是这个场景。
+  严重度：同成分 ≥3 条，或跨 CN/DrugBank 两源，判 `high`；2 条判 `medium`。
+- `sourceOverlaps`：按健康事件分组，无关联的归入 `unattributed`。
+  `HealthEventMedicine` 是**多对多**（`@@unique([eventId, currentMedicineId])`），
+  所以输入的 `healthEventIds` 是数组——用单值会把「一个药同时挂在两条病程下」这个
+  信号掩盖掉。
+
+**`totalMedicines` 与 `resolvableMedicines` 都要给**：只看总数会让「有 3 个药没解析出
+成分」隐形，而分析结论的可靠性正取决于可解析比例。解析不出成分的条目（手动录入、
+CN 源查不到详情）计入前者、不计入后者，**不让整体失败**。
+
+`healthEventIds` 来自 `CurrentMedicineRow`——`HealthEventMedicine` 是多对多，在
+`loadHealthContext` 的 `currentMedicines` include 里一次带出，不额外往返。没有关联事件的
+条目归入 `unattributed`。**两组同时存在是正常的**：已归类的说明这个药由某条病程解释，
+`unattributed` 的那些往往是自己加购或长期服用的，反而更值得关注——没有任何一个医生
+在统筹它们。
+
+## 半衰期解析与漏服判定（领域逻辑，**尚未接进提示链路**）
+
+`domain/services/half-life.ts` 把 DrugBank 的 `half_life` **叙述文本**解析成小时区间，
+`half-life-gap.ts` 基于该区间判断「漏服缺口是否值得提示」。
+
+**为什么需要它**：固定时长的漏服规则在两类药上说反话——半衰期 3 小时的药漏 6 小时
+（两个半衰期，浓度掉到 25%）该提醒；半衰期 102 小时的依那西普漏 6 小时浓度几乎没动，
+提醒只制造焦虑。
+
+**解析**：覆盖 `4-5 hours` / `8.4-19.3 hrs` / `112 minutes` / `3 days` / `25 ± 10 hours`
+（按中心±偏差展开）/ `>20 hours`（标记 `openEnded`）/ `three hours` / 整段叙述
+（取第一次出现的值）。在 dev 库 78 条非空 `half_life` 上覆盖 **76 条**；剩下 2 条是
+语义上就没有半衰期的（文本被截断、明确「不被吸收」），返回 `null` 是正确行为。
+解析失败**不回落到默认值**——那等于给一个我们自己编的生理参数。
+
+**判定口径**：
+
+- 阈值取**上界的一半**（偏晚触发）。区间宽的药（`8.4-19.3 hrs`）用下界口径阈值 4.2 小时、
+  缺口 5 小时就弹；用上界口径阈值 9.65 小时、不弹。**误报代价更高**——每天多弹几次会让
+  用户失去对提醒系统的信任。代价是短半衰期且区间宽的药提醒明显延后，这是有意取舍。
+- 每日上限按**自然日**而非滚动 24 小时（与日历一致，避免同一天弹两次、跨零点又放行）。
+- 已确认、尚未到时的记录一律不提示；无可用半衰期时返回 `noData`，调用方应保持原逻辑。
+
+**未接入**：`today-suggestion` 的 `missed_dose_pending` 仍按固定时长运行。接入需要
+「每药每日已提示」的持久化（领域函数接受 `lastNotifiedAt`，但没有地方存它）与
+`UserCurrentMedicine → half_life` 的关联。见 `docs/TODO.md`「半衰期感知的漏服提示接入」。
+⚠️ 该 TODO 还记着一个前提：dev 库只有 78 条药有 `half_life`，不先补数据则接入后
+绝大多数药会落到 `noData`。
 
 ## 持久表清单
 
@@ -86,16 +220,69 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 `drugbank_drug_targets`、`drugbank_target_sequences`（靶点蛋白/编码基因序列）、
 `drugbank_drug_sequences`（生物药各链序列）、`drugbank_structures`（计算结构描述符，
 一药一行）、`drugbank_passage_chunks`（DrugBank RAG）、
-`medical_qa_chunks`（assistant-only 语料，属 assistant 模块检索）、
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
+
+### DrugBank 多值字段：关系表（2026-10-27 由 JsonB 提升）
+
+下列九张表取代了 `drugbank_drugs` 上原有的同名字段 JsonB 列（列已删除）。判断依据是
+**查询方式**而不是数据形状：只要需要反查（「哪些药和 X 有关系」）或按内部字段横向筛
+（「哪些药是 withdrawn」），就必须建表——JsonB 下这类查询要展开整列再过滤。
+
+| 表                              | 实测规模（全量）            | 建表理由                                                                   |
+| ------------------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| `drugbank_drug_interactions`    | 4,631 药 / 2,911,156 条     | 药集内部的相互作用对；`interacts_with_id` **不建外键**（对方可能不在本库） |
+| `drugbank_products`             | 4,465 药 / 468,460 条       | 按 NDC / labeller / 退市日期筛                                             |
+| `drugbank_synonyms`             | 18,160 药 / 52,154 条       | 按同义词命中并区分 `language` / `coder`（INN）                             |
+| `drugbank_dosages`              | 5,273 药 / 99,609 条        | 剂型与给药途径横向筛                                                       |
+| `drugbank_external_identifiers` | 17,309 药 / 95,541 条       | 按外部 ID 反查本库药物                                                     |
+| `drugbank_classifications`      | 11,195 药                   | 按分类层级名称下钻；每药存一条完整路径                                     |
+| `drugbank_groups`               | 19,842 药全覆盖 / 23,864 条 | 撤市与研究性状态的横向筛选                                                 |
+| `drugbank_manufacturers`        | 829 药 / 5,971 条           | 按厂商反查                                                                 |
+| `drugbank_packagers`            | 1,215 药 / 20,499 条        | 同上                                                                       |
+
+> 行数少于源文件的行不代表丢数据：`dosages` 会跳过 form/route/strength 全空的行，
+> `products` 会合并**全字段完全相同**的重复行（源里 USA 与 EMA 各列一次同一产品）。
+> 但身份键必须覆盖全部稳定属性——只按 `(name, labeller, ndc)` 建身份时，没有 NDC 的
+> EU 产品会被错误合并（`Refludan` 20 mg 与 50 mg 合成一条），实测因此丢 37,059 行。
+
+全部使用 `id` 主键 + 业务唯一键（如 `drugbank_groups` 的 `(drugbank_id, group_name)`），
+统一带 `import_run_id` 外键与 `ON DELETE CASCADE`。
+
+**表形状的统一口径**（2026-10-27 补齐）：除 1:1 关系和主表外，所有 `drugbank_*` 表都是
+`id` 主键 + `import_run_id` + `created_at` / `updated_at`。
+
+- `drugbank_drugs` / `drugbank_structures` / `drugbank_fingerprints` **没有 `id`**：
+  前者以 `drugbank_id` 为主键，后两者是它的一对一扩展，共用同一业务主键。给它们加代理
+  主键只会多一层无意义的间接。
+- `drugbank_passage_chunks` **没有 `import_run_id`**：它由 RAG 索引脚本
+  （`rebuild-drugbank-rag-index.ts`）写入，不是导入器；溯源走自己的
+  `source_version` / `source_hash`。
+- `drugbank_drug_targets` 本次补上 `import_run_id`——它是唯一一张被导入器写入却没有批次
+  链接的表（CSV 靶点与 XML 动作富化两个命令都写它），此前无法回答「这批关系来自哪次导入」。
+
+**保持 JsonB 的字段**：`pathways`（3.3%）、`reactions`（5.1%）、`snp_effects`（0.4%）、
+`snp_adverse_effects`（0.2%）、`categories`、`atc_codes`、`international_brands`、
+`food_interactions`、`external_links`。它们只做「按药取整块」，或覆盖率不足以支撑分析。
+`carriers` 不单独建表——已由 `drugbank_drug_targets.relation_kind='carrier'` 承载。
+`ahfs_codes` 源里全为空，不入库。
 
 ## 导入策略（契约要点）
 
+> **药品目录导入不在本模块内。** 没有 `ImportCatalogService` 这类 Nest 服务——
+> 导入全部由 `scripts/import/medicine/**` 下的脚本以**裸 `pg` 连接**执行，不经
+> Nest DI、不经本模块的服务层，也不会有请求触发它。模块内的 `use_cases/` 只有
+> 运行时查询、识别、风险检查与内容管理。误以为存在"导入用例"会让人去模块里找
+> 写入路径，而那里没有。
+
 - 入口 `pnpm import:medicine:all`：drugbank-drugs → links → targets-all →
-  targets-active → target-proteins → target-genes → drug-structures →
+  targets-active → target-proteins → target-genes → drug-structures → patents →
+  experimental-properties → calculated-properties → pathways → reactions →
+  snp-effects → snp-adverse-effects → fingerprints →
+  **groups → classification → synonyms → external-identifiers → dosages →
+  manufacturers → packagers → products → drug-interactions** →
   cn-v3-leaflets → cn-v3-products → cn-v3-product-leaflet-links
-  （顺序源于外键依赖：药序列对 `drugbank_drugs`
-  有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
+  （顺序源于外键依赖：药序列、patents、properties 以及上列九张关系表都对
+  `drugbank_drugs` 有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
 - **导入路径（仅 V3）**：`DrugEntityDedup/products_dedup.parquet` 等 Parquet 文件，
   已做去重 + 保健品删除 + 名称冲突修正 + 条码/国药码并集；导入命令为
   `cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`，
@@ -124,8 +311,9 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 - **DrugBank 源**：`DrugDataBase/derived/drugbank/drugbank_drugs.parquet` —— `full
 database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>` 的直接子元素
   `<drug>`」过滤掉 `<pathways>` 里的约 99.4 万条嵌套引用，因此解析器一药一行；
-  `full database.xml` 不再参与导入。落库仍是原来的 34 列，Parquet 多出的 `prices` /
-  `manufacturers` / `patents` / `dosages` / `pathways` / `snp_effects` 等尚无对应表列。
+  `full database.xml` 不再参与导入。药表保留 34 个标量与整块 JsonB 列；多值字段按上文
+  「关系表」一节拆出九张表。Parquet 里仍未进库的只剩 `prices`、`mixtures`、`salts`、
+  `synthesis-reference`、`affected-organisms`（无独立表，且查询需求尚未出现）。
 - DrugBank 映射：`drugbank_id` 主键、`secondary_drugbank_ids`、科学叙事字段
   清单化进 RAG chunks（仅 description/indication/MoA/pd/toxicity 等核准字段）；
   原始大文件不入 Git。
@@ -153,16 +341,17 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
   `medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
   不经本模块服务。
 - Barrel 导出：`DrugbankMedicinesService`、`CnMedicinesService`、
-  `MedicineRiskCheckService`、`SafetyTipsAdminService`、`QaChunksAdminService`，
+  `MedicineRiskCheckService`、`SafetyTipsAdminService`，
   以及类型 `MedicineSearchItemLike` / `MedicineSearchResultLike`。
 
 ## Tests
 
 `adapters/http/medicines.controller.spec.ts`、
-`application/use_cases/{medicines,check_risk,import_catalog}.spec.ts`、
-`adapters/{events,queue}/*.spec.ts`、`domain/services/*.spec.ts`、
+`application/use_cases/{medicines,check-risk,safety-tips-admin}.spec.ts`、
+`application/read_models/medicine-card.format.spec.ts`、
+`adapters/{events,queue}/*.spec.ts`、`domain/{services,relations,safety}/*.spec.ts`、
 `infrastructure/persistence/*.spec.ts`、`infrastructure/cache/*.spec.ts`、
-`infrastructure/llm/**/*.spec.ts`、`adapters/http/presenters/medicine.spec.ts`。
+`infrastructure/graph/*.spec.ts`、`infrastructure/llm/**/*.spec.ts`。
 
 用例测试只对着端口断言（不 mock Prisma）：查询形状与 ISO 序列化由
 `infrastructure/persistence/*.spec.ts` 覆盖，用例测试覆盖审计、缓存失效、

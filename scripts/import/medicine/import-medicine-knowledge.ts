@@ -236,7 +236,6 @@ const COMMANDS = {
       'cas_number',
       'unii',
       'state',
-      'groups',
       'indication',
       'pharmacodynamics',
       'mechanism_of_action',
@@ -248,15 +247,10 @@ const COMMANDS = {
       'route_of_elimination',
       'volume_of_distribution',
       'clearance',
-      'classification',
-      'synonyms',
-      'products',
       'international_brands',
       'categories',
       'atc_codes',
       'food_interactions',
-      'drug_interactions',
-      'external_identifiers',
       'external_links',
       'search_text',
     ],
@@ -272,7 +266,6 @@ const COMMANDS = {
       'cas_number',
       'unii',
       'state',
-      'groups',
       'indication',
       'pharmacodynamics',
       'mechanism_of_action',
@@ -284,15 +277,10 @@ const COMMANDS = {
       'route_of_elimination',
       'volume_of_distribution',
       'clearance',
-      'classification',
-      'synonyms',
-      'products',
       'international_brands',
       'categories',
       'atc_codes',
       'food_interactions',
-      'drug_interactions',
-      'external_identifiers',
       'external_links',
       'search_text',
     ],
@@ -395,11 +383,7 @@ const COMMANDS = {
   },
   'drugbank-targets-active': {
     parser: path.join(thisDir, 'parsers', 'drugbank_targets.py'),
-    defaultSourcePath: path.join(
-      DATA_ROOT,
-      DRUGBANK_DIR,
-      'pharmacologically_active.csv',
-    ),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'pharmacologically_active.csv'),
     sourceKey: 'drugbank_targets_pharmacologically_active',
     sourceName: 'drugbank_pharmacologically_active_targets_csv',
     sourceDataset: 'pharmacologically_active',
@@ -593,6 +577,412 @@ const COMMANDS = {
       'alogps_logs',
     ],
   },
+
+  // Patent records. One row per (drug, patent number, country): a drug carries
+  // several patents and the same patent number recurs across jurisdictions.
+  // `--limit` counts drugs, not rows.
+  'drugbank-patents': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_patents.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_patents',
+    sourceName: 'drugbank_patents_parquet',
+    tableName: 'drugbank_patents',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'patent_number',
+      'country',
+      'approved_on',
+      'expires_on',
+      'pediatric_extension',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'drugbank_id',
+      'patent_number',
+      'country',
+      'approved_on',
+      'expires_on',
+      'pediatric_extension',
+    ],
+  },
+
+  // Measured properties. One row per (drug, kind, source) — provenance kept.
+  'drugbank-experimental-properties': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_properties.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_experimental_properties',
+    sourceName: 'drugbank_experimental_properties_parquet',
+    tableName: 'drugbank_properties',
+    parserArgs: ['--column', 'experimental_properties'],
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+  },
+
+  // Model-predicted properties (ALOGPS / ChemAxon). Same table, flagged computed.
+  'drugbank-calculated-properties': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_properties.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_calculated_properties',
+    sourceName: 'drugbank_calculated_properties_parquet',
+    tableName: 'drugbank_properties',
+    parserArgs: ['--column', 'calculated_properties', '--computed'],
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'drugbank_id',
+      'kind',
+      'value_text',
+      'value_num',
+      'unit',
+      'source',
+      'is_experimental',
+    ],
+  },
+
+  // Jsonb blocks on the drug row: pathways / reactions / SNP effects. The
+  // parser emits one record per drug; the upsert targets `drugbank_drugs`.
+  'drugbank-pathways': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_pathways',
+    sourceName: 'drugbank_pathways_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'pathways'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'pathways'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'pathways'],
+  },
+  'drugbank-reactions': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_reactions',
+    sourceName: 'drugbank_reactions_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'reactions'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'reactions'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'reactions'],
+  },
+  'drugbank-snp-effects': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_snp_effects',
+    sourceName: 'drugbank_snp_effects_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'snp_effects'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'snp_effects'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'snp_effects'],
+  },
+  'drugbank-snp-adverse-effects': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_json_blocks.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_snp_adverse_effects',
+    sourceName: 'drugbank_snp_adverse_effects_parquet',
+    tableName: 'drugbank_drugs',
+    parserArgs: ['--column', 'snp_adverse_drug_reactions'],
+    columns: ['drugbank_id', 'name', 'import_run_id', 'snp_adverse_effects'],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: ['import_run_id', 'snp_adverse_effects'],
+  },
+
+  // Morgan fingerprints for similarity search. Requires RDKit in the Python env.
+  // Set DRUGBANK_ONLY_IDS to a newline-delimited ID list to restrict output to
+  // drugs already loaded: the SDF covers only molecules that have a structure,
+  // so limiting by position would select a different drug set than the parent
+  // import and break the foreign key.
+  'drugbank-fingerprints': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_fingerprints.py'),
+    defaultSourcePath: path.join(DRUGBANK_DIR, 'structures.sdf'),
+    sourceKey: 'drugbank_fingerprints',
+    sourceName: 'drugbank_fingerprints_sdf',
+    tableName: 'drugbank_fingerprints',
+    parserArgs: ['--only-ids', '${DRUGBANK_ONLY_IDS}'],
+    columns: [
+      'drugbank_id',
+      'import_run_id',
+      'fingerprint',
+      'bit_count',
+      'radius',
+      'n_bits',
+    ],
+    conflictColumns: ['drugbank_id'],
+    updateColumns: [
+      'import_run_id',
+      'fingerprint',
+      'bit_count',
+      'radius',
+      'n_bits',
+    ],
+  },
+
+  // ── Promoted from JsonB to relation tables ────────────────────────────────
+  // Each of these was a JsonB column on `drugbank_drugs`. The move was driven by
+  // query shape, not row count: they all need reverse lookup ("which drugs
+  // interact with X") or cross-drug filtering ("which drugs are withdrawn").
+
+  'drugbank-drug-interactions': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_drug_interactions.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_drug_interactions',
+    sourceName: 'drugbank_drug_interactions_parquet',
+    tableName: 'drugbank_drug_interactions',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'interacts_with_id',
+      'interacts_with_name',
+      'description',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id', 'interacts_with_name', 'description'],
+  },
+
+  'drugbank-products': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_products.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_products',
+    sourceName: 'drugbank_products_parquet',
+    tableName: 'drugbank_products',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'name',
+      'labeller',
+      'ndc_id',
+      'ndc_product_code',
+      'dpd_id',
+      'ema_product_code',
+      'ema_ma_number',
+      'dosage_form',
+      'strength',
+      'route',
+      'fda_application_number',
+      'generic',
+      'over_the_counter',
+      'approved',
+      'country',
+      'started_marketing_on',
+      'ended_marketing_on',
+      'source',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'labeller',
+      'ndc_id',
+      'ndc_product_code',
+      'dpd_id',
+      'ema_product_code',
+      'ema_ma_number',
+      'dosage_form',
+      'strength',
+      'route',
+      'fda_application_number',
+      'generic',
+      'over_the_counter',
+      'approved',
+      'country',
+      'started_marketing_on',
+      'ended_marketing_on',
+      'source',
+    ],
+  },
+
+  'drugbank-synonyms': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_synonyms.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_synonyms',
+    sourceName: 'drugbank_synonyms_parquet',
+    tableName: 'drugbank_synonyms',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'synonym',
+      'language',
+      'coder',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id', 'language', 'coder'],
+  },
+
+  'drugbank-manufacturers': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_manufacturers.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_manufacturers',
+    sourceName: 'drugbank_manufacturers_parquet',
+    tableName: 'drugbank_manufacturers',
+    columns: ['id', 'import_run_id', 'drugbank_id', 'name', 'generic', 'url'],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id', 'generic', 'url'],
+  },
+
+  'drugbank-packagers': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_packagers.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_packagers',
+    sourceName: 'drugbank_packagers_parquet',
+    tableName: 'drugbank_packagers',
+    columns: ['id', 'import_run_id', 'drugbank_id', 'name', 'url'],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id', 'url'],
+  },
+
+  'drugbank-dosages': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_dosages.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_dosages',
+    sourceName: 'drugbank_dosages_parquet',
+    tableName: 'drugbank_dosages',
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'form',
+      'route',
+      'strength',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id'],
+  },
+
+  'drugbank-external-identifiers': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_external_identifiers.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_external_identifiers',
+    sourceName: 'drugbank_external_identifiers_parquet',
+    tableName: 'drugbank_external_identifiers',
+    columns: ['id', 'import_run_id', 'drugbank_id', 'resource', 'identifier'],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id'],
+  },
+
+  'drugbank-classification': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_classification.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_classification',
+    sourceName: 'drugbank_classification_parquet',
+    tableName: 'drugbank_classifications',
+    parserArgs: ['--column', 'classification'],
+    columns: [
+      'id',
+      'import_run_id',
+      'drugbank_id',
+      'kingdom',
+      'superclass',
+      'class',
+      'subclass',
+      'direct_parent',
+      'description',
+    ],
+    conflictColumns: ['id'],
+    updateColumns: [
+      'import_run_id',
+      'kingdom',
+      'superclass',
+      'class',
+      'subclass',
+      'direct_parent',
+      'description',
+    ],
+  },
+
+  'drugbank-groups': {
+    parser: path.join(thisDir, 'parsers', 'drugbank_classification.py'),
+    defaultSourcePath: path.join(
+      DRUGBANK_DERIVED_DIR,
+      'drugbank_drugs.parquet',
+    ),
+    sourceKey: 'drugbank_groups',
+    sourceName: 'drugbank_groups_parquet',
+    tableName: 'drugbank_groups',
+    parserArgs: ['--column', 'groups'],
+    columns: ['id', 'import_run_id', 'drugbank_id', 'group_name'],
+    conflictColumns: ['id'],
+    updateColumns: ['import_run_id'],
+  },
 };
 
 function printUsage() {
@@ -611,11 +1001,20 @@ Commands:
   drugbank-target-genes
   drugbank-drug-sequences
   drugbank-structures
+  drugbank-patents
+  drugbank-experimental-properties
+  drugbank-calculated-properties
+  drugbank-pathways
+  drugbank-reactions
+  drugbank-snp-effects
+  drugbank-snp-adverse-effects
+  drugbank-fingerprints
 
 Options:
   --source <path>       Override the default source file path.
   --batch-size <n>      Number of records per upsert batch. Default: 100
   --limit <n>           Parse only the first N records (useful for smoke tests).
+                        For the one-to-many commands this counts *drugs*, not rows.
   --source-version <v>  Store the export/version string in drug_source_imports.
   --with-hash           Compute SHA-256 for the source file and store it in drug_source_imports.
 `);
@@ -779,6 +1178,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
             record.source_target_id,
             drugbankId,
           ),
+          import_run_id: importRunId,
           drugbank_id: drugbankId,
           target_id: targetId,
           relation_kind: spec.sourceDataset,
@@ -794,6 +1194,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
         tableName: 'drugbank_drug_targets',
         columns: [
           'id',
+          'import_run_id',
           'drugbank_id',
           'target_id',
           'relation_kind',
@@ -801,7 +1202,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
           'known_action',
         ],
         conflictColumns: ['drugbank_id', 'target_id', 'relation_kind'],
-        updateColumns: ['actions', 'known_action'],
+        updateColumns: ['import_run_id', 'actions', 'known_action'],
       },
       relationRecords,
     );
@@ -829,7 +1230,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
  * Relations with no CSV counterpart are inserted, which is what makes
  * enzyme/carrier/transporter relations appear for the first time.
  */
-async function applyXmlTargetActions(client, pending) {
+async function applyXmlTargetActions(client, pending, importRunId) {
   // Resolve every target once, by name *and* organism.
   //
   // A name-only map is not enough: `drugbank_targets` holds 306 names more than
@@ -910,6 +1311,7 @@ async function applyXmlTargetActions(client, pending) {
           targetId,
           relationKind,
         ),
+        import_run_id: importRunId,
         drugbank_id: entry.drugbankId,
         target_id: targetId,
         relation_kind: relationKind,
@@ -938,6 +1340,7 @@ async function applyXmlTargetActions(client, pending) {
         tableName: 'drugbank_drug_targets',
         columns: [
           'id',
+          'import_run_id',
           'drugbank_id',
           'target_id',
           'relation_kind',
@@ -945,7 +1348,7 @@ async function applyXmlTargetActions(client, pending) {
           'known_action',
         ],
         conflictColumns: ['drugbank_id', 'target_id', 'relation_kind'],
-        updateColumns: ['actions', 'known_action'],
+        updateColumns: ['import_run_id', 'actions', 'known_action'],
       },
       chunk,
     );
@@ -1078,6 +1481,7 @@ async function runImport(command, cliOptions) {
       summary.xmlTargetRelations = await applyXmlTargetActions(
         client,
         pendingXmlTargets,
+        importRunId,
       );
     }
   } catch (error) {

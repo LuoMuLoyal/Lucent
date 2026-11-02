@@ -391,11 +391,13 @@ describe('Daily Records API (e2e)', () => {
       expectDefined(user2.email, 'Expected user email'),
     );
 
+    // 404 rather than 403: the ownership check reports "not found" for another
+    // user's row so the id cannot be probed for existence (see `RecordOwnership`).
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(token2))
       .send({ note: 'x' })
-      .expect(403);
+      .expect(404);
   });
 
   it('should require auth', async () => {

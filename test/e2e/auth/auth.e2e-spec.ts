@@ -1,5 +1,3 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
 
@@ -9,6 +7,7 @@ import {
   cleanupDatabase,
   bearer,
   expectData,
+  seedVerificationCode as seedChallengeState,
   uniqueEmail,
 } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
@@ -58,12 +57,12 @@ interface RegisterLoginData {
 // ── Constants ─────────────────────────────────────────────────
 
 const AUTH_PATH = {
+  captcha: '/api/v1/auth/captcha',
   register: '/api/v1/auth/register',
   login: '/api/v1/auth/login',
   logout: '/api/v1/auth/logout',
   refresh: '/api/v1/auth/refresh',
   sendVerificationCode: '/api/v1/auth/send-verification-code',
-  verifyEmail: '/api/v1/auth/verify-email',
   forgotPassword: '/api/v1/auth/forgot-password',
   resetPassword: '/api/v1/auth/reset-password',
   account: '/api/v1/account',
@@ -81,7 +80,7 @@ const AUTH_SCENE = {
 type AuthScene = (typeof AUTH_SCENE)[keyof typeof AUTH_SCENE];
 
 const TEST_EMAIL_DOMAIN = 'example.com';
-const TEST_PASSWORD = 'Test@123456';
+const TEST_PASSWORD = 'LucentE2e!2345';
 const WRONG_LOGIN_PASSWORD = 'WrongPassword123!';
 const WRONG_OLD_PASSWORD = 'WrongOldPass1!';
 const WRONG_DELETE_PASSWORD = 'WrongPassword!';
@@ -101,7 +100,6 @@ const UNKNOWN_LOGIN_EMAIL = `nonexistent@${TEST_EMAIL_DOMAIN}`;
 const UNKNOWN_RESET_EMAIL = `nobody@${TEST_EMAIL_DOMAIN}`;
 const INVALID_EMAIL = 'not-an-email';
 const AUTHORIZATION_HEADER = 'Authorization';
-const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 const VERIFICATION_CODE_COOLDOWN_SECONDS = 60;
 
 let clientIpSeq = 0;
@@ -122,14 +120,11 @@ function hashRefreshToken(token: string): string {
 describe('Auth API (e2e)', () => {
   let ctx: E2eTestContext;
   let app: E2eApp;
-  let cache: Cache;
 
   beforeAll(async () => {
     ctx = await createTestApp();
     app = ctx.app;
     await cleanupDatabase(ctx.prisma);
-
-    cache = app.get(CACHE_MANAGER);
   });
 
   afterAll(async () => {
@@ -182,12 +177,7 @@ describe('Auth API (e2e)', () => {
     email: string,
     code = DEFAULT_VERIFICATION_CODE,
   ): Promise<string> {
-    // The verification service stores a SHA-256 hash (not plaintext) in cache.
-    // We replicate that here so verify() can match correctly.
-    const hash = createHash('sha256')
-      .update(`${scene}:${email}:${code}`)
-      .digest('hex');
-    await cache.set(`vcode:${scene}:${email}`, hash, VERIFICATION_CODE_TTL_MS);
+    await seedChallengeState(ctx, scene, email, code);
     return code;
   }
 
@@ -265,6 +255,40 @@ describe('Auth API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
+  // 1b. GET /api/v1/auth/captcha
+  // ════════════════════════════════════════════════════════════
+
+  describe('GET /api/v1/auth/captcha', () => {
+    it('should report the challenge as disabled when no credentials are configured', async () => {
+      // The e2e environment leaves TURNSTILE_* empty, which is also the local
+      // dev default. This is what keeps the whole suite runnable without a
+      // Cloudflare account — assert it so the default cannot silently flip.
+      const res = await request(app.getHttpServer())
+        .get(AUTH_PATH.captcha)
+        .expect(200);
+
+      const body = res.body as { enabled: boolean; siteKey: string };
+      expect(body.enabled).toBe(false);
+      expect(body.siteKey).toBe('');
+    });
+
+    it('should reject unknown properties in the response contract', async () => {
+      const res = await request(app.getHttpServer())
+        .get(AUTH_PATH.captcha)
+        .expect(200);
+
+      const body = res.body as Record<string, unknown>;
+      expect(Object.keys(body).sort()).toEqual(['enabled', 'siteKey']);
+    });
+
+    it('should require no authentication', async () => {
+      // Registration needs the site key *before* the user has any token, so
+      // this endpoint must stay public.
+      await request(app.getHttpServer()).get(AUTH_PATH.captcha).expect(200);
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
   // 2. POST /api/v1/auth/login
   // ════════════════════════════════════════════════════════════
 
@@ -330,6 +354,75 @@ describe('Auth API (e2e)', () => {
       const body = res.body as RegisterLoginData;
       const data = expectData(body);
       expect(data.user.email).toBe(email);
+    });
+
+    it('should fold a wrong login code into the anti-enumeration bucket', async () => {
+      // A wrong verification code must be indistinguishable from a wrong
+      // password: the response may not reveal whether the account exists.
+      // Before this was enforced, the code path returned
+      // AUTH_VERIFICATION_CODE_MISMATCH verbatim **and skipped rate
+      // limiting**, which made POST /auth/login an unthrottled oracle.
+      const { email } = await registerUser();
+
+      const res = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, code: INVALID_VERIFICATION_CODE })
+        .expect(401);
+
+      const body = res.body as Record<string, unknown>;
+      expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
+    });
+
+    it('should answer identically for an unknown account with a wrong code', async () => {
+      // The observable proof of anti-enumeration: a registered account and an
+      // unknown one must produce byte-identical status + code for the same
+      // request shape. Asserting them in one test is deliberate — two separate
+      // tests could drift apart without either failing.
+      const { email: registeredEmail } = await registerUser();
+      const unknownEmail = uniqueEmail('auth-unknown');
+
+      const registered = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email: registeredEmail, code: INVALID_VERIFICATION_CODE })
+        .expect(401);
+
+      const unknown = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email: unknownEmail, code: INVALID_VERIFICATION_CODE })
+        .expect(401);
+
+      const registeredBody = registered.body as Record<string, unknown>;
+      const unknownBody = unknown.body as Record<string, unknown>;
+
+      expect(registeredBody['code']).toBe('AUTH_WRONG_PASSWORD');
+      expect(unknownBody['code']).toBe('AUTH_WRONG_PASSWORD');
+      expect(registeredBody['code']).toBe(unknownBody['code']);
+      expect(registeredBody['status']).toBe(unknownBody['status']);
+      expect(registeredBody['title']).toBe(unknownBody['title']);
+    });
+
+    it('should count a wrong login code against the login rate limit', async () => {
+      // The code path used to return before recordLoginFailure, so this
+      // counter never moved and the oracle was unthrottled. Drive the same
+      // email past LOGIN_RATE_LIMIT_MAX (10) and require the lockout.
+      const { email } = await registerUser();
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const res = await request(app.getHttpServer())
+          .post(AUTH_PATH.login)
+          .send({ email, code: INVALID_VERIFICATION_CODE })
+          .expect(401);
+        const body = res.body as Record<string, unknown>;
+        expect(body['code']).toBe('AUTH_WRONG_PASSWORD');
+      }
+
+      const locked = await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, code: INVALID_VERIFICATION_CODE })
+        .expect(429);
+
+      const lockedBody = locked.body as Record<string, unknown>;
+      expect(lockedBody['code']).toBe('AUTH_LOGIN_RATE_LIMITED');
     });
   });
 
@@ -511,33 +604,14 @@ describe('Auth API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // 6. POST /api/v1/auth/verify-email
+  // 6. POST /api/v1/auth/verify-email —— 端点已删除
   // ════════════════════════════════════════════════════════════
-
-  describe('POST /api/v1/auth/verify-email', () => {
-    const INVALID_VERIFICATION_TOKEN =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-
-    it('should reject missing token with VALIDATION_FAILED', async () => {
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.verifyEmail)
-        .send({})
-        .expect(400);
-
-      const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('VALIDATION_FAILED');
-    });
-
-    it('should reject an invalid or expired verification token with AUTH_VERIFICATION_CODE_EXPIRED', async () => {
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.verifyEmail)
-        .send({ token: INVALID_VERIFICATION_TOKEN })
-        .expect(400);
-
-      const body = res.body as Record<string, unknown>;
-      expect(body['code']).toBe('AUTH_VERIFICATION_CODE_EXPIRED');
-    });
-  });
+  //
+  // 基于链接的邮箱验证是不可达的死流程：`EmailVerificationService.issue()`
+  // 全仓库没有调用方，注册流程已经用验证码证明了邮箱所有权。端点连同服务、
+  // DTO 与 provider 一并删除，所以这里不再有用例。
+  //
+  // 覆盖「邮箱所有权」的用例在 send-verification-code / register 两节。
 
   // ════════════════════════════════════════════════════════════
   // 7. POST /api/v1/auth/forgot-password
@@ -585,6 +659,65 @@ describe('Auth API (e2e)', () => {
         .post(AUTH_PATH.login)
         .send({ email, password: newPassword })
         .expect(200);
+    });
+
+    it('should invalidate the code after 5 wrong attempts, even for the right code', async () => {
+      // 尝试次数上限（本次新增）。这条路径的风险最高：猜中验证码 = 直接改密码，
+      // 而它没有按邮箱的尝试计数（只有全局 per-IP 限流）。
+      const { email } = await registerUser();
+
+      await forgotPasswordRequest(email);
+      const code = await issueVerificationCode(
+        AUTH_SCENE.forgotPassword,
+        email,
+      );
+
+      // 前 4 次错码 → MISMATCH（码仍有效）。
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const res = await request(app.getHttpServer())
+          .post(AUTH_PATH.resetPassword)
+          .send({
+            email,
+            code: INVALID_VERIFICATION_CODE,
+            password: RESET_PASSWORD,
+          })
+          .expect(400);
+        const body = res.body as Record<string, unknown>;
+        expect(body['code']).toBe('AUTH_VERIFICATION_CODE_MISMATCH');
+      }
+
+      // 第 5 次错码 → 达到上限，映射成 EXPIRED（不新造错误码，否则等于
+      // 告诉攻击者「你把这码猜爆了」）。
+      const fifth = await request(app.getHttpServer())
+        .post(AUTH_PATH.resetPassword)
+        .send({
+          email,
+          code: INVALID_VERIFICATION_CODE,
+          password: RESET_PASSWORD,
+        })
+        .expect(400);
+      expect((fifth.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_VERIFICATION_CODE_EXPIRED',
+      );
+
+      // 【核心断言】猜爆之后，**正确的码**也不再通过。
+      const withRightCode = await request(app.getHttpServer())
+        .post(AUTH_PATH.resetPassword)
+        .send({ email, code, password: RESET_PASSWORD })
+        .expect(400);
+      expect((withRightCode.body as Record<string, unknown>)['code']).toBe(
+        'AUTH_VERIFICATION_CODE_EXPIRED',
+      );
+
+      // 密码没有被改掉：旧密码仍可登录，新密码不行。
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, password: TEST_PASSWORD })
+        .expect(200);
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.login)
+        .send({ email, password: RESET_PASSWORD })
+        .expect(401);
     });
   });
 

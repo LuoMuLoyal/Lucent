@@ -1,0 +1,128 @@
+import { z } from 'zod';
+
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import { dateOnlySchema } from '../../../../../common/validators/iso-datetime.schema.js';
+import { dailyRecordAttachmentInputSchema } from './record-attachment.js';
+
+const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
+  DailyRecordKind,
+  ...DailyRecordKind[],
+];
+
+const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/**
+ * Standard Schema (zod 4) for `POST /daily-records` (create body).
+ *
+ * Replaces the former class-validator `CreateDailyRecordDto`:
+ * - `@IsOptional` → `.optional()` (absent keys stay `undefined`);
+ * - `@IsNotEmpty` text fields → `.trim().min(1)` (whitespace-only is
+ *   rejected and surrounding whitespace is normalised, matching what the
+ *   mapper's `normalizeNullableText` stored before);
+ * - `@IsDateString` (YYYY-MM-DD docs) → `dateOnlySchema()` (calendar-valid
+ *   date-only strings);
+ * - `@Matches` time pattern → `z.string().regex(...)`;
+ * - `@IsEnum(DailyRecordKind)` → `z.enum(Object.values(...))`;
+ * - `@IsUUID` → `z.uuid()`, nullable via `.nullish()`;
+ * - `@IsObject` payload → `z.record(z.string(), z.unknown())` (rejects
+ *   arrays/null, keeps nested payload keys free-form);
+ * - `@ValidateNested({ each: true })` attachments → nested
+ *   `dailyRecordAttachmentInputSchema` array;
+ * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`.
+ */
+export const createDailyRecordSchema = z
+  .object({
+    kind: z.enum(DAILY_RECORD_KIND_VALUES).meta({ example: 'vital' }),
+    occurredAt: dateOnlySchema()
+      .describe(
+        'Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).',
+      )
+      .meta({ example: '2026-06-04' }),
+    occurredTime: z
+      .string()
+      .regex(TIME_24H_PATTERN)
+      .describe(
+        'Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only.',
+      )
+      .meta({ example: '08:30' })
+      .optional(),
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .describe('Short label.')
+      .meta({ example: 'Morning blood pressure' })
+      .optional(),
+    value: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .describe('Measured value.')
+      .meta({ example: '120/80' })
+      .optional(),
+    unit: z
+      .string()
+      .trim()
+      .min(1)
+      .max(50)
+      .describe('Unit label.')
+      .meta({ example: 'mmHg' })
+      .optional(),
+    note: z
+      .string()
+      .max(1000)
+      .describe('Free-text note.')
+      .meta({ example: 'After waking up.' })
+      .optional(),
+    source: z
+      .string()
+      .trim()
+      .min(1)
+      .max(50)
+      .describe(
+        'Record source. Defaults to "manual". Use "apple_health" or "health_connect" for auto-synced records.',
+      )
+      .meta({ example: 'manual' })
+      .optional(),
+    healthEventId: z
+      .uuid()
+      .describe('Optional active health event association.')
+      .meta({ example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })
+      .nullish(),
+    payload: z
+      .record(z.string(), z.unknown())
+      .describe(
+        'Structured payload for kind-specific data. For sleep: { sleepType?: "nightSleep"|"nap", startedAt?: string, endedAt?: string, durationMinutes, quality? }. endedAt must be later than startedAt; cross-midnight intervals are valid. For symptom: { symptom?: string, severity?: "mild"|"moderate"|"severe"|"unknown", customLabel?: string } — symptom is a catalog code and severity is the only structured severity source (title/value are display text). For vital: { vitalType: "heartRate"|"bloodPressure"|"bloodOxygen"|"bloodGlucose"|"bodyTemperature"|"weight"|"respiratoryRate", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: "steps"|"flightsClimbed"|"distance"|"exerciseTime", value: number, unit: string }. For meal: the analysis is server-owned — the only accepted field is the dish list { mealAnalysis: { dishes: [{ name: string }] } }. Vital and activity payloads are optional for manual entry.',
+      )
+      .meta({
+        example: {
+          vitalType: 'bloodPressure',
+          value: 120,
+          unit: 'mmHg',
+          secondaryValue: 80,
+          secondaryUnit: 'mmHg',
+        },
+      })
+      .optional(),
+    attachments: z
+      .array(dailyRecordAttachmentInputSchema)
+      .describe(
+        'Attachment metadata. File upload itself is handled separately.',
+      )
+      .meta({
+        example: [
+          {
+            kind: 'image',
+            objectKey: 'daily-records/user_1/2026-06-04/photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      })
+      .optional(),
+  })
+  .strict();
+
+/** Strongly typed create body of `POST /daily-records`. */
+export type CreateDailyRecordDto = z.infer<typeof createDailyRecordSchema>;

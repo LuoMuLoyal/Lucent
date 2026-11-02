@@ -16,6 +16,7 @@ export class EnvironmentController {
 
   @Get('snapshot')
   @ApiOperation({
+    operationId: 'getSnapshot',
     summary: 'Get static environment snapshot reference data',
   })
   @ApiResponse({

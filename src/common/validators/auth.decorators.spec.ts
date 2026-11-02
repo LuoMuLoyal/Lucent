@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
-  PASSWORD_PATTERN,
   VERIFICATION_CODE_LENGTH,
   strongPasswordSchema,
   verificationCodeSchema,
@@ -18,18 +17,11 @@ import {
 describe('auth decorators constants', () => {
   it('exports correct password length limits', () => {
     expect(PASSWORD_MIN_LENGTH).toBe(8);
-    expect(PASSWORD_MAX_LENGTH).toBe(32);
+    expect(PASSWORD_MAX_LENGTH).toBe(128);
   });
 
   it('exports correct verification code length', () => {
     expect(VERIFICATION_CODE_LENGTH).toBe(6);
-  });
-
-  it('exports password pattern requiring upper, lower, and digit', () => {
-    expect(PASSWORD_PATTERN.test('Abc12345')).toBe(true);
-    expect(PASSWORD_PATTERN.test('abc12345')).toBe(false);
-    expect(PASSWORD_PATTERN.test('ABC12345')).toBe(false);
-    expect(PASSWORD_PATTERN.test('Abcdefgh')).toBe(false);
   });
 });
 
@@ -44,8 +36,18 @@ function firstIssueMessage(result: {
 }
 
 describe('strongPasswordSchema', () => {
-  it('passes for a valid password', () => {
-    expect(strongPasswordSchema().safeParse('ValidPass123').success).toBe(true);
+  it('passes for a long passphrase', () => {
+    // The point of dropping the character-class regex: a passphrase with no
+    // digits or uppercase letters is accepted when it is genuinely unguessable.
+    expect(
+      strongPasswordSchema().safeParse('correct horse battery staple').success,
+    ).toBe(true);
+  });
+
+  it('passes for a random-looking password', () => {
+    expect(strongPasswordSchema().safeParse('x9$Kp2!mQz7#Lw').success).toBe(
+      true,
+    );
   });
 
   it('fails for password shorter than minimum length', () => {
@@ -62,8 +64,25 @@ describe('strongPasswordSchema', () => {
     expect(firstIssueMessage(result)).toBe('validation.password.too_long');
   });
 
-  it('reports too_weak for a password missing the required character classes', () => {
-    for (const password of ['validpass123', 'VALIDPASS123', 'ValidPassword']) {
+  it('reports too_weak for guessable passwords that satisfy the old regex', () => {
+    // Every one of these passed the previous "upper + lower + digit" rule.
+    // They are exactly what strength scoring exists to catch.
+    for (const password of [
+      'Password1',
+      'Abcd1234',
+      'Qwerty123',
+      'ValidPass123',
+    ]) {
+      const result = strongPasswordSchema().safeParse(password);
+      expect(result.success, password).toBe(false);
+      expect(firstIssueMessage(result), password).toBe(
+        'validation.password.too_weak',
+      );
+    }
+  });
+
+  it('reports too_weak for common words without numbers', () => {
+    for (const password of ['password', 'abcdefgh', 'qwertyui']) {
       const result = strongPasswordSchema().safeParse(password);
       expect(result.success, password).toBe(false);
       expect(firstIssueMessage(result), password).toBe(
@@ -90,6 +109,18 @@ describe('strongPasswordSchema', () => {
     }).safeParse('');
     expect(result.success).toBe(false);
     expect(firstIssueMessage(result)).toBe('validation.field.required');
+  });
+
+  it('rejects a stored-password-shaped value at login too', () => {
+    // Login and password setup share this schema: weak existing passwords are
+    // not grandfathered, they fail and the account must reset.
+    for (const password of ['Password1', 'password', 'Abcd1234']) {
+      const result = strongPasswordSchema().optional().safeParse(password);
+      expect(result.success, password).toBe(false);
+      expect(firstIssueMessage(result), password).toBe(
+        'validation.password.too_weak',
+      );
+    }
   });
 });
 

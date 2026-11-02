@@ -1,8 +1,8 @@
 import type {
   SuggestionType,
   SuggestionConfidence,
-} from './suggestion.types.js';
-import type { EvidenceItem } from './signal.types.js';
+} from '../domain/suggestion/suggestion.types.js';
+import type { EvidenceItem } from '../domain/signal/signal.js';
 
 /**
  * BullMQ job data — carries complete context for LLM copy generation.
@@ -41,4 +41,14 @@ export interface CopyPromptCopy {
   userIntro: string;
   constraints: string;
   factsLabel: string;
+}
+
+/** One generated card copy, as produced by the writer adapter. */
+export interface CopyGenerationResult {
+  title: string;
+  reason: string;
+  boundary: string;
+  actionLabel: string;
+  aiGenerated: boolean;
+  fromCache: boolean;
 }

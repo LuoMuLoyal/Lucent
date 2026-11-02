@@ -1,8 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
 import { SessionController } from './session.controller.js';
-import { AuthService } from '../services/auth.service.js';
-import { AuthTokenService } from '../services/token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import { DomainFailureException } from '../../../common/result/unwrap-result.js';
 import {
@@ -21,6 +20,9 @@ const mockUser: UserPayload = {
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
   ip: '127.0.0.1',
+  // `@fastify/cookie` 在生产环境装饰这个属性；替身里要显式给出空对象，
+  // 否则 `listSessions` 读 refresh token 时会 TypeError。
+  cookies: {},
   raw: { socket: { remoteAddress: '127.0.0.1' } },
 } as unknown as FastifyRequest;
 
@@ -33,8 +35,7 @@ const mockRefreshResult = {
 
 describe('SessionController', () => {
   let controller: SessionController;
-  let authService: vi.Mocked<AuthService>;
-  let authTokenService: vi.Mocked<AuthTokenService>;
+  let sessionTokens: vi.Mocked<SessionTokens>;
   let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
@@ -42,17 +43,18 @@ describe('SessionController', () => {
       controllers: [SessionController],
       providers: [
         {
-          provide: AuthService,
+          provide: SessionTokens,
           useValue: {
-            logout: vi.fn().mockReturnValue(okAsync(undefined)),
-            refresh: vi.fn().mockReturnValue(okAsync(mockRefreshResult)),
-          },
-        },
-        {
-          provide: AuthTokenService,
-          useValue: {
-            listSessions: vi.fn().mockReturnValue(okAsync([])),
+            list: vi.fn().mockReturnValue(okAsync([])),
             revokeById: vi.fn().mockReturnValue(okAsync(undefined)),
+            revoke: vi.fn().mockReturnValue(okAsync(undefined)),
+            rotate: vi.fn().mockReturnValue(
+              okAsync({
+                userId: 'user-1',
+                status: 'active',
+                tokens: mockRefreshResult,
+              }),
+            ),
           },
         },
         {
@@ -65,8 +67,7 @@ describe('SessionController', () => {
     }).compile();
 
     controller = module.get(SessionController);
-    authService = module.get(AuthService);
-    authTokenService = module.get(AuthTokenService);
+    sessionTokens = module.get(SessionTokens);
     auditLogService = module.get(AuditLogService);
   });
 
@@ -82,14 +83,14 @@ describe('SessionController', () => {
         }),
       ).resolves.toBeUndefined();
 
-      expect(authService.logout).toHaveBeenCalledWith(
+      expect(sessionTokens.revoke).toHaveBeenCalledWith(
         'user-1',
         'refresh-token',
       );
     });
 
     it('rethrows DomainFailureException when logout fails (401 path)', async () => {
-      authService.logout.mockReturnValue(
+      sessionTokens.revoke.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -109,17 +110,34 @@ describe('SessionController', () => {
       const sessions = [
         {
           id: 'sess-1',
-          ipAddress: '127.0.0.1',
-          userAgent: 'test',
-          createdAt: '2026-07-10T00:00:00Z',
+          lastUsedAt: '2026-07-10T00:00:00.000Z',
+          createdAt: '2026-07-10T00:00:00.000Z',
+          expiresAt: '2026-07-17T00:00:00.000Z',
+          isCurrent: true,
         },
       ];
-      authTokenService.listSessions.mockReturnValue(okAsync(sessions as never));
+      sessionTokens.list.mockReturnValue(okAsync(sessions as never));
 
-      const result = await controller.listSessions(mockUser);
+      const result = await controller.listSessions(mockUser, mockRequest);
 
-      expect(authTokenService.listSessions).toHaveBeenCalledWith('user-1');
+      // 请求没有 refresh cookie 时传 `undefined`——Bearer 客户端走这条，
+      // 结果是 `isCurrent: false`。
+      expect(sessionTokens.list).toHaveBeenCalledWith('user-1', undefined);
       expect(result).toEqual(sessions);
+    });
+
+    it('把 refresh cookie 传给 list，用于判定 isCurrent', async () => {
+      sessionTokens.list.mockReturnValue(okAsync([] as never));
+
+      await controller.listSessions(mockUser, {
+        ...mockRequest,
+        cookies: { lucent_refresh: 'refresh-token-value' },
+      } as unknown as FastifyRequest);
+
+      expect(sessionTokens.list).toHaveBeenCalledWith(
+        'user-1',
+        'refresh-token-value',
+      );
     });
   });
 
@@ -129,10 +147,7 @@ describe('SessionController', () => {
         controller.revokeSession(mockUser, 'sess-1', mockRequest),
       ).resolves.toBeUndefined();
 
-      expect(authTokenService.revokeById).toHaveBeenCalledWith(
-        'user-1',
-        'sess-1',
-      );
+      expect(sessionTokens.revokeById).toHaveBeenCalledWith('user-1', 'sess-1');
       expect(auditLogService.logFireAndForget).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-1',
@@ -144,7 +159,7 @@ describe('SessionController', () => {
     });
 
     it('does not write audit log when revocation fails (403 path)', async () => {
-      authTokenService.revokeById.mockReturnValue(
+      sessionTokens.revokeById.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authorization',
@@ -160,7 +175,7 @@ describe('SessionController', () => {
     });
 
     it('rethrows DomainFailureException for a missing session (404 path)', async () => {
-      authTokenService.revokeById.mockReturnValue(
+      sessionTokens.revokeById.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -183,7 +198,7 @@ describe('SessionController', () => {
         mockRequest,
       );
 
-      expect(authService.refresh).toHaveBeenCalledWith(
+      expect(sessionTokens.rotate).toHaveBeenCalledWith(
         'old-refresh',
         expect.objectContaining({ userAgent: 'test-agent' }),
       );
@@ -193,7 +208,7 @@ describe('SessionController', () => {
     });
 
     it('rethrows DomainFailureException for an invalid refresh token (401 path)', async () => {
-      authService.refresh.mockReturnValue(
+      sessionTokens.rotate.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',

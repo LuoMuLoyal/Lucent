@@ -1,6 +1,6 @@
-export { UserService } from './services/user.service.js';
-export { UserAdminService } from './services/admin.service.js';
+export { UserService } from './application/use_cases/user.js';
+export { UserAdminService } from './application/use_cases/admin.js';
 export type {
   AdminUserStatus,
   UserStatusChange,
-} from './services/admin.service.js';
+} from './application/use_cases/admin.js';

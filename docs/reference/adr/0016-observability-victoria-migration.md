@@ -86,7 +86,8 @@
 
 - `prom-client` 和 `/metrics` 端点不变。
 - OTel SDK 和 `src/tracing.ts` 的门控机制不变。
-- Winston 日志框架不变，`otelTraceFormat` 注入逻辑不变。
+- 日志框架不变（2026-10-27 起为 Pino / `nestjs-pino`，见 ADR-0007 修订记录），
+  trace 字段注入逻辑不变（现为 pino `mixin`）。
 - 开发环境 Jaeger all-in-one 不变。
 
 ## Cross-References

@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuthController } from './oauth.controller.js';
-import { AuthService } from '../services/auth.service.js';
+import { AuthOAuthFacadeService } from '../application/services/oauth-facade.js';
 import {
   createDomainFailure,
   errAsync,
@@ -37,14 +37,14 @@ const stateInvalidFailure = createDomainFailure({
 
 describe('OAuthController', () => {
   let controller: OAuthController;
-  let authService: vi.Mocked<AuthService>;
+  let oauthFacade: vi.Mocked<AuthOAuthFacadeService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OAuthController],
       providers: [
         {
-          provide: AuthService,
+          provide: AuthOAuthFacadeService,
           useValue: {
             createWechatWebAuthorizeUrl: vi.fn(),
             loginWithWechatWeb: vi.fn(),
@@ -61,7 +61,7 @@ describe('OAuthController', () => {
     }).compile();
 
     controller = module.get(OAuthController);
-    authService = module.get(AuthService);
+    oauthFacade = module.get(AuthOAuthFacadeService);
   });
 
   afterEach(() => {
@@ -70,7 +70,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/wechat-web/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createWechatWebAuthorizeUrl.mockReturnValue(
+      oauthFacade.createWechatWebAuthorizeUrl.mockReturnValue(
         okAsync({
           authorizeUrl: 'https://wx/auth',
           state: 'state-123',
@@ -88,7 +88,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/wechat-web/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithWechatWeb.mockReturnValue(
+      oauthFacade.loginWithWechatWeb.mockReturnValue(
         okAsync(mockAuthResult as never),
       );
 
@@ -97,12 +97,12 @@ describe('OAuthController', () => {
         mockRequest,
       );
 
-      expect(authService.loginWithWechatWeb).toHaveBeenCalled();
+      expect(oauthFacade.loginWithWechatWeb).toHaveBeenCalled();
       expect(result).toHaveProperty('user');
     });
 
     it('folds an invalid state into a DomainFailureException', async () => {
-      authService.loginWithWechatWeb.mockReturnValue(
+      oauthFacade.loginWithWechatWeb.mockReturnValue(
         errAsync(stateInvalidFailure),
       );
 
@@ -114,7 +114,7 @@ describe('OAuthController', () => {
 
   describe('GET /auth/oauth/wechat-web/callback (redirect)', () => {
     it('redirects to the resolved URL', async () => {
-      authService.resolveWechatWebCallbackRedirect.mockReturnValue(
+      oauthFacade.resolveWechatWebCallbackRedirect.mockReturnValue(
         okAsync('https://app/cb?code=wx-code&state=state-123'),
       );
 
@@ -134,7 +134,7 @@ describe('OAuthController', () => {
     });
 
     it('folds an invalid state into a DomainFailureException instead of redirecting', async () => {
-      authService.resolveWechatWebCallbackRedirect.mockReturnValue(
+      oauthFacade.resolveWechatWebCallbackRedirect.mockReturnValue(
         errAsync(stateInvalidFailure),
       );
 
@@ -154,7 +154,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/wechat-mobile/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithWechatMobile.mockReturnValue(
+      oauthFacade.loginWithWechatMobile.mockReturnValue(
         okAsync(mockAuthResult as never),
       );
 
@@ -169,7 +169,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/apple/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithApple.mockReturnValue(
+      oauthFacade.loginWithApple.mockReturnValue(
         okAsync(mockAuthResult as never),
       );
 
@@ -184,7 +184,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/qq/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createQqAuthorizeUrl.mockReturnValue(
+      oauthFacade.createQqAuthorizeUrl.mockReturnValue(
         okAsync({
           authorizeUrl: 'https://qq/auth',
           state: 'state-qq',
@@ -200,7 +200,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/qq/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithQq.mockReturnValue(okAsync(mockAuthResult as never));
+      oauthFacade.loginWithQq.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.loginWithQq(
         { code: 'qq-code', state: 'state-qq' },
@@ -213,7 +213,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/google/authorize', () => {
     it('returns the authorize URL resource', async () => {
-      authService.createGoogleAuthorizeUrl.mockReturnValue(
+      oauthFacade.createGoogleAuthorizeUrl.mockReturnValue(
         okAsync({
           authorizeUrl: 'https://google/auth',
           state: 'state-google',
@@ -231,7 +231,7 @@ describe('OAuthController', () => {
 
   describe('POST /auth/oauth/google/callback', () => {
     it('returns an auth resource', async () => {
-      authService.loginWithGoogle.mockReturnValue(
+      oauthFacade.loginWithGoogle.mockReturnValue(
         okAsync(mockAuthResult as never),
       );
 

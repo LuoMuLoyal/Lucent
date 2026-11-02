@@ -1,0 +1,625 @@
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+
+import { CredentialAuthService } from './credential.js';
+import { UserService } from '../../../user/index.js';
+import { VerificationCodeService } from './verification-code.js';
+import { SessionTokens } from './session-tokens.js';
+import { AuthRateLimitService } from './rate-limit.js';
+import { HumanVerification } from '../../application/ports/human-verification.js';
+import { AuthIdentityService } from './identity.js';
+import type { User } from '#generated/prisma/client.js';
+import { UserStatus } from '#generated/prisma/client.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result/index.js';
+
+/**
+ * Folds a ResultAsync into a plain outcome so specs can assert both success
+ * values and DomainFailure codes without throwing.
+ */
+function collectResult<T, E>(
+  result: ResultAsync<T, E>,
+): Promise<{ ok: true; value: T } | { ok: false; error: E }> {
+  return result.match(
+    (value) => ({ ok: true as const, value }),
+    (error) => ({ ok: false as const, error }),
+  );
+}
+
+// ── Fixtures ──────────────────────────────────────────────────
+
+const mockUser: User = {
+  id: 'user-1',
+  email: 'test@example.com',
+  emailVerified: true,
+  nickname: 'Tester',
+  avatar: null,
+  status: UserStatus.active,
+  emailVerifiedAt: new Date('2026-01-01'),
+  lastLoginAt: new Date('2026-01-01T00:00:00Z'),
+  deletedAt: null,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-06-01'),
+};
+
+const mockTokenPair = {
+  accessToken: 'access-token-xxx',
+  refreshToken: 'refresh-token-xxx',
+  expiresIn: 3600,
+  accessTokenExpiresAt: '2026-06-29T14:00:00.000Z',
+  refreshTokenExpiresAt: '2026-07-13T14:00:00.000Z',
+};
+
+const wrongPasswordFailure: DomainFailure = createDomainFailure({
+  kind: 'authentication',
+  code: 'AUTH_WRONG_PASSWORD',
+});
+
+function buildRegisterDto(overrides: Record<string, unknown> = {}) {
+  return {
+    email: 'new@example.com',
+    password: 'Secure@Pass1',
+    code: '123456',
+    nickname: 'NewUser',
+    ...overrides,
+  };
+}
+
+function buildLoginDto(overrides: Record<string, unknown> = {}) {
+  return {
+    email: 'test@example.com',
+    password: 'Secure@Pass1',
+    ...overrides,
+  };
+}
+
+// ── Suite ─────────────────────────────────────────────────────
+
+describe('CredentialAuthService', () => {
+  let service: CredentialAuthService;
+  let userService: vi.Mocked<UserService>;
+  let verificationCodeService: vi.Mocked<VerificationCodeService>;
+  let sessionTokens: vi.Mocked<SessionTokens>;
+  let authRateLimitService: vi.Mocked<AuthRateLimitService>;
+  let identityService: vi.Mocked<AuthIdentityService>;
+  let turnstileService: vi.Mocked<HumanVerification>;
+
+  let hashPasswordMock: vi.Mock;
+  let verifyPasswordForUserMock: vi.Mock;
+  let checkLocalPasswordMock: vi.Mock;
+  let createLocalUserMock: vi.Mock;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CredentialAuthService,
+        {
+          provide: UserService,
+          useValue: {
+            findByEmail: vi.fn(),
+            findById: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn().mockReturnValue(okAsync(mockUser)),
+            updateByEmail: vi.fn(),
+          },
+        },
+        {
+          provide: VerificationCodeService,
+          useValue: {
+            verify: vi.fn(),
+            send: vi.fn(),
+            assertClientRateLimit: vi.fn(),
+          },
+        },
+        {
+          provide: SessionTokens,
+          useValue: {
+            issue: vi.fn(),
+            revokeAll: vi.fn(),
+          },
+        },
+        {
+          provide: AuthRateLimitService,
+          useValue: {
+            checkLoginRateLimit: vi.fn(),
+            isCaptchaRequired: vi.fn(),
+            recordLoginFailure: vi.fn(),
+            clearLoginFailures: vi.fn(),
+            checkReauthRateLimit: vi.fn(),
+            recordReauthFailure: vi.fn(),
+            clearReauthFailures: vi.fn(),
+          },
+        },
+        {
+          provide: AuthIdentityService,
+          useValue: {
+            hashPassword: vi.fn(),
+            verifyPassword: vi.fn(),
+            verifyPasswordForUser: vi.fn(),
+            checkLocalPassword: vi.fn(),
+            hasPassword: vi.fn(),
+            upsertCredentialAccount: vi.fn(),
+            createLocalUser: vi.fn(),
+            authenticateByEmail: vi.fn(),
+          },
+        },
+        {
+          provide: HumanVerification,
+          useValue: {
+            verify: vi.fn(),
+            enabled: false,
+            siteKey: '',
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get(CredentialAuthService);
+    userService = module.get(UserService);
+    verificationCodeService = module.get(VerificationCodeService);
+    sessionTokens = module.get(SessionTokens);
+    authRateLimitService = module.get(AuthRateLimitService);
+    identityService = module.get(AuthIdentityService);
+    turnstileService = module.get(HumanVerification);
+
+    // Default mock responses
+    userService.findByEmail.mockResolvedValue(null);
+    userService.findById.mockResolvedValue(mockUser);
+    userService.create.mockReturnValue(okAsync(mockUser));
+    userService.update.mockReturnValue(okAsync(mockUser));
+    userService.updateByEmail.mockResolvedValue(mockUser);
+    sessionTokens.issue.mockReturnValue(okAsync(mockTokenPair));
+    sessionTokens.revokeAll.mockReturnValue(okAsync(undefined));
+    verificationCodeService.verify.mockReturnValue(okAsync(undefined));
+    verificationCodeService.send.mockReturnValue(okAsync(undefined));
+    authRateLimitService.checkLoginRateLimit.mockReturnValue(
+      okAsync(undefined),
+    );
+    authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
+    authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
+    authRateLimitService.isCaptchaRequired.mockReturnValue(okAsync(false));
+    turnstileService.verify.mockReturnValue(okAsync(undefined));
+
+    hashPasswordMock = identityService.hashPassword as unknown as vi.Mock;
+    verifyPasswordForUserMock =
+      identityService.verifyPasswordForUser as unknown as vi.Mock;
+    checkLocalPasswordMock =
+      identityService.checkLocalPassword as unknown as vi.Mock;
+    createLocalUserMock = identityService.createLocalUser as unknown as vi.Mock;
+
+    hashPasswordMock.mockResolvedValue('$argon2id$new-hash');
+    verifyPasswordForUserMock.mockReturnValue(okAsync(true));
+    checkLocalPasswordMock.mockReturnValue(
+      okAsync({ hasPassword: true, passwordMatches: true }),
+    );
+    createLocalUserMock.mockReturnValue(
+      okAsync({ user: { id: 'user-1' }, created: true }),
+    );
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // register
+  // ════════════════════════════════════════════════════════════
+
+  describe('register', () => {
+    it('should register a new user and return tokens', async () => {
+      const dto = buildRegisterDto();
+      const outcome = await collectResult(service.register(dto));
+
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'new@example.com',
+        '123456',
+        'register',
+      );
+      expect(hashPasswordMock).toHaveBeenCalledWith('Secure@Pass1');
+      expect(createLocalUserMock).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        passwordHash: '$argon2id$new-hash',
+        nickname: 'NewUser',
+      });
+      expect(userService.update).toHaveBeenCalledWith('user-1', {
+        emailVerified: true,
+        emailVerifiedAt: expect.any(Date),
+      });
+      expect(sessionTokens.issue).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          email: mockUser.email,
+          status: mockUser.status,
+        },
+        undefined,
+      );
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          user: mockUser,
+          accessToken: mockTokenPair.accessToken,
+          refreshToken: mockTokenPair.refreshToken,
+        }),
+      });
+    });
+
+    it('should normalize email and fallback nickname to email local part', async () => {
+      const dto = buildRegisterDto({
+        email: '  New@Example.COM  ',
+        nickname: undefined,
+      });
+      await collectResult(service.register(dto));
+
+      expect(createLocalUserMock).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        passwordHash: '$argon2id$new-hash',
+        nickname: 'new',
+      });
+    });
+
+    it('should reject an already-registered email with the generic credential failure (anti-enumeration)', async () => {
+      createLocalUserMock.mockReturnValue(
+        okAsync({ user: { id: 'existing-user' }, created: false }),
+      );
+
+      const outcome = await collectResult(service.register(buildRegisterDto()));
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+    });
+
+    it('should validate the code before creating the user (anti-enumeration)', async () => {
+      await collectResult(service.register(buildRegisterDto()));
+
+      const verifyOrder =
+        verificationCodeService.verify.mock.invocationCallOrder;
+      const createOrder = createLocalUserMock.mock.invocationCallOrder;
+      expect(verifyOrder[0]!).toBeLessThan(createOrder[0]!);
+    });
+
+    it('should propagate verification code failures', async () => {
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(service.register(buildRegisterDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+        }),
+      });
+      expect(createLocalUserMock).not.toHaveBeenCalled();
+    });
+
+    it('should pass auth context to token generation', async () => {
+      const context = { ipAddress: '1.2.3.4', userAgent: 'Test/1.0' };
+      await collectResult(service.register(buildRegisterDto(), context));
+
+      expect(sessionTokens.issue).toHaveBeenCalledWith(
+        {
+          userId: mockUser.id,
+          email: mockUser.email,
+          status: mockUser.status,
+        },
+        context,
+      );
+    });
+
+    it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
+      const error = new Error('db connection lost');
+      createLocalUserMock.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            cause: error,
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(service.register(buildRegisterDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+        }),
+      });
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // login
+  // ════════════════════════════════════════════════════════════
+
+  describe('login', () => {
+    beforeEach(() => {
+      userService.findByEmail.mockResolvedValue(mockUser);
+    });
+
+    it('should login with correct password and return tokens', async () => {
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(authRateLimitService.checkLoginRateLimit).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      expect(checkLocalPasswordMock).toHaveBeenCalledWith(
+        'user-1',
+        'Secure@Pass1',
+      );
+      expect(authRateLimitService.clearLoginFailures).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      expect(userService.update).toHaveBeenCalledWith('user-1', {
+        lastLoginAt: expect.any(Date),
+        status: UserStatus.active,
+      });
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          user: mockUser,
+          accessToken: mockTokenPair.accessToken,
+        }),
+      });
+    });
+
+    it('should reject wrong password with the generic code and record the failure', async () => {
+      checkLocalPasswordMock.mockReturnValue(
+        okAsync({ hasPassword: true, passwordMatches: false }),
+      );
+
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(checkLocalPasswordMock).toHaveBeenCalledWith(
+        'user-1',
+        'Secure@Pass1',
+      );
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      expect(authRateLimitService.clearLoginFailures).not.toHaveBeenCalled();
+      expect(userService.update).not.toHaveBeenCalled();
+    });
+
+    it('should reject a non-existent account with the generic code and record the failure', async () => {
+      userService.findByEmail.mockResolvedValue(null);
+
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+    });
+
+    it('should reject when both password and code are provided', async () => {
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '123456' })),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
+    });
+
+    it('should reject OAuth-only user without credential account', async () => {
+      // 无密码现在是**一个事实**（`hasPassword: false`），不是错误码。
+      // 领域判定把它与密码错折进同一个结论——对外不可区分。
+      checkLocalPasswordMock.mockReturnValue(
+        okAsync({ hasPassword: false, passwordMatches: null }),
+      );
+
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(checkLocalPasswordMock).toHaveBeenCalledWith(
+        'user-1',
+        'Secure@Pass1',
+      );
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+    });
+
+    it('should login with verification code', async () => {
+      const dto = buildLoginDto({ code: '654321', password: undefined });
+      const outcome = await collectResult(service.login(dto));
+
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'test@example.com',
+        '654321',
+        'login',
+      );
+      expect(outcome).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          user: mockUser,
+          accessToken: mockTokenPair.accessToken,
+        }),
+      });
+    });
+
+    it('should normalize email before lookup', async () => {
+      await collectResult(
+        service.login(buildLoginDto({ email: '  TEST@Example.COM  ' })),
+      );
+
+      expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
+    });
+
+    it('folds a mismatched login code into AUTH_WRONG_PASSWORD and counts it', async () => {
+      // Anti-enumeration: the code path may not reveal that the account
+      // exists. It used to propagate AUTH_VERIFICATION_CODE_MISMATCH and skip
+      // recordLoginFailure entirely — an unthrottled oracle.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+    });
+
+    it('folds an expired login code into the same bucket as a mismatch', async () => {
+      // "Expired" and "mismatch" carry the same signal to an attacker
+      // ("this address exists and once asked for a code"), so they must not
+      // be separable either.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_EXPIRED',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      expect(outcome).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+    });
+
+    it('keeps a cache failure on the code path as a dependency failure', async () => {
+      // Invariant #2 on the code path: a cache outage must not be reported as
+      // "wrong code", or the user retries a code that was never the problem.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            detail: 'verification cache down',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          kind: 'dependency',
+        }),
+      });
+      expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
+    });
+
+    it('answers a wrong login code and an unknown account identically', async () => {
+      // The observable proof of anti-enumeration, asserted in one test so the
+      // two paths cannot drift apart silently.
+      verificationCodeService.verify.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'authentication',
+            code: 'AUTH_VERIFICATION_CODE_MISMATCH',
+          }),
+        ),
+      );
+
+      const registered = await collectResult(
+        service.login(buildLoginDto({ code: '000000', password: undefined })),
+      );
+
+      userService.findByEmail.mockResolvedValue(null);
+      const unknown = await collectResult(
+        service.login(
+          buildLoginDto({ email: 'nobody@example.com', code: '000000' }),
+        ),
+      );
+
+      expect(registered).toEqual({ ok: false, error: wrongPasswordFailure });
+      expect(unknown).toEqual({ ok: false, error: wrongPasswordFailure });
+    });
+
+    it('should surface the login rate-limit failure without recording another failure', async () => {
+      authRateLimitService.checkLoginRateLimit.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'AUTH_LOGIN_RATE_LIMITED',
+            retryable: true,
+            retryAfter: 60,
+            args: { minutes: 1 },
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'AUTH_LOGIN_RATE_LIMITED' }),
+      });
+      expect(userService.findByEmail).not.toHaveBeenCalled();
+      expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
+    });
+
+    it('maps an internal error to DEPENDENCY_UNAVAILABLE instead of folding it into AUTH_WRONG_PASSWORD', async () => {
+      checkLocalPasswordMock.mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
+            detail: 'session store unavailable',
+          }),
+        ),
+      );
+
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: 'DEPENDENCY_UNAVAILABLE' }),
+      });
+      expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();
+      expect(authRateLimitService.clearLoginFailures).not.toHaveBeenCalled();
+      expect(userService.update).not.toHaveBeenCalled();
+    });
+
+    it('maps infrastructure failures to DEPENDENCY_UNAVAILABLE', async () => {
+      const error = new Error('db connection lost');
+      userService.findByEmail.mockRejectedValue(error);
+
+      const outcome = await collectResult(service.login(buildLoginDto()));
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: expect.objectContaining({
+          code: 'DEPENDENCY_UNAVAILABLE',
+          cause: error,
+        }),
+      });
+    });
+  });
+});

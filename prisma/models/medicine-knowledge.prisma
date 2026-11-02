@@ -23,9 +23,22 @@ model DrugSourceImport {
   drugbankDrugs         DrugbankDrug[]
   drugbankLinks         DrugbankExternalLink[]
   drugbankTargets       DrugbankTarget[]
+  drugbankDrugTargets   DrugbankDrugTarget[]
   drugbankTargetSeqs    DrugbankTargetSequence[]
   drugbankDrugSeqs      DrugbankDrugSequence[]
   drugbankStructures    DrugbankStructure[]
+  drugbankPatents       DrugbankPatent[]
+  drugbankProperties    DrugbankProperty[]
+  drugbankFingerprints  DrugbankFingerprint[]
+  drugbankInteractions  DrugbankDrugInteraction[]
+  drugbankProducts      DrugbankProduct[]
+  drugbankSynonyms      DrugbankSynonym[]
+  drugbankManufacturers DrugbankManufacturer[]
+  drugbankPackagers     DrugbankPackager[]
+  drugbankDosages       DrugbankDosage[]
+  drugbankExternalIds   DrugbankExternalIdentifier[]
+  drugbankClassifications DrugbankClassification[]
+  drugbankGroups        DrugbankGroup[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
@@ -176,7 +189,6 @@ model DrugbankDrug {
   casNumber            String?                @map("cas_number")
   unii                 String?
   state                String?
-  groups               Json?                  @db.JsonB
   indication           String?
   pharmacodynamics     String?
   mechanismOfAction    String?                @map("mechanism_of_action")
@@ -188,16 +200,25 @@ model DrugbankDrug {
   routeOfElimination   String?                @map("route_of_elimination")
   volumeOfDistribution String?                @map("volume_of_distribution")
   clearance            String?
-  classification       Json?                  @db.JsonB
-  synonyms             Json?                  @db.JsonB
-  products             Json?                  @db.JsonB
+  /// International brand names. Kept as JSON: 11% coverage, read as a whole block.
   internationalBrands  Json?                  @map("international_brands") @db.JsonB
+  /// MeSH-style therapeutic categories. Kept as JSON: used as display tags only.
   categories           Json?                  @db.JsonB
+  /// ATC codes. Kept as JSON: ≤1 per drug, read as a whole block.
   atcCodes             Json?                  @map("atc_codes") @db.JsonB
   foodInteractions     Json?                  @map("food_interactions") @db.JsonB
-  drugInteractions     Json?                  @map("drug_interactions") @db.JsonB
-  externalIdentifiers  Json?                  @map("external_identifiers") @db.JsonB
   externalLinks        Json?                  @map("external_links") @db.JsonB
+  /// SMPDB pathways. Kept as JSON because coverage is ~3% of drugs and the only
+  /// read pattern is "fetch the whole block for one drug" — see PRODUCT §3.
+  pathways             Json?                  @db.JsonB
+  /// Stepwise metabolic reaction chains. JSON because the chains are variable
+  /// length and their intermediate products are DBMET metabolic entities, not
+  /// drugs, so normalising them would require a second entity table.
+  reactions            Json?                  @db.JsonB
+  /// Pharmacogenomic variant effects (rsID, gene, allele, PubMed). JSON because
+  /// only 80 drugs carry this data; it is display-only, never an analysis input.
+  snpEffects           Json?                  @map("snp_effects") @db.JsonB
+  snpAdverseEffects    Json?                  @map("snp_adverse_effects") @db.JsonB
   searchText           String?                @map("search_text")
   createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -207,6 +228,18 @@ model DrugbankDrug {
   passageChunks        DrugbankPassageChunk[]
   sequences            DrugbankDrugSequence[]
   structure            DrugbankStructure?
+  patents              DrugbankPatent[]
+  properties           DrugbankProperty[]
+  fingerprint          DrugbankFingerprint?
+  interactions         DrugbankDrugInteraction[]
+  products             DrugbankProduct[]
+  synonymRows          DrugbankSynonym[]
+  manufacturers        DrugbankManufacturer[]
+  packagers            DrugbankPackager[]
+  dosageRows           DrugbankDosage[]
+  externalIdentifierRows DrugbankExternalIdentifier[]
+  classificationRow    DrugbankClassification?
+  groupRows            DrugbankGroup[]
 
   @@index([name])
   @@index([casNumber])
@@ -296,16 +329,18 @@ model DrugbankTarget {
 }
 
 model DrugbankDrugTarget {
-  id           String         @id @default(uuid())
-  drugbankId   String         @map("drugbank_id")
-  targetId     String         @map("target_id")
-  relationKind String?        @map("relation_kind")
-  actions      Json?          @db.JsonB
-  knownAction  String?        @map("known_action")
-  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  drug         DrugbankDrug   @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
-  target       DrugbankTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  id           String            @id @default(uuid())
+  importRunId  String?           @map("import_run_id")
+  drugbankId   String            @map("drugbank_id")
+  targetId     String            @map("target_id")
+  relationKind String?           @map("relation_kind")
+  actions      Json?             @db.JsonB
+  knownAction  String?           @map("known_action")
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun    DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug         DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+  target       DrugbankTarget    @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([drugbankId, targetId, relationKind])
   @@index([targetId])
@@ -428,3 +463,336 @@ model DrugbankStructure {
   @@index([inchiKey])
   @@map("drugbank_structures")
 }
+
+/// One patent record attached to a drug. Modelled as a table rather than JSON
+/// because patent-expiry analysis filters and sorts on `expiresOn`; a JSON
+/// column would force a sequential scan plus per-row parsing.
+///
+/// `expiresOn` is the **patent** expiry as captured by DrugBank, not a
+/// freedom-to-operate determination: process patents, data exclusivity and
+/// indication patents are not represented here.
+model DrugbankPatent {
+  id                       String            @id @default(uuid())
+  importRunId              String?           @map("import_run_id")
+  drugbankId               String            @map("drugbank_id")
+  patentNumber             String            @map("patent_number")
+  country                  String?
+  approvedOn               DateTime?         @map("approved_on") @db.Date
+  expiresOn                DateTime?         @map("expires_on") @db.Date
+  pediatricExtension       Boolean?          @map("pediatric_extension")
+  createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun                DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug                     DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, patentNumber, country])
+  @@index([expiresOn])
+  @@index([drugbankId])
+  @@map("drugbank_patents")
+}
+
+/// Experimental or computed property of a drug. One row per (kind, source)
+/// because the source file reports the same property several times with
+/// different values and attributions — collapsing to one column would discard
+/// the provenance, which is what makes the value citable.
+///
+/// `valueText` keeps the verbatim string (`"65 °C"`, `"Soluble"`).
+/// `valueNum` is populated only when that string parses cleanly, so numeric
+/// comparisons are possible without ever overwriting the original text.
+model DrugbankProperty {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  kind        String
+  valueText   String            @map("value_text")
+  valueNum    Float?            @map("value_num")
+  unit        String?
+  source      String?
+  isExperimental Boolean        @default(true) @map("is_experimental")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, kind, source])
+  @@index([kind, valueNum])
+  @@index([drugbankId])
+  @@map("drugbank_properties")
+}
+
+/// Binary molecular fingerprint used for similarity search.
+///
+/// Stored as a hex string of 2048 bits (Morgan, radius 2). Similarity is
+/// Tanimoto computed in SQL over the bit strings; no vector index is involved
+/// because pgvector's distance operators (cosine/L2/inner product/Hamming) do
+/// not express Tanimoto, and the corpus (≈15k molecules) is small enough that a
+/// sequential scan is fast.
+model DrugbankFingerprint {
+  drugbankId  String            @id @map("drugbank_id")
+  importRunId String?           @map("import_run_id")
+  /// 2048-bit Morgan fingerprint, 512 hex characters.
+  fingerprint String
+  bitCount    Int               @map("bit_count")
+  radius      Int               @default(2)
+  nBits       Int               @default(2048) @map("n_bits")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@map("drugbank_fingerprints")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-valued DrugBank fields promoted from JsonB to relation tables.
+//
+// The rule is "structure follows the query, not the data shape": a field becomes
+// a table only when something has to be looked up in reverse ("which drugs
+// interact with X") or filtered on an inner field ("which drugs are withdrawn").
+// Fields that are only ever read as a whole block per drug stay JSON.
+//
+// Each model documents its measured size over the 19,842-drug corpus.
+// Fields too sparse to support any analysis are listed at the end of this
+// section rather than modelled.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Drug-drug interaction. Measured: 4,631 drugs, 2.9M rows — the largest
+/// multi-valued field in DrugBank.
+///
+/// The reason to model it is reverse lookup, not row count: listing the
+/// interaction pairs within a drug set is
+/// `WHERE drugbank_id = ANY(set) AND interacts_with_id = ANY(set)`, which JSON
+/// cannot answer without expanding the whole column first.
+///
+/// `interactsWithId` is deliberately **not** a foreign key: DrugBank lists
+/// interactions with compounds absent from `drugbank_drugs` (withdrawn products,
+/// entities from other sources). A hard FK would reject those rows and silently
+/// shrink the interaction graph.
+model DrugbankDrugInteraction {
+  id                String            @id @default(uuid())
+  importRunId       String?           @map("import_run_id")
+  drugbankId        String            @map("drugbank_id")
+  /// Partner DrugBank ID; may not exist in `drugbank_drugs`, hence no FK.
+  interactsWithId   String            @map("interacts_with_id")
+  /// Partner name from the source, so a row stays readable without a join.
+  interactsWithName String?           @map("interacts_with_name")
+  description       String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun         DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug              DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, interactsWithId])
+  @@index([interactsWithId])
+  @@map("drugbank_drug_interactions")
+}
+
+/// Marketed product / label information. Measured: 4,465 drugs, 474k rows.
+///
+/// A table because NDC, labeller and marketing dates are all query surfaces
+/// (withdrawal screening, generic-opportunity analysis), not just payload.
+model DrugbankProduct {
+  id                   String            @id @default(uuid())
+  importRunId          String?           @map("import_run_id")
+  drugbankId           String            @map("drugbank_id")
+  name                 String
+  labeller             String?
+  ndcId                String?           @map("ndc_id")
+  ndcProductCode       String?           @map("ndc_product_code")
+  dpdId                String?           @map("dpd_id")
+  emaProductCode       String?           @map("ema_product_code")
+  emaMaNumber          String?           @map("ema_ma_number")
+  dosageForm           String?           @map("dosage_form")
+  strength             String?
+  route                String?
+  fdaApplicationNumber String?           @map("fda_application_number")
+  generic              Boolean?
+  overTheCounter       Boolean?          @map("over_the_counter")
+  approved             Boolean?
+  country              String?
+  startedMarketingOn   DateTime?         @map("started_marketing_on") @db.Date
+  endedMarketingOn     DateTime?         @map("ended_marketing_on") @db.Date
+  source               String?
+  createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun            DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug                 DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@index([drugbankId])
+  @@index([name])
+  @@index([ndcProductCode])
+  @@index([labeller])
+  @@index([endedMarketingOn])
+  @@map("drugbank_products")
+}
+
+/// Synonym / alternative name. Measured: 18,160 drugs, 42,961 rows (91.5%).
+///
+/// A table because search must match on synonyms *and* report which synonym
+/// matched, per language and per coder (INN). The previous import folded
+/// `synonyms[:20]` into a text blob, truncating long lists and losing that.
+model DrugbankSynonym {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  synonym     String
+  language    String?
+  /// Source `coder` attribute (e.g. `inn`); empty string normalises to null.
+  coder       String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, synonym])
+  @@index([synonym])
+  @@map("drugbank_synonyms")
+}
+
+/// Manufacturer. Measured: 829 drugs, 5,669 rows. Reverse lookup by company.
+model DrugbankManufacturer {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  name        String
+  generic     Boolean?
+  url         String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, name])
+  @@index([name])
+  @@map("drugbank_manufacturers")
+}
+
+/// Packager. Measured: 1,215 drugs, 20,355 rows.
+model DrugbankPackager {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  name        String
+  url         String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, name])
+  @@index([name])
+  @@map("drugbank_packagers")
+}
+
+/// Dosage form / route / strength. Measured: 5,276 drugs, 100,085 rows.
+///
+/// A table because form and route are filter dimensions (formulation and
+/// dosing-schedule reference), not only per-drug payload.
+model DrugbankDosage {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  form        String?
+  route       String?
+  strength    String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, form, route, strength])
+  @@index([form])
+  @@index([route])
+  @@map("drugbank_dosages")
+}
+
+/// External database identifier (ChEBI, PubChem, KEGG, PharmGKB, TTD, RxCUI...).
+/// Measured: 17,309 drugs, 93,636 rows (5.4 per drug).
+///
+/// A table because the core use is reverse lookup: a user holding
+/// `ChEBI:15377` needs to find the drug. Under JSON that is a full scan.
+model DrugbankExternalIdentifier {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  /// Source `resource` verbatim, e.g. `PubChem Compound`, `ChEBI`.
+  resource    String
+  identifier  String
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, resource, identifier])
+  @@index([resource, identifier])
+  @@map("drugbank_external_identifiers")
+}
+
+/// Chemical classification path (Kingdom → Superclass → Class → Subclass →
+/// Direct Parent). Measured: 11,195 drugs.
+///
+/// A table because browsing by classification means filtering drugs by the name
+/// of a level. The row stores the **full path** rather than one node, so
+/// `WHERE kingdom = 'Organic Compounds'` works directly.
+model DrugbankClassification {
+  id           String            @id @default(uuid())
+  importRunId  String?           @map("import_run_id")
+  drugbankId   String            @map("drugbank_id")
+  kingdom      String?
+  superclass   String?
+  className    String?           @map("class")
+  subclass     String?
+  directParent String?           @map("direct_parent")
+  description  String?
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun    DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug         DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId])
+  @@index([kingdom])
+  @@index([superclass])
+  @@index([className])
+  @@index([subclass])
+  @@map("drugbank_classifications")
+}
+
+/// Approval group membership (approved / withdrawn / investigational /
+/// vet_approved). Measured: all 19,842 drugs, 7,466 rows.
+///
+/// A table despite the small row count: withdrawal and status screening is
+/// `WHERE group = 'withdrawn'`, a cross-drug filter that JSON cannot serve.
+/// The row count is not the criterion — the query shape is.
+model DrugbankGroup {
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  drugbankId  String            @map("drugbank_id")
+  groupName   String            @map("group_name")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, groupName])
+  @@index([groupName])
+  @@map("drugbank_groups")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deliberately NOT modelled as tables.
+//
+// These are too sparse, or support only "display if present" with no analysis
+// capability. Modelling them would grow the schema without adding a query.
+//
+//   snp_effects                 0.4% (80 drugs)    too few for any statistic
+//   snp_adverse_drug_reactions  0.2% (45 drugs)    same
+//   sequences                   1.7% (335 drugs)   already `drugbank_drug_sequences`
+//   carriers                    3.5% (695 drugs)   already `drugbank_drug_targets`
+//                                                   via `relation_kind = 'carrier'`
+//   pathways                    3.3% (652 drugs)   read as a whole block, never queried
+//   reactions                   5.1% (1,014 drugs) chained; intermediates are DBMET
+//                                                   metabolites, not drugs
+//   atc_codes                   ~0.8 per drug       small set, read with the drug
+//   categories                  56% but tag-only    read as a whole block
+//   ahfs_codes                  0%                 empty throughout the source
+// ─────────────────────────────────────────────────────────────────────────────

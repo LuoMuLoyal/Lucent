@@ -1,66 +1,126 @@
-# ADR-0007: Logging Framework — Pino → Winston Migration
+# ADR-0007: Logging Framework — Pino (via `nestjs-pino`)
 
 - **Status**: accepted
-- **Date**: 2026-07-12
+- **Date**: 2026-07-12（初版）
+- **Revised**: 2026-10-27 — 由「Pino → Winston」改为「选定 Pino」，见文末「修订记录」
 - **Deciders**: LuoMuLoyal
-- **Supersedes**: ADR-0006 中 "Pino 结构化日志仍是日志支柱，不做迁移" 的表述
+- **Supersedes**: ADR-0006 中 "Pino 结构化日志仍是日志支柱，不做迁移" 的表述（该表述已随本次修订恢复成立）
 
 ## Context
 
-Lucent 自项目初期使用 `nestjs-pino`（Pino）作为日志框架。ADR-0006 在制定可观测性策略时明确
-"Pino 结构化日志仍是日志支柱，不做迁移"。但在实际开发和测试过程中，Pino 暴露出以下问题：
+### 2026-07-12 的原始背景（保留，供追溯）
 
-1. **测试输出噪音**：Pino 的 transport（`pino-pretty` / `pino/file`）通过 worker 线程直接写 stdout fd，
-   绕过 `console.*`。Vitest 内置的"仅失败测试显示 console 输出"机制无法拦截 Pino 的日志输出。E2E
-   测试全量运行时，226 个测试文件共输出数千行应用日志，完全淹没测试结果。这是架构层面的问题，非配置可修复。
+Lucent 自项目初期使用 `nestjs-pino`。当时迁往 Winston 的五条理由是：
 
-2. **双 Logger 并存**：项目同时存在 `PinoLogger`（`@InjectPinoLogger()` 注入，6 个文件）和 NestJS
-   `Logger`（`new Logger(ClassName.name)`，25 个服务/控制器）。两套 logger 的 API 风格、调用约定、输出
-   格式均不同，开发者需要记住"这个文件用哪个 logger"。
+1. **测试输出噪音**：Pino 的 `transport`（`pino-pretty` / `pino/file`）通过 worker 线程直接写
+   stdout fd，绕过 `console.*`，Vitest 拦截不住，E2E 全量运行输出数千行日志。
+2. **双 Logger 并存**：`PinoLogger`（6 个文件）与 NestJS `Logger`（25 个文件）两套 API。
+3. **API 人体工程学**：`(obj, msg)` 顺序敏感，与 NestJS 的 `(message, ...optionalParams)` 不一致。
+4. **每请求 autoLogging 重复**：与 Nginx / `ApiExceptionFilter` / `SlowRequestInterceptor` / 指标重复。
+5. **依赖链庞大**：Pino 全家桶 29 个间接依赖。
 
-3. **API 人体工程学**：Pino 的结构化日志 API 采用 `(obj, msg)` 顺序，顺序敏感，与 NestJS 生态主流的
-   `(message: string, ...optionalParams)` 约定不一致。
+### 2026-10-27 修订时的事实变化
 
-4. **每请求 autoLogging 重复**：`pino-http` 的 `autoLogging` 对每个 HTTP 请求打印一行访问日志，与
-   Nginx `access_log`、`ApiExceptionFilter`、`SlowRequestInterceptor`、Prometheus 指标完全重复。
+**前提变了：日志不再写文件系统。** 部署口径是「app 只写 stdout + VictoriaLogs
+（`VICTORIALOGS_URL`），不写文件系统、不挂日志卷」（`deployment.md`），
+`winston-daily-rotate-file` 已从依赖中移除。也就是说，当初支持 Winston 的**文件轮转**
+能力（`lucent-YYYY-MM-DD.log`、500MB、14d、gzip）现在是**无用的优势**。
 
-5. **依赖链庞大**：`nestjs-pino` + `pino` + `pino-http` + `pino-pretty` + `pino-roll` 共引入 29 个间接依赖。
+更关键的是，上面五条里决定性的两条**已经不成立**：
+
+- **第 1 条归因于 `transport`，不是 pino。** worker 线程绕过 console 的是
+  `pino.transport()`（`pino-pretty` / `pino/file`）。pino 的 `destination` 官方接受任意
+  `WritableStream`，`pino-pretty` 也支持「作为 stream 使用」（`pino(pretty({sync:true}))`），
+  两者都在进程内同步执行。`nestjs-pino` 的 `pinoHttp` 直接接受
+  `[options, DestinationStream]`，因此可以把 destination 换成任何可写流——包括测试里
+  一个走 `console.*` 的流，Vitest 的 `onConsoleLog` 就能接管。
+  **原判「架构层面的问题，非配置可修复」是错的**：那是选了 transport 才撞上的。
+- **第 2、3 条由 `nestjs-pino` v5 消解。** v5 提供与 NestJS `LoggerService` 兼容的
+  `Logger`（`app.useLogger(app.get(Logger))` 后，所有 `new Logger(X.name)` 继续工作，
+  且方法按 pino 语义接受 `(obj, msg)`），以及 `NativeLogger`（`ConsoleLogger` 的
+  drop-in 替代，字段名与参数解析一致）。第 4、5 条本来就只是配置与依赖数量的取舍。
+
+生态活跃度也发生了倾斜：
+
+| 包            | 最新版 | 发布时间                                                  |
+| ------------- | ------ | --------------------------------------------------------- |
+| `nestjs-pino` | 5.3.1  | 2026-10-02（v5 major 于 2026-08-31，**晚于本 ADR 初版**） |
+| `pino`        | 10.4.0 | 2026-10-02                                                |
+| `winston`     | 3.19.0 | 2025-12-07（至修订时约 10 个月无发布）                    |
+
+同时，Winston 侧积累了三处只为绕开其缺陷而存在的代码：`errorNormalizeFormat`
+（nest-winston 把 `Error` 当元数据转发，Winston 产出 `error: {}` 与**一元数组**形态的
+`stack`）、`otelTraceFormat`（Winston 没有 mixin 概念）、以及 149 行的自定义
+`VictoriaLogsTransport`。这些不是业务代码，是框架适配债。
 
 ## Decision
 
-将日志框架从 Pino (`nestjs-pino`) 迁移到 Winston (`nest-winston`)。
+日志框架选 **Pino**，经 **`nestjs-pino`** 集成。
 
-| 维度          | Pino (旧)                                                | Winston (新)                                                                       |
-| ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **集成库**    | `nestjs-pino`                                            | `nest-winston`                                                                     |
-| **依赖**      | `pino`, `pino-http`, `pino-pretty`, `pino-roll`（29 包） | `winston`, `winston-daily-rotate-file`（27 包）                                    |
-| **Logger DI** | `@InjectPinoLogger()` — 6 个文件                         | `new Logger(ClassName.name)` — 全项目统一                                          |
-| **API 风格**  | `(obj, msg)` 顺序敏感                                    | `(message: string, ...optionalParams)` — 与 NestJS 一致                            |
-| **Console**   | `pino-pretty` worker 线程                                | `winston.transports.Console`（同步，可被测试框架拦截）                             |
-| **文件轮转**  | `pino-roll`                                              | `winston-daily-rotate-file`（`lucent-YYYY-MM-DD.log`，500MB，14d，gzip）           |
-| **HTTP 日志** | `pino-http` autoLogging（每请求一行）                    | 不配置（由 Nginx / ApiExceptionFilter / SlowRequestInterceptor / Prometheus 覆盖） |
+| 维度          | 取值                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| 集成          | `nestjs-pino`（`LoggerModule.forRootAsync`）+ `app.useLogger(app.get(Logger))`              |
+| 依赖          | `pino`、`pino-http`、`nestjs-pino`（移除 `nest-winston` / `winston` / `winston-transport`） |
+| 调用点        | pino 原生 `(meta, msg)`：`logger.warn({ error, userId }, 'msg')`                            |
+| 开发格式      | 进程内自定义 `Writable`（`createPrettyStream`，同步），**不用** worker transport            |
+| 生产输出      | JSON 到 stdout（fd 1），不写文件                                                            |
+| VictoriaLogs  | 自定义 `Writable`（`victorialogs-stream.ts`）批量 POST NDJSON                               |
+| HTTP 访问日志 | 仍由 `setup-app.ts` 的 Fastify `onResponse` 钩子产出；`autoLogging: false`                  |
 
-环境策略：development 使用 `Console`（`format.simple()`，人类可读，`debug` 级）；production 使用
-`Console`（JSON）+ `DailyRotateFile`（`info` 级）；test 使用 `Console`（`error` 级）。`LOG_LEVEL` 环境
-变量始终优先。
+**JSON 字段契约保持与上一实现一致**，避免 VictoriaLogs 查询与看板失效：
+
+- `level` 是**字符串标签**（`formatters.level`），不是 pino 的数字级别；
+- `message` / `timestamp` / `context` 名称不变（`messageKey` + 自定义 `timestamp`）；
+- 调用方元数据落在**顶层**，不套 `params`；
+- 活跃 OTel span 内自动注入顶层 `trace_id` / `span_id`（`mixin`）；
+- `error` 由 `pino.stdSerializers.err` 序列化为 `{type, message, stack}`——**不再需要**
+  `errorNormalizeFormat` 那个把数组 stack 拼成字符串的 workaround。
+
+两处刻意的取舍：
+
+- **`base: null`**：不输出 `pid` / `hostname`，与旧输出形状一致（容器平台已带）。
+- **`serializers.req/res` 返回 `undefined`**：不启用 pino-http 的请求对象绑定。
+  应用已用 OTel trace id 做关联并自建访问日志；pino-http 的 `req` 序列化器还会复制
+  **请求头**，其中含凭据。
 
 ## Options Considered
 
-| Option                                      | Pros                                                                                                                                                                                      | Cons                                                                                                                       |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 保持 Pino，修补问题                         | 零迁移成本；Pino 性能上限高于 Winston                                                                                                                                                     | worker 线程 transport 根本问题无法解决；双 logger 并存需额外适配层；29 个间接依赖不变；PinoLogger API 与 NestJS 生态不一致 |
-| **迁移到 Winston（选定方案）**              | Console transport 同步输出，测试框架可拦截；全项目 logger API 统一；`nest-winston` 与 NestJS `Logger` 原生兼容；API 风格与 NestJS 生态主流一致；`DailyRotateFile` 原生支持日期轮转 + gzip | Winston 性能上限低于 Pino（异步场景）；`winston-daily-rotate-file` 是社区库，非官方；Winston 4 类型定义存在部分 `any`      |
-| 迁移到其他框架（log4js / signale / custom） | 可能更轻量                                                                                                                                                                                | `nest-winston` 是 NestJS 官方推荐的 Winston 集成；社区活跃度和生态远不如 Winston；日志轮转等生产功能需从零搭建             |
+| Option                                                  | Pros                                                                                                 | Cons                                                                                    |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 保持 Winston                                            | 零改动                                                                                               | 决定性理由已消失；为绕开 nest-winston 缺陷维护 3 处适配代码；`winston` 停更；性能上限低 |
+| **Pino + `nestjs-pino`（选定）**                        | 官方集成、`Logger` 与 `LoggerService` 兼容；原生 NDJSON/序列化/mixin；生态活跃；测试可用 stream 拦截 | 需要把约 30 个调用点改成 `(meta, msg)` 顺序；本仓需自己维护 VictoriaLogs 流             |
+| Pino + 自写 `LoggerService` 适配层                      | 完全掌控参数合并语义                                                                                 | 重复实现 `nestjs-pino` 已提供的 DI/ALS 集成，维护面更大                                 |
+| Pino + worker `transport`（如 `pino-pretty` transport） | 生态默认写法                                                                                         | 重新引入「绕过 console、测试拦不住」的问题，正是本次要摆脱的                            |
 
 ## Consequences
 
-- **测试体验**：Vitest 正常拦截 console 输出，仅失败测试显示日志，测试输出干净
-- **开发一致性**：全项目统一使用 `new Logger(ClassName.name)`，无需区分两套 logger
-- **配置简洁**：Winston 的 transport 数组模型比 Pino 的 worker 线程 transport 更易理解和调试
-- **依赖精简**：直接依赖从 5 个减至 3 个
-- Winston 4 的 TypeScript 类型定义存在部分 `any`，测试中访问 transport options 需要类型桥接
-- `winston-daily-rotate-file` 是社区维护库，需关注其维护状态
-- 结构化 JSON 日志仍为生产环境默认输出格式
-- `SlowRequestInterceptor`、`ApiExceptionFilter`、`LifecycleService` 等日志组件行为不变
-- Request ID 关联由 `requestIdMiddleware` + `AsyncLocalStorage` 独立处理（后被 ADR-0010 退役为 OTel trace_id）
-- ADR-0006 的 Prometheus + Grafana 可观测性策略不受影响
+- **调用点是破坏性变更**：`logger.error(msg, stack)` / `logger.warn(msg, meta)` 在 pino 下
+  第二实参会**静默丢弃**（无占位符时被当作插值值）。全部改为 `(meta, msg)`，并用一次性
+  扫描确认无残留（未入库，属迁移期工具）。
+- **测试可拦截**：开发/测试 destination 是进程内 `Writable`，不再是 worker 线程。
+  测试默认级别仍为 `error`（`resolveLevel`），噪音与迁移前持平。
+- **`verbose` 映射到 pino 的 `trace`**；`LOG_LEVEL` 合法值不变
+  （`error` / `warn` / `info` / `debug` / `verbose`），运行时热更新改为写
+  `PinoLogger.root.level`。
+- **VictoriaLogs 嵌套字段被摊平**：VictoriaLogs 把嵌套 JSON 展开为点号字段名，
+  `error.stack` 入库后是 `error.stack` 这一**字段名**而非嵌套对象。查询写法不变。
+- 移除三处框架适配代码（`errorNormalizeFormat`、`otelTraceFormat`、`VictoriaLogsTransport`），
+  但新增一个等价的 `Writable`（HTTP 批量推送无法由日志库本身提供）。
+- 依赖净变化：`-3`（winston 三件套）`+3`（pino / pino-http / nestjs-pino）。
+
+## Verification
+
+- `typecheck`、`lint:check`、`prettier`、`build` 通过；单元 **397 files / 4456 tests** 全绿。
+- e2e 全量通过（含 `core/app-boot` 这条整应用装配守卫）。
+- **VictoriaLogs 入库实测**（本地 `victoriametrics/victoria-logs:v1.51.1`，脚本
+  `scripts/verify-victorialogs-ingest.mjs`）：`_msg` / `_time` 映射、`level` 字符串标签、
+  顶层元数据、`error.message` / `error.stack` / `error.type` 均按契约落地。
+
+## 修订记录
+
+- **2026-10-27 修订**：撤销 2026-07-12 的「Pino → Winston」决策，改为选定 Pino
+  （经 `nestjs-pino`）。原因：日志不再写文件系统，使 Winston 的文件轮转优势失效；
+  原第 1 条测试噪音问题被确认是 `transport`（worker 线程）造成、而非 pino 本身，
+  用 `DestinationStream` 即可规避；`nestjs-pino` v5 的 `Logger` / `NativeLogger`
+  消解了双 logger 与 API 风格问题；`winston` 长期无发布。历史决策内容按日期保留在上文
+  「Context」中，未改写。

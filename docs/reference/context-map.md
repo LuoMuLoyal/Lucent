@@ -14,19 +14,19 @@ updated: 2026-10-21
 
 ## 上下文清单
 
-| 限界上下文          | 类型       | 现有模块                                   | 聚合根                                                    | 首批 |
-| ------------------- | ---------- | ------------------------------------------ | --------------------------------------------------------- | ---- |
-| Identity & Access   | supporting | `auth`                                     | `Account`、`Session`、`VerificationChallenge`             | 是   |
-| Medicine Catalog    | core       | `medicines`（目录/导入/安全贴士）          | `Medicine`、`ImportBatch`、`SafetyTip`                    | 是   |
-| Medication Safety   | supporting | `medicines`（风险检查）                    | `RiskAssessment`                                          | 是   |
-| AI Assistant        | core       | `assistant`                                | `Conversation`、`Memory`、`Proposal`、`Summary`           | 是   |
-| Daily Guidance      | core       | `today-suggestion`                         | `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` | 是   |
-| Health Log          | core       | `daily-records`                            | `DailyRecord`                                             | 否   |
-| Medication Tracking | core       | `medicine-dose-logs`、`medicine-reminders` | `DoseLog`、`Reminder`                                     | 否   |
-| User Profile        | supporting | `user-health-context`、`user-settings`     | `HealthProfile`、`UserSettings`                           | 否   |
-| Notifications       | supporting | `notifications`                            | `Notification`（投递记录）                                | 否   |
-| Content/Ontology    | supporting | 检索语料、`deploy/semantica`               | `KnowledgeDocument`、`OntologyAssertion`                  | 否   |
-| Admin BFF           | generic    | `admin`                                    | 无（命令/查询编排）                                       | 否   |
+| 限界上下文          | 类型       | 现有模块                                   | 聚合根                                                    |
+| ------------------- | ---------- | ------------------------------------------ | --------------------------------------------------------- |
+| Identity & Access   | supporting | `auth`                                     | `Account`、`Session`、`VerificationChallenge`             |
+| Medicine Catalog    | core       | `medicines`（目录/导入/安全贴士）          | `Medicine`、`ImportBatch`、`SafetyTip`                    |
+| Medication Safety   | supporting | `medicines`（风险检查）                    | `RiskAssessment`                                          |
+| AI Assistant        | core       | `assistant`                                | `Conversation`、`Memory`、`Proposal`、`Summary`           |
+| Daily Guidance      | core       | `today-suggestion`                         | `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` |
+| Health Log          | core       | `daily-records`                            | `DailyRecord`                                             |
+| Medication Tracking | core       | `medicine-dose-logs`、`medicine-reminders` | `DoseLog`、`Reminder`                                     |
+| User Profile        | supporting | `user-health-context`、`user-settings`     | `HealthProfile`、`UserSettings`                           |
+| Notifications       | supporting | `notifications`                            | `Notification`（投递记录）                                |
+| Content/Ontology    | supporting | 检索语料、`deploy/semantica`               | `KnowledgeDocument`、`OntologyAssertion`                  |
+| Admin BFF           | generic    | `admin`                                    | 无（命令/查询编排）                                       |
 
 `medicines` 模块当前承载两个上下文：Medicine Catalog 与 Medication Safety。它们在模块内
 分包，不共享聚合；拆分服务时按上下文边界走。

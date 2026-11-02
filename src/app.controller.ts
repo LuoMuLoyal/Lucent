@@ -19,7 +19,10 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Readiness probe alias used by existing scripts' })
+  @ApiOperation({
+    operationId: 'getHealth',
+    summary: 'Readiness probe alias used by existing scripts',
+  })
   @ApiResponse({
     status: 200,
     description: 'Service is ready; all critical dependencies are up.',
@@ -35,7 +38,10 @@ export class AppController {
   }
 
   @Get('live')
-  @ApiOperation({ summary: 'Liveness probe for process health' })
+  @ApiOperation({
+    operationId: 'getLiveHealth',
+    summary: 'Liveness probe for process health',
+  })
   @ApiResponse({
     status: 200,
     description: 'Process is alive; downstream dependencies are not checked.',
@@ -46,6 +52,7 @@ export class AppController {
 
   @Get('ready')
   @ApiOperation({
+    operationId: 'getReadyHealth',
     summary: 'Readiness probe for critical runtime dependencies',
   })
   @ApiResponse({
@@ -64,6 +71,7 @@ export class AppController {
 
   @Get('deep')
   @ApiOperation({
+    operationId: 'getDeepHealth',
     summary: 'Detailed health probe with per-component diagnostics',
   })
   @ApiResponse({

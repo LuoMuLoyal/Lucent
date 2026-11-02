@@ -12,6 +12,7 @@ import { appConfig } from './config/app.config.js';
 import { llmConfig } from './config/services/llm.config.js';
 import { jwtConfig } from './config/services/jwt.config.js';
 import { oauthConfig } from './config/services/oauth.config.js';
+import { turnstileConfig } from './config/services/turnstile.config.js';
 import { tencentCosConfig } from './config/services/tencent-cos.config.js';
 import { s3StorageConfig } from './config/services/s3-storage.config.js';
 import { aliyunOssConfig } from './config/services/aliyun-oss.config.js';
@@ -54,6 +55,7 @@ import { FilesModule } from './modules/files/files.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module.js';
 import { ProductEventsModule } from './modules/product-events/product-events.module.js';
+import { LayoutsModule } from './modules/layouts/layouts.module.js';
 import { TestingSupportModule } from './modules/testing-support/testing-support.module.js';
 import { LlmRuntimeModule } from './llm-runtime/llm-runtime.module.js';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module.js';
@@ -97,6 +99,7 @@ const isTestRuntime =
         llmConfig,
         jwtConfig,
         oauthConfig,
+        turnstileConfig,
         tencentCosConfig,
         s3StorageConfig,
         aliyunOssConfig,
@@ -160,6 +163,10 @@ const isTestRuntime =
     FilesModule,
     NotificationsModule,
     ProductEventsModule,
+    // Mounted at the top level (not under the `user` prefix): layouts are their
+    // own resource line, and `:surface` is already a path segment. See
+    // `src/modules/layouts/README.md` for why this is not `/user/layouts`.
+    LayoutsModule,
     ...(isTestRuntime ? [TestingSupportModule] : []),
     NotificationPreferencesModule,
     RouterModule.register([

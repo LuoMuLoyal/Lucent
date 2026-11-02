@@ -136,8 +136,8 @@ describe('SseConnectionRegistry', () => {
       expect(healthy.end).toHaveBeenCalled();
       expect(registry.size).toBe(0);
       expect(Logger.prototype.warn).toHaveBeenCalledWith(
-        'Failed to close SSE connection during shutdown',
         { error: 'socket gone' },
+        'Failed to close SSE connection during shutdown',
       );
     });
   });

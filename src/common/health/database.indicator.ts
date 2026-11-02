@@ -36,7 +36,7 @@ export class DatabaseHealthIndicator {
       });
     } catch (error) {
       const { message: reason, stack } = extractErrorInfo(error);
-      this.logger.error(`Database health probe failed: ${reason}`, stack);
+      this.logger.error({ stack }, `Database health probe failed: ${reason}`);
       return indicator.down({
         message: reason,
         driver: 'prisma',

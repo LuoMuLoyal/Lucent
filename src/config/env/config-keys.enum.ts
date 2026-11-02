@@ -19,6 +19,9 @@ export enum ConfigKey {
   /** OAuth provider configuration */
   OAuth = 'oauth',
 
+  /** Cloudflare Turnstile human-verification configuration */
+  Turnstile = 'turnstile',
+
   /** Tencent Cloud COS upload configuration */
   TencentCos = 'tencentCos',
 

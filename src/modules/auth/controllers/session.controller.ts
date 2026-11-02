@@ -26,8 +26,8 @@ import {
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
-import { AuthService } from '../services/auth.service.js';
-import { AuthTokenService } from '../services/token.service.js';
+import { SessionTokens } from '../application/services/session-tokens.js';
+import { REFRESH_COOKIE_NAME } from '../domain/session/cookie-policy.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { Public } from '../decorators/public.decorator.js';
 import type { UserPayload } from '../types/auth-request.js';
@@ -47,8 +47,7 @@ import {
 @Controller('auth')
 export class SessionController {
   constructor(
-    private readonly authService: AuthService,
-    private readonly authTokenService: AuthTokenService,
+    private readonly sessionTokens: SessionTokens,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -57,7 +56,7 @@ export class SessionController {
   @Post('logout')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'User logout' })
+  @ApiOperation({ operationId: 'logout', summary: 'User logout' })
   @ApiResponse({ status: 204, description: 'Logged out.' })
   @ApiResponse({
     status: 401,
@@ -73,19 +72,22 @@ export class SessionController {
     @CurrentUser() user: UserPayload,
     @Body({ schema: logoutSchema }) dto: LogoutDto,
   ) {
-    await unwrapResult(this.authService.logout(user.sub, dto.refreshToken));
+    await unwrapResult(this.sessionTokens.revoke(user.sub, dto.refreshToken));
     return;
   }
 
-  // ── GET /api/v1/auth/sessions ──────────────────────────────
+  // ── GET /api/v1/auth/sessions ─────────────────────────────
 
   @Get('sessions')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List active sessions for the current user' })
+  @ApiOperation({
+    operationId: 'listSessions',
+    summary: 'List signed-in devices for the current user',
+  })
   @ApiResponse({
     status: 200,
-    description: 'The active sessions of the current user.',
+    description: 'The signed-in devices of the current user.',
   })
   @ApiResponse({
     status: 401,
@@ -102,22 +104,35 @@ export class SessionController {
   // registration below uses the array schema (component keeps the former
   // class name — Luminous re-generation shape needs gate review).
   @SerializeOptions({ schema: sessionListItemSchema })
-  async listSessions(@CurrentUser() user: UserPayload) {
+  async listSessions(
+    @CurrentUser() user: UserPayload,
+    @Req() request: FastifyRequest,
+  ) {
+    // `isCurrent` 靠请求携带的 refresh cookie 判定：hash 后与每条会话的
+    // `refreshTokenHash` 比对。Bearer 客户端没有这个 cookie，所以它们的
+    // 结果恒为 `false`——见 `SessionTokens.list` 的注释。
+    //
+    // `request.cookies` 由 `@fastify/cookie` 装饰，生产环境恒存在。
+    const currentRefreshToken: string | undefined =
+      request.cookies[REFRESH_COOKIE_NAME];
     const sessions = await unwrapResult(
-      this.authTokenService.listSessions(user.sub),
+      this.sessionTokens.list(user.sub, currentRefreshToken),
     );
     return sessions;
   }
 
-  // ── DELETE /api/v1/auth/sessions/:sessionId ────────────────
+  // ── DELETE /api/v1/auth/sessions/:sessionId ───────────────
 
   @Delete('sessions/:sessionId')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiOperation({
+    operationId: 'revokeSession',
+    summary: 'Revoke a signed-in device',
+  })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
-    description: 'Session revoked.',
+    description: 'Device revoked.',
   })
   @ApiResponse({
     status: 403,
@@ -144,7 +159,7 @@ export class SessionController {
     @Param('sessionId') sessionId: string,
     @Req() request: FastifyRequest,
   ) {
-    await unwrapResult(this.authTokenService.revokeById(user.sub, sessionId));
+    await unwrapResult(this.sessionTokens.revokeById(user.sub, sessionId));
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
       userId: user.sub,
@@ -161,7 +176,7 @@ export class SessionController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh token' })
+  @ApiOperation({ operationId: 'refreshSession', summary: 'Refresh token' })
   @ApiResponse({
     status: 200,
     description: 'New token pair for the current session.',
@@ -177,15 +192,15 @@ export class SessionController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.refresh(
+      this.sessionTokens.rotate(
         dto.refreshToken,
         extractAuthRequestContext(request),
       ),
     );
     return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+      expiresIn: calculateExpiresIn(result.tokens.accessTokenExpiresAt),
     };
   }
 }
@@ -197,7 +212,7 @@ registerResponseSchema({
   method: 'get',
   componentName: 'SessionListItem',
   schema: sessionListSchema,
-  description: 'The active sessions of the current user.',
+  description: 'The signed-in devices of the current user.',
 });
 
 registerResponseSchema({

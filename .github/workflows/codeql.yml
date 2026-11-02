@@ -1,0 +1,75 @@
+name: CodeQL
+
+# 代码安全分析：用 GitHub 官方语义分析引擎扫注入、路径穿越、认证缺陷等漏洞。
+#
+# ## 为什么需要它
+#
+# 本仓处理医疗健康数据（用药、健康档案、对话内容），是典型高价值目标；
+# 而 lint 与类型检查只看「代码是否合规/自洽」，看不到数据流上的安全问题
+# （典型如把用户输入拼进 SQL、把对象属性直接当文件路径）。
+# CodeQL 按数据流追踪，能发现这类而 ESLint 发现不了的问题。
+#
+# ## security-extended 而非默认
+#
+# 默认查询集只覆盖高置信度问题；security-extended 增加更多低置信度但真实存在的
+# 检查，代价是误报略多。对后端服务值得——误报只需一条 `// codeql[...]` 注释抑制。
+#
+# ## 为什么单独定时跑
+#
+# 漏洞规则库每周更新。只在 push 时扫，会让「代码没动但新披露了模式」的情况漏掉，
+# 所以加一条周度 cron。
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # 每周一 03:17 UTC 跑一次，避开整点高峰
+    - cron: '17 3 * * 1'
+
+concurrency:
+  group: lucent-codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      # CodeQL 需要写 security-events 才能上传结果
+      security-events: write
+      contents: read
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 只扫 TypeScript：本仓运行时代码是 TS，脚本也是 TS。
+          # 不扫 YAML/JSON——那些由 actionlint 与 schema 校验覆盖。
+          - language: javascript-typescript
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      # build-mode: none —— TS/JS 不需要编译，CodeQL 直接解析源码。
+      # 这样也避免为了扫描而跑一次完整 build（省时间，且不依赖 Prisma 生成）。
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:${{ matrix.language }}'

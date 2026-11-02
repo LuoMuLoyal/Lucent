@@ -2,8 +2,8 @@ import type {
   SuggestionType,
   TriggerType,
   SuggestionConfidence,
-} from '../types/suggestion.types.js';
-import type { EvidenceItem } from '../types/signal.types.js';
+} from '../domain/suggestion/suggestion.types.js';
+import type { EvidenceItem } from '../domain/signal/signal.js';
 
 /**
  * Context passed to the LLM for generating an explanation.

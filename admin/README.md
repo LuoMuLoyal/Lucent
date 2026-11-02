@@ -108,7 +108,7 @@ The SPA is served by the Lucent backend at `/admin` from the same origin as the 
 
 ## Screens
 
-Screens backed by a Lucent endpoint are overview metrics, users, audit logs, legal documents, and safety tips. They sit under the `Administration` and `Content` sidebar groups, and each entry is hidden when the signed-in administrator lacks the permission its endpoint requires.
+Screens backed by a Lucent endpoint are overview metrics, the product funnel, users, the data browser, audit logs, legal documents, safety tips, the QA corpus and the sidecar dependency status. They sit under the `Administration`, `Metrics`, `Content` and `Operations` sidebar groups, and each entry is hidden when the signed-in administrator lacks the permission its endpoint requires. The `Queues` entry is an external link to the backend's bull-board panel on the same origin: the SPA appends its access token as `?access_token=`, which the backend immediately swaps for a `Path=/admin/queues` HttpOnly cookie — bull-board renders its own UI and API calls, so it cannot send an `Authorization` header.
 
 The upstream template pages (`apps`, `chats`, `tasks`, `settings/*`, `help-center`, the Clerk demo group, and the template `sign-up` / `otp` / `forgot-password` / `sign-in-2` forms) are kept and routed for reference and reuse, and are listed under the `Template` and `Template · Forms` sidebar groups. They render template or placeholder data and have no Lucent API behind them, so a template page can open while showing nothing real. They are not an authentication path into the console: the console session comes only from Lucent `POST /api/v1/auth/login`, and every admin API decides authorization server-side.
 

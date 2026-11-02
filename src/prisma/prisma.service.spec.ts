@@ -1,5 +1,5 @@
 import type { ConfigService } from '@nestjs/config';
-import type { Logger as WinstonLogger } from 'winston';
+import { Logger } from '@nestjs/common';
 import { EnvKey } from '../config/env/env-keys.enum.js';
 
 const DB_URL = 'postgresql://user:pass@localhost:5432/test';
@@ -66,14 +66,11 @@ vi.mock('@prisma/adapter-pg', () => ({
   },
 }));
 
-// Mock winston logger
-const mockWinstonWarn = vi.fn();
-const mockWinstonLogger = {
-  warn: mockWinstonWarn,
-  info: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-} as unknown as WinstonLogger;
+// The service logs slow queries through the substituted Nest logger, so the
+// observable seam is `Logger.prototype.warn` rather than an injected mock.
+const mockWarn = vi
+  .spyOn(Logger.prototype, 'warn')
+  .mockImplementation(() => {});
 
 const mockExtendedClient = {
   user: { nonDeleted: { findMany: vi.fn(), findFirst: vi.fn() } },
@@ -94,7 +91,7 @@ describe('PrismaService', () => {
   describe('constructor', () => {
     it('creates instance with valid DATABASE_URL', () => {
       const configService = makeConfigService();
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
 
       expect(configService.get).toHaveBeenCalledWith(EnvKey.DATABASE_URL);
       expect(service).toBeDefined();
@@ -105,7 +102,7 @@ describe('PrismaService', () => {
         [EnvKey.DATABASE_URL]: undefined,
       });
 
-      expect(() => new PrismaService(configService, mockWinstonLogger)).toThrow(
+      expect(() => new PrismaService(configService)).toThrow(
         `Missing required environment variable: ${EnvKey.DATABASE_URL}`,
       );
     });
@@ -116,7 +113,7 @@ describe('PrismaService', () => {
         [EnvKey.DATABASE_URL]: connStr,
       });
 
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
 
       const opts = (
         service as unknown as {
@@ -129,7 +126,7 @@ describe('PrismaService', () => {
 
     it('passes warn, error, and query event log levels to PrismaClient', () => {
       const configService = makeConfigService();
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
 
       const opts = (service as unknown as { _opts: { log: unknown[] } })._opts;
       expect(opts.log).toHaveLength(3);
@@ -137,14 +134,14 @@ describe('PrismaService', () => {
 
     it('registers a query event handler via $on', () => {
       const configService = makeConfigService();
-      new PrismaService(configService, mockWinstonLogger);
+      new PrismaService(configService);
 
       expect(mockOn).toHaveBeenCalledWith('query', expect.any(Function));
     });
 
     it('applies the soft-delete extension via $extends', () => {
       const configService = makeConfigService();
-      new PrismaService(configService, mockWinstonLogger);
+      new PrismaService(configService);
 
       expect(mockExtends).toHaveBeenCalledTimes(1);
     });
@@ -153,7 +150,7 @@ describe('PrismaService', () => {
   describe('nonDeleted getter', () => {
     it('exposes nonDeleted namespaces for the 4 soft-delete models', () => {
       const configService = makeConfigService();
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
 
       expect(service.nonDeleted.user).toBeDefined();
       expect(service.nonDeleted.userDailyRecord).toBeDefined();
@@ -170,7 +167,7 @@ describe('PrismaService', () => {
         EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT,
       );
 
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
       await service.onModuleInit();
 
       expect(mockConnect).toHaveBeenCalledTimes(1);
@@ -180,7 +177,7 @@ describe('PrismaService', () => {
       const configService = makeConfigService();
       process.env[EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT] = 'true';
 
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
       await service.onModuleInit();
 
       expect(mockConnect).not.toHaveBeenCalled();
@@ -195,7 +192,7 @@ describe('PrismaService', () => {
       const configService = makeConfigService();
       process.env[EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT] = 'false';
 
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
       await service.onModuleInit();
 
       expect(mockConnect).toHaveBeenCalledTimes(1);
@@ -210,7 +207,7 @@ describe('PrismaService', () => {
   describe('onModuleDestroy', () => {
     it('calls $disconnect', async () => {
       const configService = makeConfigService();
-      const service = new PrismaService(configService, mockWinstonLogger);
+      const service = new PrismaService(configService);
       await service.onModuleDestroy();
 
       expect(mockDisconnect).toHaveBeenCalledTimes(1);
@@ -218,12 +215,12 @@ describe('PrismaService', () => {
   });
 
   describe('slow query logging', () => {
-    it('logs to Winston when query duration exceeds threshold', () => {
+    it('logs a structured warning when query duration exceeds threshold', () => {
       const configService = makeConfigService({
         [EnvKey.SLOW_QUERY_THRESHOLD_MS]: '100',
       });
 
-      new PrismaService(configService, mockWinstonLogger);
+      new PrismaService(configService);
 
       // Retrieve the handler registered with $on
       const handlerCall = mockOn.mock.calls.find(
@@ -243,12 +240,13 @@ describe('PrismaService', () => {
         target: 'pg',
       });
 
-      expect(mockWinstonWarn).toHaveBeenCalledWith(
-        'Slow query detected',
+      // pino-native order: metadata first, message second.
+      expect(mockWarn).toHaveBeenCalledWith(
         expect.objectContaining({
           durationMs: 150,
           query: 'SELECT * FROM users WHERE id = $1',
         }),
+        'Slow query detected',
       );
     });
 
@@ -257,7 +255,7 @@ describe('PrismaService', () => {
         [EnvKey.SLOW_QUERY_THRESHOLD_MS]: 500,
       });
 
-      new PrismaService(configService, mockWinstonLogger);
+      new PrismaService(configService);
 
       const handlerCall = mockOn.mock.calls.find(
         ([event]) => event === 'query',
@@ -274,7 +272,7 @@ describe('PrismaService', () => {
         target: 'pg',
       });
 
-      expect(mockWinstonWarn).not.toHaveBeenCalled();
+      expect(mockWarn).not.toHaveBeenCalled();
     });
   });
 });

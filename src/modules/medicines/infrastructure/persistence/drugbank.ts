@@ -11,22 +11,23 @@ import {
   composeSubtitle,
   detectMatchedBy,
   firstNonEmpty,
-  toDrugbankDrugInteractions,
-  toDrugbankExternalIdentifiers,
   toDrugbankExternalLinks,
   toPagination,
   toStringList,
   toStringListOrNull,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../../adapters/http/presenters/medicine.js';
-import {
-  type MedicinesSourceReader,
-  type MedicineSearchCriteria,
-  type MedicineSearchResultLike,
-  type MedicineDetailData,
-  type MedicineSequenceData,
+} from '../../application/read_models/medicine-card.format.js';
+import type {
+  MedicinesSourceReader,
+  MedicineSearchCriteria,
+  MedicineSearchResultLike,
 } from '../../application/ports/knowledge.js';
+import type {
+  DrugbankMedicineDetail,
+  MedicineDetailView,
+  MedicineSequenceView,
+} from '../../application/ports/knowledge-view.js';
 
 /** A drug→target edge with its target row eagerly loaded. */
 type DrugbankDrugTargetWithTarget = DrugbankDrugTarget & {
@@ -46,7 +47,7 @@ function isCsvRelation(relationKind: string | null): boolean {
 }
 
 @Injectable()
-export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineDetailData> {
+export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineDetailView> {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(
@@ -61,6 +62,12 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
         orderBy: [{ name: 'asc' }],
         skip,
         take: criteria.pageSize,
+        // `groups` and `synonyms` moved from JsonB columns to relation tables, so
+        // a search result now needs them selected explicitly.
+        include: {
+          groupRows: { select: { groupName: true } },
+          synonymRows: { select: { synonym: true } },
+        },
       }),
       this.prisma.drugbankDrug.count({ where }),
     ]);
@@ -71,7 +78,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     };
   }
 
-  async getDetail(id: string): Promise<MedicineDetailData | null> {
+  async getDetail(id: string): Promise<MedicineDetailView | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
       include: {
@@ -80,6 +87,22 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
           orderBy: { createdAt: 'asc' },
         },
         structure: true,
+        // Promoted to relation tables: these used to be JsonB columns on the
+        // drug row. `take` caps the interaction list because a well-studied drug
+        // can carry hundreds of partners and the detail page shows a summary,
+        // not the whole graph (that is the ego-graph endpoint's job).
+        groupRows: true,
+        synonymRows: { select: { synonym: true }, orderBy: { synonym: 'asc' } },
+        externalIdentifierRows: { orderBy: { resource: 'asc' } },
+        interactions: {
+          select: {
+            interactsWithId: true,
+            interactsWithName: true,
+            description: true,
+          },
+          orderBy: { interactsWithId: 'asc' },
+          take: 200,
+        },
       },
     });
 
@@ -92,7 +115,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
       row.targetRelations,
     );
 
-    const detail = {
+    const detail: DrugbankMedicineDetail = {
       kind: 'drugbank',
       drugType: row.drugType,
       state: row.state,
@@ -108,16 +131,26 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
       routeOfElimination: row.routeOfElimination,
       volumeOfDistribution: row.volumeOfDistribution,
       clearance: row.clearance,
-      groups: toStringList(row.groups),
+      groups: row.groupRows.map((g) => g.groupName),
       categories: toStringList(row.categories),
       atcCodes: toStringList(row.atcCodes),
-      synonyms: toStringList(row.synonyms),
+      synonyms: row.synonymRows.map((s) => s.synonym),
       foodInteractions: toStringList(row.foodInteractions),
-      drugInteractions: toDrugbankDrugInteractions(row.drugInteractions),
+      drugInteractions: row.interactions
+        // The API contract requires a description; a row without one carries no
+        // explanation and is dropped rather than emitted as an empty string.
+        .filter(
+          (i): i is typeof i & { description: string } => i.description != null,
+        )
+        .map((i) => ({
+          drugbankId: i.interactsWithId,
+          description: i.description,
+        })),
       targets: this.toTargets(row.targetRelations),
-      externalIdentifiers: toDrugbankExternalIdentifiers(
-        row.externalIdentifiers,
-      ),
+      externalIdentifiers: row.externalIdentifierRows.map((e) => ({
+        resource: e.resource,
+        identifier: e.identifier,
+      })),
       externalLinks: toDrugbankExternalLinks(row.externalLinks),
       sequenceSummary,
       structure: this.toStructure(row.structure),
@@ -140,7 +173,7 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
    * tens of thousands of characters here (Imatinib's 28 targets average ~1130 aa
    * of protein each), which has no business riding along with every page load.
    */
-  async getSequences(id: string): Promise<MedicineSequenceData | null> {
+  async getSequences(id: string): Promise<MedicineSequenceView | null> {
     const row = await this.prisma.drugbankDrug.findUnique({
       where: { drugbankId: id },
       select: {
@@ -316,20 +349,26 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     };
   }
 
-  private toSearchItem(row: DrugbankDrug, query: string) {
+  private toSearchItem(
+    row: DrugbankDrug & {
+      groupRows: { groupName: string }[];
+      synonymRows: { synonym: string }[];
+    },
+    query: string,
+  ) {
     const tags = uniqueNonEmptyStrings(
       [
-        ...toStringList(row.groups),
+        ...row.groupRows.map((g) => g.groupName),
         ...toStringList(row.categories),
         ...toStringList(row.atcCodes),
       ],
       4,
     );
 
-    const synonymList = toStringList(row.synonyms);
+    const synonymList = row.synonymRows.map((s) => s.synonym);
     return {
       id: row.drugbankId,
-      source: 'drugbank',
+      source: 'drugbank' as const,
       name: row.name,
       subtitle: this.toSubtitle(row),
       summary: truncateText(firstNonEmpty(row.description, row.indication)),
@@ -351,10 +390,12 @@ export class DrugbankMedicinesService implements MedicinesSourceReader<MedicineD
     };
   }
 
-  private toSubtitle(row: DrugbankDrug): string | null {
+  private toSubtitle(
+    row: DrugbankDrug & { groupRows: { groupName: string }[] },
+  ): string | null {
     return composeSubtitle(
       row.casNumber ? `CAS ${row.casNumber}` : null,
-      ...toStringList(row.groups).slice(0, 2),
+      ...row.groupRows.map((g) => g.groupName).slice(0, 2),
       row.drugType,
     );
   }

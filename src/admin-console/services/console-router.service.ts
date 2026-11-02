@@ -29,13 +29,18 @@ export function registerAdminConsoleRoutes(
     async (request: FastifyRequest, reply: FastifyReply) => {
       const asset = await assets.read(readRequestPath(request.url));
       if (asset === null) {
-        reply
+        return reply
           .code(CONSOLE_NOT_FOUND_STATUS)
           .type('text/plain; charset=utf-8')
           .send(ASSET_NOT_FOUND_BODY);
-        return;
       }
-      reply
+      // The reply must be returned, not merely sent: Fastify resolves an async
+      // handler to `undefined` and then sends an empty body, unless the reply
+      // was already flushed. `@fastify/compress` only flushes synchronously for
+      // payloads under its 4 KiB sync threshold; larger ones (the SPA shell,
+      // every bundle) go through a stream, so the resolved `undefined` would win
+      // and every asset above that size arrived empty — a blank `/admin`.
+      return reply
         .type(asset.contentType)
         .header('Cache-Control', asset.cacheControl)
         .send(asset.body);

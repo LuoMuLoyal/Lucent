@@ -105,7 +105,7 @@ Lucent CI re-exports the spec and fails when the committed
   for ontology-grounded reasoning (decision: ADR-0022; bundled as a separate container, not linked
   into this codebase — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
 - Passport JWT
-- Winston / nest-winston structured logging
+- Pino / nestjs-pino structured logging
 - prom-client / VictoriaMetrics / Grafana metrics (ADR-0006, ADR-0016)
 - Grafana unified alerting on the monitoring host (rules, contact points and notification policies
   are versioned under `monitoring/grafana/provisioning/alerting/`)
@@ -187,7 +187,7 @@ to JWT-authenticated `AdminUser` grants.
 JWT access and refresh secrets also come from the env file now; the dev/test
 templates already include local values.
 
-Lucent runtime logging now uses `nest-winston` with Winston transports.
+Lucent runtime logging now uses `nestjs-pino` (Pino) with in-process destinations.
 Request logs, Nest app logs, and global exception logs share the same structured
 logger baseline, and every request gets a propagated `X-Request-Id` plus a
 matching request context entry for downstream logs.
@@ -269,7 +269,7 @@ building & pushing the Docker image. See
 - `src/common/` now separates shared code by role instead of a catch-all `utils/` bucket:
   - `helpers/` for pure helper functions and stateless utilities
   - `services/` for shared injectable services
-  - `logger/` for the shared Winston/Nest logging module plus request context helpers
+  - `logger/` for the shared Pino/Nest logging module plus request context helpers
 - `scripts/` contains a small set of local helpers grouped by purpose:
   - `scripts/dev/` for local runtime helpers
   - `scripts/contract/` for contract export helpers

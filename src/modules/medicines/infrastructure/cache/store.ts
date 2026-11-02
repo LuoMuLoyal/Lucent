@@ -11,7 +11,7 @@ import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
 import type { MedicinesKnowledgeCachePort } from '../../application/ports/knowledge.js';
-import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine_source.js';
+import type { MedicineKnowledgeSource } from '../../domain/medicine/medicine-source.js';
 import {
   MEDICINES_CACHE_KEY_PREFIX,
   MEDICINES_DETAIL_CACHE_TTL_MS,

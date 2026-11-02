@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/index.js';
 import { ProductEventsModule } from '../product-events/product-events.module.js';
-import { HealthEventsController } from './health-events.controller.js';
-import { CheckInsService } from './services/check-ins.service.js';
-import { EventsService } from './services/events.service.js';
-import { HealthEventsOwnershipService } from './services/ownership.service.js';
-import { HealthEventRepositoryPort } from './repositories/event.repository.js';
-import { PrismaEventRepository } from './repositories/prisma-event.repository.js';
+import { HealthEventsController } from './adapters/http/health-events.controller.js';
+import { CheckInsService } from './application/use_cases/check-ins.js';
+import { EventsService } from './application/use_cases/events.js';
+import { HealthEventsOwnershipService } from './application/services/ownership.js';
+import { HealthEventRepositoryPort } from './application/ports/health-events.js';
+import { PrismaHealthEvents } from './infrastructure/persistence/health-events.js';
 
 @Module({
   imports: [PrismaModule, ProductEventsModule],
   controllers: [HealthEventsController],
   providers: [
-    PrismaEventRepository,
+    PrismaHealthEvents,
     {
       provide: HealthEventRepositoryPort,
-      useExisting: PrismaEventRepository,
+      useExisting: PrismaHealthEvents,
     },
     EventsService,
     CheckInsService,

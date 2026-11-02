@@ -1,0 +1,209 @@
+import { Injectable, Optional } from '@nestjs/common';
+
+import {
+  DomainEventPublisher,
+  formatDateOnly,
+  parseDateOnly,
+} from '../../../../common/index.js';
+import { MetricsService } from '../../../../common/metrics/metrics.service.js';
+import { PrismaService } from '../../../../prisma/index.js';
+import {
+  TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
+  type TodaySuggestionMaterializationChangedPayload,
+} from '../../../../common/events/domain-events.js';
+import type {
+  MaterializationStorePort,
+  MarkPendingInput,
+  MaterializationReasonCode,
+  MaterializationRow,
+  MaterializationStatus,
+  MaterializationStatusView,
+  MaterializationVersionInput,
+} from '../../application/ports/materialization.js';
+
+/**
+ * Milliseconds in a second — the stale-age metric is reported in seconds.
+ *
+ * Named so the unit conversion is visible at the call site: the stored
+ * timestamp is in milliseconds and the gauge is in seconds, and mixing the two
+ * would misreport staleness by three orders of magnitude.
+ */
+const MILLISECONDS_PER_SECOND = 1000;
+
+@Injectable()
+export class MaterializationStore implements MaterializationStorePort {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly publisher?: DomainEventPublisher,
+    @Optional() private readonly metricsService?: MetricsService,
+  ) {}
+
+  async readStatus(
+    userId: string,
+    localDate: string,
+  ): Promise<MaterializationStatusView> {
+    const date = parseDateOnly(localDate);
+    const row = (await this.prisma.userSuggestionMaterialization.findUnique({
+      where: { userId_localDate: { userId, localDate: date } },
+    })) as MaterializationRow | null;
+
+    if (!row) {
+      return {
+        id: '',
+        userId,
+        localDate: date,
+        sourceVersion: 0,
+        computedVersion: 0,
+        status: 'empty',
+        reasonCodes: [],
+        lastErrorCode: null,
+        queuedAt: null,
+        computedAt: null,
+        updatedAt: date,
+      };
+    }
+
+    const status = this.toPublicStatus(row);
+    if (status === 'stale' && row.computedAt != null) {
+      const ageSeconds = Math.max(
+        0,
+        (Date.now() - row.computedAt.getTime()) / MILLISECONDS_PER_SECOND,
+      );
+      this.metricsService?.recordSuggestionStaleAge(ageSeconds);
+    }
+
+    return {
+      ...row,
+      status,
+    };
+  }
+
+  async markPending(
+    input: MarkPendingInput,
+  ): Promise<MaterializationStatusView> {
+    const localDate = parseDateOnly(input.localDate);
+    const current = (await this.prisma.userSuggestionMaterialization.findUnique(
+      {
+        where: {
+          userId_localDate: { userId: input.userId, localDate },
+        },
+      },
+    )) as MaterializationRow | null;
+    const queuedAt = new Date();
+    const reasonCodes =
+      current?.status === 'pending'
+        ? this.uniqueReasonCodes([...current.reasonCodes, ...input.reasonCodes])
+        : this.uniqueReasonCodes(input.reasonCodes);
+
+    if (!current) {
+      await this.prisma.userSuggestionMaterialization.create({
+        data: {
+          userId: input.userId,
+          localDate,
+          sourceVersion: input.sourceVersion,
+          computedVersion: 0,
+          status: 'pending',
+          reasonCodes,
+          lastErrorCode: null,
+          queuedAt,
+        },
+      });
+    } else if (input.sourceVersion >= current.sourceVersion) {
+      await this.prisma.userSuggestionMaterialization.update({
+        where: { id: current.id },
+        data: {
+          sourceVersion: input.sourceVersion,
+          status: 'pending',
+          reasonCodes,
+          lastErrorCode: null,
+          queuedAt,
+        },
+      });
+    }
+
+    return this.readStatus(input.userId, input.localDate);
+  }
+
+  async markReady(
+    input: MaterializationVersionInput,
+  ): Promise<MaterializationStatusView> {
+    const result = await this.prisma.userSuggestionMaterialization.updateMany({
+      where: {
+        userId: input.userId,
+        localDate: parseDateOnly(input.localDate),
+        sourceVersion: input.sourceVersion,
+        status: 'pending',
+      },
+      data: {
+        computedVersion: input.sourceVersion,
+        status: 'ready',
+        lastErrorCode: null,
+        computedAt: new Date(),
+      },
+    });
+    if (result.count === 1) {
+      this.metricsService?.recordSuggestionMaterializationReady();
+    }
+
+    if (result.count === 1 && this.publisher != null) {
+      const reasonCodes = input.reasonCodes ?? [];
+      const analysisEligible = reasonCodes.some(
+        (reason) =>
+          reason === 'dose_log_changed' || reason === 'health_event_changed',
+      );
+      if (analysisEligible) {
+        await this.publisher.publish(TODAY_SUGGESTION_MATERIALIZATION_CHANGED, {
+          userId: input.userId,
+          date: formatDateOnly(parseDateOnly(input.localDate)),
+          sourceVersion: input.sourceVersion,
+          analysisEligible,
+          triggerKey: `suggestion:${String(input.sourceVersion)}`,
+        } satisfies TodaySuggestionMaterializationChangedPayload);
+      }
+    }
+
+    return this.readStatus(input.userId, input.localDate);
+  }
+
+  async markFailed(
+    input: MaterializationVersionInput & {
+      errorCode: string;
+      computedVersion?: number;
+    },
+  ): Promise<MaterializationStatusView> {
+    const data = {
+      status: 'failed' as const,
+      lastErrorCode: input.errorCode,
+      ...(input.computedVersion != null
+        ? { computedVersion: input.computedVersion }
+        : {}),
+    };
+    const result = await this.prisma.userSuggestionMaterialization.updateMany({
+      where: {
+        userId: input.userId,
+        localDate: parseDateOnly(input.localDate),
+        sourceVersion: input.sourceVersion,
+        status: 'pending',
+      },
+      data,
+    });
+    if (result.count === 1) {
+      this.metricsService?.recordSuggestionMaterializationFailed();
+    }
+
+    return this.readStatus(input.userId, input.localDate);
+  }
+
+  private toPublicStatus(row: MaterializationRow): MaterializationStatus {
+    if (row.status === 'ready' && row.sourceVersion > row.computedVersion) {
+      return 'stale';
+    }
+    return row.status;
+  }
+
+  private uniqueReasonCodes(
+    reasonCodes: MaterializationReasonCode[],
+  ): MaterializationReasonCode[] {
+    return [...new Set(reasonCodes)];
+  }
+}

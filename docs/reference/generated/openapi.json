@@ -2504,6 +2504,26 @@
         "tags": ["Auth"]
       }
     },
+    "/api/v1/auth/captcha": {
+      "get": {
+        "operationId": "getCaptcha",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Whether the challenge is enforced and the public site key to render it with.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptchaResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public human-verification widget configuration",
+        "tags": ["Auth"]
+      }
+    },
     "/api/v1/auth/send-verification-code": {
       "post": {
         "operationId": "sendVerificationCode",
@@ -2541,66 +2561,6 @@
           }
         },
         "summary": "Send email verification code",
-        "tags": ["Auth"]
-      }
-    },
-    "/api/v1/auth/verify-email": {
-      "post": {
-        "operationId": "verifyEmail",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Whether the email is now verified.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyEmailResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Verification token is invalid or has expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Authentication method unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Verify email",
         "tags": ["Auth"]
       }
     },
@@ -3402,7 +3362,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The active sessions of the current user.",
+            "description": "The signed-in devices of the current user.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3437,7 +3397,7 @@
             "access-token": []
           }
         ],
-        "summary": "List active sessions for the current user",
+        "summary": "List signed-in devices for the current user",
         "tags": ["Auth"]
       }
     },
@@ -3456,7 +3416,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Session revoked."
+            "description": "Device revoked."
           },
           "401": {
             "description": "Access token invalid or expired",
@@ -3504,7 +3464,7 @@
             "access-token": []
           }
         ],
-        "summary": "Revoke a specific session",
+        "summary": "Revoke a signed-in device",
         "tags": ["Auth"]
       }
     },
@@ -3545,6 +3505,194 @@
           }
         },
         "summary": "Refresh token",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/browser/register": {
+      "post": {
+        "operationId": "registerInBrowser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInBrowserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered user. Tokens are set as HttpOnly cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register (httpOnly cookie session)",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/browser/login": {
+      "post": {
+        "operationId": "loginInBrowser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInBrowserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated user. Tokens are set as HttpOnly cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Login verification code expired or does not match",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong credentials (unified code; account state is not revealed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication method unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Login (httpOnly cookie session)",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/browser/refresh": {
+      "post": {
+        "operationId": "refreshInBrowser",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Rotated session; new tokens are set as HttpOnly cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token missing, invalid, expired or already consumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rotate the cookie session",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/browser/logout": {
+      "post": {
+        "operationId": "logoutInBrowser",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Logged out; cookies cleared."
+          },
+          "401": {
+            "description": "Access token invalid or expired (sent as a cookie)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Logout (clears the cookie session)",
         "tags": ["Auth"]
       }
     },
@@ -4314,403 +4462,334 @@
         "tags": ["Medicines"]
       }
     },
-    "/api/v1/user/medicine-reminders": {
+    "/api/v1/medicines/relations/mechanism-paths": {
       "get": {
-        "operationId": "listMedicineReminders",
+        "operationId": "listMechanismPaths",
         "parameters": [
           {
-            "name": "activeOnly",
-            "required": false,
+            "name": "drugbankIds",
+            "required": true,
             "in": "query",
-            "description": "Set to true to return active reminders only.",
+            "description": "Comma-separated DrugBank ids (2-10)",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated DrugBank ids (2-10), e.g. DB00682,DB00004"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Medicine reminder schedules.",
+            "description": "Mechanism paths, or a status explaining why none.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                  "$ref": "#/components/schemas/MedicineMechanismPathsResponse"
                 }
               }
             }
           }
         },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List medicine reminder schedules",
-        "tags": ["Medicine Reminders"]
-      },
-      "post": {
-        "operationId": "createMedicineReminder",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMedicineReminderRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The created medicine reminder.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid reminder payload (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Current medicine not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
+        "summary": "Metabolic mechanism paths between drugs (INHIBITS/INDUCES x SUBSTRATE_OF)",
+        "tags": ["Medicines"]
       }
     },
-    "/api/v1/user/medicine-reminders/{id}": {
-      "patch": {
-        "operationId": "updateMedicineReminder",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMedicineReminderRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The updated medicine reminder.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid reminder payload (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Reminder belongs to another user (FORBIDDEN)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      },
-      "delete": {
-        "operationId": "deleteMedicineReminder",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Medicine reminder deleted."
-          },
-          "403": {
-            "description": "Reminder belongs to another user (FORBIDDEN)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Soft-delete a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/medicine-reminders/group": {
-      "put": {
-        "operationId": "upsertGroup",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertGroupRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The upserted reminder group.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Empty group, duplicate slot ids or invalid payload (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Current medicine or a slot not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Upsert a whole medicine reminder group",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/reminder-deliveries": {
+    "/api/v1/medicines/relations/shared-targets": {
       "get": {
-        "operationId": "listReminderDeliveries",
+        "operationId": "listSharedTargets",
         "parameters": [
           {
-            "name": "date",
-            "required": false,
+            "name": "drugbankIds",
+            "required": true,
             "in": "query",
-            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
+            "description": "Comma-separated DrugBank ids (2-10)",
             "schema": {
-              "example": "2026-06-10",
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Maximum rows to return. Clamped to 1-100.",
-            "schema": {
-              "example": 20,
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated DrugBank ids (2-10), e.g. DB00682,DB00004"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Reminder delivery audit rows.",
+            "description": "Shared targets, or a status explaining why none.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReminderDeliveryListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid date filter (VALIDATION_FAILED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                  "$ref": "#/components/schemas/MedicineSharedTargetsResponse"
                 }
               }
             }
           }
         },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List reminder delivery audit logs",
-        "tags": ["Reminder Deliveries"]
+        "summary": "Targets shared by a set of drugs",
+        "tags": ["Medicines"]
       }
     },
-    "/api/v1/user/reminder-deliveries/receipts": {
-      "post": {
-        "operationId": "recordReceipt",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecordReceiptRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The recorded delivery row.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReminderDeliveryReceiptResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Reminder belongs to another user (FORBIDDEN)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
+    "/api/v1/medicines/relations/cascade-paths": {
+      "get": {
+        "operationId": "listCascadePaths",
+        "parameters": [
           {
-            "access-token": []
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "Starting DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
           }
         ],
-        "summary": "Record a local notification delivery receipt (idempotent)",
-        "tags": ["Reminder Deliveries"]
-      }
-    },
-    "/api/v1/user/reminder-deliveries/local-capability": {
-      "put": {
-        "operationId": "reportLocalCapability",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReportLocalCapabilityRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "The persisted local scheduling capability state.",
+            "description": "Cascade chains, or a status explaining why none.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LocalCapabilityResponse"
+                  "$ref": "#/components/schemas/MedicineCascadePathsResponse"
                 }
               }
             }
+          }
+        },
+        "summary": "Four-hop metabolic cascade starting from one drug",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/substitutes": {
+      "get": {
+        "operationId": "listSubstituteCandidates",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "DrugBank id being replaced",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          },
+          {
+            "name": "enzymeGene",
+            "required": true,
+            "in": "query",
+            "description": "Enzyme to avoid, e.g. CYP2C9",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "description": "Gene symbol, e.g. CYP2C9"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Structural candidates with their shared target.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSubstituteCandidatesResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Structural candidates that do not use a given enzyme (not a prescription)",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/actions": {
+      "get": {
+        "operationId": "listDrugActions",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Target action spectrum of the drug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineDrugActionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "What targets one drug acts on",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/shortest-route": {
+      "get": {
+        "operationId": "listShortestRoutes",
+        "parameters": [
+          {
+            "name": "fromDrugbankId",
+            "required": true,
+            "in": "query",
+            "description": "Source DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          },
+          {
+            "name": "toDrugbankId",
+            "required": true,
+            "in": "query",
+            "description": "Target DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shortest routes, with nodes and edge types.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineShortestRoutesResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Shortest propagation route between two drugs",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/target-drugs": {
+      "get": {
+        "operationId": "listTargetDrugs",
+        "parameters": [
+          {
+            "name": "geneName",
+            "required": true,
+            "in": "query",
+            "description": "Target gene symbol, e.g. CYP2C9",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "description": "Gene symbol, e.g. CYP2C9"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Drugs acting on the target, with relation type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineTargetDrugsResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "All drugs acting on one target gene",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/transport-routes": {
+      "get": {
+        "operationId": "listTransportRoutes",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "query",
+            "description": "DrugBank id",
+            "schema": {
+              "type": "string",
+              "pattern": "^DB\\d{5}$",
+              "description": "DrugBank id, e.g. DB00682"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporter routes, with edge direction.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineTransportRoutesResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Transporter routes (efflux/uptake) for one drug",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/relations/enzyme-duel": {
+      "get": {
+        "operationId": "listEnzymeDuels",
+        "parameters": [
+          {
+            "name": "drugbankIds",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated DrugBank ids (2-10)",
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated DrugBank ids (2-10), e.g. DB00682,DB00004"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inducer/substrate pairs sharing one enzyme.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineEnzymeDuelsResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Induction vs substrate pairs: opposite effect on exposure",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/medication-overview": {
+      "get": {
+        "operationId": "getMedicationOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Duplicate ingredients and source grouping for the current medicines. Empty aggregates when the user has no medicines — that is an answer, not an error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationOverviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access token invalid or expired"
           }
         },
         "security": [
@@ -4718,8 +4797,8 @@
             "access-token": []
           }
         ],
-        "summary": "Report client local scheduling capability",
-        "tags": ["Reminder Deliveries"]
+        "summary": "Describe the caller's current medication combination",
+        "tags": ["Medicines"]
       }
     },
     "/api/v1/user/today/suggestions": {
@@ -6661,6 +6740,414 @@
         "tags": ["User Health Context"]
       }
     },
+    "/api/v1/user/medicine-reminders": {
+      "get": {
+        "operationId": "listMedicineReminders",
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "required": false,
+            "in": "query",
+            "description": "Set to true to return active reminders only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicine reminder schedules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List medicine reminder schedules",
+        "tags": ["Medicine Reminders"]
+      },
+      "post": {
+        "operationId": "createMedicineReminder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMedicineReminderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created medicine reminder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid reminder payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/medicine-reminders/{id}": {
+      "patch": {
+        "operationId": "updateMedicineReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMedicineReminderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated medicine reminder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid reminder payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder or current medicine not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      },
+      "delete": {
+        "operationId": "deleteMedicineReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Medicine reminder deleted."
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/medicine-reminders/group": {
+      "put": {
+        "operationId": "upsertGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The upserted reminder group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty group, duplicate slot ids or invalid payload (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Current medicine or a slot not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upsert a whole medicine reminder group",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries": {
+      "get": {
+        "operationId": "listReminderDeliveries",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-06-10",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum rows to return. Clamped to 1-100.",
+            "schema": {
+              "example": 20,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reminder delivery audit rows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date filter (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List reminder delivery audit logs",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries/receipts": {
+      "post": {
+        "operationId": "recordReceipt",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordReceiptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The recorded delivery row.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryReceiptResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reminder belongs to another user (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reminder not found (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Record a local notification delivery receipt (idempotent)",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries/local-capability": {
+      "put": {
+        "operationId": "reportLocalCapability",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportLocalCapabilityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The persisted local scheduling capability state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalCapabilityResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Report client local scheduling capability",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
     "/api/v1/user/medicine-dose-logs": {
       "get": {
         "operationId": "listDoseLogs",
@@ -8158,6 +8645,252 @@
         "summary": "Create a presigned upload URL for a file",
         "tags": ["Files"]
       }
+    },
+    "/api/v1/layouts": {
+      "get": {
+        "operationId": "listLayouts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Stored layouts keyed by surface.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List all stored layouts of the authenticated user",
+        "tags": ["Layouts"]
+      }
+    },
+    "/api/v1/layouts/{surface}": {
+      "get": {
+        "operationId": "getLayout",
+        "parameters": [
+          {
+            "name": "surface",
+            "required": true,
+            "in": "path",
+            "description": "Surface identifier.",
+            "schema": {
+              "enum": [
+                "today",
+                "record",
+                "medicine",
+                "review",
+                "mine",
+                "tab_chrome"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The stored layout for this surface.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No layout stored for this surface (RESOURCE_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get one surface layout of the authenticated user",
+        "tags": ["Layouts"]
+      },
+      "put": {
+        "operationId": "saveLayout",
+        "parameters": [
+          {
+            "name": "surface",
+            "required": true,
+            "in": "path",
+            "description": "Surface identifier.",
+            "schema": {
+              "enum": [
+                "today",
+                "record",
+                "medicine",
+                "review",
+                "mine",
+                "tab_chrome"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLayoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The stored layout after the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown surface or invalid body (LAYOUT_SURFACE_UNKNOWN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version conflict (LAYOUT_VERSION_CONFLICT); carries the current document under `errors.current`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unsupported document shape (LAYOUT_SCHEMA_VERSION_UNSUPPORTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create or replace one surface layout",
+        "tags": ["Layouts"]
+      }
+    },
+    "/api/v1/layouts/{surface}/generate": {
+      "post": {
+        "operationId": "generateLayoutSurface",
+        "parameters": [
+          {
+            "name": "surface",
+            "required": true,
+            "in": "path",
+            "description": "Surface to compose. The tab bar is not composable.",
+            "schema": {
+              "enum": ["today", "record", "medicine", "review", "mine"],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLayoutSurfaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (chunk | result | error | done) and a JSON \"data\" field.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Each frame is UTF-8 SSE text. event=chunk data=A2uiMessage; event=result data=SurfaceStreamResult; event=error data=ProblemDetails; event=done data={}."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty prompt or a surface that cannot be composed (GENERATIVE_PROMPT_EMPTY / GENERATIVE_SURFACE_UNSUPPORTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Prompt exceeds the length bound (GENERATIVE_PROMPT_TOO_LONG)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Model output rejected by the catalog (GENERATIVE_OUTPUT_REJECTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No model configured (LLM_NOT_CONFIGURED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Stream an AI-composed A2UI surface for this screen",
+        "tags": ["Layouts"]
+      }
     }
   },
   "info": {
@@ -8444,6 +9177,23 @@
         "required": ["user", "tokens"],
         "additionalProperties": false
       },
+      "CaptchaResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "是否启用",
+            "example": false
+          },
+          "siteKey": {
+            "type": "string",
+            "description": "站点密钥",
+            "example": "0x4AAAAAAA_example_site_key"
+          }
+        },
+        "required": ["enabled", "siteKey"],
+        "additionalProperties": false
+      },
       "SendVerificationCodeResponse": {
         "type": "object",
         "properties": {
@@ -8459,18 +9209,6 @@
           }
         },
         "required": ["cooldown", "message"],
-        "additionalProperties": false
-      },
-      "VerifyEmailResponse": {
-        "type": "object",
-        "properties": {
-          "emailVerified": {
-            "type": "boolean",
-            "description": "邮箱是否已验证",
-            "example": true
-          }
-        },
-        "required": ["emailVerified"],
         "additionalProperties": false
       },
       "ForgotPasswordResponse": {
@@ -8538,7 +9276,7 @@
         "items": {
           "$ref": "#/components/schemas/SessionListItemEntry"
         },
-        "description": "The active sessions of the current user."
+        "description": "当前用户仍在生效的会话。"
       },
       "RefreshResponse": {
         "type": "object",
@@ -8560,6 +9298,21 @@
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
+        "additionalProperties": false
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionResponseUser"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "访问令牌过期时间（秒）",
+            "example": 900
+          }
+        },
+        "required": ["user", "expiresIn"],
         "additionalProperties": false
       },
       "LegalDocumentListResponse": {
@@ -9118,6 +9871,197 @@
         },
         "additionalProperties": false
       },
+      "MedicineMechanismPathsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineMechanismPathsResponsePaths"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineSharedTargetsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSharedTargetsResponseTargets"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineCascadePathsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "cascades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineCascadePathsResponseCascades"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineSubstituteCandidatesResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSubstituteCandidatesResponseCandidates"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineDrugActionsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineDrugActionsResponseActions"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineShortestRoutesResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineShortestRoutesResponseRoutes"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineTargetDrugsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "drugs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineTargetDrugsResponseDrugs"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineTransportRoutesResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineTransportRoutesResponseRoutes"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineEnzymeDuelsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "notConfigured", "unavailable", "timeout"]
+          },
+          "duels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineEnzymeDuelsResponseDuels"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicationOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "totalMedicines": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Every current medicine on record."
+          },
+          "resolvableMedicines": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many could be resolved to ingredients. The rest cannot participate in duplicate detection."
+          },
+          "duplicates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicationOverviewResponseDuplicates"
+            },
+            "description": "One entry per shared ingredient; empty when nothing overlaps."
+          },
+          "sourceOverlaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicationOverviewResponseSourceOverlaps"
+            },
+            "description": "Entries grouped by health event, plus unattributed ones."
+          }
+        },
+        "required": [
+          "totalMedicines",
+          "resolvableMedicines",
+          "duplicates",
+          "sourceOverlaps"
+        ],
+        "additionalProperties": false
+      },
       "AdminMetricsOverview": {
         "type": "object",
         "properties": {
@@ -9251,7 +10195,8 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string"
+            "type": "string",
+            "example": "usr_9f2c1e4a7b8d4c6e"
           },
           "groups": {
             "type": "array",
@@ -9530,25 +10475,32 @@
             "type": "array",
             "items": {
               "type": "object",
-              "additionalProperties": {}
+              "additionalProperties": {},
+              "example": {
+                "id": "usr_9f2c1e4a7b8d4c6e",
+                "email": "a@example.com"
+              }
             }
           },
           "total": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 1
           },
           "page": {
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "example": 1
           },
           "limit": {
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true,
-            "maximum": 100
+            "maximum": 100,
+            "example": 25
           }
         },
         "required": ["items", "total", "page", "limit"],
@@ -9556,7 +10508,11 @@
       },
       "AdminResourceRow": {
         "type": "object",
-        "additionalProperties": {}
+        "additionalProperties": {},
+        "example": {
+          "id": "usr_9f2c1e4a7b8d4c6e",
+          "email": "a@example.com"
+        }
       },
       "FunnelResponse": {
         "type": "object",
@@ -10220,6 +11176,100 @@
         ],
         "additionalProperties": false
       },
+      "DoseLogListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoseLogListResponseItems"
+            },
+            "description": "Dose logs for the date."
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count of dose logs for the date."
+          }
+        },
+        "required": ["items", "total"],
+        "additionalProperties": false
+      },
+      "DoseLogResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dose log id."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "description": "Linked health event id.",
+            "type": "string"
+          },
+          "currentMedicineId": {
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
+          },
+          "reminderId": {
+            "nullable": true,
+            "description": "Linked reminder id for slot-aware logs.",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"],
+            "description": "Dose log status."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "nullable": true,
+            "description": "Scheduled slot time in HH:mm format.",
+            "type": "string"
+          },
+          "doseText": {
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "description": "Free-text note.",
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "description": "Source.",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "healthEventId",
+          "currentMedicineId",
+          "reminderId",
+          "status",
+          "scheduledFor",
+          "scheduledTime",
+          "doseText",
+          "note",
+          "source",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "MedicineReminderListResponse": {
         "type": "object",
         "properties": {
@@ -10348,100 +11398,6 @@
         "required": ["state"],
         "additionalProperties": false
       },
-      "DoseLogListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DoseLogListResponseItems"
-            },
-            "description": "Dose logs for the date."
-          },
-          "total": {
-            "type": "number",
-            "description": "Total count of dose logs for the date."
-          }
-        },
-        "required": ["items", "total"],
-        "additionalProperties": false
-      },
-      "DoseLogResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Dose log id."
-          },
-          "healthEventId": {
-            "nullable": true,
-            "description": "Linked health event id.",
-            "type": "string"
-          },
-          "currentMedicineId": {
-            "nullable": true,
-            "description": "Linked current medicine id.",
-            "type": "string"
-          },
-          "reminderId": {
-            "nullable": true,
-            "description": "Linked reminder id for slot-aware logs.",
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["taken", "skipped", "missed", "planned"],
-            "description": "Dose log status."
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date in YYYY-MM-DD format."
-          },
-          "scheduledTime": {
-            "nullable": true,
-            "description": "Scheduled slot time in HH:mm format.",
-            "type": "string"
-          },
-          "doseText": {
-            "nullable": true,
-            "description": "Dose text.",
-            "type": "string"
-          },
-          "note": {
-            "nullable": true,
-            "description": "Free-text note.",
-            "type": "string"
-          },
-          "source": {
-            "nullable": true,
-            "description": "Source.",
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "healthEventId",
-          "currentMedicineId",
-          "reminderId",
-          "status",
-          "scheduledFor",
-          "scheduledTime",
-          "doseText",
-          "note",
-          "source",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
-      },
       "HealthContextResponse": {
         "type": "object",
         "properties": {
@@ -10525,7 +11481,8 @@
           "updatedAt",
           "passwordReauthenticationRequired"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Authenticated user settings."
       },
       "AssistantCapabilitiesResponse": {
         "type": "object",
@@ -11683,6 +12640,140 @@
         ],
         "additionalProperties": false
       },
+      "LayoutListResponse": {
+        "type": "object",
+        "properties": {
+          "surfaces": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "surface": {
+                  "type": "string",
+                  "description": "Surface identifier this layout belongs to.",
+                  "example": "today"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Optimistic-concurrency token. Send it back as `ifVersion` on the next write.",
+                  "example": 3
+                },
+                "schemaVersion": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Shape version of `payload`, owned by the client.",
+                  "example": 1
+                },
+                "payload": {
+                  "description": "Client-owned layout document. The server stores it verbatim and never interprets it.",
+                  "example": {
+                    "placements": [
+                      {
+                        "id": "summary.metrics",
+                        "size": "wide"
+                      },
+                      {
+                        "id": "water.trend",
+                        "size": "compact"
+                      }
+                    ]
+                  }
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "description": "ISO-8601 timestamp of the last write.",
+                  "example": "2026-10-30T12:00:00.000Z"
+                }
+              },
+              "required": [
+                "surface",
+                "version",
+                "schemaVersion",
+                "payload",
+                "updatedAt"
+              ],
+              "additionalProperties": false,
+              "description": "One surface layout."
+            },
+            "description": "Stored layouts keyed by surface. A missing surface means the user never customised it.",
+            "example": {
+              "today": {
+                "surface": "today",
+                "version": 3,
+                "schemaVersion": 1,
+                "payload": {
+                  "placements": [
+                    {
+                      "id": "summary.metrics",
+                      "size": "wide"
+                    }
+                  ]
+                },
+                "updatedAt": "2026-10-30T12:00:00.000Z"
+              }
+            }
+          }
+        },
+        "required": ["surfaces"],
+        "additionalProperties": false,
+        "description": "All stored layouts of the authenticated user."
+      },
+      "LayoutResponse": {
+        "type": "object",
+        "properties": {
+          "surface": {
+            "type": "string",
+            "description": "Surface identifier this layout belongs to.",
+            "example": "today"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Optimistic-concurrency token. Send it back as `ifVersion` on the next write.",
+            "example": 3
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Shape version of `payload`, owned by the client.",
+            "example": 1
+          },
+          "payload": {
+            "description": "Client-owned layout document. The server stores it verbatim and never interprets it.",
+            "example": {
+              "placements": [
+                {
+                  "id": "summary.metrics",
+                  "size": "wide"
+                },
+                {
+                  "id": "water.trend",
+                  "size": "compact"
+                }
+              ]
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of the last write.",
+            "example": "2026-10-30T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "surface",
+          "version",
+          "schemaVersion",
+          "payload",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "One surface layout."
+      },
       "TodayAnalysisReadResponse": {
         "type": "object",
         "properties": {
@@ -12445,14 +13536,19 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            "description": "密码（8-32位，需包含大小写字母和数字）"
+            "maxLength": 128,
+            "description": "密码（至少8位，需通过强度校验）"
           },
           "code": {
             "type": "string",
             "minLength": 1,
             "description": "邮箱验证码"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
           },
           "nickname": {
             "type": "string",
@@ -12475,8 +13571,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "密码（与验证码二选一）"
           },
           "code": {
@@ -12484,6 +13579,12 @@
             "minLength": 1,
             "pattern": "^[0-9]{4,8}$",
             "description": "邮箱验证码（与密码二选一）"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
           }
         },
         "required": ["email"],
@@ -12510,18 +13611,6 @@
           }
         },
         "required": ["email", "scene"],
-        "additionalProperties": false
-      },
-      "VerifyEmailRequest": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Lucent 签发的邮件验证 token"
-          }
-        },
-        "required": ["token"],
         "additionalProperties": false
       },
       "ForgotPasswordRequest": {
@@ -12553,8 +13642,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
@@ -12708,6 +13796,71 @@
         "required": ["refreshToken"],
         "additionalProperties": false
       },
+      "RegisterInBrowserRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "密码（至少8位，需通过强度校验）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "description": "邮箱验证码"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "昵称"
+          }
+        },
+        "required": ["email", "password", "code"],
+        "additionalProperties": false
+      },
+      "LoginInBrowserRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "description": "邮箱地址",
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "description": "密码（与验证码二选一）"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[0-9]{4,8}$",
+            "description": "邮箱验证码（与密码二选一）"
+          },
+          "captchaToken": {
+            "description": "人机验证令牌",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
       "CreateNotificationRequest": {
         "type": "object",
         "properties": {
@@ -12791,226 +13944,6 @@
           }
         },
         "required": ["imageUrl"],
-        "additionalProperties": false
-      },
-      "CreateMedicineReminderRequest": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Reminder label."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "nullable": true,
-            "minItems": 1,
-            "maxItems": 7,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 6
-            },
-            "description": "Weekday numbers 0-6, where null means every day."
-          },
-          "startDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts."
-          },
-          "endDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends."
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 500,
-            "description": "User note."
-          }
-        },
-        "required": ["scheduledHour", "scheduledMinute"],
-        "additionalProperties": false
-      },
-      "UpdateMedicineReminderRequest": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Reminder label."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "nullable": true,
-            "minItems": 1,
-            "maxItems": 7,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 6
-            },
-            "description": "Weekday numbers 0-6, where null means every day."
-          },
-          "startDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear."
-          },
-          "endDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear."
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500,
-            "description": "User note."
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpsertGroupRequest": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "nullable": true,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Reminder label."
-          },
-          "daysOfWeek": {
-            "nullable": true,
-            "minItems": 1,
-            "maxItems": 7,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 6
-            },
-            "description": "Weekday numbers 0-6, where null means every day."
-          },
-          "startDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts."
-          },
-          "endDate": {
-            "nullable": true,
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends."
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "nullable": true,
-            "type": "string",
-            "maxLength": 500,
-            "description": "User note."
-          },
-          "slots": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UpsertGroupRequestSlots"
-            },
-            "description": "Reminder slots for this medicine. Replaces the whole group."
-          }
-        },
-        "required": ["currentMedicineId", "slots"],
-        "additionalProperties": false
-      },
-      "RecordReceiptRequest": {
-        "type": "object",
-        "properties": {
-          "reminderId": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Linked medicine reminder id."
-          },
-          "scheduledDate": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "Local scheduled date in YYYY-MM-DD format."
-          },
-          "scheduledTime": {
-            "type": "string",
-            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-            "description": "Local scheduled time in HH:mm format (24h)."
-          }
-        },
-        "required": ["reminderId", "scheduledDate", "scheduledTime"],
-        "additionalProperties": false
-      },
-      "ReportLocalCapabilityRequest": {
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": ["active", "unavailable", "disabled"],
-            "description": "Local scheduling capability state."
-          }
-        },
-        "required": ["state"],
         "additionalProperties": false
       },
       "SubmitFeedbackRequest": {
@@ -13753,6 +14686,226 @@
         },
         "additionalProperties": false
       },
+      "CreateMedicineReminderRequest": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "User note."
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"],
+        "additionalProperties": false
+      },
+      "UpdateMedicineReminderRequest": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "User note."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertGroupRequest": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Reminder label."
+          },
+          "daysOfWeek": {
+            "nullable": true,
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Weekday numbers 0-6, where null means every day."
+          },
+          "startDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts."
+          },
+          "endDate": {
+            "nullable": true,
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 500,
+            "description": "User note."
+          },
+          "slots": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpsertGroupRequestSlots"
+            },
+            "description": "Reminder slots for this medicine. Replaces the whole group."
+          }
+        },
+        "required": ["currentMedicineId", "slots"],
+        "additionalProperties": false
+      },
+      "RecordReceiptRequest": {
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Linked medicine reminder id."
+          },
+          "scheduledDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Local scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "description": "Local scheduled time in HH:mm format (24h)."
+          }
+        },
+        "required": ["reminderId", "scheduledDate", "scheduledTime"],
+        "additionalProperties": false
+      },
+      "ReportLocalCapabilityRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["active", "unavailable", "disabled"],
+            "description": "Local scheduling capability state."
+          }
+        },
+        "required": ["state"],
+        "additionalProperties": false
+      },
       "CreateDoseLogRequest": {
         "type": "object",
         "properties": {
@@ -13915,8 +15068,7 @@
           "newPassword": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
@@ -13934,8 +15086,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "maxLength": 32,
-            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
+            "maxLength": 128,
             "description": "新密码（8-32位，需包含大小写字母和数字）"
           }
         },
@@ -14108,7 +15259,49 @@
           }
         },
         "required": ["contentType", "sizeBytes"],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create a presigned file upload."
+      },
+      "SaveLayoutRequest": {
+        "type": "object",
+        "properties": {
+          "ifVersion": {
+            "description": "Version the client last read. Omit or send null for an unconditional write.",
+            "nullable": true,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Shape version of `payload`; must be within the server-supported range."
+          },
+          "payload": {
+            "description": "Client-owned layout document. Stored verbatim; the server never interprets it. An object for page layouts, an array for tab_chrome."
+          }
+        },
+        "required": ["schemaVersion", "payload"],
+        "description": "Layout document to persist for one surface."
+      },
+      "GenerateLayoutSurfaceRequest": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural-language instruction describing what to show, in the user's own words.",
+            "example": "把每日饮水做成三张并排的小卡，再配一句这周的整体情况"
+          },
+          "range": {
+            "description": "Preferred time range; the model may ignore it.",
+            "example": "7d",
+            "type": "string",
+            "enum": ["7d", "30d"]
+          }
+        },
+        "required": ["prompt"],
+        "description": "Instruction for one generative surface."
       },
       "NotificationListResponseItems": {
         "type": "object",
@@ -14305,6 +15498,58 @@
           }
         },
         "required": ["accessToken", "refreshToken", "expiresIn"],
+        "additionalProperties": false
+      },
+      "SessionResponseUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "用户 ID"
+          },
+          "email": {
+            "nullable": true,
+            "description": "邮箱地址。OAuth-only 账号在补填邮箱前为 null",
+            "type": "string"
+          },
+          "nickname": {
+            "nullable": true,
+            "description": "昵称",
+            "type": "string"
+          },
+          "avatar": {
+            "nullable": true,
+            "description": "头像 URL",
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证"
+          },
+          "emailVerifiedAt": {
+            "nullable": true,
+            "description": "邮箱验证时间 (ISO 8601)",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "创建时间 (ISO 8601)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "更新时间 (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "avatar",
+          "emailVerified",
+          "emailVerifiedAt",
+          "createdAt",
+          "updatedAt"
+        ],
         "additionalProperties": false
       },
       "LegalDocumentListResponseItems": {
@@ -14983,9 +16228,62 @@
           "recommendation": {
             "description": "LLM check only",
             "type": "string"
+          },
+          "mechanism": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultFindingsMechanism"
           }
         },
         "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultFindingsMechanism": {
+        "description": "Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "notFound",
+              "notConfigured",
+              "unavailable",
+              "timeout"
+            ],
+            "description": "Whether evidence was found, absent, or the graph could not answer."
+          },
+          "mechanisms": {
+            "description": "Present only when status is ok.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseStaticResultFindingsMechanismMechanisms"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseStaticResultFindingsMechanismMechanisms": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["enzyme", "target", "transporter"],
+            "description": "Pathway kind the evidence comes from."
+          },
+          "geneSymbol": {
+            "type": "string",
+            "description": "Gene symbol of the enzyme/target/transporter, e.g. CYP2C9."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "Display name of that entity."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON)."
+          }
+        },
+        "required": ["kind", "geneSymbol", "entityName", "relation"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStaticResultCoverageIssues": {
@@ -15179,9 +16477,62 @@
           "recommendation": {
             "description": "LLM check only",
             "type": "string"
+          },
+          "mechanism": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultFindingsMechanism"
           }
         },
         "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultFindingsMechanism": {
+        "description": "Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "notFound",
+              "notConfigured",
+              "unavailable",
+              "timeout"
+            ],
+            "description": "Whether evidence was found, absent, or the graph could not answer."
+          },
+          "mechanisms": {
+            "description": "Present only when status is ok.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseLlmResultFindingsMechanismMechanisms"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordsResponseLlmResultFindingsMechanismMechanisms": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["enzyme", "target", "transporter"],
+            "description": "Pathway kind the evidence comes from."
+          },
+          "geneSymbol": {
+            "type": "string",
+            "description": "Gene symbol of the enzyme/target/transporter, e.g. CYP2C9."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "Display name of that entity."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON)."
+          }
+        },
+        "required": ["kind", "geneSymbol", "entityName", "relation"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseLlmResultCoverageIssues": {
@@ -15323,9 +16674,62 @@
           "recommendation": {
             "description": "LLM check only",
             "type": "string"
+          },
+          "mechanism": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultFindingsMechanism"
           }
         },
         "required": ["type", "severity", "context", "primaryMedicineName"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResultFindingsMechanism": {
+        "description": "Why this interaction happens (graph evidence). Only interaction findings carry it; absent means the check did not attempt a graph lookup.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "notFound",
+              "notConfigured",
+              "unavailable",
+              "timeout"
+            ],
+            "description": "Whether evidence was found, absent, or the graph could not answer."
+          },
+          "mechanisms": {
+            "description": "Present only when status is ok.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseResultFindingsMechanismMechanisms"
+            }
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "MedicineRiskCheckRecordResponseResultFindingsMechanismMechanisms": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["enzyme", "target", "transporter"],
+            "description": "Pathway kind the evidence comes from."
+          },
+          "geneSymbol": {
+            "type": "string",
+            "description": "Gene symbol of the enzyme/target/transporter, e.g. CYP2C9."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "Display name of that entity."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the primary medicine does to it (INHIBITS/INDUCES/ACTS_ON)."
+          }
+        },
+        "required": ["kind", "geneSymbol", "entityName", "relation"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordResponseResultCoverageIssues": {
@@ -15390,6 +16794,297 @@
           }
         },
         "required": ["name", "approvalNumber", "specification", "manufacturer"],
+        "additionalProperties": false
+      },
+      "MedicineMechanismPathsResponsePaths": {
+        "type": "object",
+        "properties": {
+          "enzymeGene": {
+            "type": "string",
+            "description": "Metabolising enzyme gene symbol."
+          },
+          "enzymeName": {
+            "type": "string",
+            "description": "Enzyme display name."
+          },
+          "otherDrugId": {
+            "type": "string",
+            "description": "Other drug DrugBank id."
+          },
+          "otherDrugName": {
+            "type": "string",
+            "description": "Other drug display name."
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the first drug does to the enzyme (INHIBITS/INDUCES)."
+          }
+        },
+        "required": [
+          "enzymeGene",
+          "enzymeName",
+          "otherDrugId",
+          "otherDrugName",
+          "relation"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineSharedTargetsResponseTargets": {
+        "type": "object",
+        "properties": {
+          "targetGene": {
+            "type": "string",
+            "description": "Shared target gene symbol."
+          },
+          "targetName": {
+            "type": "string",
+            "description": "Shared target display name."
+          },
+          "drugCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many of the queried drugs hit this target."
+          },
+          "drugIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "DrugBank ids hitting this target."
+          },
+          "drugNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Display names hitting this target."
+          }
+        },
+        "required": [
+          "targetGene",
+          "targetName",
+          "drugCount",
+          "drugIds",
+          "drugNames"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineCascadePathsResponseCascades": {
+        "type": "object",
+        "properties": {
+          "startDrug": {
+            "type": "string",
+            "description": "Starting drug name."
+          },
+          "enzymeOne": {
+            "type": "string",
+            "description": "First enzyme in the chain."
+          },
+          "middleDrug": {
+            "type": "string",
+            "description": "Drug occupying the middle of the chain."
+          },
+          "enzymeTwo": {
+            "type": "string",
+            "description": "Second enzyme in the chain."
+          },
+          "endDrug": {
+            "type": "string",
+            "description": "Drug whose exposure is affected downstream."
+          }
+        },
+        "required": [
+          "startDrug",
+          "enzymeOne",
+          "middleDrug",
+          "enzymeTwo",
+          "endDrug"
+        ],
+        "additionalProperties": false
+      },
+      "MedicineSubstituteCandidatesResponseCandidates": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "description": "Candidate DrugBank id."
+          },
+          "name": {
+            "type": "string",
+            "description": "Candidate display name."
+          },
+          "sharedTarget": {
+            "nullable": true,
+            "description": "Target shared with the source drug (the structural reason for candidacy).",
+            "type": "string"
+          }
+        },
+        "required": ["drugbankId", "name", "sharedTarget"],
+        "additionalProperties": false
+      },
+      "MedicineDrugActionsResponseActions": {
+        "type": "object",
+        "properties": {
+          "targetGene": {
+            "type": "string",
+            "description": "Target gene symbol."
+          },
+          "targetName": {
+            "type": "string",
+            "description": "Target display name."
+          },
+          "relation": {
+            "type": "string",
+            "description": "Relation type (INHIBITS/INDUCES/ACTS_ON/SUBSTRATE_OF)."
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Action labels on the edge, when present."
+          }
+        },
+        "required": ["targetGene", "targetName", "relation", "actions"],
+        "additionalProperties": false
+      },
+      "MedicineShortestRoutesResponseRoutes": {
+        "type": "object",
+        "properties": {
+          "stepCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of hops in the path."
+          },
+          "pathNodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Node display names, in path order."
+          },
+          "pathRelations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Edge types, aligned with pathNodes."
+          }
+        },
+        "required": ["stepCount", "pathNodes", "pathRelations"],
+        "additionalProperties": false
+      },
+      "MedicineTargetDrugsResponseDrugs": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "description": "DrugBank id of a drug acting on the target."
+          },
+          "name": {
+            "type": "string",
+            "description": "Drug display name."
+          },
+          "relation": {
+            "type": "string",
+            "description": "Relation type to the target."
+          }
+        },
+        "required": ["drugbankId", "name", "relation"],
+        "additionalProperties": false
+      },
+      "MedicineTransportRoutesResponseRoutes": {
+        "type": "object",
+        "properties": {
+          "transporterGene": {
+            "type": "string",
+            "description": "Transporter gene symbol."
+          },
+          "transporterName": {
+            "type": "string",
+            "description": "Transporter display name."
+          },
+          "inverted": {
+            "type": "boolean",
+            "description": "True when the edge points transporter -> drug (do not draw a same-direction arrow)."
+          }
+        },
+        "required": ["transporterGene", "transporterName", "inverted"],
+        "additionalProperties": false
+      },
+      "MedicineEnzymeDuelsResponseDuels": {
+        "type": "object",
+        "properties": {
+          "enzymeGene": {
+            "type": "string",
+            "description": "Enzyme where induction and metabolism meet."
+          },
+          "inducerDrug": {
+            "type": "string",
+            "description": "Drug inducing the enzyme (lowers substrate exposure)."
+          },
+          "inhibitedSubstrate": {
+            "type": "string",
+            "description": "Substrate drug whose exposure falls."
+          }
+        },
+        "required": ["enzymeGene", "inducerDrug", "inhibitedSubstrate"],
+        "additionalProperties": false
+      },
+      "MedicationOverviewResponseDuplicates": {
+        "type": "object",
+        "properties": {
+          "ingredientKey": {
+            "type": "string",
+            "description": "Shared ingredient key that made these entries duplicates."
+          },
+          "entryIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of the current-medicine entries involved."
+          },
+          "displayNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Display names of those entries."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["medium", "high"],
+            "description": "high when three or more entries share the ingredient, or when they span two knowledge sources."
+          }
+        },
+        "required": ["ingredientKey", "entryIds", "displayNames", "severity"],
+        "additionalProperties": false
+      },
+      "MedicationOverviewResponseSourceOverlaps": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Health event id, or \"unattributed\" when no event links the medicine."
+          },
+          "medicineCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many entries this medicine group holds."
+          },
+          "displayNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Display names in this group."
+          }
+        },
+        "required": ["source", "medicineCount", "displayNames"],
         "additionalProperties": false
       },
       "AdminMetricsOverviewUsers": {
@@ -15522,7 +17217,11 @@
             "type": "array",
             "items": {
               "type": "object",
-              "additionalProperties": {}
+              "additionalProperties": {},
+              "example": {
+                "id": "usr_9f2c1e4a7b8d4c6e",
+                "email": "a@example.com"
+              }
             }
           },
           "total": {
@@ -16665,6 +18364,82 @@
         ],
         "additionalProperties": false
       },
+      "DoseLogListResponseItems": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dose log id."
+          },
+          "healthEventId": {
+            "nullable": true,
+            "description": "Linked health event id.",
+            "type": "string"
+          },
+          "currentMedicineId": {
+            "nullable": true,
+            "description": "Linked current medicine id.",
+            "type": "string"
+          },
+          "reminderId": {
+            "nullable": true,
+            "description": "Linked reminder id for slot-aware logs.",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["taken", "skipped", "missed", "planned"],
+            "description": "Dose log status."
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format."
+          },
+          "scheduledTime": {
+            "nullable": true,
+            "description": "Scheduled slot time in HH:mm format.",
+            "type": "string"
+          },
+          "doseText": {
+            "nullable": true,
+            "description": "Dose text.",
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "description": "Free-text note.",
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "description": "Source.",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "healthEventId",
+          "currentMedicineId",
+          "reminderId",
+          "status",
+          "scheduledFor",
+          "scheduledTime",
+          "doseText",
+          "note",
+          "source",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "MedicineReminderListResponseItems": {
         "type": "object",
         "properties": {
@@ -16856,82 +18631,6 @@
         ],
         "additionalProperties": false,
         "description": "The recorded delivery row."
-      },
-      "DoseLogListResponseItems": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Dose log id."
-          },
-          "healthEventId": {
-            "nullable": true,
-            "description": "Linked health event id.",
-            "type": "string"
-          },
-          "currentMedicineId": {
-            "nullable": true,
-            "description": "Linked current medicine id.",
-            "type": "string"
-          },
-          "reminderId": {
-            "nullable": true,
-            "description": "Linked reminder id for slot-aware logs.",
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["taken", "skipped", "missed", "planned"],
-            "description": "Dose log status."
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date in YYYY-MM-DD format."
-          },
-          "scheduledTime": {
-            "nullable": true,
-            "description": "Scheduled slot time in HH:mm format.",
-            "type": "string"
-          },
-          "doseText": {
-            "nullable": true,
-            "description": "Dose text.",
-            "type": "string"
-          },
-          "note": {
-            "nullable": true,
-            "description": "Free-text note.",
-            "type": "string"
-          },
-          "source": {
-            "nullable": true,
-            "description": "Source.",
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "healthEventId",
-          "currentMedicineId",
-          "reminderId",
-          "status",
-          "scheduledFor",
-          "scheduledTime",
-          "doseText",
-          "note",
-          "source",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
       },
       "HealthContextResponseSummary": {
         "type": "object",
@@ -17632,6 +19331,11 @@
       "ReportDashboardResponseFindings": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable rule identifier of this finding, e.g. \"hydration_low\". Stable across requests and languages; safe to reference.",
+            "example": "hydration_low"
+          },
           "kind": {
             "type": "string",
             "enum": ["medication", "hydration", "sleep", "general"]
@@ -17643,7 +19347,7 @@
             "type": "string"
           }
         },
-        "required": ["kind", "title", "body"],
+        "required": ["id", "kind", "title", "body"],
         "additionalProperties": false
       },
       "ReportDashboardResponsePatterns": {
@@ -21260,7 +22964,7 @@
         "properties": {
           "source": {
             "type": "string",
-            "enum": ["cn", "drugbank"],
+            "enum": ["drugbank", "cn"],
             "description": "候选药品所在的可信药品库来源",
             "example": "drugbank"
           },
@@ -21278,30 +22982,6 @@
           "source": "drugbank",
           "id": "DB01050"
         }
-      },
-      "UpsertGroupRequestSlots": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Existing reminder id to update. Omit to create a new slot."
-          },
-          "scheduledHour": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 23,
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 59,
-            "description": "Scheduled local minute, 0-59."
-          }
-        },
-        "required": ["scheduledHour", "scheduledMinute"],
-        "additionalProperties": false
       },
       "StreamMessagesRequestMessages": {
         "type": "object",
@@ -21346,56 +23026,56 @@
         "additionalProperties": false,
         "description": "Fine-grained permissions for what the assistant may read."
       },
+      "UpsertGroupRequestSlots": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Existing reminder id to update. Omit to create a new slot."
+          },
+          "scheduledHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "Scheduled local minute, 0-59."
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"],
+        "additionalProperties": false
+      },
       "SessionListItemEntry": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Session id"
-          },
-          "deviceType": {
-            "nullable": true,
-            "description": "Device type",
-            "type": "string"
-          },
-          "deviceName": {
-            "nullable": true,
-            "description": "Device name",
-            "type": "string"
-          },
-          "platform": {
-            "nullable": true,
-            "description": "Platform",
-            "type": "string"
+            "description": "会话 ID"
           },
           "lastUsedAt": {
             "nullable": true,
-            "description": "Last used at (ISO-8601)",
+            "description": "最近使用时间 (ISO-8601)",
             "type": "string"
           },
           "createdAt": {
             "type": "string",
-            "description": "Created at (ISO-8601)"
+            "description": "创建时间 (ISO-8601)"
           },
           "expiresAt": {
             "type": "string",
-            "description": "Expires at (ISO-8601)"
+            "description": "过期时间 (ISO-8601)"
           },
           "isCurrent": {
             "type": "boolean",
-            "description": "Whether this is the current session"
+            "description": "是否为发起本次请求的会话（Bearer 客户端恒为 false）"
           }
         },
-        "required": [
-          "id",
-          "deviceType",
-          "deviceName",
-          "platform",
-          "lastUsedAt",
-          "createdAt",
-          "expiresAt",
-          "isCurrent"
-        ],
+        "required": ["id", "lastUsedAt", "createdAt", "expiresAt", "isCurrent"],
         "additionalProperties": false
       },
       "MedicineSafetyTipItem": {

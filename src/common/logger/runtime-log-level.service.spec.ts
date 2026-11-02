@@ -1,4 +1,4 @@
-import type { Logger as WinstonLogger } from 'winston';
+import { PinoLogger } from 'nestjs-pino';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
 import type {
   RuntimeConfigPort,
@@ -7,6 +7,20 @@ import type {
 import { RuntimeLogLevelService } from './runtime-log-level.service.js';
 
 describe('RuntimeLogLevelService', () => {
+  // `PinoLogger.root` is the process-wide pino instance; the service mutates
+  // its `level`, which re-gates every child logger at call time.
+  const root = { level: 'info' };
+  beforeEach(() => {
+    root.level = 'info';
+    vi.spyOn(PinoLogger, 'root', 'get').mockReturnValue(
+      root as unknown as typeof PinoLogger.root,
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   function createSnapshot(level: string): RuntimeConfigSnapshot {
     return {
       values: { [EnvKey.LOG_LEVEL]: level },
@@ -17,16 +31,7 @@ describe('RuntimeLogLevelService', () => {
     } as unknown as RuntimeConfigSnapshot;
   }
 
-  function createHarness(initialLevel: string, baselineLevel: string) {
-    const transports = [
-      { level: baselineLevel },
-      { level: baselineLevel },
-    ] as unknown as WinstonLogger['transports'];
-    const winston = {
-      level: baselineLevel,
-      transports,
-    } as unknown as WinstonLogger;
-
+  function createHarness(initialLevel: string) {
     let listener: ((snapshot: RuntimeConfigSnapshot) => void) | undefined;
     const unsubscribe = vi.fn(() => {
       listener = undefined;
@@ -41,11 +46,9 @@ describe('RuntimeLogLevelService', () => {
       },
     };
 
-    const service = new RuntimeLogLevelService(winston, runtimeConfig);
+    const service = new RuntimeLogLevelService(runtimeConfig);
     return {
       service,
-      winston,
-      transports: transports as unknown as Array<{ level: string }>,
       unsubscribe,
       publish: (level: string) => {
         listener?.(createSnapshot(level));
@@ -53,68 +56,61 @@ describe('RuntimeLogLevelService', () => {
     };
   }
 
-  it('applies the published level to the logger and every transport', () => {
-    const { service, winston, transports } = createHarness('debug', 'info');
+  it('applies the published level to the pino root logger', () => {
+    const { service } = createHarness('debug');
 
     service.onModuleInit();
 
-    expect(winston.level).toBe('debug');
-    expect(transports.map((transport) => transport.level)).toEqual([
-      'debug',
-      'debug',
-    ]);
+    expect(root.level).toBe('debug');
+    expect(service.levelName).toBe('debug');
+  });
+
+  it('maps verbose onto pino trace', () => {
+    const { service } = createHarness('verbose');
+
+    service.onModuleInit();
+
+    expect(root.level).toBe('trace');
+    expect(service.levelName).toBe('verbose');
   });
 
   it('applies later publishes without restart', () => {
-    const { service, winston, transports, publish } = createHarness(
-      'info',
-      'info',
-    );
+    const { service, publish } = createHarness('info');
     service.onModuleInit();
 
     publish('error');
 
-    expect(winston.level).toBe('error');
-    expect(transports.every((transport) => transport.level === 'error')).toBe(
-      true,
-    );
+    expect(root.level).toBe('error');
   });
 
-  it('ignores publishes when the level is already in force', () => {
-    const { service, winston } = createHarness('info', 'info');
+  it('does not reapply an unchanged level', () => {
+    const { service } = createHarness('info');
     service.onModuleInit();
 
-    const before = winston.level;
-    const transport = winston.transports[0] as { level: string };
-    transport.level = 'info';
+    root.level = 'info';
+    const setter = vi.spyOn(root, 'level', 'set');
+    service.onModuleInit();
 
-    expect(winston.level).toBe(before);
+    expect(setter).not.toHaveBeenCalled();
   });
 
   it('stops applying publishes after destroy', () => {
-    const { service, winston, publish, unsubscribe } = createHarness(
-      'info',
-      'info',
-    );
+    const { service, publish, unsubscribe } = createHarness('info');
     service.onModuleInit();
 
     service.onModuleDestroy();
     publish('debug');
 
     expect(unsubscribe).toHaveBeenCalledTimes(1);
-    expect(winston.level).toBe('info');
+    expect(root.level).toBe('info');
   });
 
   it('is a no-op without a runtime-config service', () => {
-    const winston = {
-      level: 'info',
-      transports: [{ level: 'info' }],
-    } as unknown as WinstonLogger;
-    const service = new RuntimeLogLevelService(winston);
+    const service = new RuntimeLogLevelService();
 
     expect(() => {
       service.onModuleInit();
     }).not.toThrow();
-    expect(winston.level).toBe('info');
+    expect(root.level).toBe('info');
   });
 });

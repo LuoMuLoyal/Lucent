@@ -2,8 +2,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyRequest } from 'fastify';
 import { I18nService } from 'nestjs-i18n';
 import { LocalController } from './local.controller.js';
-import { AuthService } from '../services/auth.service.js';
-import { VerificationCodeService } from '../services/identity/verification-code.service.js';
+import { CredentialAuthService } from '../application/services/credential.js';
+import { PasswordManagementService } from '../application/services/password-management.js';
+import { VerificationCodeService } from '../application/services/verification-code.js';
+import { HumanVerification } from '../application/ports/human-verification.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import {
   createDomainFailure,
@@ -36,7 +38,8 @@ const mockAuthResult = {
 
 describe('LocalController', () => {
   let controller: LocalController;
-  let authService: vi.Mocked<AuthService>;
+  let credentialAuth: vi.Mocked<CredentialAuthService>;
+  let passwordManagement: vi.Mocked<PasswordManagementService>;
   let auditLogService: vi.Mocked<AuditLogService>;
 
   beforeEach(async () => {
@@ -44,10 +47,15 @@ describe('LocalController', () => {
       controllers: [LocalController],
       providers: [
         {
-          provide: AuthService,
+          provide: CredentialAuthService,
           useValue: {
             register: vi.fn(),
             login: vi.fn(),
+          },
+        },
+        {
+          provide: PasswordManagementService,
+          useValue: {
             sendVerificationCode: vi.fn(),
             verifyEmail: vi.fn(),
             forgotPassword: vi.fn(),
@@ -72,11 +80,20 @@ describe('LocalController', () => {
             t: vi.fn((key: string) => key),
           },
         },
+        {
+          provide: HumanVerification,
+          useValue: {
+            verify: vi.fn(),
+            enabled: false,
+            siteKey: '',
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(LocalController);
-    authService = module.get(AuthService);
+    credentialAuth = module.get(CredentialAuthService);
+    passwordManagement = module.get(PasswordManagementService);
     auditLogService = module.get(AuditLogService);
   });
 
@@ -86,7 +103,7 @@ describe('LocalController', () => {
 
   describe('POST /auth/register', () => {
     it('registers a user, writes audit log, and returns an auth resource', async () => {
-      authService.register.mockReturnValue(okAsync(mockAuthResult as never));
+      credentialAuth.register.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.register(
         {
@@ -97,7 +114,7 @@ describe('LocalController', () => {
         mockRequest,
       );
 
-      expect(authService.register).toHaveBeenCalledWith(
+      expect(credentialAuth.register).toHaveBeenCalledWith(
         {
           email: 'test@example.com',
           password: 'Password123!',
@@ -118,7 +135,7 @@ describe('LocalController', () => {
     });
 
     it('does not write audit log when registration fails', async () => {
-      authService.register.mockReturnValue(
+      credentialAuth.register.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -144,7 +161,7 @@ describe('LocalController', () => {
     });
 
     it('does not swallow infrastructure failures', async () => {
-      authService.register.mockImplementation(() =>
+      credentialAuth.register.mockImplementation(() =>
         fromPromise(
           Promise.reject(new Error('db connection lost')),
           (error) => {
@@ -164,19 +181,19 @@ describe('LocalController', () => {
 
   describe('POST /auth/login', () => {
     it('logs in and returns an auth resource', async () => {
-      authService.login.mockReturnValue(okAsync(mockAuthResult as never));
+      credentialAuth.login.mockReturnValue(okAsync(mockAuthResult as never));
 
       const result = await controller.login(
         { email: 'test@example.com', password: 'Password123!' },
         mockRequest,
       );
 
-      expect(authService.login).toHaveBeenCalled();
+      expect(credentialAuth.login).toHaveBeenCalled();
       expect(result.user.email).toBe('test@example.com');
     });
 
     it('folds login failures into DomainFailureException with the generic code', async () => {
-      authService.login.mockReturnValue(
+      credentialAuth.login.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',
@@ -199,7 +216,7 @@ describe('LocalController', () => {
 
   describe('POST /auth/send-verification-code', () => {
     it('returns cooldown and message resource', async () => {
-      authService.sendVerificationCode.mockReturnValue(
+      passwordManagement.sendVerificationCode.mockReturnValue(
         okAsync({ message: 'Code sent' } as never),
       );
 
@@ -213,7 +230,7 @@ describe('LocalController', () => {
     });
 
     it('passes the request locale through to the service', async () => {
-      authService.sendVerificationCode.mockReturnValue(
+      passwordManagement.sendVerificationCode.mockReturnValue(
         okAsync({ message: 'Code sent' } as never),
       );
 
@@ -223,7 +240,7 @@ describe('LocalController', () => {
         'zh-CN',
       );
 
-      expect(authService.sendVerificationCode).toHaveBeenCalledWith(
+      expect(passwordManagement.sendVerificationCode).toHaveBeenCalledWith(
         { email: 'test@example.com', scene: 'register' },
         '127.0.0.1',
         'zh-CN',
@@ -231,7 +248,7 @@ describe('LocalController', () => {
     });
 
     it('folds cooldown failures into DomainFailureException', async () => {
-      authService.sendVerificationCode.mockReturnValue(
+      passwordManagement.sendVerificationCode.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'rate_limited',
@@ -254,22 +271,9 @@ describe('LocalController', () => {
     });
   });
 
-  describe('POST /auth/verify-email', () => {
-    it('returns emailVerified true', async () => {
-      authService.verifyEmail.mockReturnValue(okAsync(undefined));
-
-      const result = await controller.verifyEmail({
-        token: 'valid-verification-token',
-      });
-
-      expect(authService.verifyEmail).toHaveBeenCalled();
-      expect(result).toEqual({ emailVerified: true });
-    });
-  });
-
   describe('POST /auth/forgot-password', () => {
     it('returns cooldown and message resource', async () => {
-      authService.forgotPassword.mockReturnValue(
+      passwordManagement.forgotPassword.mockReturnValue(
         okAsync({ message: 'Reset link sent' } as never),
       );
 
@@ -284,7 +288,7 @@ describe('LocalController', () => {
 
   describe('POST /auth/reset-password', () => {
     it('returns a confirmation message on success', async () => {
-      authService.resetPassword.mockReturnValue(okAsync(undefined));
+      passwordManagement.resetPassword.mockReturnValue(okAsync(undefined));
 
       const result = await controller.resetPassword({
         email: 'test@example.com',
@@ -292,13 +296,13 @@ describe('LocalController', () => {
         password: 'NewPassword123!',
       });
 
-      expect(authService.resetPassword).toHaveBeenCalled();
+      expect(passwordManagement.resetPassword).toHaveBeenCalled();
       expect(result).toHaveProperty('message', 'auth.reset_password_success');
       expect(result).toHaveProperty('cooldown', 60);
     });
 
     it('lets non-DomainFailure infrastructure failures escape to the global filter', async () => {
-      authService.resetPassword.mockImplementation(() =>
+      passwordManagement.resetPassword.mockImplementation(() =>
         fromPromise(
           Promise.reject(new Error('db connection lost')),
           (error) => {
@@ -317,7 +321,7 @@ describe('LocalController', () => {
     });
 
     it('folds verification-code failures into DomainFailureException', async () => {
-      authService.resetPassword.mockReturnValue(
+      passwordManagement.resetPassword.mockReturnValue(
         errAsync(
           createDomainFailure({
             kind: 'authentication',

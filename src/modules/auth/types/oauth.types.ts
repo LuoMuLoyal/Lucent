@@ -1,5 +1,3 @@
-import type { Prisma } from '#generated/prisma/client.js';
-
 export const OAUTH_PROVIDER_WECHAT_WEB = 'wechat_web';
 export const OAUTH_PROVIDER_WECHAT_MOBILE = 'wechat_mobile';
 export const OAUTH_PROVIDER_APPLE = 'apple';
@@ -20,13 +18,9 @@ export interface OAuthAuthorizeResult {
   callbackUri?: string;
 }
 
-export interface OAuthProfile {
+/** One in-flight OAuth authorization: which provider, why, and where back. */
+export interface OAuthStateEntry {
   provider: OAuthProviderName;
-  providerUserId: string;
-  unionId?: string;
-  email?: string | null;
-  emailVerifiedAt?: Date | null;
-  nickname?: string | null;
-  avatar?: string | null;
-  rawProfile?: Prisma.InputJsonValue;
+  purpose: 'login' | 'link';
+  callbackUri?: string;
 }

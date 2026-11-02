@@ -21,12 +21,12 @@ import { registerResponseSchema } from '../../common/api/response-schema.registr
 import { unwrapResult } from '../../common/result/index.js';
 import { CurrentUser } from '../auth/index.js';
 import type { UserPayload } from '../auth/index.js';
-import { SuggestionService } from './services/suggestion.service.js';
-import { FeedbackService } from './services/feedback/recorder.service.js';
-import { ExplanationQueueService } from './services/explanation/queue.service.js';
+import { SuggestionService } from './application/services/suggestions.js';
+import { RecordFeedbackUseCase } from './application/use_cases/record-feedback.js';
+import { ExplanationQueueService } from './adapters/queue/explanation/queue.js';
 
-import { ExplanationService } from './services/explanation/explainer.service.js';
-import { LifecycleService } from './services/lifecycle/manager.service.js';
+import { ExplanationService } from './adapters/queue/explanation/explainer.js';
+import { LifecycleService } from './application/services/lifecycle.js';
 import { suggestionFeedbackSchema } from './dto/feedback.dto.js';
 import {
   SuggestionFeedbackData,
@@ -52,14 +52,17 @@ import type { SuggestionHistoryDataDto } from './dto/suggestion-history-query.dt
 export class TodaySuggestionController {
   constructor(
     private readonly suggestionService: SuggestionService,
-    private readonly feedbackService: FeedbackService,
+    private readonly recordFeedback: RecordFeedbackUseCase,
     private readonly explanationService: ExplanationService,
     private readonly explanationQueueService: ExplanationQueueService,
     private readonly lifecycleService: LifecycleService,
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get Today page suggestion cards' })
+  @ApiOperation({
+    operationId: 'getSuggestions',
+    summary: 'Get Today page suggestion cards',
+  })
   @ApiResponse({
     status: 200,
     description: 'Today page suggestion cards with materialization state.',
@@ -101,7 +104,10 @@ export class TodaySuggestionController {
   }
 
   @Post(':id/feedback')
-  @ApiOperation({ summary: 'Submit feedback for a suggestion card' })
+  @ApiOperation({
+    operationId: 'submitFeedback',
+    summary: 'Submit feedback for a suggestion card',
+  })
   @ApiResponse({ status: 201, type: SuggestionFeedbackResponse })
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async submitFeedback(
@@ -111,7 +117,7 @@ export class TodaySuggestionController {
     dto: SuggestionFeedbackDto,
   ) {
     const result = await unwrapResult(
-      this.feedbackService.recordFeedback(user.sub, suggestionId, dto.feedback),
+      this.recordFeedback.recordFeedback(user.sub, suggestionId, dto.feedback),
     );
 
     const response: SuggestionFeedbackData = {
@@ -125,7 +131,10 @@ export class TodaySuggestionController {
   }
 
   @Post(':id/explain')
-  @ApiOperation({ summary: 'Get AI explanation for a suggestion card' })
+  @ApiOperation({
+    operationId: 'explainSuggestion',
+    summary: 'Get AI explanation for a suggestion card',
+  })
   // 201 主成功体注记:export-openapi 目前只回写 200;本端点按稳定组件名登记,
   // 导出脚本支持 201 回写后自动生效。
   @ApiResponse({
@@ -155,6 +164,7 @@ export class TodaySuggestionController {
 
   @Post(':id/explain/async')
   @ApiOperation({
+    operationId: 'enqueueSuggestionExplanation',
     summary: 'Enqueue async AI explanation for a suggestion card',
   })
   // 202 主成功体注记:export-openapi 目前只回写 200;本端点按稳定组件名登记,
@@ -191,7 +201,10 @@ export class TodaySuggestionController {
 
   @SkipThrottle()
   @Get('explain/status/:jobId')
-  @ApiOperation({ summary: 'Poll async suggestion explanation status' })
+  @ApiOperation({
+    operationId: 'explainSuggestionStatus',
+    summary: 'Poll async suggestion explanation status',
+  })
   @ApiResponse({
     status: 200,
     description: 'Job status (pending, completed, or failed)',
@@ -211,7 +224,10 @@ export class TodaySuggestionController {
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Get suggestion history for the Report page' })
+  @ApiOperation({
+    operationId: 'getHistory',
+    summary: 'Get suggestion history for the Report page',
+  })
   @ApiResponse({
     status: 200,
     description: 'Suggestion history items with the query window used.',

@@ -1,0 +1,699 @@
+import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
+import { DailyRecordKind } from '#generated/prisma/client.js';
+import type { DailyRecordReaderPort } from '../../../../daily-records/index.js';
+import { RecordCollectorService } from './record.js';
+import { SleepTrendBuilderService } from './sleep-trend-builder.js';
+import type { UserSettingsService } from '../../../../user-settings/index.js';
+import { USER_SETTINGS_DEFAULTS } from '../../../../user-settings/index.js';
+import { TREND_LOOKBACK_DAYS } from '../../../domain/rule/thresholds.js';
+
+describe('RecordCollectorService', () => {
+  let service: RecordCollectorService;
+  let userSettingsService: DeepMocked<UserSettingsService>;
+  let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
+
+  beforeEach(() => {
+    userSettingsService = {
+      getSettings: vi.fn(),
+    } as unknown as DeepMocked<UserSettingsService>;
+    dailyRecordReader = {
+      listFactsInRange: vi.fn(),
+    } as unknown as DeepMocked<DailyRecordReaderPort>;
+    service = new RecordCollectorService(
+      userSettingsService,
+      dailyRecordReader,
+      new SleepTrendBuilderService(),
+    );
+  });
+
+  function makeRecord(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      id: 'rec-1',
+      kind: DailyRecordKind.water,
+      occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      payload: null,
+      createdAt: new Date('2026-07-09T08:00:00.000Z'),
+      ...overrides,
+    };
+  }
+
+  function mockSettings(waterTargetCount: number) {
+    (userSettingsService.getSettings as vi.Mock).mockResolvedValue({
+      waterTargetCount,
+    });
+  }
+
+  /**
+   * Minimal but契约完整 的 `payload.mealAnalysis` 信封：读路径走 zod 校验，
+   * 少一个必填字段整份 payload 都会被当成「没有分析」。
+   */
+  function mealPayload(facets: Record<string, string>) {
+    return {
+      mealAnalysis: {
+        version: 2,
+        analysisStatus: 'analyzed',
+        analyzedAt: '2026-07-09T04:00:00.000Z',
+        sourceRevision: 1,
+        model: 'vision-model',
+        promptVersion: 'meal-analysis.v2',
+        locale: 'zh-CN',
+        failureReason: null,
+        calorieRange: { min: 500, max: 700, unit: 'kcal', bucket: 'medium' },
+        dishes: [],
+        items: [],
+        facets,
+      },
+    };
+  }
+
+  describe('collect', () => {
+    it('emits a water_count signal with remaining count', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'w1',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
+          makeRecord({
+            id: 'w2',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
+        ])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'w1',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
+          makeRecord({
+            id: 'w2',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const water = signals.find((s) => s.kind === 'water_count');
+      expect(water).toBeDefined();
+      expect(water!.payload).toMatchObject({
+        completedCount: 2,
+        targetCount: 8,
+        remainingCount: 6,
+        observedValue: 2,
+        coverage: { sufficient: true },
+      });
+      const trend = signals.find((s) => s.kind === 'water_trend');
+      expect(trend?.payload).toMatchObject({
+        semantics: 'legacy_record_count',
+        source: 'daily_record',
+      });
+    });
+
+    it('uses default water target when setting is missing', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockSettings(USER_SETTINGS_DEFAULTS.waterTargetCount);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const water = signals.find((s) => s.kind === 'water_count');
+      expect(water!.payload).toMatchObject({
+        targetCount: USER_SETTINGS_DEFAULTS.waterTargetCount,
+        remainingCount: USER_SETTINGS_DEFAULTS.waterTargetCount,
+        coverage: { sufficient: false },
+      });
+      expect(water!.payload).not.toHaveProperty('observedValue');
+    });
+
+    it('distinguishes unknown water from an explicitly observed zero', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockSettings(8);
+
+      const unknownSignals = await service.collect('user-1', '2026-07-09');
+      const unknownWater = unknownSignals.find((s) => s.kind === 'water_count');
+
+      expect(unknownWater!.payload).toMatchObject({
+        observedMetric: {
+          value: null,
+          state: 'unknown',
+          coverage: 'none',
+          sources: [],
+          observedCount: 0,
+          expectedCount: null,
+        },
+      });
+
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([makeRecord({ value: '0', unit: 'ml' })])
+        .mockResolvedValueOnce([makeRecord({ value: '0', unit: 'ml' })]);
+
+      const zeroSignals = await service.collect('user-1', '2026-07-09');
+      const zeroWater = zeroSignals.find((s) => s.kind === 'water_count');
+
+      expect(zeroWater!.payload).toMatchObject({
+        observedMetric: {
+          value: 0,
+          state: 'observed',
+          coverage: 'sufficient',
+          sources: ['manual'],
+          observedCount: 1,
+          expectedCount: null,
+        },
+      });
+    });
+
+    it('normalizes water records to milliliters instead of record count', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([makeRecord({ value: '500', unit: 'ml' })])
+        .mockResolvedValueOnce([makeRecord({ value: '500', unit: 'ml' })]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const water = signals.find((s) => s.kind === 'water_count');
+
+      expect(water!.payload).toMatchObject({
+        observedMetric: {
+          value: 500,
+          state: 'observed',
+          coverage: 'sufficient',
+          sources: ['manual'],
+        },
+      });
+    });
+
+    it('emits a sleep_record signal when a sleep record exists', async () => {
+      const sleepPayload = { durationMinutes: 420, quality: 'good' };
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 's1',
+            kind: DailyRecordKind.sleep,
+            payload: sleepPayload,
+          }),
+        ])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 's1',
+            kind: DailyRecordKind.sleep,
+            payload: sleepPayload,
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const sleep = signals.find((s) => s.kind === 'sleep_record');
+      expect(sleep).toBeDefined();
+      expect(sleep!.payload).toMatchObject({
+        durationMinutes: 420,
+        quality: 'good',
+        recordId: 's1',
+        observedValue: 420,
+        coverage: { sufficient: true },
+      });
+    });
+
+    it('keeps night sleep and nap episodes on the same day', async () => {
+      const episodes = [
+        {
+          sleepType: 'nightSleep',
+          startedAt: '2026-07-08T22:30:00.000Z',
+          endedAt: '2026-07-09T05:30:00.000Z',
+          durationMinutes: 420,
+        },
+        {
+          sleepType: 'nap',
+          startedAt: '2026-07-09T13:00:00.000Z',
+          endedAt: '2026-07-09T13:30:00.000Z',
+          durationMinutes: 30,
+        },
+      ];
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce(
+          episodes.map((payload, index) =>
+            makeRecord({
+              id: `sleep-${String(index)}`,
+              kind: DailyRecordKind.sleep,
+              payload,
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(
+          episodes.map((payload, index) =>
+            makeRecord({
+              id: `sleep-${String(index)}`,
+              kind: DailyRecordKind.sleep,
+              payload,
+            }),
+          ),
+        );
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const sleep = signals.find((s) => s.kind === 'sleep_record');
+
+      expect(sleep!.payload).toMatchObject({
+        observedMetric: {
+          value: 450,
+          state: 'observed',
+          coverage: 'sufficient',
+          observedCount: 2,
+          expectedCount: null,
+        },
+        episodes: expect.arrayContaining([
+          expect.objectContaining({
+            sleepType: 'nightSleep',
+            durationMinutes: 420,
+          }),
+          expect.objectContaining({ sleepType: 'nap', durationMinutes: 30 }),
+        ]),
+      });
+    });
+
+    it('emits a sleep_trend signal when multiple days of sleep exist', async () => {
+      const day1 = new Date('2026-07-08T00:00:00.000Z');
+      const day2 = new Date('2026-07-09T00:00:00.000Z');
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 's1',
+            kind: DailyRecordKind.sleep,
+            occurredAt: day2,
+            payload: { durationMinutes: 360 },
+          }),
+        ])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 's0',
+            kind: DailyRecordKind.sleep,
+            occurredAt: day1,
+            payload: { durationMinutes: 400 },
+          }),
+          makeRecord({
+            id: 's1',
+            kind: DailyRecordKind.sleep,
+            occurredAt: day2,
+            payload: { durationMinutes: 360 },
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const trend = signals.find((s) => s.kind === 'sleep_trend');
+      expect(trend).toBeDefined();
+      expect(trend!.payload).toMatchObject({
+        consecutiveDays: 2,
+      });
+    });
+
+    it('emits a record_density signal with today and multi-day counts', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([
+          makeRecord({ id: 'r1', kind: DailyRecordKind.water }),
+          makeRecord({ id: 'r2', kind: DailyRecordKind.sleep }),
+        ])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({ id: 'r1', kind: DailyRecordKind.water }),
+          makeRecord({ id: 'r2', kind: DailyRecordKind.sleep }),
+          makeRecord({ id: 'r3', kind: DailyRecordKind.mood }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const density = signals.find((s) => s.kind === 'record_density');
+      expect(density).toBeDefined();
+      expect(density!.payload).toMatchObject({
+        todayCount: 2,
+        multiDayCount: 3,
+        lookbackDays: TREND_LOOKBACK_DAYS,
+      });
+    });
+
+    it('emits a diet_facets signal from analyzed meal facets', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ fried: 'high', vegetable: 'ok' }),
+          }),
+          makeRecord({
+            id: 'm2',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ vegetable: 'low', protein: 'ok' }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const diet = signals.find((s) => s.kind === 'diet_facets');
+      expect(diet).toBeDefined();
+      expect(diet!.payload).toMatchObject({
+        daysWithAnalyzedMeals: 2,
+        analyzedMealCount: 2,
+        windowDays: TREND_LOOKBACK_DAYS,
+      });
+      expect(diet!.payload['dailyFacets']).toEqual([
+        {
+          date: '2026-07-08',
+          analyzedMeals: 1,
+          facets: { vegetable: 'low', protein: 'ok' },
+        },
+        {
+          date: '2026-07-09',
+          analyzedMeals: 1,
+          facets: { fried: 'high', vegetable: 'ok' },
+        },
+      ]);
+    });
+
+    it('keeps the most watch-worthy level when one day has several meals', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ fried: 'low', sugar: 'ok' }),
+          }),
+          makeRecord({
+            id: 'm2',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({ fried: 'high', sugar: 'high' }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const diet = signals.find((s) => s.kind === 'diet_facets');
+      expect(diet!.payload['dailyFacets']).toEqual([
+        {
+          date: '2026-07-09',
+          analyzedMeals: 2,
+          facets: { fried: 'high', sugar: 'high' },
+        },
+      ]);
+    });
+
+    it('ignores meal text and unanalyzed meals when building diet facets', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            title: '咖啡',
+            note: 'drank coffee',
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+          makeRecord({
+            id: 'm2',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzing',
+            payload: mealPayload({ fried: 'high' }),
+          }),
+          makeRecord({
+            id: 'm3',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-07T00:00:00.000Z'),
+            mealAnalysisStatus: 'analysis_failed',
+            payload: mealPayload({ fried: 'high' }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      // 只有 analyzed 的餐食进信号：文案里写着咖啡不再产生任何信号，
+      // 仍在分析 / 分析失败的餐食同样不进。
+      expect(signals.find((s) => s.kind === 'diet_facets')).toBeUndefined();
+    });
+
+    it('projects only the facet kinds this context consumes', async () => {
+      // Upstream publishes 11 kinds; this context consumes 9. `balance` and
+      // `other` are not actionable diet dimensions, so they must not reach the
+      // signal — a type that can hold them would invite a future rule to write
+      // handling for values no data path produces.
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.meal,
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+            mealAnalysisStatus: 'analyzed',
+            payload: mealPayload({
+              fried: 'high',
+              balance: 'low',
+              other: 'high',
+              vegetable: 'low',
+            }),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const diet = signals.find((s) => s.kind === 'diet_facets');
+      const dailyFacets = diet!.payload['dailyFacets'] as Array<{
+        facets: Record<string, string>;
+      }>;
+
+      expect(dailyFacets[0]!.facets).toEqual({
+        fried: 'high',
+        vegetable: 'low',
+      });
+      expect(dailyFacets[0]!.facets).not.toHaveProperty('balance');
+      expect(dailyFacets[0]!.facets).not.toHaveProperty('other');
+    });
+
+    it('emits a mood_trend signal for mood records', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.mood,
+            title: 'Good',
+            value: '4',
+          }),
+        ])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm0',
+            kind: DailyRecordKind.mood,
+            title: 'Bad',
+            value: '2',
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+          }),
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.mood,
+            title: 'Good',
+            value: '4',
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const mood = signals.find((s) => s.kind === 'mood_trend');
+      expect(mood).toBeDefined();
+      expect(mood!.payload).toMatchObject({
+        consecutiveDays: 2,
+      });
+    });
+
+    it('does not include unparseable mood records in mood_trend', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm0',
+            kind: DailyRecordKind.mood,
+            title: 'Unknown',
+            value: null,
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+          }),
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.mood,
+            title: 'Good',
+            value: '4',
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const mood = signals.find((s) => s.kind === 'mood_trend');
+      expect(mood).toBeDefined();
+      expect(mood!.payload).toMatchObject({
+        consecutiveDays: 1,
+      });
+      expect(mood!.payload['dailyMoods']).toHaveLength(1);
+      expect((mood!.payload['dailyMoods'] as unknown[])[0]).toMatchObject({
+        moodScore: 4,
+        label: 'Good',
+      });
+    });
+
+    it('emits a symptom_trend signal for symptom records', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'sym1',
+            kind: DailyRecordKind.symptom,
+            title: 'Headache',
+            value: 'Moderate',
+            payload: { symptom: 'headache', severity: 'moderate' },
+          }),
+        ])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'sym1',
+            kind: DailyRecordKind.symptom,
+            title: 'Headache',
+            value: 'Moderate',
+            payload: { symptom: 'headache', severity: 'moderate' },
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const symptom = signals.find((s) => s.kind === 'symptom_trend');
+      expect(symptom).toBeDefined();
+      expect(symptom!.payload).toMatchObject({
+        totalRecords: 1,
+        uniqueDates: 1,
+        // 严重度只认 payload 码：moderate → 2。
+        observedValue: 2,
+        coverage: { sufficient: true },
+      });
+      expect(symptom!.payload['byDate']).toEqual([
+        expect.objectContaining({
+          symptom: 'headache',
+          severity: 'moderate',
+          title: 'Headache',
+        }),
+      ]);
+    });
+
+    it('treats an unknown symptom severity as no observation', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'sym2',
+            kind: DailyRecordKind.symptom,
+            title: '头痛',
+            value: '无法判断',
+            payload: { symptom: 'headache', severity: 'unknown' },
+          }),
+        ])
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'sym2',
+            kind: DailyRecordKind.symptom,
+            title: '头痛',
+            value: '无法判断',
+            payload: { symptom: 'headache', severity: 'unknown' },
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const symptom = signals.find((s) => s.kind === 'symptom_trend');
+      expect(symptom).toBeDefined();
+      expect(symptom!.payload).not.toHaveProperty('observedValue');
+      expect(symptom!.payload).toMatchObject({
+        coverage: { sufficient: false },
+      });
+    });
+  });
+
+  describe('getTimeOfDay', () => {
+    it('returns morning for 5:00 UTC', () => {
+      expect(
+        RecordCollectorService.getTimeOfDay(new Date('2026-07-09T05:00:00Z')),
+      ).toBe('morning');
+    });
+
+    it('returns afternoon for 12:00 UTC', () => {
+      expect(
+        RecordCollectorService.getTimeOfDay(new Date('2026-07-09T12:00:00Z')),
+      ).toBe('afternoon');
+    });
+
+    it('returns evening for 17:00 UTC', () => {
+      expect(
+        RecordCollectorService.getTimeOfDay(new Date('2026-07-09T17:00:00Z')),
+      ).toBe('evening');
+    });
+
+    it('returns night for 22:00 UTC', () => {
+      expect(
+        RecordCollectorService.getTimeOfDay(new Date('2026-07-09T22:00:00Z')),
+      ).toBe('night');
+    });
+
+    it('returns night for 3:00 UTC', () => {
+      expect(
+        RecordCollectorService.getTimeOfDay(new Date('2026-07-09T03:00:00Z')),
+      ).toBe('night');
+    });
+  });
+});

@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-19
+updated: 2026-10-25
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-10-19
+Last updated: 2026-10-25
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -210,7 +210,7 @@ schema 校验又会让 v1 的 `mealAnalysis` 被判为形状不匹配并置 null
 ### F1：ReportTrendDto.values 的 legacyValues 迁移窗口（P3，2026-08-30 审查 W-1-legacy）
 
 考虑为 `ReportTrendDto` 增加废弃的 `legacyValues` 字段（补零、与日期窗口对齐）给前端一个迁移窗口
-（`src/modules/reports/dto/report-dashboard-response.dto.ts`，DTO 内仅留一行指针注释）。
+（`src/modules/reports/application/read_models/dashboard/report-dashboard-response.ts`，DTO 内仅留一行指针注释）。
 R-4 路线图清理完成时裁决去留：若 Luminous 已全面切换 `observedMetric` 对齐则直接放弃，不再实现。
 
 ### F2：Port 接口规范集中化（P3，2026-08-30 审查 Suggestion）
@@ -251,12 +251,15 @@ ESM 化后遗留清单与后续跟进：
 - `cos-nodejs-sdk-v5`（default import）当前互操作正常，无需改动；若上游导出形态变化，
   按计划口径复核。
 
-### @nestjs/throttler 与 nest-winston 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）
+### @nestjs/throttler 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）
 
-`@nestjs/throttler@6.5.0`（npm latest）与 `nest-winston@1.10.2` 的 peerDependencies 尚未纳入
-`@nestjs/* ^12`（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；框架升级后 e2e 全量运行时行为已验证正常
-（rate-limiting 套件与日志链路通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
+`@nestjs/throttler@6.5.0`（npm latest）的 peerDependencies 尚未纳入 `@nestjs/* ^12`
+（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；框架升级后 e2e 全量运行时行为已验证正常
+（rate-limiting 套件通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
 评估替代方案或 fork peer 声明。
+
+> 同一条目里原先还挂着 `nest-winston@1.10.2` 的 peer 告警 —— 2026-10-27 日志底座迁回
+> Pino（`nestjs-pino`，见 ADR-0007 修订记录）后该依赖已移除，这一半事项随之关闭。
 
 ### 高级可观测性进阶项
 
@@ -281,9 +284,133 @@ ESM 化后遗留清单与后续跟进：
   operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
 - SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
 
+### 半衰期感知的漏服提示接入（2026-10-24，领域逻辑已就绪，链路未接）
+
+`domain/services/half-life.ts` 与 `half-life-gap.ts` 已落地并测试（解析在真实数据上覆盖
+76/78 条），但**尚未接进提示链路**：`today-suggestion` 的 `missed_dose_pending` 规则
+仍按「到点没吃就提醒」的固定时长逻辑运行。
+
+**为什么值得接**：同一条固定时长规则在两类药上说反话——半衰期 3 小时的药漏 6 小时
+（两个半衰期，浓度掉到 25%）该提醒；半衰期 102 小时的依那西普（Etanercept）漏 6 小时
+浓度几乎没动，提醒只制造焦虑。判定依据应是「缺口占半衰期的比例」。
+
+**接入需要三件事**：
+
+1. `missed_dose_pending` 规则读药品的 `half_life` 并经 `evaluateHalfLifeGap` 判定
+   （返回 `noData` 时保持原有逻辑，不要变激进或变保守）；
+2. 新增「每药每日已提示」的持久化（迁移 + 表），用于 `half-life-gap.ts` 的每日上限——
+   当前领域函数接受 `lastNotifiedAt` 参数，但没有任何地方存它；
+3. 药品与 `half_life` 的关联：`UserCurrentMedicine` → DrugBank 详情。
+   ⚠️ 前提：本机 dev 的 `drugbank_drugs` 只有 78 条有 `half_life`（全表 100 条药），
+   见下方「Prisma 药品知识库回填」——不先补数据，接入后绝大多数药会落到 `noData`。
+
+**验收**：半衰期 3 小时的药漏 2 个半衰期会提示、同一药一天只提示一次；半衰期 102 小时的
+药同样缺口不提示；`half_life` 缺失的药行为与接入前完全一致。
+
+### Prisma 药品知识库回填（2026-10-24，独立工作，不阻塞图查询）
+
+本机 dev 库（`127.0.0.1:15432/lucent`）实测与应有规模差距很大：
+`drugbank_drugs` 100/19,842、`drugbank_targets` 0、`drugbank_drug_targets` 0、
+`drugbank_structures` 0、`cn_medicine_products` 0、`medical_qa_chunks` 0。
+
+**这不影响图查询**：关系数据在 Neo4j（3,278 节点 / 211,630 边，`lucent-neo4j` 容器 +
+`lucent-neo4j-data` 卷），语义上覆盖了靶点/酶/转运体关系。受影响的只有 **Lucent 自己的
+药品详情接口**（`GET /api/v1/medicines/:id` 的 `targets`/`structure` 等字段）与上面那条
+半衰期接入。
+
+**待查**：是尚未导入，还是导入过但这份 dev 库被重建过。两种情况处置不同——后者要先
+定位数据丢在哪一环，否则导入完还会再丢。源数据在
+`DrugDataBase/derived/drugbank/drugbank_drugs.parquet`（124.8 MB），导入脚本
+`scripts/import/medicine/import-medicine-knowledge.ts` 在。
+
+**顺带修正**：`Luminary/apps/lumine/PRODUCT.md` §二 称 `enzymes`（1,871 条）「已导入」，
+但 `prisma/models/medicine-knowledge.prisma` 里**没有 enzymes 列**——这类关系只存在于
+Neo4j。该文档需更正，避免下一个人按它去找字段。
+
+### 剂量日志槽位唯一性缺失：`mark` 的幂等只是「通常成立」（2026-10-25，四层迁移补测试时发现）
+
+`POST /medicine-dose-logs/mark` 的契约是「同一槽位幂等」，实现是 **find-then-create**
+（`findBySlot` → 命中则 `update`，否则 `create`），**但表上没有任何覆盖槽位的唯一约束兜底**，
+并发下同一槽位会写入两行。
+
+已核对（非推测）：
+
+- `prisma/models/medicine-user.prisma` 的 `UserMedicineDoseLog` 只有 5 个 `@@index`，
+  无 `@@unique`；4 个涉及该表的 migration 里 `UNIQUE` 命中为 0；
+- 连 **dev（15432）与 test（5432）两个库**查 `pg_indexes`：该表唯一索引只有主键
+  `user_medicine_dose_logs_pkey`，槽位相关索引全是普通索引；
+- `git log --all -S` 查无任何分支曾加过该约束——**这是既有缺陷，不是四层迁移引入的**。
+
+**连带问题**：controller 上 `POST /medicine-dose-logs` 与 `/mark` 的
+`@ApiResponse({ status: 409, description: 'Duplicate dose log for the same slot
+(RESOURCE_CONFLICT, race)' })` 是**假声明**——没有唯一约束，P2002 永远不会由槽位重复触发
+（`create` 的 P2002→`RESOURCE_CONFLICT` 映射本身正确，但只可能来自别的约束）。
+
+**修法（三件事要一起做，缺一不可）**：
+
+1. 加**部分**唯一索引，只约束未软删的行，让「软删后重标记」仍然可行：
+
+   ```sql
+   CREATE UNIQUE INDEX user_medicine_dose_logs_slot_uniq
+     ON user_medicine_dose_logs (user_id, reminder_id, scheduled_for, scheduled_time)
+     WHERE deleted_at IS NULL;
+   ```
+
+   注意 `scheduled_time` 可为 NULL、`reminder_id` 可为 NULL（临时日志）——需确认 Postgres
+   对 NULL 的处理符合预期，必要时拆成两条索引或改用 `COALESCE` 表达式索引。
+
+2. `mark` 的 find-then-create 改成 `upsert`（或 `create` + 捕获 P2002 后重试成 `update`）。
+   **只加约束不改写路径的话，并发只是把「两行」变成「500」**，并没有修好幂等。
+3. 删除或更正上述两条 409 文档声明。
+
+**前置**：加约束前要查存量重复数据（同一 user+槽位多行未删），否则 migration 会失败；
+`prisma/models/**` 变更需同步 `pnpm export:openapi`（409 文案若改动）。
+
 ## 管理控制台遗留（2026-10-07，控制台校验与首次上线时发现）
 
 - **favicon 仍是上游模板图片**：`admin/index.html` 的标题与 OG/Twitter 卡片已改为 Lucent
   自己的元数据，但四个 favicon 引用仍是模板自带的 `admin/public/images/favicon*.{svg,png}`
   （上游 shadcn-admin 图形）。替换需要一套 Lucent 图标资产（多尺寸 + 亮/暗两版），
   留待有正式视觉资产时统一处理。
+
+## DDD 四层迁移收尾遗留（2026-10-25）
+
+六条轨道合并后 `typecheck` / `lint` / `arch:check` / 单测 / e2e 全绿，以下是这轮
+刻意未做的项，按需处理：
+
+### 小体量 supporting 模块不迁四层（口径决定，非遗漏）
+
+`audit-log`(174 行) / `data-retention`(174) / `app-info`(99) / `environment`(415) /
+`legal-documents`(476) 保持现状。理由：为 99 行的模块造 `domain/` + `application/` +
+`adapters/` 骨架，骨架比代码长；ADR-0024 自己写了「不为 CRUD 硬造富领域模型」。
+等它们长大（出现真实领域规则或跨上下文契约）再拆。
+
+### `domain-events-outbox.service.ts` 的 `tx` 参数
+
+`append(input, tx?: Prisma.TransactionClient)` 把 Prisma 事务客户端暴露在
+`src/common/**` 的公开签名上。改成端口等于重新定义 ADR-0025 的事务边界，且所有
+`append(event, tx)` 调用点都要跟着改——**必须先定 6 个生产模块的事务边界**，
+否则只是把中间层改得更难懂。ADR-0025 已把「append 不在生产者写事务内」记为
+未达成项，两者要一起解决。
+
+### `product-events` 的 `FunnelData` 形状镜像
+
+`application/commands/` 与 `adapters/http/dto/` 各有一份形状定义（`application → adapters`
+被 arch 规则禁止）。已由 `adapters/http/dto/product-event-mirror.spec.ts` 的双向
+`expectTypeOf` 钉住，任一侧加字段/改可空性都会编译失败。若将来想根除重复，
+需要把 schema 移到中立位置——那要改架构规则，目前不值得。
+
+### `assistant` 的跨层集成 spec
+
+`adapters/acl/tools/retrieval/knowledge.service.spec.ts` 直接构造真实
+`LightragClientService` 当集成替身，保留 1 条既有的 `ddd-adapters-no-infrastructure`。
+它测的是「adapter 的校验/映射 + infrastructure 的响应解析」两层互相印证，
+拆成两个 spec 会丢失这个验证点。策略逻辑已由 `knowledge-policy.spec.ts` 覆盖，
+传输逻辑由 `lightrag-client.service.spec.ts` 覆盖，**这条留作端到端接线**。
+
+### `SummaryWrite` 接受两种形状
+
+`domain/summary/summaries.ts` 的 `SummaryWrite` 同时接受 `scope`（域形态）和扁平的
+`kind`/`date`/`rangeKey`/`scopeKey`，因为 `reports` 与 `today-analysis` 两个消费方
+仍在传扁平形态。版本栅栏已在领域里判，双形态不造成正确性问题；收干净要改那两个
+模块的 4 处调用。

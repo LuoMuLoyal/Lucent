@@ -1,24 +1,33 @@
 import { type SVGProps } from 'react'
 import { cn } from '@/lib/utils'
 
+// Lucent brand mark: the wireframe / blueprint variant of the Luminous icon,
+// generated from `Lucent/assets/icon/Lucent-icon-outline.svg`. The geometry and
+// stroke width stay identical to the source asset; only the paint is inherited
+// from `currentColor` so the mark follows the surrounding text colour.
 export function Logo({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg
-      id='shadcn-admin-logo'
-      viewBox='0 0 24 24'
+      id='lucent-admin-logo'
+      viewBox='0 0 1024 1024'
       xmlns='http://www.w3.org/2000/svg'
       height='24'
       width='24'
       fill='none'
       stroke='currentColor'
-      strokeWidth='2'
+      strokeWidth='40'
       strokeLinecap='round'
       strokeLinejoin='round'
-      className={cn('size-6', className)}
+      className={cn('size-8', className)}
       {...props}
     >
-      <title>Shadcn-Admin</title>
-      <path d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3' />
+      <title>Lucent Admin</title>
+      {/* Light source circle */}
+      <circle cx='452.4' cy='207.7' r='95.3' />
+      {/* Main flowing shape rendered as a single outline */}
+      <path d='M122.4 753.2C166.1 500 280.8 407.4 416.5 368.5c170-45.5 319.1-12.6 461.5-80 86.2-40.7 83.4 32.5 81.3 43.7-20 170-111.6 330-302.6 406.8-207.9 82.6-414.1-71.6-562.6 170a7.5 7.5 0 0 1-5.7 2.8H70a6.3 6.3 0 0 1-5-2.8 6.1 6.1 0 0 1-0.7-5.7A795.6 795.6 0 0 1 304.8 620a1160 1160 0 0 1 330.7-163.6c10-2.8 5.7-18.5-4.2-17.1a978.1 978.1 0 0 0-268.5 99.1 800 800 0 0 0-240 214.8Z' />
+      {/* API node: circle (matches the original logo dot) */}
+      <circle cx='768' cy='512' r='32' />
     </svg>
   )
 }

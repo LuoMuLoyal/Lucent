@@ -7,7 +7,7 @@
   "password": {
     "too_short": "Password must be at least {limit} characters",
     "too_long": "Password must be at most {limit} characters",
-    "too_weak": "Password must contain uppercase, lowercase, and numeric characters"
+    "too_weak": "Password is too easy to guess. Avoid common words, names, dates and keyboard patterns"
   },
   "code": {
     "invalid_length": "Verification code must be {limit} digits"

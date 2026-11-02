@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   Collapsible,
   CollapsibleContent,
@@ -26,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
+import { externalNavHref } from './data/external-links'
 import {
   type NavCollapsible,
   type NavItem,
@@ -64,7 +66,9 @@ function NavBadge({ children }: { children: ReactNode }) {
 
 function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
   const { setOpenMobile } = useSidebar()
+  const accessToken = useAuthStore((state) => state.auth.accessToken)
   const external = item.external
+  const target = externalNavHref(item, accessToken) ?? external
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -72,9 +76,9 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
         isActive={external ? false : checkIsActive(href, item)}
         tooltip={item.title}
       >
-        {external ? (
+        {target ? (
           <a
-            href={external}
+            href={target}
             target='_blank'
             rel='noreferrer'
             onClick={() => setOpenMobile(false)}

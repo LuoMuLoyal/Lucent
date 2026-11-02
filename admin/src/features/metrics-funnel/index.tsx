@@ -72,17 +72,32 @@ function conversion(value: number, baseline: number): string {
   return `${((value / baseline) * 100).toFixed(1)}%`
 }
 
+/**
+ * True once the response carries all three sections. Refine hands
+ * `result.data` an empty object until the query resolves (see the dashboard),
+ * so the declared type is the partial snapshot: reading `funnel.window` on the
+ * first render throws before the request is ever issued, and the root error
+ * boundary turns that into the 500 page.
+ */
+function isFunnelData(value: Partial<FunnelData>): value is FunnelData {
+  return (
+    value.window !== undefined &&
+    value.totals !== undefined &&
+    value.optional !== undefined
+  )
+}
+
 export function MetricsFunnel() {
   const [draft, setDraft] = useState({ dateFrom: '', dateTo: '' })
   const [range, setRange] = useState<{ dateFrom?: string; dateTo?: string }>({})
 
-  const { result, query } = useCustom<FunnelData>({
+  const { result, query } = useCustom<Partial<FunnelData>>({
     url: '/admin/metrics/funnel',
     method: 'get',
     config: { query: range },
     queryOptions: { retry: false },
   })
-  const funnel = result.data
+  const funnel = isFunnelData(result.data) ? result.data : undefined
   const totals = funnel?.totals
   const baseline = totals?.eventStarted ?? 0
 

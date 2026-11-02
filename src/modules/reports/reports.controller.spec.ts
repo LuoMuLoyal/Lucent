@@ -17,28 +17,31 @@ import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from './dto/report-dashboard-query.dto.js';
+} from './application/read_models/dashboard/report-dashboard-query.js';
 
-import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto.js';
+import type { ReportDashboardDataDto } from './application/read_models/dashboard/report-dashboard-response.js';
 
-import type { ReportSummaryDataDto } from './dto/report-summary-response.dto.js';
-import type { EventReviewDataDto } from './dto/event-review-response.dto.js';
-import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto.js';
-import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto.js';
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service.js';
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service.js';
+import type { ReportSummaryDataDto } from './application/read_models/report-summary-response.js';
+import type { EventReviewDataDto } from './adapters/http/dto/event-review-response.js';
+import type { ClinicSummaryDto } from './application/read_models/clinic-summary-response.js';
+import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './application/use_cases/clinic-summary-request.js';
+import { ReportsAiSummaryService } from './application/use_cases/generate-report-summary.js';
+import { ReportSummaryQueueService } from './adapters/queue/summary.js';
 import {
   ClinicSummaryService,
   sharedSummaryCacheKey,
-} from './services/clinic-summary/summary.service.js';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service.js';
-import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service.js';
-import { ShareService } from './services/clinic-summary/share.service.js';
-import { EventReviewService } from './services/event-review/review.service.js';
-import { ReportsController } from './reports.controller.js';
-import { ClinicSummaryController } from './clinic-summary.controller.js';
-import { EventReviewController } from './event-review.controller.js';
-import { ReportsService } from './dashboard/dashboard.service.js';
+} from './application/use_cases/build-clinic-summary.js';
+import { ClinicSummaryPdfQueueService } from './adapters/queue/clinic-summary-pdf.js';
+import {
+  CLINIC_SUMMARY_PDF,
+  type ClinicSummaryPdf,
+} from './application/ports/clinic-summary-pdf.js';
+import { ShareService } from './application/use_cases/clinic-summary-shares.js';
+import { EventReviewService } from './application/read_models/event-review/review.js';
+import { ReportsController } from './adapters/http/controllers/reports.controller.js';
+import { ClinicSummaryController } from './adapters/http/controllers/clinic-summary.controller.js';
+import { EventReviewController } from './adapters/http/controllers/event-review.controller.js';
+import { ReportsService } from './application/use_cases/get-dashboard.js';
 
 /** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */
 const SHARED_VIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -54,7 +57,7 @@ describe('ReportsController', () => {
   let service: vi.Mocked<ReportsService>;
   let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
-  let clinicSummaryPdfService: vi.Mocked<ClinicSummaryPdfService>;
+  let clinicSummaryPdfService: vi.Mocked<ClinicSummaryPdf>;
   let shareService: vi.Mocked<ShareService>;
   let pdfQueueService: {
     isConfigured: boolean;
@@ -94,7 +97,7 @@ describe('ReportsController', () => {
           },
         },
         {
-          provide: ClinicSummaryPdfService,
+          provide: CLINIC_SUMMARY_PDF,
           useValue: {
             exportPdf: vi.fn(),
             exportSharedPdf: vi.fn(),
@@ -184,7 +187,7 @@ describe('ReportsController', () => {
     service = module.get(ReportsService);
     aiSummaryService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
-    clinicSummaryPdfService = module.get(ClinicSummaryPdfService);
+    clinicSummaryPdfService = module.get(CLINIC_SUMMARY_PDF);
     shareService = module.get(ShareService);
     pdfQueueService = module.get(ClinicSummaryPdfQueueService);
     cacheManager = module.get(CACHE_MANAGER);

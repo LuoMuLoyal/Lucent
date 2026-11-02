@@ -1,13 +1,12 @@
 import request from 'supertest';
 import { createHash } from 'node:crypto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
 
 import {
   createTestApp,
   cleanupDatabase,
   bearer,
   expectData,
+  seedVerificationCode,
   uniqueEmail,
 } from '../../helpers/e2e-helpers.js';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
@@ -19,13 +18,10 @@ const REFRESH_PATH = '/api/v1/auth/refresh';
 const REGISTER_PATH = '/api/v1/auth/register';
 const SEND_CODE_PATH = '/api/v1/auth/send-verification-code';
 
-const TEST_PASSWORD = 'Test@123456';
+const TEST_PASSWORD = 'LucentE2e!2345';
 
 interface SessionDto {
   id: string;
-  deviceType: string | null;
-  deviceName: string | null;
-  platform: string | null;
   lastUsedAt: string | null;
   createdAt: string;
   expiresAt: string;
@@ -74,13 +70,9 @@ describe('Session Management API (e2e)', () => {
       .send({ email, scene: 'register' })
       .expect(200);
 
-    // Seed verification code hash directly (service stores hash, not plaintext)
+    // Seed the challenge state directly; mail delivery is not under test here.
     const code = '123456';
-    const hash = createHash('sha256')
-      .update(`register:${email}:${code}`)
-      .digest('hex');
-    const cache = app.get<Cache>(CACHE_MANAGER);
-    await cache.set(`vcode:register:${email}`, hash, 5 * 60 * 1000);
+    await seedVerificationCode(ctx, 'register', email, code);
 
     const res = await request(app.getHttpServer())
       .post(REGISTER_PATH)
@@ -119,7 +111,9 @@ describe('Session Management API (e2e)', () => {
       expect(session.id).toBeDefined();
       expect(session.createdAt).toBeTruthy();
       expect(session.expiresAt).toBeTruthy();
-      expect(session.isCurrent).toBe(false); // isCurrent is always false in current implementation
+      // Bearer 请求没有 refresh cookie，服务端无从判定「当前会话」，
+      // 所以恒为 false —— 这正是预期行为，不是缺陷。
+      expect(session.isCurrent).toBe(false);
     });
 
     it('should list multiple sessions after multiple logins', async () => {

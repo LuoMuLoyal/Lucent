@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-19
+updated: 2026-10-22
 ---
 
 # Environment Variables
@@ -125,6 +125,22 @@ tag 形如 `sha-<短sha>`,指向 multi-arch manifest,故不含架构、跨机器
 `CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin
 traffic. If you do expose browser clients from another origin, set it explicitly.
 
+**Cookie sessions require explicit origins.** The CORS layer answers with
+`Access-Control-Allow-Credentials: true` so that httpOnly session cookies
+(`lucent_session` / `lucent_refresh`, set by `/auth/session/*`) are sent on
+cross-origin requests. Browsers reject credentialed responses from a wildcard
+origin, so when a cookie-session client is involved `CORS_ORIGIN` must list
+concrete origins — the web host plus the desktop dev origin:
+
+```
+CORS_ORIGIN=https://devluo.com,http://localhost:1420
+```
+
+Leaving it empty (or unset) while a browser client exists produces requests
+that never reach the server: the preflight fails and **nothing appears in the
+Lucent logs**, because the request was never sent. That is the single most
+time-consuming failure mode to diagnose here.
+
 JWT and admin secrets are required in every runtime now; keep them in the env
 files, not in code defaults. The checked-in dev/test templates already provide
 local values.
@@ -161,6 +177,23 @@ All OAuth provider variables are optional. When unset, the provider logs a warni
 at startup but does not block application launch. QQ and Google each use
 the standard OAuth 2.0 authorization-code flow; WeChat additionally supports a
 mobile SDK path.
+
+Cloudflare Turnstile (human verification on register / login / verification-code
+requests):
+
+```text
+TURNSTILE_SECRET_KEY
+TURNSTILE_SITE_KEY
+```
+
+Both are optional, and the feature is off unless **both** are set — an empty
+secret makes the guard treat every request as human, which is the local-dev and
+e2e default. TURNSTILE_SECRET_KEY is server-only; TURNSTILE_SITE_KEY is public
+by design and is served to clients through GET /api/v1/auth/captcha, so
+clients never hardcode it. Verification queries
+https://challenges.cloudflare.com/turnstile/v0/siteverify; a network failure
+there fails **open** (logged, request allowed) so a Cloudflare outage cannot lock
+users out of sign-in.
 
 JPush notification delivery:
 
@@ -404,7 +437,7 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
 
 运维家族的运行时覆盖：
 
-- `LOG_LEVEL` 发布后立即改写 Winston 的 `logger.level` 与每个 transport 的级别，无需
+- `LOG_LEVEL` 发布后立即改写 pino 根 logger 的 `level`（`PinoLogger.root.level`），无需
   重启；启动时按 `NODE_ENV` 解析出的级别是基线。
 - `SLOW_REQUEST_THRESHOLD_MS` / `SLOW_QUERY_THRESHOLD_MS` 在**每次观测**读取快照：
   改动只影响之后的请求与查询，已记录的慢日志不受影响。
@@ -559,6 +592,34 @@ SEMANTICA_API_KEY    # 与 sidecar 的 API_TOKEN 必须一致；仅 ENABLED=true
 成 `kind: 'unauthorized'` 后呈现的是"推理服务不可用"——一个配置错误被伪装成基础设施故障。
 关闭状态下即便残留了 base URL / key 也不报错。
 
+### Neo4j 直连 — 业务只读图查询
+
+```text
+NEO4J_URI           # 例如 bolt://127.0.0.1:7687；缺失即视为「未启用」
+NEO4J_USER          # 默认 neo4j
+NEO4J_PASSWORD      # 仅有 .env；缺失即视为「未启用」
+NEO4J_DATABASE      # 默认 neo4j
+NEO4J_TX_TIMEOUT_MS # 默认 8000；同时用作 driver 的 connectionTimeout
+```
+
+**和 semantica 是两条路径，不是二选一。** semantica 继续负责 agent 生成 Cypher 与
+`/reason` 规则推理；这组键服务的是**业务只读图查询**（`/medicines/relations/*` 的 9 个
+多跳查询）。选择直连的理由是超时预算：sidecar 的对端 `statement_timeout` 是 15 秒，
+多跳机制查询容易逼近它，而直连可以自己设事务超时。
+
+**全部可选，缺失即「未启用」。** `NEO4J_URI` 或 `NEO4J_PASSWORD` 任一为空都不算启用：
+端点返回 `status: "notConfigured"` 而不是启动失败——CI 与大多数本地环境没有图库，
+不能因为图不可达就起不来服务。口令只从 `.env` 读，不进运行时快照、不进日志。
+
+**失败是可区分的状态，不是空结果。** 9 个端点统一返回
+`{ status: 'ok' | 'notConfigured' | 'unavailable' | 'timeout', ... }`：
+`ok` + 空数组表示「图上确实没有」，其余表示「我们无法回答」。客户端必须把这两类
+分开显示——把知识缺口渲染成「无风险」是用药场景里最危险的静默降级。
+
+**无向匹配是排查时的第一个坑。** `INTERACTS_WITH` 在 Neo4j 里只存了单向的 2,534 条边；
+反向边原本由 semantica 的 `graph/orientation.py` 在**出图时**合成，直连走不到那条路径。
+所以涉及相互作用的查询必须写 `-[r]-`；写成 `->` 会返回 0 条且看起来完全正常。
+
 服务**不可达**（配了 key 但对方没起来）仍属运行时问题：表现为工具返回"推理不可用"信封，
 而不是进程起不来。
 
@@ -624,7 +685,7 @@ OTEL_TRACES_SAMPLER_ARG
 VICTORIALOGS_URL
 ```
 
-- `LOG_LEVEL` — Winston log level (`error` / `warn` / `info` / `debug` / `verbose`).
+- `LOG_LEVEL` — pino log level (`error` / `warn` / `info` / `debug` / `verbose`).
   **未设置**时按环境取默认（在 `src/common/logger/logger.config.ts` 的 `resolveLevel` 解析）：
   development = `debug`、test = `error`、production = `info`。显式设置的值总是优先。
   校验层刻意**不**给它默认值 —— 写死默认值会让该校验结果先于按环境解析生效，
@@ -687,7 +748,7 @@ VICTORIALOGS_URL
   没有"而非报错。Grafana 侧用内置 `jaeger` 数据源读它
   （`http://victoriatraces:10428/select/jaeger`，同机走容器网络）。
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
-  Winston batches log entries as newline-delimited JSON and POSTs them directly
+  the logger batches entries as newline-delimited JSON and POSTs them directly
   to this URL (no Vector sidecar needed).
   **默认回落到** `http://victorialogs:9428/insert/jsonline`（写在 `compose.yaml` 的
   app 服务里，供单机全栈部署使用）。监控栈在另一台机器时容器名在本机解析不了，

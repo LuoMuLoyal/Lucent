@@ -1,0 +1,52 @@
+import { Injectable } from '@nestjs/common';
+
+import {
+  createDomainFailure,
+  errAsync,
+  type DomainFailure,
+  type ResultAsync,
+} from '../../../../common/result/index.js';
+import { AuthIdentityService } from '../../application/services/identity.js';
+import { AuthRateLimitService } from '../../application/services/rate-limit.js';
+
+/**
+ * Verifies the user's current password for sensitive operations. It combines
+ * Redis-based rate limiting with credential verification and emits the domain
+ * failures expected by the API boundary:
+ *
+ * - `AUTH_PASSWORD_NOT_SET` — the user has no local credential identity.
+ * - `AUTH_WRONG_PASSWORD` — the supplied password does not match.
+ * - `RATE_LIMITED` — too many consecutive failures (carries `retryAfter`).
+ */
+@Injectable()
+export class PasswordReauthService {
+  constructor(
+    private readonly authIdentityService: AuthIdentityService,
+    private readonly rateLimitService: AuthRateLimitService,
+  ) {}
+
+  /**
+   * Verifies `password` for `userId`. Returns `okAsync(undefined)` on success
+   * and clears any previous re-authentication failures.
+   */
+  verify(userId: string, password: string): ResultAsync<void, DomainFailure> {
+    return this.rateLimitService
+      .checkReauthRateLimit(userId)
+      .andThen(() =>
+        this.authIdentityService.verifyPasswordForUser(userId, password),
+      )
+      .andThen((valid) => {
+        if (!valid) {
+          return this.rateLimitService.recordReauthFailure(userId).andThen(() =>
+            errAsync(
+              createDomainFailure({
+                kind: 'authentication',
+                code: 'AUTH_WRONG_PASSWORD',
+              }),
+            ),
+          );
+        }
+        return this.rateLimitService.clearReauthFailures(userId);
+      });
+  }
+}

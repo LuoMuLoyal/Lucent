@@ -139,7 +139,7 @@ describe('Security: Rate Limiting (e2e)', () => {
         .post('/api/v1/auth/login')
         .send({
           email: lockedEmail,
-          password: 'Test@123456',
+          password: 'LucentE2e!2345',
         });
 
       expect([401, 429]).toContain(res.statusCode);

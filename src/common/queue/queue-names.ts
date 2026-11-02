@@ -16,6 +16,8 @@
  */
 export const QUEUE_NAMES = {
   cron: 'lucent-cron',
+  /** ADR-0025: drains `domain_events` and fans each row out to subscriber queues. */
+  eventFanout: 'lucent-event-fanout',
   reminderDispatch: 'lucent-reminder-dispatch',
   mail: 'lucent-mail',
   mealAnalysis: 'lucent-meal-analysis',
@@ -27,6 +29,10 @@ export const QUEUE_NAMES = {
   suggestionCopyGeneration: 'suggestion-copy-generation',
   suggestionExplanation: 'suggestion-explanation',
   suggestionRecompute: 'suggestion-recompute',
+  /** ADR-0025: replaces the in-process `@OnEvent` cache invalidation in `reports`. */
+  reportCacheInvalidation: 'report-cache-invalidation',
+  /** ADR-0025: replaces the in-process risk-context listeners in `medicines`. */
+  medicineRiskRefresh: 'medicine-risk-refresh',
 } as const;
 
 /** Literal union of every registered BullMQ queue name. */

@@ -71,6 +71,18 @@ const definitions = {
     detailKey: 'common.problem_auth_verification_code_cooldown_detail',
     retryable: true,
   },
+  AUTH_CAPTCHA_REQUIRED: {
+    status: 403,
+    titleKey: 'common.problem_auth_captcha_required_title',
+    detailKey: 'common.problem_auth_captcha_required_detail',
+    retryable: true,
+  },
+  AUTH_CAPTCHA_INVALID: {
+    status: 403,
+    titleKey: 'common.problem_auth_captcha_invalid_title',
+    detailKey: 'common.problem_auth_captcha_invalid_detail',
+    retryable: true,
+  },
   AUTH_OAUTH_STATE_INVALID: {
     status: 400,
     titleKey: 'common.problem_auth_oauth_state_invalid_title',
@@ -153,6 +165,103 @@ const definitions = {
     status: 409,
     titleKey: 'common.problem_record_already_exists_title',
     detailKey: 'common.problem_record_already_exists_detail',
+    retryable: false,
+  },
+  /**
+   * The `surface` path segment is not one this backend knows.
+   *
+   * Split out of the generic `VALIDATION_FAILED` because a client sending an
+   * unknown surface is running ahead of (or behind) this backend's surface
+   * list, not sending a malformed request — the two warrant different client
+   * reactions (downgrade/upgrade vs. fix the payload).
+   */
+  LAYOUT_SURFACE_UNKNOWN: {
+    status: 400,
+    titleKey: 'common.problem_layout_surface_unknown_title',
+    detailKey: 'common.problem_layout_surface_unknown_detail',
+    retryable: false,
+  },
+  /**
+   * The layout document was written by a client whose format this backend
+   * cannot store (older than `LAYOUT_SCHEMA_VERSION_MIN` or newer than
+   * `LAYOUT_SCHEMA_VERSION_MAX`).
+   *
+   * 422 rather than 400: the request is well-formed, it just carries a
+   * document shape this server refuses to hold. Neither clamping nor
+   * downgrading is safe — a half-understood layout is worse than letting the
+   * client fall back to its built-in defaults.
+   */
+  LAYOUT_SCHEMA_VERSION_UNSUPPORTED: {
+    status: 422,
+    titleKey: 'common.problem_layout_schema_version_unsupported_title',
+    detailKey: 'common.problem_layout_schema_version_unsupported_detail',
+    retryable: false,
+  },
+  /**
+   * The surface exists (it is a stored layout target) but cannot be composed:
+   * `tab_chrome` is the bottom bar, not a page, so a generated tree has nowhere
+   * to mount.
+   *
+   * 400 rather than 404: the caller named a surface this backend has, it just
+   * is not composable. A 404 would read like "unknown endpoint".
+   */
+  GENERATIVE_SURFACE_UNSUPPORTED: {
+    status: 400,
+    titleKey: 'common.problem_generative_surface_unsupported_title',
+    detailKey: 'common.problem_generative_surface_unsupported_detail',
+    retryable: false,
+  },
+  /**
+   * The instruction is blank after trimming. Separate from the generic
+   * `VALIDATION_FAILED` so the client can point at the input field rather than
+   * showing a generic "invalid request".
+   */
+  GENERATIVE_PROMPT_EMPTY: {
+    status: 400,
+    titleKey: 'common.problem_generative_prompt_empty_title',
+    detailKey: 'common.problem_generative_prompt_empty_detail',
+    retryable: false,
+  },
+  /**
+   * The instruction exceeds `GENERATIVE_PROMPT_MAX_LENGTH`.
+   *
+   * 422 rather than 400: the request is well-formed, it just carries more than
+   * this feature is willing to send to a model (cost and latency both scale
+   * with prompt length).
+   */
+  GENERATIVE_PROMPT_TOO_LONG: {
+    status: 422,
+    titleKey: 'common.problem_generative_prompt_too_long_title',
+    detailKey: 'common.problem_generative_prompt_too_long_detail',
+    retryable: false,
+  },
+  /**
+   * The model produced a tree that violates the admission policy — an unknown
+   * component, a fabricated numeric value, or a property a domain component
+   * does not allow.
+   *
+   * 502 rather than 400: the caller's request was fine, the *dependency*
+   * misbehaved. The client keeps the previously rendered surface, so this is
+   * recoverable by asking again.
+   */
+  GENERATIVE_OUTPUT_REJECTED: {
+    status: 502,
+    titleKey: 'common.problem_generative_output_rejected_title',
+    detailKey: 'common.problem_generative_output_rejected_detail',
+    retryable: true,
+  },
+  /**
+   * `ifVersion` did not match the stored version, or a conditional write
+   * targeted a layout the server does not have.
+   *
+   * Separate from the generic `RESOURCE_CONFLICT` so the client can tell
+   * "another device wrote first — re-read then retry" apart from other
+   * conflicts, and surface the stale-device hint accordingly.
+   */
+  LAYOUT_VERSION_CONFLICT: {
+    status: 409,
+    titleKey: 'common.problem_layout_version_conflict_title',
+    detailKey: 'common.problem_layout_version_conflict_detail',
     retryable: false,
   },
   /**

@@ -6,22 +6,30 @@ import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module.js';
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
+import { UserSettingsModule } from '../user-settings/user-settings.module.js';
 import { PrismaModule } from '../../prisma/index.js';
-import { TodayAnalysisContextService } from './services/pipeline/context.service.js';
-import { TriggerEvaluatorService } from './services/pipeline/trigger-evaluator.service.js';
+import { TodayAnalysisContextService } from './adapters/acl/analysis-context.js';
+import { TriggerEvaluatorService } from './application/services/trigger-evaluator.js';
 
-import { TodayAnalysisCopyService } from './services/pipeline/copy.service.js';
+import { TodayAnalysisCopyService } from './application/services/analysis-copy.js';
 
-import { TodayAnalysisGeneratorService } from './services/pipeline/generator.service.js';
+import { TodayAnalysisGeneratorService } from './infrastructure/llm/analysis-generator.js';
 
-import { TodayAnalysisQueueService } from './services/analysis-queue.service.js';
+import { TodayAnalysisQueueService } from './adapters/queue/analysis.js';
 
-import { TodayAnalysisService } from './services/analysis.service.js';
-import { TodayAnalysisMaterializationStore } from './services/materialization/store.service.js';
-import { TodayAnalysisTriggerListener } from './services/recompute/trigger.listener.js';
+import { TodayAnalysisService } from './application/use_cases/generate-today-analysis.js';
+import { TodayAnalysisMaterializationStore } from './infrastructure/persistence/materialization.js';
+import { TodayAnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
+import { TODAY_ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
+import { TODAY_ANALYSIS_MATERIALIZATION } from './application/ports/materialization.js';
+import {
+  ANALYSIS_CONTEXT_SOURCE,
+  ANALYSIS_GENERATOR,
+} from './application/ports/analysis-pipeline.js';
 
-import { TodayRecommendationsService } from './services/pipeline/recommendations.service.js';
-import { TodayAnalysisController } from './today-analysis.controller.js';
+import { TodayRecommendationsService } from './application/read_models/recommendations.js';
+import { TodayAnalysisController } from './adapters/http/controllers/today-analysis.controller.js';
 
 @Module({
   imports: [
@@ -33,6 +41,8 @@ import { TodayAnalysisController } from './today-analysis.controller.js';
     DailyRecordsModule,
     MedicineDoseLogsModule,
     MedicineRemindersModule,
+    UserHealthContextModule,
+    UserSettingsModule,
   ],
   controllers: [TodayAnalysisController],
   providers: [
@@ -43,7 +53,23 @@ import { TodayAnalysisController } from './today-analysis.controller.js';
     TodayAnalysisService,
     TodayAnalysisQueueService,
     TodayAnalysisMaterializationStore,
-    TodayAnalysisTriggerListener,
+    TodayAnalysisEventConsumerService,
+    {
+      provide: TODAY_ANALYSIS_MATERIALIZATION,
+      useExisting: TodayAnalysisMaterializationStore,
+    },
+    {
+      provide: ANALYSIS_CONTEXT_SOURCE,
+      useExisting: TodayAnalysisContextService,
+    },
+    {
+      provide: ANALYSIS_GENERATOR,
+      useExisting: TodayAnalysisGeneratorService,
+    },
+    {
+      provide: TODAY_ANALYSIS_QUEUE_PORT,
+      useExisting: TodayAnalysisQueueService,
+    },
     TodayRecommendationsService,
   ],
 })

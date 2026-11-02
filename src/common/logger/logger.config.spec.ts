@@ -1,75 +1,43 @@
 import { Writable } from 'node:stream';
-import { createLogger, transports as winstonTransports } from 'winston';
-import { createLoggerOptions } from './logger.config.js';
-import type { WinstonModuleOptions } from 'nest-winston';
+import { pino, type DestinationStream } from 'pino';
+import {
+  buildPinoOptions,
+  createPinoParams,
+  formatPrettyEntry,
+  resolveLevel,
+  toPinoLevel,
+} from './logger.config.js';
 
-interface LeveledTransport {
-  level: string;
-}
+// ── capture helper ───────────────────────────────────────────────────────
 
-function getConsoleLevel(options: WinstonModuleOptions): string {
-  const transports = options.transports;
-  const arr = Array.isArray(transports) ? transports : [transports];
-  return (arr[0] as unknown as LeveledTransport).level;
-}
-
-// ── shared capturing-logger helpers ──────────────────────────────────────
-
-function createCapturingLogger(
-  nodeEnv: string,
-  level: string = 'silly',
-  extra?: { logFormat?: string; victoriaLogsUrl?: string },
-): {
-  logger: ReturnType<typeof createLogger>;
+function captureDestination(): {
+  destination: DestinationStream;
   lines: string[];
-  waitForLine: (count: number) => Promise<void>;
 } {
   const lines: string[] = [];
-  const waiters: Array<() => void> = [];
-  const stream = new Writable({
-    write(chunk: Buffer, _encoding, callback) {
+  const destination = new Writable({
+    write(chunk: Buffer | string, _encoding, callback) {
       lines.push(chunk.toString());
       callback();
-      for (const notify of waiters.splice(0)) {
-        notify();
-      }
     },
-  });
-  const options = createLoggerOptions({
-    nodeEnv,
-    logLevel: level,
-    logFormat: extra?.logFormat,
-    victoriaLogsUrl: extra?.victoriaLogsUrl,
-  });
-  const logger = createLogger({
-    ...options,
-    transports: [new winstonTransports.Stream({ stream })],
-  });
-  const waitForLine = async (count: number): Promise<void> => {
-    while (lines.length < count) {
-      await new Promise<void>((resolve) => {
-        waiters.push(resolve);
-      });
-    }
-  };
-  return { logger, lines, waitForLine };
+  }) as DestinationStream;
+  return { destination, lines };
 }
 
-async function logAndFlush(
-  capture: ReturnType<typeof createCapturingLogger>,
-  message: string,
-  meta?: Record<string, unknown>,
-): Promise<void> {
-  const written = capture.waitForLine(capture.lines.length + 1);
-  if (meta) {
-    capture.logger.info(message, meta);
-  } else {
-    capture.logger.info(message);
-  }
-  await written;
+function makeLogger(
+  level: 'error' | 'warn' | 'info' | 'debug' | 'verbose' = 'debug',
+) {
+  const capture = captureDestination();
+  const logger = pino(buildPinoOptions(level), capture.destination);
+  const lastEntry = (): Record<string, unknown> =>
+    JSON.parse(capture.lines[capture.lines.length - 1]!.trim()) as Record<
+      string,
+      unknown
+    >;
+  return { logger, lines: capture.lines, lastEntry };
 }
 
-// ── OTel span mock ────────────────────────────────────────────────────────
+// ── OTel span mock ───────────────────────────────────────────────────────
 let mockSpanContext: { traceId: string; spanId?: string } | undefined;
 
 vi.mock('@opentelemetry/api', () => ({
@@ -85,321 +53,246 @@ afterEach(() => {
   mockSpanContext = undefined;
 });
 
-describe('createLoggerOptions', () => {
+// ── level resolution ─────────────────────────────────────────────────────
+
+describe('resolveLevel', () => {
   it('uses debug level in development', () => {
-    const options = createLoggerOptions({
-      nodeEnv: 'development',
-      logLevel: '',
-      logFormat: undefined,
-      victoriaLogsUrl: undefined,
-    });
-
-    expect(options.transports).toHaveLength(1);
-    expect(getConsoleLevel(options)).toBe('debug');
+    expect(resolveLevel('development', '')).toBe('debug');
   });
 
-  it('uses info level in production with console + VictoriaLogs transports', () => {
-    const options = createLoggerOptions({
-      nodeEnv: 'production',
-      logLevel: '',
-      logFormat: undefined,
-      victoriaLogsUrl: 'http://localhost:9428/insert/jsonline',
-    });
-
-    expect(options.transports).toHaveLength(2);
-    expect(getConsoleLevel(options)).toBe('info');
-  });
-
-  it('uses only Console in production when VICTORIALOGS_URL is unset', () => {
-    const options = createLoggerOptions({
-      nodeEnv: 'production',
-      logLevel: '',
-      logFormat: undefined,
-      victoriaLogsUrl: '',
-    });
-
-    expect(options.transports).toHaveLength(1);
-  });
-
-  it('honors an explicit log level override', () => {
-    const options = createLoggerOptions({
-      nodeEnv: 'production',
-      logLevel: 'warn',
-      logFormat: undefined,
-      victoriaLogsUrl: undefined,
-    });
-
-    expect(getConsoleLevel(options)).toBe('warn');
+  it('uses info level in production', () => {
+    expect(resolveLevel('production', '')).toBe('info');
   });
 
   it('uses error level in test mode for minimal output', () => {
-    const options = createLoggerOptions({
-      nodeEnv: 'test',
-      logLevel: '',
-      logFormat: undefined,
-      victoriaLogsUrl: undefined,
-    });
+    expect(resolveLevel('test', '')).toBe('error');
+  });
 
-    expect(getConsoleLevel(options)).toBe('error');
+  it('honors an explicit log level override', () => {
+    expect(resolveLevel('production', 'debug')).toBe('debug');
+    expect(resolveLevel('test', 'verbose')).toBe('verbose');
   });
 
   it('falls back to development when nodeEnv is empty', () => {
-    // With an empty nodeEnv the factory defaults to 'development' → debug level.
-    const options = createLoggerOptions({
-      nodeEnv: '',
+    expect(resolveLevel('', '')).toBe('debug');
+  });
+
+  it('ignores a value outside the application vocabulary', () => {
+    // `LOG_LEVEL=http` is a Winston artefact; the env schema rejects it, and a
+    // stale runtime snapshot must not silently disable logging.
+    expect(resolveLevel('production', 'http')).toBe('info');
+  });
+});
+
+describe('toPinoLevel', () => {
+  it('maps verbose onto trace and leaves the rest unchanged', () => {
+    expect(toPinoLevel('verbose')).toBe('trace');
+    expect(toPinoLevel('debug')).toBe('debug');
+    expect(toPinoLevel('error')).toBe('error');
+  });
+});
+
+// ── module params ────────────────────────────────────────────────────────
+
+describe('createPinoParams', () => {
+  it('exposes the resolved level through the pinoHttp tuple', () => {
+    const params = createPinoParams({
+      nodeEnv: 'production',
       logLevel: '',
       logFormat: undefined,
       victoriaLogsUrl: undefined,
     });
 
-    expect(getConsoleLevel(options)).toBe('debug');
+    const [options] = params.pinoHttp as [Record<string, unknown>, unknown];
+    expect(options['level']).toBe('info');
+    expect(options['autoLogging']).toBe(false);
+  });
+
+  it('adds a second destination in production when VictoriaLogs is configured', () => {
+    const without = createPinoParams({
+      nodeEnv: 'production',
+      logLevel: '',
+      logFormat: undefined,
+      victoriaLogsUrl: undefined,
+    });
+    const withVictoria = createPinoParams({
+      nodeEnv: 'production',
+      logLevel: '',
+      logFormat: undefined,
+      victoriaLogsUrl: 'http://127.0.0.1:9428/insert/jsonline',
+    });
+
+    // A multistream is a different object than the single stdout destination.
+    expect(withVictoria.pinoHttp).not.toEqual(without.pinoHttp);
   });
 });
 
-// ── format selection ─────────────────────────────────────────────────────
+// ── JSON field contract ──────────────────────────────────────────────────
 
-describe('format selection', () => {
-  it('uses pretty (non-JSON) format in development', async () => {
-    const capture = createCapturingLogger('development', 'silly', {
-      logFormat: '',
-    });
+describe('JSON field contract', () => {
+  it('keeps message/timestamp as strings and level as a label', () => {
+    const { logger, lastEntry } = makeLogger();
 
-    await logAndFlush(capture, 'hello world');
+    logger.info({ context: 'Test', userId: 'u1' }, 'hello');
 
-    expect(() => {
-      JSON.parse(capture.lines[0]!);
-    }).toThrow();
-    expect(capture.lines[0]).toContain('hello world');
-  });
-
-  it('uses JSON format in test', async () => {
-    const capture = createCapturingLogger('test', 'silly', { logFormat: '' });
-
-    await logAndFlush(capture, 'hello');
-
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+    const entry = lastEntry();
     expect(entry['message']).toBe('hello');
-  });
-
-  it('uses JSON format in production', async () => {
-    const capture = createCapturingLogger('production', 'silly', {
-      logFormat: '',
-    });
-
-    await logAndFlush(capture, 'hello');
-
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry['message']).toBe('hello');
-  });
-
-  it('LOG_FORMAT=json overrides dev to JSON', async () => {
-    const capture = createCapturingLogger('development', 'silly', {
-      logFormat: 'json',
-    });
-
-    await logAndFlush(capture, 'hello');
-
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry['message']).toBe('hello');
-  });
-
-  it('LOG_FORMAT=pretty overrides test to pretty', async () => {
-    const capture = createCapturingLogger('test', 'silly', {
-      logFormat: 'pretty',
-    });
-
-    await logAndFlush(capture, 'hello');
-
-    expect(() => {
-      JSON.parse(capture.lines[0]!);
-    }).toThrow();
-    expect(capture.lines[0]).toContain('hello');
-  });
-
-  it('dev format includes timestamp and context', async () => {
-    const capture = createCapturingLogger('development', 'silly', {
-      logFormat: '',
-    });
-
-    await logAndFlush(capture, 'hello');
-
-    // Should match a timestamp pattern like "2026-07-27 14:30:45.123"
-    expect(capture.lines[0]).toMatch(
-      /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/,
+    expect(entry['level']).toBe('info');
+    expect(typeof entry['timestamp']).toBe('string');
+    expect(new Date(entry['timestamp'] as string).toString()).not.toBe(
+      'Invalid Date',
     );
-    // Should contain the default context [App]
-    expect(capture.lines[0]).toContain('[App]');
   });
 
-  it('dev format shows trace tag when present', async () => {
-    const capture = createCapturingLogger('development', 'silly', {
-      logFormat: '',
-    });
+  it('puts caller metadata at the top level, not under a params object', () => {
+    const { logger, lastEntry } = makeLogger();
 
-    mockSpanContext = {
-      traceId: '0123456789abcdef0123456789abcdef',
-      spanId: 'fedcba9876543210',
-    };
-    await logAndFlush(capture, 'hello');
+    logger.warn({ context: 'Test', userId: 'u1', count: 2 }, 'careful');
 
-    // Should contain the trace id (first 8 chars) and span id (first 8 chars)
-    // in a [trace=xxxxxxxx:yyyyyyyy] tag
-    expect(capture.lines[0]).toContain('[trace=01234567:fedcba98]');
+    const entry = lastEntry();
+    expect(entry['userId']).toBe('u1');
+    expect(entry['count']).toBe(2);
+    expect(entry).not.toHaveProperty('params');
   });
 
-  it('dev format omits the span suffix when span id is absent', async () => {
-    const capture = createCapturingLogger('development', 'silly', {
-      logFormat: '',
-    });
+  it('omits pid and hostname', () => {
+    const { logger, lastEntry } = makeLogger();
 
-    mockSpanContext = {
-      traceId: '0123456789abcdef0123456789abcdef',
-    };
-    await logAndFlush(capture, 'hello');
+    logger.info('hello');
 
-    // No span id available → the tag stays [trace=xxxxxxxx] without a colon part
-    expect(capture.lines[0]).toContain('[trace=01234567]');
-    expect(capture.lines[0]).not.toContain('[trace=01234567:');
-  });
-
-  it('JSON format includes timestamp field', async () => {
-    const capture = createCapturingLogger('production', 'silly', {
-      logFormat: '',
-    });
-
-    await logAndFlush(capture, 'hello');
-
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry['timestamp']).toBeDefined();
+    expect(lastEntry()).not.toHaveProperty('pid');
+    expect(lastEntry()).not.toHaveProperty('hostname');
   });
 });
 
-// ── OTel trace injection (requires JSON format for parse assertions) ─────
+// ── OTel trace correlation ───────────────────────────────────────────────
 
-describe('otel trace format', () => {
-  // Uses 'test' env → JSON format, so JSON.parse assertions are valid.
-  function createTestLogger() {
-    return createCapturingLogger('test', 'silly');
-  }
-
-  it('injects the active span ids as top-level JSON fields', async () => {
-    const capture = createTestLogger();
-
+describe('otel trace mixin', () => {
+  it('injects the active span ids as top-level fields', () => {
+    const { logger, lastEntry } = makeLogger();
     mockSpanContext = {
       traceId: '0123456789abcdef0123456789abcdef',
       spanId: 'fedcba9876543210',
     };
-    await logAndFlush(capture, 'hello');
 
-    expect(capture.lines).toHaveLength(1);
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+    logger.info('hello');
+
+    const entry = lastEntry();
     expect(entry['trace_id']).toBe('0123456789abcdef0123456789abcdef');
     expect(entry['span_id']).toBe('fedcba9876543210');
-    expect(entry['message']).toBe('hello');
   });
 
-  it('adds no trace ids outside a span', async () => {
-    const capture = createTestLogger();
+  it('adds no trace ids outside a span', () => {
+    const { logger, lastEntry } = makeLogger();
 
-    await logAndFlush(capture, 'hello');
+    logger.info('hello');
 
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
+    const entry = lastEntry();
     expect(entry).not.toHaveProperty('trace_id');
     expect(entry).not.toHaveProperty('span_id');
   });
 
-  it('keeps explicitly provided trace ids over the span ones', async () => {
-    const capture = createTestLogger();
-
+  it('keeps explicitly provided trace ids over the span ones', () => {
+    const { logger, lastEntry } = makeLogger();
     mockSpanContext = {
       traceId: '0123456789abcdef0123456789abcdef',
       spanId: 'fedcba9876543210',
     };
-    await logAndFlush(capture, 'hello', { trace_id: 'explicit-trace' });
 
-    const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry['trace_id']).toBe('explicit-trace');
+    logger.info({ trace_id: 'explicit-trace' }, 'hello');
+
+    expect(lastEntry()['trace_id']).toBe('explicit-trace');
+  });
+});
+
+// ── Error serialization ──────────────────────────────────────────────────
+
+describe('error serialization', () => {
+  it('keeps the error message and stack instead of serializing to {}', () => {
+    const { logger, lastEntry } = makeLogger();
+
+    logger.error({ error: new Error('boom') }, 'failed');
+
+    const error = lastEntry()['error'] as Record<string, unknown>;
+    expect(error['message']).toBe('boom');
+    expect(typeof error['stack']).toBe('string');
+    expect(error['stack']).toContain('boom');
   });
 
-  // ── Error-shaped entries ──────────────────────────────────────────────
-  //
-  // nest-winston 把 `logger.error(new Error(...))` 的 Error 当元数据转发，
-  // Winston 于是产出 `stack: [...]`（数组）与 `error: {}`（Error 的自有可枚举
-  // 属性为空）。JSON 消费者拿到数组形态的 stack，开发格式的 printf 又会因为
-  // 「stack 不是 string」而整段丢掉堆栈。
+  it('passes a non-Error error payload through unchanged', () => {
+    const { logger, lastEntry } = makeLogger();
 
-  describe('Error entries', () => {
-    it('flattens an array stack into a single string', async () => {
-      const capture = createTestLogger();
+    // Domain failures are plain discriminated unions, not Error instances.
+    logger.warn(
+      { error: { _tag: 'DomainFailure', code: 'INTERNAL_ERROR' } },
+      'x',
+    );
 
-      const written = capture.waitForLine(1);
-      capture.logger.error('boom', {
-        stack: ['Error: boom\n    at one', '    at two'],
-      });
-      await written;
+    expect(lastEntry()['error']).toEqual({
+      _tag: 'DomainFailure',
+      code: 'INTERNAL_ERROR',
+    });
+  });
+});
 
-      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-      expect(typeof entry['stack']).toBe('string');
-      expect(entry['stack']).toBe('Error: boom\n    at one\n    at two');
+// ── Development console format ───────────────────────────────────────────
+
+describe('formatPrettyEntry', () => {
+  it('prints timestamp, level, context and message', () => {
+    const line = formatPrettyEntry({
+      message: 'hello',
+      level: 'info',
+      context: 'Test',
+      timestamp: '2026-10-27 10:00:00.000',
     });
 
-    it('drops an empty error metadata object', async () => {
-      const capture = createTestLogger();
+    expect(line).toContain('2026-10-27 10:00:00.000');
+    expect(line).toContain('info');
+    expect(line).toContain('[Test]');
+    expect(line).toContain('hello');
+  });
 
-      const written = capture.waitForLine(1);
-      capture.logger.error('boom', { error: {} });
-      await written;
-
-      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-      // 序列化后不含任何信息的字段不该留在日志里冒充数据。
-      expect(entry).not.toHaveProperty('error');
-      expect(entry['message']).toBe('boom');
+  it('shows the trace tag when a trace id is present', () => {
+    const line = formatPrettyEntry({
+      message: 'hello',
+      level: 'info',
+      context: 'Test',
+      trace_id: '0123456789abcdef',
+      span_id: 'fedcba98',
     });
 
-    it('keeps an error metadata object that actually carries data', async () => {
-      const capture = createTestLogger();
+    expect(line).toContain('trace=01234567:fedcba98');
+  });
 
-      const written = capture.waitForLine(1);
-      capture.logger.error('boom', { error: { code: 'INTERNAL_ERROR' } });
-      await written;
-
-      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-      expect(entry['error']).toEqual({ code: 'INTERNAL_ERROR' });
+  it('omits the trace tag when no trace id is present', () => {
+    const line = formatPrettyEntry({
+      message: 'hello',
+      level: 'info',
+      context: 'Test',
     });
 
-    it('leaves an already-string stack untouched', async () => {
-      const capture = createTestLogger();
+    expect(line).not.toContain('trace=');
+  });
 
-      const written = capture.waitForLine(1);
-      capture.logger.error('boom', { stack: 'Error: boom\n    at one' });
-      await written;
-
-      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-      expect(entry['stack']).toBe('Error: boom\n    at one');
+  it('appends caller metadata as a key=value suffix', () => {
+    const line = formatPrettyEntry({
+      message: 'hello',
+      level: 'info',
+      context: 'Test',
+      userId: 'u1',
     });
 
-    it('prints the stack in the dev console format', async () => {
-      const capture = createCapturingLogger('development');
+    expect(line).toContain('{userId=u1}');
+  });
 
-      const written = capture.waitForLine(1);
-      capture.logger.error('boom', {
-        stack: ['Error: boom\n    at one'],
-      });
-      await written;
-
-      // 开发格式的 printf 只认 string 形态的 stack；这里锁住修复后的可见行为。
-      expect(capture.lines[0]).toContain('at one');
+  it('prints the error stack on its own line', () => {
+    const line = formatPrettyEntry({
+      message: 'failed',
+      level: 'error',
+      context: 'Test',
+      error: { message: 'boom', stack: 'Error: boom\n    at one' },
     });
 
-    it('drops a stack array that holds no usable frames', async () => {
-      const capture = createTestLogger();
-
-      const written = capture.waitForLine(1);
-      capture.logger.error('boom', { stack: [] });
-      await written;
-
-      const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-      expect(entry).not.toHaveProperty('stack');
-    });
+    expect(line).toContain('at one');
   });
 });

@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { UserPayload } from '../../auth/index.js';
-import { AdminAccessService } from '../services/access.service.js';
+import { AdminAccessService } from '../infrastructure/persistence/access.service.js';
 
 @Injectable()
 export class AdminGuard implements CanActivate {

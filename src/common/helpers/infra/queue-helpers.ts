@@ -95,9 +95,9 @@ export async function enqueueOrFallback<T>(
       const stack = error instanceof Error ? error.stack : undefined;
 
       if (logger != null) {
-        logger.error(message, stack);
+        logger.error({ stack }, message);
       } else {
-        Logger.error(message, stack, 'enqueueOrFallback');
+        Logger.error({ stack, context: 'enqueueOrFallback' }, message);
       }
     }
   }

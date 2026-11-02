@@ -26,6 +26,24 @@ const VALID_COMMANDS = new Set([
   'drugbank-target-genes',
   'drugbank-drug-sequences',
   'drugbank-structures',
+  'drugbank-patents',
+  'drugbank-experimental-properties',
+  'drugbank-calculated-properties',
+  'drugbank-pathways',
+  'drugbank-reactions',
+  'drugbank-snp-effects',
+  'drugbank-snp-adverse-effects',
+  'drugbank-fingerprints',
+  // Promoted JsonB -> relation tables (see import-medicine-knowledge.ts).
+  'drugbank-groups',
+  'drugbank-classification',
+  'drugbank-synonyms',
+  'drugbank-external-identifiers',
+  'drugbank-dosages',
+  'drugbank-manufacturers',
+  'drugbank-packagers',
+  'drugbank-products',
+  'drugbank-drug-interactions',
 ]);
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
@@ -74,6 +92,28 @@ function main() {
           'drugbank-target-genes',
           'drugbank-drug-sequences',
           'drugbank-structures',
+          // Patents and properties hold a foreign key onto `drugbank_drugs`,
+          // so they run after the drugs; fingerprints also need the SDF.
+          'drugbank-patents',
+          'drugbank-experimental-properties',
+          'drugbank-calculated-properties',
+          // Jsonb blocks update `drugbank_drugs` in place.
+          'drugbank-pathways',
+          'drugbank-reactions',
+          'drugbank-snp-effects',
+          'drugbank-snp-adverse-effects',
+          'drugbank-fingerprints',
+          // Promoted JsonB -> relation tables. All hold a foreign key onto
+          // `drugbank_drugs`, so they must follow it.
+          'drugbank-groups',
+          'drugbank-classification',
+          'drugbank-synonyms',
+          'drugbank-external-identifiers',
+          'drugbank-dosages',
+          'drugbank-manufacturers',
+          'drugbank-packagers',
+          'drugbank-products',
+          'drugbank-drug-interactions',
           // V3 (deduplicated) is the default Chinese source. V3 cn-v3-*
           // commands are the sole CN import path; V2 commands were removed.
           'cn-v3-leaflets',

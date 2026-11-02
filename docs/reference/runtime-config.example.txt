@@ -348,6 +348,15 @@ QUEUE_SUGGESTION_EXPLANATION_CONCURRENCY=2
 # suggestion-recompute（建议重算队列）的并发。
 QUEUE_SUGGESTION_RECOMPUTE_CONCURRENCY=1
 
+# event-fanout（领域事件扇出队列，ADR-0025）的并发。扇出只做投递，不跑业务逻辑。
+QUEUE_EVENT_FANOUT_CONCURRENCY=2
+
+# report-cache-invalidation（报表缓存失效队列）的并发。
+QUEUE_REPORT_CACHE_INVALIDATION_CONCURRENCY=2
+
+# medicine-risk-refresh（药品风险上下文刷新队列）的并发。
+QUEUE_MEDICINE_RISK_REFRESH_CONCURRENCY=2
+
 
 ################################################################################
 #  队列 · 邮件发送

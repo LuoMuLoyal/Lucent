@@ -22,11 +22,19 @@ type BaseNavItem = {
    * a plain anchor in a new tab instead of a router `<Link>`.
    */
   external?: string
+  /**
+   * External targets that cannot attach an `Authorization` header (bull-board
+   * renders its own UI and API calls) authenticate from `?access_token=`
+   * instead. Set this to have the SPA hand its access token over in the URL —
+   * see `data/external-links.ts`.
+   */
+  externalAuth?: 'accessToken'
 }
 
 type NavSubItem = BaseNavItem & {
   url: LinkProps['to'] | (string & {})
   external?: never
+  externalAuth?: never
 }
 
 type NavLink = BaseNavItem &

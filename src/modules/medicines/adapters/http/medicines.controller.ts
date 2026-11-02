@@ -45,24 +45,27 @@ import { medicineSequenceDataSchema } from './dto/sequence.js';
 import {
   medicineSafetyTipResponseSchema,
   medicineSafetyTipsResponseSchema,
-} from './dto/safety_tip.js';
+} from './dto/safety-tip.js';
 
 import { recognizeMedicineSchema } from './dto/recognition.js';
 import type { RecognizeMedicineDto } from './dto/recognition.js';
 import { medicineRecognitionAsyncResponseSchema } from './dto/recognition.response.js';
 import { medicineRecognitionResponseSchema } from './dto/recognition.response.js';
-import { runRiskCheckSchema } from './dto/risk_check.js';
-import type { RunRiskCheckDto } from './dto/risk_check.js';
+import { runRiskCheckSchema } from './dto/risk-check.js';
+import type { RunRiskCheckDto } from './dto/risk-check.js';
 import {
   medicineRiskCheckRecordResponseSchema,
   medicineRiskCheckRecordsResponseSchema,
-} from './dto/risk_check.response.js';
+} from './dto/risk-check.response.js';
 import { registerResponseSchema } from '../../../../common/api/response-schema.registry.js';
 import { MEDICINES_BYPASS_CACHE_HEADER } from '../../application/ports/cache.js';
 import { MedicinesService } from '../../application/use_cases/medicines.js';
+import { MedicineSearchReadModel } from '../../application/read_models/medicine-card.js';
+import { MedicineDetailReadModel } from '../../application/read_models/medicine-detail.js';
+import { MedicineSequenceReadModel } from '../../application/read_models/medicine-sequence.js';
 
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
-import { MedicineRiskCheckService } from '../../application/use_cases/check_risk.js';
+import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
 import {
   createDomainFailure,
   DomainFailureException,
@@ -74,6 +77,9 @@ import {
 @Controller('medicines')
 export class MedicinesController {
   constructor(
+    private readonly searchReadModel: MedicineSearchReadModel,
+    private readonly detailReadModel: MedicineDetailReadModel,
+    private readonly sequenceReadModel: MedicineSequenceReadModel,
     private readonly medicinesService: MedicinesService,
     private readonly recognitionQueueService: MedicineRecognitionQueueService,
     private readonly riskCheckService: MedicineRiskCheckService,
@@ -83,7 +89,10 @@ export class MedicinesController {
   // Dead-code endpoint (no C-end consumer); see docs/TODO.md.
   @Public()
   @Get('safety-tips')
-  @ApiOperation({ summary: 'Get random medication safety tips' })
+  @ApiOperation({
+    operationId: 'getSafetyTips',
+    summary: 'Get random medication safety tips',
+  })
   @ApiQuery({
     name: 'exclude',
     required: false,
@@ -113,6 +122,7 @@ export class MedicinesController {
   @Public()
   @Get()
   @ApiOperation({
+    operationId: 'search',
     summary: 'Search medicines from a selected knowledge source',
   })
   @ApiHeader({
@@ -131,7 +141,7 @@ export class MedicinesController {
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     const result = await unwrapResult(
-      this.medicinesService.searchWithCache(
+      this.searchReadModel.searchWithCache(
         query,
         this.shouldBypassCache(bypassCacheHeader),
       ),
@@ -146,6 +156,7 @@ export class MedicinesController {
   @Public()
   @Get(':id')
   @ApiOperation({
+    operationId: 'getDetail',
     summary: 'Get medicine detail from a selected knowledge source',
   })
   @ApiHeader({
@@ -167,7 +178,7 @@ export class MedicinesController {
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     const result = await unwrapResult(
-      this.medicinesService.getDetailWithCache(
+      this.detailReadModel.getWithCache(
         id,
         query,
         this.shouldBypassCache(bypassCacheHeader),
@@ -179,6 +190,7 @@ export class MedicinesController {
   @Public()
   @Get(':id/sequences')
   @ApiOperation({
+    operationId: 'getSequences',
     summary: 'Get medicine sequences (drug chains and target sequences)',
   })
   @ApiHeader({
@@ -201,7 +213,7 @@ export class MedicinesController {
     @Headers(MEDICINES_BYPASS_CACHE_HEADER) bypassCacheHeader?: string,
   ) {
     return unwrapResult(
-      this.medicinesService.getSequences(
+      this.sequenceReadModel.get(
         id,
         query,
         this.shouldBypassCache(bypassCacheHeader),
@@ -226,7 +238,10 @@ export class MedicinesController {
   // ── Medicine Risk Check ──────────────────────────────────────────
 
   @Get('risk-check')
-  @ApiOperation({ summary: 'Get latest medicine risk check records' })
+  @ApiOperation({
+    operationId: 'getRiskCheck',
+    summary: 'Get latest medicine risk check records',
+  })
   @ApiResponse({
     status: 200,
     description: 'Latest static and LLM medicine risk check records.',
@@ -239,7 +254,10 @@ export class MedicinesController {
 
   @Post('risk-check')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Run medicine risk check (static or LLM)' })
+  @ApiOperation({
+    operationId: 'runRiskCheck',
+    summary: 'Run medicine risk check (static or LLM)',
+  })
   @ApiResponse({
     status: 200,
     description: 'The created medicine risk check record.',
@@ -272,6 +290,7 @@ export class MedicinesController {
   @Post('recognize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
+    operationId: 'recognize',
     summary: 'AI recognize medicine box image and extract medicine info',
   })
   @ApiResponse({
@@ -288,7 +307,10 @@ export class MedicinesController {
 
   @Post('recognize/async')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Enqueue async medicine box image recognition' })
+  @ApiOperation({
+    operationId: 'enqueueMedicineRecognition',
+    summary: 'Enqueue async medicine box image recognition',
+  })
   @ApiResponse({
     status: 200,
     description:
@@ -316,7 +338,10 @@ export class MedicinesController {
 
   @SkipThrottle()
   @Get('recognize/status/:jobId')
-  @ApiOperation({ summary: 'Poll async medicine recognition status' })
+  @ApiOperation({
+    operationId: 'recognizeStatus',
+    summary: 'Poll async medicine recognition status',
+  })
   @ApiResponse({
     status: 200,
     description: 'Job status (pending, completed, or failed)',

@@ -2,7 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import type { ExecutionContext } from '@nestjs/common';
 import type { UserPayload } from '../../auth/index.js';
-import type { AdminAccessService } from '../services/access.service.js';
+import type { AdminAccessService } from '../infrastructure/persistence/access.service.js';
 import { AdminPermissionGuard } from './admin-permission.guard.js';
 
 const user: UserPayload = {

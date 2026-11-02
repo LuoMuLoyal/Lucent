@@ -1,0 +1,141 @@
+import { ReportsAiSummaryContextService } from './summary-context.js';
+import type {
+  ReportDashboardComputed,
+  ReportDashboardFacts,
+} from '../dashboard/metrics.types.js';
+import { REPORT_RANGE_LAST_7_DAYS } from '../../../application/read_models/dashboard/report-dashboard-query.js';
+
+describe('ReportsAiSummaryContextService', () => {
+  const service = new ReportsAiSummaryContextService();
+
+  const baseFacts: ReportDashboardFacts = {
+    range: REPORT_RANGE_LAST_7_DAYS,
+    startDate: new Date('2026-06-06T00:00:00.000Z'),
+    endDate: new Date('2026-06-12T00:00:00.000Z'),
+    generatedAt: '2026-06-12T08:00:00.000Z',
+    aiSummaryEnabled: true,
+    medicationSeries: [100, 50, 100, 0, 100, 50, 100],
+    waterSeries: [1.8, 1.4, 1.7, 1.2, 1.6, 1.1, 1.5],
+    sleepSeries: [0, 0, 0, 0, 0, 0, 0],
+    mealEstimateSeries: [1, 1, 0, 1, 0, 0, 1],
+    mealEstimateTrackedDays: 4,
+    mealEstimateBreakdown: {
+      analyzedDays: 3,
+      analyzingDays: 0,
+      failedDays: 1,
+    },
+  };
+
+  const baseComputed: ReportDashboardComputed = {
+    metrics: [
+      {
+        kind: 'medication',
+        value: '83',
+        unit: '%',
+        status: 'stable',
+        delta: '+17%',
+        direction: 'up',
+        sparkline: baseFacts.medicationSeries,
+      },
+      {
+        kind: 'water',
+        value: '1.5',
+        unit: 'L',
+        status: 'stable',
+        delta: '-0.3',
+        direction: 'down',
+        sparkline: baseFacts.waterSeries,
+      },
+      {
+        kind: 'sleep',
+        value: '--',
+        unit: 'h',
+        status: 'insufficient_data',
+        delta: '--',
+        direction: 'flat',
+        sparkline: baseFacts.sleepSeries,
+      },
+    ],
+    trends: [],
+    findings: [],
+    patterns: [],
+  };
+
+  it('builds a summary context with meal estimate breakdown', () => {
+    const context = service.build(baseFacts, baseComputed);
+
+    expect(context.mealEstimateBreakdown).toEqual({
+      analyzedDays: 3,
+      analyzingDays: 0,
+      failedDays: 1,
+    });
+  });
+
+  it('passes the meal estimate series through to the AI context', () => {
+    const context = service.build(baseFacts, baseComputed);
+
+    expect(context.series.mealEstimate).toEqual(baseFacts.mealEstimateSeries);
+  });
+
+  it('builds coverage dimensions with trackedDays and totalDays', () => {
+    const context = service.build(baseFacts, baseComputed);
+
+    expect(context.coverage.medication).toEqual({
+      trackedDays: 6,
+      totalDays: 7,
+    });
+    expect(context.coverage.water).toEqual({
+      trackedDays: 7,
+      totalDays: 7,
+    });
+    expect(context.coverage.sleep).toEqual({
+      trackedDays: 0,
+      totalDays: 7,
+    });
+  });
+
+  it('counts water coverage from observed metrics, including explicit zero', () => {
+    const context = service.build(
+      {
+        ...baseFacts,
+        waterSeries: [0, 0, 0],
+        observedWaterSeries: [
+          {
+            value: 0,
+            state: 'observed',
+            coverage: 'sufficient',
+            sources: ['manual'],
+            observedCount: 1,
+            expectedCount: null,
+            windowStart: '2026-06-06T00:00:00.000Z',
+            windowEnd: '2026-06-07T00:00:00.000Z',
+          },
+          {
+            value: null,
+            state: 'unknown',
+            coverage: 'none',
+            sources: [],
+            observedCount: 0,
+            expectedCount: null,
+            windowStart: '2026-06-07T00:00:00.000Z',
+            windowEnd: '2026-06-08T00:00:00.000Z',
+          },
+          {
+            value: 500,
+            state: 'observed',
+            coverage: 'sufficient',
+            sources: ['manual'],
+            observedCount: 1,
+            expectedCount: null,
+            windowStart: '2026-06-08T00:00:00.000Z',
+            windowEnd: '2026-06-09T00:00:00.000Z',
+          },
+        ],
+      },
+      baseComputed,
+    );
+
+    expect(context.coverage.water.trackedDays).toBe(2);
+    expect(context.series.waterObserved).toHaveLength(3);
+  });
+});

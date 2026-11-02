@@ -1,0 +1,66 @@
+/**
+ * Signal vocabulary of the Daily Guidance context (ADR-0024).
+ *
+ * A **signal** is one unit of raw evidence collected from a source context
+ * (a dose log, a daily record, a health event) and handed to the rule engine.
+ * It is a read-side projection, not an aggregate: it carries no identity of its
+ * own and is never persisted — `signalId` is scoped to one evaluation.
+ *
+ * `observedMetric` is typed with this context's own {@link SignalObservedMetric}
+ * rather than `common`'s wider producer contract; see that file for why the
+ * narrower consumer-side projection is deliberate.
+ */
+
+import type { TriggerType } from '../suggestion/suggestion.types.js';
+import type { SignalObservedMetric } from './observed-metric.js';
+
+/** Signal source categories. */
+export type SignalSource =
+  | 'medication'
+  | 'record'
+  | 'risk_check'
+  | 'profile'
+  | 'environment'
+  | 'health_event';
+
+/**
+ * A single unit of raw evidence collected from the database.
+ * The rule engine consumes signals to produce candidates.
+ */
+export interface SuggestionSignal {
+  signalId: string;
+  source: SignalSource;
+  kind: string;
+  recordedAt: Date;
+  payload: Record<string, unknown> & {
+    observedMetric?: SignalObservedMetric | Record<string, unknown>;
+  };
+  userId: string;
+  triggerType: TriggerType;
+}
+
+/** Aggregated signals for one user on one date. */
+export interface SignalBundle {
+  userId: string;
+  date: string;
+  signals: SuggestionSignal[];
+}
+
+/** Evidence item shown on a suggestion card. */
+export interface EvidenceItem {
+  kind: 'record' | 'reminder' | 'risk_check' | 'trend' | 'profile' | 'baseline';
+  label: string;
+  value: string;
+  /** Optional interpolation args for localizing dynamic values. */
+  args?: Record<string, string | number>;
+  recordId?: string;
+  medicineId?: string;
+}
+
+/** Action that the user can take from a suggestion card. */
+export interface SuggestionAction {
+  actionId: string;
+  label: string;
+  route: string;
+  authRequired: boolean;
+}

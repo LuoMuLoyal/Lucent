@@ -106,17 +106,26 @@ module.exports = {
      * D1 - domain layer purity (ADR-0024): files under any module's domain/
      * may only depend on other files in the same domain/ tree. No src/common,
      * no application/adapters/infrastructure, no other modules.
+     *
+     * Type-only imports are exempt: naming a shape (e.g. `DomainFailure` from
+     * the Result boundary) creates no runtime dependency, and forbidding it
+     * only pushes the type out of the domain. `dependencyTypesNot` scopes the
+     * exemption to `import type` / `export type` edges — a value import from
+     * outside the domain tree still violates. Verified by
+     * `scripts/arch/domain-purity.spec.ts`, which asserts both directions.
      */
     {
       name: 'ddd-domain-purity',
       severity: 'warn',
       comment:
         'src/modules/**/domain/** may only import from other files inside ' +
-        'the same domain/ tree (pure domain: no framework, no I/O).',
+        'the same domain/ tree (pure domain: no framework, no I/O). ' +
+        'Type-only imports are exempt.',
       from: { path: '^src/modules/[^/]+/domain/' },
       to: {
         path: '^src/',
         pathNot: ['^src/modules/[^/]+/domain/'],
+        dependencyTypesNot: ['type-only'],
       },
     },
 

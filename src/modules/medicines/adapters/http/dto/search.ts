@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MEDICINE_KNOWLEDGE_SOURCES } from '../../../domain/medicine/medicine_source.js';
+import { MEDICINE_KNOWLEDGE_SOURCES } from '../../../domain/medicine/medicine-source.js';
 
 /**
  * zod 4 Standard Schema for the medicine search response body

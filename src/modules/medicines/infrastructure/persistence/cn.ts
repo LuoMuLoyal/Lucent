@@ -9,17 +9,20 @@ import {
   toPagination,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../../adapters/http/presenters/medicine.js';
-import type { MedicinesSourceReader } from '../../application/ports/knowledge.js';
+} from '../../application/read_models/medicine-card.format.js';
 import type {
+  MedicinesSourceReader,
   MedicineSearchCriteria,
   MedicineSearchResultLike,
-  MedicineDetailData,
-  MedicineSequenceData,
 } from '../../application/ports/knowledge.js';
+import type {
+  CnMedicineDetail,
+  MedicineDetailView,
+  MedicineSequenceView,
+} from '../../application/ports/knowledge-view.js';
 
 @Injectable()
-export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailData> {
+export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailView> {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(
@@ -50,11 +53,11 @@ export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailD
    * The CN source is a leaflet database with no sequence columns, so it always
    * answers with an empty set rather than a 404 — the medicine itself exists.
    * Routing through this adapter (instead of a `Promise.resolve` inline in the
-   * facade) keeps `MedicinesService.getSequences` on the same cache + adapter
-   * dispatch path as `getDetail` / `search`, so the sequences cache key for CN
-   * is consistent even when the source one day starts carrying sequences.
+   * facade) keeps the sequences read on the same cache + adapter dispatch path
+   * as detail / search, so its cache key for CN is consistent even when the
+   * source one day starts carrying sequences.
    */
-  getSequences(id: string): Promise<MedicineSequenceData | null> {
+  getSequences(id: string): Promise<MedicineSequenceView | null> {
     return Promise.resolve({
       id,
       source: 'cn',
@@ -63,7 +66,7 @@ export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailD
     });
   }
 
-  async getDetail(id: string): Promise<MedicineDetailData | null> {
+  async getDetail(id: string): Promise<MedicineDetailView | null> {
     const row = await this.prisma.cnMedicineProduct.findUnique({
       where: { id },
       include: {
@@ -82,7 +85,7 @@ export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailD
     // leaflet reached via the 1:1 link.
     const leaflet = row.leafletLinks[0]?.leaflet ?? null;
 
-    const detail = {
+    const detail: CnMedicineDetail = {
       kind: 'cnProduct',
       approvalNumber: row.approvalNumber,
       manufacturer: row.manufacturer,
@@ -139,7 +142,7 @@ export class CnMedicinesService implements MedicinesSourceReader<MedicineDetailD
   private toSearchItem(row: CnMedicineProduct, query: string) {
     return {
       id: row.id,
-      source: 'cn',
+      source: 'cn' as const,
       name: row.name,
       subtitle: this.toSubtitle(row),
       // V3: body text lives in the leaflet (reached via link), not on the

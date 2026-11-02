@@ -61,9 +61,12 @@ export class SseConnectionRegistry
       } catch (error) {
         // Best-effort: one broken connection must not abort the shutdown,
         // but we log it so operators can diagnose leaks during graceful shutdown.
-        this.logger.warn('Failed to close SSE connection during shutdown', {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        this.logger.warn(
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'Failed to close SSE connection during shutdown',
+        );
       }
     }
     if (count > 0) {

@@ -139,15 +139,16 @@ export abstract class BaseLlmGeneratorService<
         'success',
         (performance.now() - start) / 1000,
       );
-      // Structured success log: nest-winston's WinstonLogger destructures the
-      // `message`/`level` keys out of an object message and merges the rest as
-      // metadata, so otelTraceFormat injects top-level trace_id/span_id.
-      this.logger.log({
-        message: `${this.options.streamName} generate ok`,
-        modelName,
-        durationMs: Math.round(performance.now() - start),
-        status: 'success',
-      });
+      // Structured success log: pino-native argument order — metadata first,
+      // message second — so the fields land at the top level of the entry.
+      this.logger.log(
+        {
+          modelName,
+          durationMs: Math.round(performance.now() - start),
+          status: 'success',
+        },
+        `${this.options.streamName} generate ok`,
+      );
       return result;
     } catch (error) {
       this.circuitBreaker.recordFailure();
@@ -164,10 +165,24 @@ export abstract class BaseLlmGeneratorService<
   }
 
   // Streaming path intentionally unwrapped for now; manual span comes in a later change.
+  /**
+   * Streams a structured output, reporting progress through two callbacks.
+   *
+   * - `onSummary` fires whenever the parsed `summary` field changes. It exists
+   *   for generators whose output starts with a human-readable line.
+   * - `onPartial` fires on **every** parsed chunk with the current partial
+   *   object. Generators that emit an array (e.g. A2UI messages) use it to
+   *   forward each element as soon as it is complete; `onSummary` is too coarse
+   *   for that because it only reports one field.
+   *
+   * Both are optional in practice: existing callers pass only the third
+   * argument and keep their behaviour unchanged.
+   */
   async generateStream(
     context: TContext,
     promptCopy: TPromptCopy,
     onSummary: (summary: string) => void | Promise<void>,
+    onPartial?: (partial: Partial<TOutput>) => void | Promise<void>,
   ): Promise<TOutput> {
     const model = this.createStreamingModel();
     const parser = new JsonOutputKeyToolsParser<TOutput>({
@@ -267,6 +282,14 @@ export abstract class BaseLlmGeneratorService<
         if (summary.trim().length > 0 && summary !== lastSummary) {
           lastSummary = summary;
           await onSummary(summary);
+        }
+
+        // `partial` is whatever the parser could decode so far — a partially
+        // filled object, not a valid `TOutput`. Callers that forward array
+        // elements (A2UI messages) tolerate that: they only act on elements
+        // that are already complete.
+        if (onPartial != null) {
+          await onPartial(partial as Partial<TOutput>);
         }
       }
 

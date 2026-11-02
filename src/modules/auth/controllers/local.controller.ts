@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -19,8 +20,10 @@ import { ProblemDetailsDto } from '../../../common/index.js';
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
-import { AuthService } from '../services/auth.service.js';
-import { VerificationCodeService } from '../services/identity/verification-code.service.js';
+import { CredentialAuthService } from '../application/services/credential.js';
+import { PasswordManagementService } from '../application/services/password-management.js';
+import { HumanVerification } from '../application/ports/human-verification.js';
+import { VerificationCodeService } from '../application/services/verification-code.js';
 
 import { registerSchema } from '../dto/credentials/register.dto.js';
 import type { RegisterDto } from '../dto/credentials/register.dto.js';
@@ -28,12 +31,11 @@ import { loginSchema } from '../dto/credentials/login.dto.js';
 import type { LoginDto } from '../dto/credentials/login.dto.js';
 import { sendVerificationCodeSchema } from '../dto/password/send-verification-code.dto.js';
 import type { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto.js';
-import { verifyEmailSchema } from '../dto/password/verify-email.dto.js';
-import type { VerifyEmailDto } from '../dto/password/verify-email.dto.js';
 import { forgotPasswordSchema } from '../dto/password/forgot-password.dto.js';
 import type { ForgotPasswordDto } from '../dto/password/forgot-password.dto.js';
 import { resetPasswordSchema } from '../dto/password/reset-password.dto.js';
 import type { ResetPasswordDto } from '../dto/password/reset-password.dto.js';
+import { captchaSchema } from '../dto/shared/captcha.dto.js';
 
 import {
   forgotPasswordResponseSchema,
@@ -41,7 +43,6 @@ import {
   registerResponseSchema as authRegisterResponseSchema,
   resetPasswordResponseSchema,
   sendVerificationCodeResponseSchema,
-  verifyEmailResponseSchema,
 } from '../dto/shared/auth-responses.dto.js';
 
 import { buildAuthResponse } from './auth-response.helper.js';
@@ -52,9 +53,11 @@ import { Public } from '../decorators/public.decorator.js';
 @Controller('auth')
 export class LocalController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly credentialAuthService: CredentialAuthService,
+    private readonly passwordManagement: PasswordManagementService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly auditLogService: AuditLogService,
+    private readonly turnstileService: HumanVerification,
     private readonly i18n: I18nService,
   ) {}
 
@@ -62,7 +65,7 @@ export class LocalController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'User registration' })
+  @ApiOperation({ operationId: 'register', summary: 'User registration' })
   @ApiResponse({
     status: 201,
     description: 'Registered user with token pair.',
@@ -89,7 +92,10 @@ export class LocalController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.register(dto, extractAuthRequestContext(request)),
+      this.credentialAuthService.register(
+        dto,
+        extractAuthRequestContext(request),
+      ),
     );
     this.auditLogService.logFireAndForget({
       ...extractAuthRequestContext(request),
@@ -105,7 +111,7 @@ export class LocalController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login' })
+  @ApiOperation({ operationId: 'login', summary: 'User login' })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -137,16 +143,40 @@ export class LocalController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.login(dto, extractAuthRequestContext(request)),
+      this.credentialAuthService.login(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
+  }
+
+  // ── GET /api/v1/auth/captcha ────────────────────────────────
+
+  @Get('captcha')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    operationId: 'getCaptcha',
+    summary: 'Public human-verification widget configuration',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Whether the challenge is enforced and the public site key to render it with.',
+  })
+  @SerializeOptions({ schema: captchaSchema })
+  getCaptcha() {
+    return {
+      enabled: this.turnstileService.enabled,
+      siteKey: this.turnstileService.siteKey,
+    };
   }
 
   // ── POST /api/v1/auth/send-verification-code ────────────────
 
   @Post('send-verification-code')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send email verification code' })
+  @ApiOperation({
+    operationId: 'sendVerificationCode',
+    summary: 'Send email verification code',
+  })
   @ApiResponse({
     status: 200,
     description: 'Cooldown seconds until the next code can be requested.',
@@ -164,7 +194,7 @@ export class LocalController {
     @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.sendVerificationCode(
+      this.passwordManagement.sendVerificationCode(
         dto,
         getRequestClientIp(request),
         locale,
@@ -177,41 +207,11 @@ export class LocalController {
     };
   }
 
-  // ── POST /api/v1/auth/verify-email ──────────────────────────
-
-  @Post('verify-email')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify email' })
-  @ApiResponse({
-    status: 200,
-    description: 'Whether the email is now verified.',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Verification token is invalid or has expired',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Authentication failed',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: 503,
-    description: 'Authentication method unavailable',
-    type: ProblemDetailsDto,
-  })
-  @SerializeOptions({ schema: verifyEmailResponseSchema })
-  async verifyEmail(@Body({ schema: verifyEmailSchema }) dto: VerifyEmailDto) {
-    await unwrapResult(this.authService.verifyEmail(dto));
-    return { emailVerified: true };
-  }
-
   // ── POST /api/v1/auth/forgot-password ───────────────────────
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Forgot password' })
+  @ApiOperation({ operationId: 'forgotPassword', summary: 'Forgot password' })
   @ApiResponse({
     status: 200,
     description: 'Cooldown seconds until the next reset code can be requested.',
@@ -244,7 +244,11 @@ export class LocalController {
     @I18nLang() locale?: string,
   ) {
     const result = await unwrapResult(
-      this.authService.forgotPassword(dto, getRequestClientIp(request), locale),
+      this.passwordManagement.forgotPassword(
+        dto,
+        getRequestClientIp(request),
+        locale,
+      ),
     );
 
     return {
@@ -257,7 +261,7 @@ export class LocalController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password' })
+  @ApiOperation({ operationId: 'resetPassword', summary: 'Reset password' })
   @ApiResponse({
     status: 200,
     description: 'Password reset. Returns a confirmation message.',
@@ -282,7 +286,7 @@ export class LocalController {
   async resetPassword(
     @Body({ schema: resetPasswordSchema }) dto: ResetPasswordDto,
   ) {
-    await unwrapResult(this.authService.resetPassword(dto));
+    await unwrapResult(this.passwordManagement.resetPassword(dto));
     return {
       cooldown: this.verificationCodeService.getCooldownSec(),
       message: this.i18n.t('auth.reset_password_success'),
@@ -310,19 +314,19 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
+  path: '/api/v1/auth/captcha',
+  method: 'get',
+  componentName: 'CaptchaResponse',
+  schema: captchaSchema,
+  description: 'Whether the challenge is enforced and the public site key.',
+});
+
+registerResponseSchema({
   path: '/api/v1/auth/send-verification-code',
   method: 'post',
   componentName: 'SendVerificationCodeResponse',
   schema: sendVerificationCodeResponseSchema,
   description: 'Cooldown seconds until the next code can be requested.',
-});
-
-registerResponseSchema({
-  path: '/api/v1/auth/verify-email',
-  method: 'post',
-  componentName: 'VerifyEmailResponse',
-  schema: verifyEmailResponseSchema,
-  description: 'Whether the email is now verified.',
 });
 
 registerResponseSchema({

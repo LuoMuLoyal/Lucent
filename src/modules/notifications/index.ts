@@ -1,10 +1,10 @@
 export type {
   NotificationListItemDto,
   CreateNotificationDto,
-} from './dto/response.dto.js';
+} from './adapters/http/dto/response.js';
 export {
   INotificationSender,
   type NotificationScope,
-} from './ports/notification-sender.port.js';
-export { NotificationsService } from './services/notifications.service.js';
-export { PushDeliveryService } from './services/push-delivery.service.js';
+} from './application/ports/notification-sender.js';
+export { NotificationsService } from './application/services/notifications.js';
+export { PushDeliveryService } from './application/services/push-delivery.js';

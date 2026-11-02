@@ -1,16 +1,22 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import {
+  Test,
+  type TestingModule,
+  type TestingModuleBuilder,
+} from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import * as argon2 from 'argon2';
 
 import { AppModule } from '../../src/app.module.js';
 import { ARGON2_OPTIONS } from '../../src/modules/auth/index.js';
+import type { ChallengeState } from '../../src/modules/auth/domain/challenge/challenge.js';
+import { deriveCodeHash } from '../../src/modules/auth/domain/challenge/verification-code.js';
 import { setupApp } from '../../src/setup-app.js';
 import { PrismaService } from '../../src/prisma/index.js';
 import { ConfigKey } from '../../src/config/env/config-keys.enum.js';
@@ -27,6 +33,17 @@ const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 /** Convenience type alias for a NestJS Fastify app wired to the supertest App type. */
 export type E2eApp = NestFastifyApplication;
 
+/**
+ * One builder mutation applied to the testing module before compilation.
+ *
+ * Lets a spec substitute a provider (a fake LLM, a fixed clock) without
+ * re-implementing the app bootstrap, so guards, filters and parsers stay
+ * identical to production.
+ */
+export type TestModuleOverride = (
+  builder: TestingModuleBuilder,
+) => TestingModuleBuilder;
+
 export interface E2eTestContext {
   app: E2eApp;
   prisma: PrismaService;
@@ -39,10 +56,16 @@ export interface E2eTestContext {
  * Call `cleanupDatabase(ctx.prisma)` afterwards to reset state,
  * and `await ctx.app.close()` in afterAll.
  */
-export async function createTestApp(): Promise<E2eTestContext> {
-  const moduleFixture: TestingModule = await Test.createTestingModule({
-    imports: [AppModule],
-  }).compile();
+export async function createTestApp(
+  overrides: readonly TestModuleOverride[] = [],
+): Promise<E2eTestContext> {
+  // `overrideProvider` mutates the builder, so overrides are applied in order
+  // rather than pre-built into one call.
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+  for (const override of overrides) {
+    builder = override(builder);
+  }
+  const moduleFixture: TestingModule = await builder.compile();
 
   const configService = moduleFixture.get(ConfigService);
   const trustProxy =
@@ -134,7 +157,7 @@ export async function createTestUser(
   prisma: PrismaService,
   email?: string,
   nickname?: string,
-  password = 'Test@123456',
+  password = 'LucentE2e!2345',
 ): Promise<TestUser> {
   const userEmail = email ?? uniqueEmail();
   const user = await prisma.user.create({
@@ -156,10 +179,44 @@ export async function createTestUser(
   });
   return {
     id: user.id,
-    email: user.email,
+    // Email is nullable since OAuth-only accounts can omit it, but this
+    // helper always creates a credential user with one.
+    email: user.email ?? userEmail,
     nickname: user.nickname,
     status: user.status,
   };
+}
+
+/**
+ * Seed a verification code directly into the cache, bypassing mail delivery.
+ *
+ * The stored value is the challenge **aggregate state** (`ChallengeState`), not
+ * a bare hash: the attempt counter has to live in the same cache entry as the
+ * code so that exhausting one is atomic with invalidating the other (see
+ * `domain/challenge/challenge.ts`). Seeding a bare hash here would make
+ * `verify()` read `attempts` off `undefined` and reject every code — which is
+ * exactly what happened when S3 changed the stored shape and left these
+ * fixtures behind.
+ *
+ * Kept in the shared helper so the shape has one definition in the test tree;
+ * a fixture that hand-builds it will silently rot the next time it changes.
+ */
+export async function seedVerificationCode(
+  ctx: E2eTestContext,
+  scene: string,
+  email: string,
+  code: string,
+  ttlMs = VERIFICATION_CODE_TTL_MS,
+): Promise<void> {
+  const cache = ctx.app.get(CACHE_MANAGER) as Cache;
+  const state: ChallengeState = {
+    scene,
+    email,
+    codeHash: deriveCodeHash(code, scene, email),
+    attempts: 0,
+    issuedAtMs: Date.now(),
+  };
+  await cache.set(`vcode:${scene}:${email}`, state, ttlMs);
 }
 
 /**
@@ -169,20 +226,12 @@ export async function createTestUser(
 export async function registerTestUser(
   ctx: E2eTestContext,
   email?: string,
-  password = 'Test@123456',
+  password = 'LucentE2e!2345',
   nickname = 'RegisteredUser',
 ): Promise<RegisteredTestUser> {
   const userEmail = email ?? uniqueEmail('registered');
   const code = '123456';
-  const cache = ctx.app.get(CACHE_MANAGER) as Cache;
-  const hash = createHash('sha256')
-    .update(`register:${userEmail}:${code}`)
-    .digest('hex');
-  await cache.set(
-    `vcode:register:${userEmail}`,
-    hash,
-    VERIFICATION_CODE_TTL_MS,
-  );
+  await seedVerificationCode(ctx, 'register', userEmail, code);
 
   const res = await request(ctx.app.getHttpServer())
     .post('/api/v1/auth/register')

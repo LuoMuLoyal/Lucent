@@ -13,7 +13,10 @@ export class AppInfoController {
   constructor(private readonly service: AppInfoService) {}
 
   @Get('app-info')
-  @ApiOperation({ summary: 'Get application metadata' })
+  @ApiOperation({
+    operationId: 'getAppInfo',
+    summary: 'Get application metadata',
+  })
   @ApiResponse({ status: 200, description: 'Application metadata.' })
   @SerializeOptions({ schema: appInfoResponseSchema })
   getAppInfo() {

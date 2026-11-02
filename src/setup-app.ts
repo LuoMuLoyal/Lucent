@@ -2,6 +2,7 @@ import { performance } from 'node:perf_hooks';
 
 import {
   BadRequestException,
+  Logger,
   StandardSchemaSerializerInterceptor,
   StandardSchemaValidationPipe,
   VersioningType,
@@ -10,10 +11,9 @@ import { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCompress from '@fastify/compress';
+import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nContext, I18nService } from 'nestjs-i18n';
-import type { Logger as WinstonLogger } from 'winston';
 import { resolveHttpsHeaderPolicy, safeCompare } from './common/index.js';
 import { ConfigKey } from './config/env/config-keys.enum.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
@@ -119,6 +119,20 @@ export async function setupApp(
     encodings: ['gzip', 'deflate', 'br'],
   });
 
+  // ── Cookies ─────────────────────────────────────────────────────
+  // `@fastify/cookie` gives `reply.setCookie` / `reply.clearCookie` and a
+  // parsed `request.cookies` map. Using it (rather than hand-building
+  // `Set-Cookie` strings) keeps one implementation for every cookie the
+  // service issues, and makes the "cleared attribute must match the issued
+  // attribute or the browser keeps the cookie" rule the plugin's job instead
+  // of a comment's.
+  //
+  // `secret` stays unset on purpose: every cookie here carries a value that
+  // is already tamper-proof on its own (a signed JWT, or a random refresh
+  // token that is looked up by hash). Enabling `sign`/`unsign` would add a
+  // second, redundant integrity layer and another secret to rotate.
+  await app.register(fastifyCookie);
+
   // ── Prometheus metrics ──────────────────────────────────────────
   const metricsService = app.get(MetricsService);
   const metricsUser = appConfig?.metricsUser;
@@ -162,7 +176,9 @@ export async function setupApp(
   });
 
   // ── HTTP access log (one structured entry per completed request) ──
-  const winstonLogger = app.get<WinstonLogger>(WINSTON_MODULE_PROVIDER);
+  // Emitted through pino via the substituted Nest logger; metadata lands at
+  // the top level of the JSON entry.
+  const accessLogger = new Logger('HttpAccess');
 
   void fastify.addHook('onResponse', (request, reply, done) => {
     // Skip high-frequency probes (/api/v1/health*, /metrics) to avoid noise.
@@ -178,18 +194,28 @@ export async function setupApp(
       elapsedMs: reply.elapsedTime,
     });
     const { level, message, ...meta } = entry;
-    winstonLogger.log(level, message, meta);
+    if (level === 'error') {
+      accessLogger.error(meta, message);
+    } else {
+      accessLogger.log(meta, message);
+    }
     done();
   });
 
   // ── Metrics endpoint (with optional Basic Auth) ─────────────────
+  // Every branch returns the reply: an async handler that only calls
+  // `reply.send()` resolves to `undefined`, and Fastify then sends an empty
+  // body when the response has not been flushed yet. `@fastify/compress`
+  // flushes synchronously only below its 4 KiB threshold, so the (large)
+  // Prometheus payload would otherwise arrive empty.
   void fastify.get('/metrics', async (request, reply) => {
     if (metricsUser && metricsPassword) {
       const authHeader = request.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Basic ')) {
-        reply.header('WWW-Authenticate', 'Basic realm="Metrics"');
-        reply.code(401).send('Unauthorized');
-        return;
+        return reply
+          .header('WWW-Authenticate', 'Basic realm="Metrics"')
+          .code(401)
+          .send('Unauthorized');
       }
       const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
       const colonIndex = decoded.indexOf(':');
@@ -199,13 +225,15 @@ export async function setupApp(
         !safeCompare(user, metricsUser) ||
         !safeCompare(pass, metricsPassword)
       ) {
-        reply.header('WWW-Authenticate', 'Basic realm="Metrics"');
-        reply.code(401).send('Unauthorized');
-        return;
+        return reply
+          .header('WWW-Authenticate', 'Basic realm="Metrics"')
+          .code(401)
+          .send('Unauthorized');
       }
     }
-    reply.type(metricsService.getContentType());
-    reply.send(await metricsService.getMetrics());
+    return reply
+      .type(metricsService.getContentType())
+      .send(await metricsService.getMetrics());
   });
 
   // ── NestJS global configuration ─────────────────────────────────
@@ -274,5 +302,13 @@ export async function setupApp(
     // after a successful preflight — the classic "DELETE returns 204 in
     // OPTIONS but never arrives" symptom.
     methods: 'GET,HEAD,POST,PATCH,PUT,DELETE,OPTIONS',
+    // HttpOnly session cookies (see `common/api/session-cookie.ts`) must be
+    // sent on cross-origin requests from Lumine's web and desktop hosts. The
+    // browser only forwards them when the server answers the preflight with
+    // `Access-Control-Allow-Credentials: true`, so WILDCARD ORIGIN IS NOT
+    // ACCEPTABLE here — `corsOrigin` must list explicit origins (or `true`,
+    // which reflects the request origin). `CORS_ORIGIN=*` combined with
+    // credentials is rejected by browsers by design.
+    credentials: true,
   });
 }

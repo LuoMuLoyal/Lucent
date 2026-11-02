@@ -22,7 +22,10 @@ export class NotificationPreferencesController {
   constructor(private readonly service: NotificationPreferencesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get authenticated user notification preferences' })
+  @ApiOperation({
+    operationId: 'getNotificationPreferences',
+    summary: 'Get authenticated user notification preferences',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user notification preferences.',
@@ -34,6 +37,7 @@ export class NotificationPreferencesController {
 
   @Patch()
   @ApiOperation({
+    operationId: 'patch',
     summary: 'Patch authenticated user notification preferences',
   })
   @ApiResponse({

@@ -1,0 +1,274 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { Cache } from 'cache-manager';
+import type { SuggestionSignal } from '../../domain/signal/signal.js';
+import type { BaselineDimension } from '../../domain/baseline/baseline.js';
+import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto.js';
+import type { GeneratedCopy } from '../../schemas/copy.schema.js';
+import type { SuggestionCachePort } from '../../application/ports/suggestion-cache.js';
+import {
+  SIGNAL_CACHE_TTL_MS,
+  SUGGESTION_CACHE_TTL_MS,
+  BASELINE_CACHE_TTL_MS,
+} from '../../constants/thresholds.constants.js';
+
+import { COPY_CACHE_TTL_MS } from '../../constants/lifecycle.constants.js';
+
+const CACHE_KEY_PREFIX = 'today-suggestion';
+
+/**
+ * Multi-layer cache for the Today suggestion engine.
+ *
+ * Three cache layers:
+ * 1. Signal bundle cache — per user+date, TTL 5 min
+ * 2. Suggestion result cache — per user+date+excludeIds, TTL 3 min
+ * 3. Baseline status cache — per user, TTL 1 hour
+ *
+ * Cache invalidation:
+ * - Signal cache: invalidated when a new daily record or dose log is created
+ *   (via invalidateSignals).
+ * - Suggestion cache: invalidated when feedback is recorded (via invalidateSuggestions).
+ * - Baseline cache: invalidated when a new baseline is established (via invalidateBaseline).
+ */
+@Injectable()
+export class SuggestionCacheService implements SuggestionCachePort {
+  private readonly logger = new Logger(SuggestionCacheService.name);
+
+  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+
+  // ─── Signal bundle cache ───
+
+  async getSignals(
+    userId: string,
+    date: string,
+  ): Promise<SuggestionSignal[] | undefined> {
+    return this.cacheGet(this.signalKey(userId, date)) as Promise<
+      SuggestionSignal[] | undefined
+    >;
+  }
+
+  async setSignals(
+    userId: string,
+    date: string,
+    signals: SuggestionSignal[],
+  ): Promise<void> {
+    await this.cacheSet(
+      this.signalKey(userId, date),
+      signals,
+      SIGNAL_CACHE_TTL_MS,
+    );
+  }
+
+  // ─── Suggestion result cache ───
+
+  async getSuggestions(
+    userId: string,
+    date: string,
+    excludeKey: string,
+  ): Promise<TodaySuggestionsDataDto | undefined> {
+    return this.cacheGet(
+      this.suggestionKey(userId, date, excludeKey),
+    ) as Promise<TodaySuggestionsDataDto | undefined>;
+  }
+
+  async setSuggestions(
+    userId: string,
+    date: string,
+    excludeKey: string,
+    result: TodaySuggestionsDataDto,
+  ): Promise<void> {
+    // Write the value before registering the excludeKey: if an invalidation
+    // races in between, the registry is re-read by the invalidation's second
+    // pass, so a value written before registration still gets deleted.
+    await this.cacheSet(
+      this.suggestionKey(userId, date, excludeKey),
+      result,
+      SUGGESTION_CACHE_TTL_MS,
+    );
+    await this.trackExcludeKey(userId, date, excludeKey);
+  }
+
+  // ─── Baseline status cache ───
+
+  async getBaselineStatus(
+    userId: string,
+  ): Promise<Map<BaselineDimension, boolean> | undefined> {
+    const cached = (await this.cacheGet(this.baselineKey(userId))) as
+      | Record<string, boolean>
+      | undefined;
+    if (cached == null) return undefined;
+    return new Map(
+      Object.entries(cached) as Array<[BaselineDimension, boolean]>,
+    );
+  }
+
+  async setBaselineStatus(
+    userId: string,
+    status: Map<BaselineDimension, boolean>,
+  ): Promise<void> {
+    const obj: Record<string, boolean> = {};
+    for (const [key, value] of status.entries()) {
+      obj[key] = value;
+    }
+    await this.cacheSet(this.baselineKey(userId), obj, BASELINE_CACHE_TTL_MS);
+  }
+
+  // ─── Invalidation ───
+
+  /** Invalidates signal + suggestion caches for a user+date. */
+  async invalidateSignals(userId: string, date: string): Promise<void> {
+    await Promise.all([
+      this.cacheDel(this.signalKey(userId, date)),
+      this.invalidateAllSuggestions(userId, date),
+    ]);
+    this.logger.debug(
+      `Invalidated signal+suggestion cache for user ${userId} on ${date}`,
+    );
+  }
+
+  /** Invalidates suggestion result cache for a user. */
+  async invalidateSuggestions(userId: string, date: string): Promise<void> {
+    await this.invalidateAllSuggestions(userId, date);
+    this.logger.debug(
+      `Invalidated suggestion cache for user ${userId} on ${date}`,
+    );
+  }
+
+  /** Invalidates baseline status cache for a user. */
+  async invalidateBaseline(userId: string): Promise<void> {
+    await this.cacheDel(this.baselineKey(userId));
+    this.logger.debug(`Invalidated baseline cache for user ${userId}`);
+  }
+
+  // ─── Copy generation cache ───
+
+  async getCopy(cacheKey: string): Promise<GeneratedCopy | undefined> {
+    return this.cacheGet(this.copyKey(cacheKey)) as Promise<
+      GeneratedCopy | undefined
+    >;
+  }
+
+  async setCopy(cacheKey: string, copy: GeneratedCopy): Promise<void> {
+    await this.cacheSet(this.copyKey(cacheKey), copy, COPY_CACHE_TTL_MS);
+  }
+
+  // ─── Key builders ───
+
+  private signalKey(userId: string, date: string): string {
+    return `${CACHE_KEY_PREFIX}:signals:${userId}:${date}`;
+  }
+
+  private suggestionKey(
+    userId: string,
+    date: string,
+    excludeKey: string,
+  ): string {
+    return `${CACHE_KEY_PREFIX}:suggestions:${userId}:${date}:${excludeKey}`;
+  }
+
+  private baselineKey(userId: string): string {
+    return `${CACHE_KEY_PREFIX}:baseline:${userId}`;
+  }
+
+  private copyKey(cacheKey: string): string {
+    return `${CACHE_KEY_PREFIX}:copy:${cacheKey}`;
+  }
+
+  private excludeKeysRegistryKey(userId: string, date: string): string {
+    return `${CACHE_KEY_PREFIX}:exclude_keys:${userId}:${date}`;
+  }
+
+  /**
+   * Tracks an excludeKey in the per-user+date registry so that
+   * `invalidateAllSuggestions` can enumerate and delete every variant.
+   */
+  private async trackExcludeKey(
+    userId: string,
+    date: string,
+    excludeKey: string,
+  ): Promise<void> {
+    const registryKey = this.excludeKeysRegistryKey(userId, date);
+    const existing =
+      ((await this.cacheGet(registryKey)) as string[] | undefined) ?? [];
+    if (!existing.includes(excludeKey)) {
+      existing.push(excludeKey);
+      await this.cacheSet(registryKey, existing, SUGGESTION_CACHE_TTL_MS);
+    }
+  }
+
+  /**
+   * Deletes all suggestion cache entries for a user+date by reading
+   * the excludeKeys registry, then clearing the registry itself.
+   *
+   * Runs two passes: a concurrent `setSuggestions` may register an
+   * excludeKey while the first pass is reading the registry, and the
+   * second pass catches variants registered between the read and the
+   * registry deletion. Remaining TTL (3 min) bounds any residual window.
+   */
+  private async invalidateAllSuggestions(
+    userId: string,
+    date: string,
+  ): Promise<void> {
+    const registryKey = this.excludeKeysRegistryKey(userId, date);
+    await this.deleteRegisteredVariants(userId, date, registryKey);
+    await this.deleteRegisteredVariants(userId, date, registryKey);
+  }
+
+  private async deleteRegisteredVariants(
+    userId: string,
+    date: string,
+    registryKey: string,
+  ): Promise<void> {
+    const excludeKeys =
+      ((await this.cacheGet(registryKey)) as string[] | undefined) ?? [];
+    // Always include 'none' as a fallback in case the registry expired
+    const allKeys = excludeKeys.includes('none')
+      ? excludeKeys
+      : ['none', ...excludeKeys];
+    await Promise.all([
+      ...allKeys.map((key) =>
+        this.cacheDel(this.suggestionKey(userId, date, key)),
+      ),
+      this.cacheDel(registryKey),
+    ]);
+  }
+
+  private async cacheGet(key: string): Promise<unknown> {
+    try {
+      return await this.cache.get(key);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion cache get failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheSet(
+    key: string,
+    value: unknown,
+    ttl: number,
+  ): Promise<void> {
+    try {
+      await this.cache.set(key, value, ttl);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion cache set failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cacheDel(key: string): Promise<void> {
+    try {
+      await this.cache.del(key);
+    } catch (error) {
+      this.logger.warn(
+        `Suggestion cache delete failed (key=${key}): ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  /** Builds a cache-safe exclude key from an array of IDs. */
+}

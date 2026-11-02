@@ -105,6 +105,13 @@ Content/Ontology ──ACL──▶ AI Assistant
   ADR-0009 的其余读写规则、表归属与 reader port 约定继续有效。
 - `AGENTS.md` 的目录白名单、文件命名与 barrel 规则同步修订；
   dependency-cruiser 增加 domain/application/adapters/infrastructure 与跨上下文约束。
+- **文件名分隔符统一 kebab-case（`-`），四层内不例外**。原先把 DDD 层的示例写成
+  snake*case（`account_registered.ts`、`on*<event>.ts`），实作时跟着写成了
+`risk_scoring.ts`/`cookie_policy.ts`这类；而仓库其余 359 个多词文件全部是 kebab。
+结果是「分隔符取决于你在哪个目录」——一条没有任何工具强制的约定分裂成两套。
+分隔符是**文件级**的统一规则（见`AGENTS.md` File Naming Rules 第 10 条），
+与分层无关；目录名不在其内（`use_cases/`、`read_models/` 保持不变）。
+  _2026-10-24 修订：本条为对初版措辞的更正，其余决策不变。_
 - 不引入 event sourcing、独立事件存储或完整 CQRS 平台；读模型只做查询侧投影。
 
 ## Options Considered

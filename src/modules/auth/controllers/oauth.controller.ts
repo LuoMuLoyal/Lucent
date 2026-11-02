@@ -19,7 +19,7 @@ import {
 } from '../../../common/index.js';
 import { registerResponseSchema } from '../../../common/api/response-schema.registry.js';
 import { unwrapResult } from '../../../common/result/index.js';
-import { AuthService } from '../services/auth.service.js';
+import { AuthOAuthFacadeService } from '../application/services/oauth-facade.js';
 
 import {
   appleOAuthCallbackSchema,
@@ -54,13 +54,16 @@ import { Public } from '../decorators/public.decorator.js';
 @Public()
 @Controller('auth')
 export class OAuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly oauthFacade: AuthOAuthFacadeService) {}
 
   // ── POST /api/v1/auth/oauth/wechat-web/authorize ─────────────
 
   @Post('oauth/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create WeChat web OAuth authorize URL' })
+  @ApiOperation({
+    operationId: 'createWechatWebAuthorizeUrl',
+    summary: 'Create WeChat web OAuth authorize URL',
+  })
   @ApiResponse({
     status: 200,
     description: 'OAuth authorize URL with state and expiry.',
@@ -74,14 +77,17 @@ export class OAuthController {
   async createWechatWebAuthorizeUrl(
     @Body({ schema: oauthAuthorizeSchema }) dto?: OAuthAuthorizeDto,
   ) {
-    return unwrapResult(this.authService.createWechatWebAuthorizeUrl(dto));
+    return unwrapResult(this.oauthFacade.createWechatWebAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/wechat-web/callback ──────────────
 
   @Post('oauth/wechat-web/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'WeChat web OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithWechatWeb',
+    summary: 'WeChat web OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -123,7 +129,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithWechatWeb(
+      this.oauthFacade.loginWithWechatWeb(
         dto,
         extractAuthRequestContext(request),
       ),
@@ -134,7 +140,10 @@ export class OAuthController {
   // ── GET /api/v1/auth/oauth/wechat-web/callback ───────────────
 
   @Get('oauth/wechat-web/callback')
-  @ApiOperation({ summary: 'WeChat web OAuth browser redirect' })
+  @ApiOperation({
+    operationId: 'redirectWechatWebCallback',
+    summary: 'WeChat web OAuth browser redirect',
+  })
   @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
   @ApiResponse({
     status: 400,
@@ -146,7 +155,7 @@ export class OAuthController {
     @Res() reply: FastifyReply,
   ) {
     const redirectUrl = await unwrapResult(
-      this.authService.resolveWechatWebCallbackRedirect(dto),
+      this.oauthFacade.resolveWechatWebCallbackRedirect(dto),
     );
     reply.redirect(redirectUrl, HttpStatus.FOUND);
   }
@@ -155,7 +164,10 @@ export class OAuthController {
 
   @Post('oauth/wechat-mobile/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'WeChat mobile OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithWechatMobile',
+    summary: 'WeChat mobile OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -197,7 +209,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithWechatMobile(
+      this.oauthFacade.loginWithWechatMobile(
         dto,
         extractAuthRequestContext(request),
       ),
@@ -209,7 +221,10 @@ export class OAuthController {
 
   @Post('oauth/apple/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Apple Sign-In callback' })
+  @ApiOperation({
+    operationId: 'loginWithApple',
+    summary: 'Apple Sign-In callback',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -251,7 +266,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithApple(dto, extractAuthRequestContext(request)),
+      this.oauthFacade.loginWithApple(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -260,7 +275,10 @@ export class OAuthController {
 
   @Post('oauth/qq/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create QQ OAuth authorize URL' })
+  @ApiOperation({
+    operationId: 'createQqAuthorizeUrl',
+    summary: 'Create QQ OAuth authorize URL',
+  })
   @ApiResponse({
     status: 200,
     description: 'OAuth authorize URL with state and expiry.',
@@ -274,14 +292,17 @@ export class OAuthController {
   async createQqAuthorizeUrl(
     @Body({ schema: qqOAuthAuthorizeSchema }) dto?: QqOAuthAuthorizeDto,
   ) {
-    return unwrapResult(this.authService.createQqAuthorizeUrl(dto));
+    return unwrapResult(this.oauthFacade.createQqAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/qq/callback ───────────────────
 
   @Post('oauth/qq/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'QQ OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithQq',
+    summary: 'QQ OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -323,7 +344,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithQq(dto, extractAuthRequestContext(request)),
+      this.oauthFacade.loginWithQq(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -332,7 +353,10 @@ export class OAuthController {
 
   @Post('oauth/google/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create Google OAuth authorize URL' })
+  @ApiOperation({
+    operationId: 'createGoogleAuthorizeUrl',
+    summary: 'Create Google OAuth authorize URL',
+  })
   @ApiResponse({
     status: 200,
     description: 'OAuth authorize URL with state and expiry.',
@@ -346,14 +370,17 @@ export class OAuthController {
   async createGoogleAuthorizeUrl(
     @Body({ schema: googleOAuthAuthorizeSchema }) dto?: GoogleOAuthAuthorizeDto,
   ) {
-    return unwrapResult(this.authService.createGoogleAuthorizeUrl(dto));
+    return unwrapResult(this.oauthFacade.createGoogleAuthorizeUrl(dto));
   }
 
   // ── POST /api/v1/auth/oauth/google/callback ───────────────
 
   @Post('oauth/google/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Google OAuth callback login' })
+  @ApiOperation({
+    operationId: 'loginWithGoogle',
+    summary: 'Google OAuth callback login',
+  })
   @ApiResponse({
     status: 200,
     description: 'Authenticated user with token pair.',
@@ -395,7 +422,7 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await unwrapResult(
-      this.authService.loginWithGoogle(dto, extractAuthRequestContext(request)),
+      this.oauthFacade.loginWithGoogle(dto, extractAuthRequestContext(request)),
     );
     return buildAuthResponse(result.user, result);
   }

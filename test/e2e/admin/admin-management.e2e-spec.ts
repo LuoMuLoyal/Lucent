@@ -42,6 +42,7 @@ describe('Admin management API (e2e)', () => {
   async function seedSession(userId: string): Promise<string> {
     const session = await ctx.prisma.userSession.create({
       data: {
+        familyId: randomUUID(),
         userId,
         refreshTokenHash: randomUUID(),
         expiresAt: new Date(Date.now() + 7 * DAY_MS),

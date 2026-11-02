@@ -1,0 +1,410 @@
+import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
+import {
+  REPORT_RANGE_CUSTOM,
+  REPORT_RANGE_LAST_30_DAYS,
+  REPORT_RANGE_LAST_7_DAYS,
+} from '../../application/read_models/dashboard/report-dashboard-query.js';
+import { ReportsContextService } from './dashboard-context.js';
+
+/** v2 分析结果的最小合法形状；status 决定这一天的口径。 */
+function mealAnalysisFixture(analysisStatus: string) {
+  return {
+    version: 2,
+    analysisStatus,
+    analyzedAt:
+      analysisStatus === 'analyzing' ? null : '2026-06-01T04:00:00.000Z',
+    sourceRevision: 1,
+    model: analysisStatus === 'analyzing' ? null : 'vision-model',
+    promptVersion: 'meal-analysis.v2',
+    locale: 'zh-CN',
+    failureReason: analysisStatus === 'analysis_failed' ? 'model_failed' : null,
+    calorieRange: null,
+    dishes: [],
+    items: [],
+    facets: {},
+  };
+}
+
+describe('ReportsContextService', () => {
+  const buildMocks = () => ({
+    userSettingsService: {
+      getSettings: vi.fn().mockResolvedValue({
+        aiSummariesEnabled: true,
+      }),
+    },
+    dailyRecordReader: {
+      listFactsInRange: vi.fn().mockResolvedValue([]),
+    },
+    doseLogReader: {
+      listFactsInRange: vi.fn().mockResolvedValue([]),
+    },
+  });
+
+  it('defaults ai summary to enabled when the user setting is missing', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_LAST_7_DAYS,
+    });
+
+    expect(context.aiSummaryEnabled).toBe(true);
+    expect(userSettingsService.getSettings).toHaveBeenCalledWith('u1');
+  });
+
+  it('keeps ai summary disabled when the user setting is explicitly false', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    userSettingsService.getSettings = vi.fn().mockResolvedValue({
+      aiSummariesEnabled: false,
+    });
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_LAST_7_DAYS,
+    });
+
+    expect(context.aiSummaryEnabled).toBe(false);
+  });
+
+  it('resolves last_30_days start date', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_LAST_30_DAYS,
+    });
+
+    expect(context.range).toBe(REPORT_RANGE_LAST_30_DAYS);
+    const days =
+      (context.endDate.getTime() - context.startDate.getTime()) /
+      (1000 * 60 * 60 * 24);
+    expect(days).toBe(29);
+  });
+
+  it('resolves custom range from query dates', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-01',
+      endDate: '2026-06-10',
+    });
+
+    expect(context.range).toBe(REPORT_RANGE_CUSTOM);
+    expect(context.startDate.toISOString()).toBe('2026-06-01T00:00:00.000Z');
+    expect(context.endDate.toISOString()).toBe('2026-06-10T00:00:00.000Z');
+  });
+
+  it('throws when custom range is missing startDate', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    await expect(
+      service.build('u1', {
+        range: REPORT_RANGE_CUSTOM,
+        endDate: '2026-06-10',
+      }),
+    ).rejects.toBeInstanceOf(DomainFailureException);
+  });
+
+  it('throws when custom range is missing endDate', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    await expect(
+      service.build('u1', {
+        range: REPORT_RANGE_CUSTOM,
+        startDate: '2026-06-01',
+      }),
+    ).rejects.toBeInstanceOf(DomainFailureException);
+  });
+
+  it('throws when custom startDate is after endDate', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    await expect(
+      service.build('u1', {
+        range: REPORT_RANGE_CUSTOM,
+        startDate: '2026-06-10',
+        endDate: '2026-06-01',
+      }),
+    ).rejects.toBeInstanceOf(DomainFailureException);
+  });
+
+  it('counts meal analysis days only from analyzed meal analyses', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        occurredAt: new Date('2026-06-06T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: mealAnalysisFixture('analyzed'),
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-07T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: mealAnalysisFixture('analyzed'),
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-08T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: mealAnalysisFixture('analysis_failed'),
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-09T00:00:00.000Z'),
+        kind: 'water',
+        value: '500',
+        unit: 'ml',
+        payload: null,
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-12',
+    });
+
+    expect(context.mealEstimateSeries).toEqual([1, 1, 0, 0, 0, 0, 0]);
+    expect(context.mealEstimateTrackedDays).toBe(2);
+    expect(context.mealEstimateBreakdown).toEqual({
+      analyzedDays: 2,
+      analyzingDays: 0,
+      failedDays: 1,
+    });
+  });
+
+  it('breaks down meal estimate status per day for the AI summary', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        occurredAt: new Date('2026-06-06T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: mealAnalysisFixture('analyzing'),
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-07T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: mealAnalysisFixture('analyzed'),
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-08T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: mealAnalysisFixture('analyzed'),
+        },
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-12',
+    });
+
+    expect(context.mealEstimateBreakdown).toEqual({
+      analyzedDays: 2,
+      analyzingDays: 1,
+      failedDays: 0,
+    });
+  });
+
+  it('keeps water unknown distinct from observed zero and normalizes ml', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        occurredAt: new Date('2026-06-06T00:00:00.000Z'),
+        kind: 'water',
+        value: '0',
+        unit: 'ml',
+        payload: null,
+      },
+      {
+        occurredAt: new Date('2026-06-07T00:00:00.000Z'),
+        kind: 'water',
+        value: '500',
+        unit: 'ml',
+        payload: null,
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-08',
+    });
+
+    expect(context.observedWaterSeries).toMatchObject([
+      { value: 0, state: 'observed', coverage: 'sufficient' },
+      { value: 500, state: 'observed', coverage: 'sufficient' },
+      { value: null, state: 'unknown', coverage: 'none' },
+    ]);
+    expect(context.waterSeries).toEqual([0, 0.5, 0]);
+  });
+
+  it('builds medication adherence from independent reminder slots', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    doseLogReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        reminderId: 'reminder-08',
+        status: 'taken',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: '08:00',
+      },
+      {
+        currentMedicineId: 'med-1',
+        reminderId: 'reminder-20',
+        status: 'planned',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: '20:00',
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-06',
+    });
+
+    expect(context.observedMedicationSeries).toEqual([
+      expect.objectContaining({
+        value: 50,
+        state: 'observed',
+        coverage: 'partial',
+        observedCount: 1,
+        expectedCount: 2,
+        takenCount: 1,
+        skippedCount: 0,
+        unconfirmedCount: 1,
+        overdueUnconfirmedCount: 0,
+      }),
+    ]);
+    expect(context.medicationSeries).toEqual([50]);
+  });
+
+  it('keeps unplanned temporary dose logs out of adherence', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    doseLogReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        reminderId: null,
+        status: 'taken',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: null,
+      },
+      {
+        currentMedicineId: 'med-1',
+        reminderId: null,
+        status: 'skipped',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: null,
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-06',
+    });
+
+    expect(context.observedMedicationSeries).toEqual([
+      expect.objectContaining({
+        value: null,
+        state: 'unknown',
+        coverage: 'none',
+        observedCount: 0,
+        expectedCount: null,
+      }),
+    ]);
+    expect(context.medicationSeries).toEqual([0]);
+  });
+});

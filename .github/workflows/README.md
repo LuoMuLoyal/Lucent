@@ -4,15 +4,37 @@
 （默认 `contents: read`，写权限只给需要的 job）、独立触发与并发组、失败隔离
 （镜像构建挂了不等于门禁挂了）、小 diff。
 
-| 文件             | `name:`      | 职责                                         | 触发           |
-| ---------------- | ------------ | -------------------------------------------- | -------------- |
-| `ci.yml`         | `CI`         | lint / typecheck / 单测 / e2e + OpenAPI 契约 | push, PR, 手动 |
-| `docker.yml`     | `Docker`     | 双架构构建 + Trivy（**不推送**）             | push, PR, 手动 |
-| `release.yml`    | `Release`    | **发布** `lucent` multi-arch 镜像            | 手动（main）   |
-| `release-db.yml` | `Release DB` | **发布** `lucent-db` multi-arch 镜像         | 手动（main）   |
+| 文件              | `name:`       | 职责                                         | 触发           |
+| ----------------- | ------------- | -------------------------------------------- | -------------- |
+| `ci.yml`          | `CI`          | lint / typecheck / 单测 / e2e + OpenAPI 契约 | push, PR, 手动 |
+| `docker.yml`      | `Docker`      | 双架构构建 + Trivy（**不推送**）             | push, PR, 手动 |
+| `release.yml`     | `Release`     | **发布** `lucent` multi-arch 镜像            | 手动（main）   |
+| `release-db.yml`  | `Release DB`  | **发布** `lucent-db` multi-arch 镜像         | 手动（main）   |
+| `codeql.yml`      | `CodeQL`      | 代码安全分析（数据流级漏洞）                 | push, PR, 周度 |
+| `osv-scanner.yml` | `OSV-Scanner` | 依赖漏洞扫描（含传递依赖）                   | push, PR, 周度 |
+| `scorecard.yml`   | `Scorecard`   | 供应链安全评分                               | push, 周度     |
 
 文档门禁（`docs:verify` / `docs:links`）在本地 `pre-push` 与 `pnpm check` 里跑，
 不占 Actions 配额，故没有 `docs.yml`。
+
+## 安全类 workflow（三件套的分工）
+
+三者**不重叠**，分别对应三个层面的风险：
+
+| workflow          | 查什么                                                                    | 输出到                              |
+| ----------------- | ------------------------------------------------------------------------- | ----------------------------------- |
+| `codeql.yml`      | **源码**里的数据流漏洞：注入、路径穿越、认证缺陷、不安全反序列化          | Security > Code scanning            |
+| `osv-scanner.yml` | **依赖**里的已知漏洞，含传递依赖；PR 只报新增，全量扫描周度跑             | Security > Code scanning            |
+| `scorecard.yml`   | **流程与配置**的反模式：分支保护、action 版本固定、评审要求、依赖更新开关 | Security > Code scanning + 公开徽章 |
+
+与 `docker.yml` 里 Trivy 的区别：Trivy 扫的是**构建出的镜像**（含基础镜像 OS 包），
+OSV 扫的是**源码声明的依赖树**。镜像里可能有 apt 装的库，依赖树里也可能有根本没进
+镜像的 devDependency——两者互补，不能互相替代。
+
+⚠️ **这三条目前都不阻断合并**。CodeQL 与 OSV 的报告只上 Security 页，Scorecard 纯评分。
+理由同 Trivy：首次接入会浮出全部存量问题，一上来就红没人会修。等基线清楚、存量清完
+再逐条收紧成门禁（届时改 `osv-scanner.yml` 的 `fail-on-vuln: true`，并把对应
+检查加进分支保护）。
 
 ## 为什么 app 与 DB 分两个 workflow
 

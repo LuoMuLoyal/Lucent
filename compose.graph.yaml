@@ -14,8 +14,13 @@
 #   同步单位也从"两台机的并集"缩到"一台机"。
 #
 # 职责边界:
-#   - app **不在**本机。Lucent 从不直连 Neo4j:所有图查询都经 semantica 的
-#     HTTP 端点(/query /reason),由主站 app 跨公网调用。
+#   - app **不在**本机。图查询有**两条**合法路径,按用途分:
+#       1. agent/推理(生成 Cypher、跑规则)→ 经 semantica 的 HTTP 端点
+#          (`/query` `/reason`),由主站 app 跨公网调用。这一条没变。
+#       2. 业务只读查询(用药关系、机理链)→ 可经 Bolt 直连(2026-10-24 起)。
+#          走 semantica 还是直连,执行的都是同一段 Cypher,技术效果一致;
+#          直连的收益是不受 sidecar 的 `statement_timeout`(15s)约束、少一个
+#          故障点。**不是**架构调整,也不改变 semantica 的职责。
 #   - 环境变量是服务器上的 `.env`(不入库,模板 `.env.graph.example`)。
 #     compose 的 ${VAR} 插值来自它;两个服务各自的 env_file
 #     (deploy/semantica/.env)是独立文件,不与 app 的 .env 共用。
@@ -33,8 +38,9 @@
 
 services:
   # ── Neo4j(英文侧 OAG 的图后端)───────────────────────────────
-  # semantica-service 经 Bolt 访问它;Lucent 从不直连。只 expose 给同网络的
-  # sidecar,不发布宿主端口、不挂 Traefik。
+  # semantica-service 经 Bolt 访问它;Lucent 的业务只读查询也可经 Bolt 直连
+  # (见文件头「职责边界」第 2 条)。默认只 expose 给同网络的 sidecar、不发布
+  # 宿主端口、不挂 Traefik —— 需要直连时再由部署侧按安全组放行 7687。
   #
   # 内存显式封顶,勿依赖默认(约 1.5 GiB)。heap 512m + pagecache 256m 是实测
   # 基线 —— 本图 RSS 1,243 MiB。pagecache 固定上限正是选它的理由:

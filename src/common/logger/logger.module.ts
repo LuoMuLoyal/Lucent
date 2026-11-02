@@ -1,16 +1,26 @@
 import { Global, Logger, Module } from '@nestjs/common';
-import { WinstonModule } from 'nest-winston';
+import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
-import { createLoggerOptions } from './logger.config.js';
+import { createPinoParams } from './logger.config.js';
 import { LifecycleService } from './lifecycle.service.js';
 import { RuntimeLogLevelService } from './runtime-log-level.service.js';
 
+/**
+ * Wires `nestjs-pino` as the application logger.
+ *
+ * `LoggerModule.forRootAsync` registers the `Logger` / `PinoLogger` providers;
+ * `main.ts` then substitutes it via `app.useLogger(app.get(Logger))`, so every
+ * `new Logger(X.name)` in the codebase emits through pino without changing its
+ * construction site.
+ *
+ * Global so feature modules can inject `PinoLogger` where the structured API is
+ * genuinely needed (currently only the runtime log-level switch).
+ */
 @Global()
 @Module({
   imports: [
-    WinstonModule.forRootAsync({
-      imports: [],
+    PinoLoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const nodeEnv =
@@ -19,23 +29,22 @@ import { RuntimeLogLevelService } from './runtime-log-level.service.js';
         const logFormat = configService.get<string>(EnvKey.LOG_FORMAT) ?? '';
         const victoriaLogsUrl =
           configService.get<string>(EnvKey.VICTORIALOGS_URL) ?? '';
-        // Inject a NestJS Logger for VictoriaLogs transport warnings so
-        // ingest errors never hit console.error (ADR-0012: no console.*
-        // in application code).
-        const victoriaLogger = new Logger('VictoriaLogsTransport');
-        return createLoggerOptions({
+        // Route ingest warnings through the application logger instead of
+        // console.* (ADR-0012: never swallow a failure silently).
+        const ingestLogger = new Logger('VictoriaLogsIngest');
+        return createPinoParams({
           nodeEnv,
           logLevel,
           logFormat,
           victoriaLogsUrl,
-          fallbackLogger: (msg: string) => {
-            victoriaLogger.warn(msg);
+          onWarn: (message: string) => {
+            ingestLogger.warn(message);
           },
         });
       },
     }),
   ],
   providers: [LifecycleService, RuntimeLogLevelService],
-  exports: [WinstonModule],
+  exports: [PinoLoggerModule],
 })
 export class LoggerModule {}

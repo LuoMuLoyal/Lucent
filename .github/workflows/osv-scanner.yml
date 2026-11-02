@@ -1,0 +1,57 @@
+name: OSV-Scanner
+
+# 依赖漏洞扫描：用 Google 的 OSV 数据库查依赖树里的已知漏洞。
+#
+# ## 与 Dependabot 的分工
+#
+# Dependabot 负责「把依赖升上去」（发 PR 改 lockfile），它天然滞后——只在
+# 有新版本时才动。OSV-Scanner 负责「现在这份 lockfile 里有什么已知漏洞」，
+# 覆盖 Dependabot 抓不到的两类：
+#   1. 漏洞披露晚于版本发布，而修复版你暂时不想升（大版本跳跃）。
+#   2. 传递依赖——不直接声明、由上游带进来的包，Dependabot 看不到全貌。
+#
+# ## 两个 job 为什么分开
+#
+# `scan-pr` 只报**本次 PR 新引入**的漏洞（把基线分支和头分支各扫一遍做差集），
+# 它不因为仓库里既有漏洞而失败——否则第一次接入就红，没人会去修。
+# `scan-scheduled` 是全量扫描，周度跑，抓「代码没动但漏洞库更新了」的情况。
+#
+# ## 为什么用官方 reusable workflow 而不手写 CLI
+#
+# SARIF 格式、权限、artifact 上传这些细节官方都处理好了；手写容易在
+# `security-events: write` 权限与会话去重上踩坑。
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  schedule:
+    # 每周一 12:30 UTC，与 CodeQL 错开
+    - cron: '30 12 * * 1'
+
+permissions:
+  actions: read
+  security-events: write
+  contents: read
+
+jobs:
+  # 只报这个 PR 新引入的漏洞
+  scan-pr:
+    name: Scan PR (new vulnerabilities)
+    if: github.event_name == 'pull_request'
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.7.0
+
+  # 全量扫描：push 到主分支或定时
+  scan-full:
+    name: Scan full dependency tree
+    if: github.event_name != 'pull_request'
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.0
+    with:
+      # 递归扫描所有子目录，抓 pnpm workspace 之外的锁文件（如脚本目录）。
+      scan-args: |-
+        --recursive
+        ./
+      # 不阻断：先观察一阵，确认误报与存量漏洞规模后再决定是否收紧。
+      # 与 Trivy 口径一致——扫描先落地，基线清楚后再谈门禁。
+      fail-on-vuln: false
