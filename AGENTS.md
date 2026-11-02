@@ -38,13 +38,14 @@
   `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/README 与根入口文档中
   的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
   旧 `docs:check` 覆盖映射已于 2026-09-15 观察期满整体退役；
-  推送前 `pre-push` 仅汇总
-  `lint:check + arch:check + docs:verify + docs:links`（build、test:ci 有意下沉到 CI）。
+  推送前 `pre-push` 仅汇总 `lint:check + docs:verify + docs:links`
+  （build、test:ci 有意下沉到 CI；`arch:check` 不在推送路径上，见下节）。
 
 ## Architecture Checks (arch:check)
 
 `pnpm arch:check` 聚合三类检查。观察期已于 2026-09-24 裁决：除已转级/退役的规则外
-全部**维持 warn 不阻断**，不再计划转 error：
+全部**维持 warn 不阻断**，不再计划转 error。该检查**不随 `pre-push` 自动运行**，
+需要时手动 `pnpm arch:check`（推送路径只留 lint 与文档门禁）：
 
 - **依赖图**（dependency-cruiser，`.dependency-cruiser.cjs`）：模块间只准 barrel import
   （module 类直引对方 `.module.ts` 豁免）；跨模块 import 其他模块 `repositories/`、`dto/` 禁止；

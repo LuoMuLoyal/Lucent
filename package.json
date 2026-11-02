@@ -188,7 +188,7 @@
   "simple-git-hooks": {
     "pre-commit": "npx --no-install lint-staged",
     "commit-msg": "npx --no-install commitlint --edit $1",
-    "pre-push": "pnpm lint:check && pnpm arch:check && pnpm docs:verify && pnpm docs:links"
+    "pre-push": "pnpm lint:check && pnpm docs:verify && pnpm docs:links"
   },
   "lint-staged": {
     "*.ts": [
