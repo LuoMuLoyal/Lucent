@@ -13,6 +13,7 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
+import { externalNavHref } from './layout/data/external-links'
 import { filterNavGroups } from './layout/data/nav-access'
 import { sidebarData } from './layout/data/sidebar-data'
 import { ScrollArea } from './ui/scroll-area'
@@ -22,6 +23,7 @@ export function CommandMenu() {
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
   const permissions = useAuthStore((state) => state.auth.user?.permissions)
+  const accessToken = useAuthStore((state) => state.auth.accessToken)
   const navGroups = filterNavGroups(sidebarData.navGroups, [
     ...(permissions ?? []),
   ])
@@ -44,7 +46,8 @@ export function CommandMenu() {
             <CommandGroup key={group.title} heading={group.title}>
               {group.items.map((navItem, i) => {
                 if (navItem.external) {
-                  const target = navItem.external
+                  const target =
+                    externalNavHref(navItem, accessToken) ?? navItem.external
                   return (
                     <CommandItem
                       key={`${target}-${i}`}

@@ -53,7 +53,14 @@ export const sidebarData: SidebarData = {
       items: [
         { title: 'Dependencies', url: '/dependencies', icon: Cable },
         // Served by the backend on the same origin, outside the SPA router.
-        { title: 'Queues', external: '/admin/queues', icon: ListChecks },
+        // bull-board cannot send `Authorization`, so the access token travels
+        // in the URL once and is swapped for a path-scoped HttpOnly cookie.
+        {
+          title: 'Queues',
+          external: '/admin/queues',
+          externalAuth: 'accessToken',
+          icon: ListChecks,
+        },
       ],
     },
   ],

@@ -47,7 +47,7 @@ owner: backend
 
 bull-board 面板，直接挂在 Fastify 上（不经 Nest 控制器），与 `/api` 前缀和版本化无关，**不新开端口**。队列清单来自 `BullmqQueueFactory.getQueues()` 的进程内注册表；`REDIS_URL` 未配置时为空列表。
 
-- **鉴权**：所有 `/admin/queues/*` 请求沿用 Lucent 访问 JWT（HS512 + issuer/audience）并校验 `AdminUser` 角色；未登录 401、已登录非管理员或无队列读点 403。面板自带 UI 无法附加 `Authorization`，因此运维以 `?access_token=<jwt>` 打开一次即换取面板路径限定的 `HttpOnly` + `SameSite=Lax` 短时 cookie。
+- **鉴权**：所有 `/admin/queues/*` 请求沿用 Lucent 访问 JWT（HS512 + issuer/audience）并校验 `AdminUser` 角色；未登录 401、已登录非管理员或无队列读点 403。面板自带 UI 无法附加 `Authorization`，因此运维以 `?access_token=<jwt>` 打开一次即换取面板路径限定的 `HttpOnly` + `SameSite=Lax` 短时 cookie。管理端控制台的 `Queues` 入口会自动带上当前 access token 完成这次握手（`admin/src/components/layout/data/external-links.ts`）。
 - **按队列收权**：只读范围交给 `BullMQAdapter.setVisibilityGuard`（每队列读点过滤列表、详情、worker 与调度器）；写操作在 bull-board 的 `before` 钩子校验——队列级变更要该队列写点，全局暂停/恢复要全队列写点。能力全开，不设 `readOnlyMode`。
 - **审计口径**：非 `GET` 的 `/admin/queues/api/*` 请求经 Fastify `onResponse` 写 `audit_logs`，`action` 形如 `admin.queue.<verb>`（全局暂停/恢复为 `admin.queue.pauseAll` / `resumeAll`），`resource_type` 为 `queue`，`resource_id` 为目标队列，metadata 记 method/path/status。拒绝的写请求同样留痕。
 
