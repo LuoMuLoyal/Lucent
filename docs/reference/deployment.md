@@ -164,11 +164,19 @@ ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 \
   `LIGHTRAG-WORKSPACE` 头不改变实际读写位置。因此同实例上 `leaflet` 与 `qa`
   实际共享一个命名空间,靠 doc id 前缀区分;需要物理隔离时要另起实例。
 
-### 英文侧 OAG(Neo4j + semantica)
+### 英文侧 OAG 与业务图查询(Neo4j + semantica)
 
-图库机只跑这两个服务,由主站的 app 经公网 `8099` 调用。`neo4j` 不在主站,
-app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/reason`)。
-`SEMANTICA_ENABLED=false` 时工具返回"未配置"信封,主流程不受影响。
+图库机只跑这两个服务。主站的 app 有**两条**访问图库的路径,不是二选一:
+
+- **semantica(`:8099`)**:agent 生成 Cypher 与 `/reason` 规则推理,经 bearer 鉴权;
+- **bolt 直连(`:7687`)**:`/medicines/relations/*` 的 9 个多跳业务查询,由 app 用
+  `NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD` 直连读取。选直连是为了自己掌握事务
+  超时——semantica 对端的 `statement_timeout`(15s)对多跳查询偏紧。
+  这组键全部可选,`NEO4J_URI` 或 `NEO4J_PASSWORD` 为空即「未启用」,9 个端点返回
+  `status: notConfigured`,不影响启动与主流程。
+
+`SEMANTICA_ENABLED=false` 时工具返回"未配置"信封,主流程不受影响。跨云时 bolt 端口
+按主站出口 IP 收口,与 `8099` 一样属于安全组白名单的第二道闸。
 
 ### 运行时配置中心(rnacos)
 
@@ -191,6 +199,11 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 - **持久化**:`rnacos-data`(服务端数据)与 app 侧的 `nacos-client-cache` /
   `nacos-client-logs` 都要挂卷。前者丢了等于配置没了;后者丢了等于冷启动策略失效、
   排查时无日志可看。
+- ⚠️ **卷属主**:app 侧两个卷必须可被 `lucent` 用户(uid 100)写。镜像预建了
+  `~/nacos` 与 `~/logs/nacos` 并归 `lucent`,命名卷首次创建时继承该属主;但**存量
+  机器上以 root 创建过的卷不会自动修复**,此时 Rust SDK 写日志会 panic 并让容器
+  崩溃循环。一次性修法与验证见 [howto/deploy.md](../howto/deploy.md) 的
+  「启用 rnacos 前的卷属主修复（存量机器）」。
 - **启动耗时**:中心不可达时,SDK 的阻塞构造会让启动多等数十秒(实测 19–38s,
   `RNACOS_REQUEST_TIMEOUT_MS` 管不到构造)。`RNACOS_ENABLED=false` 则完全不走这条路。
 - ⚠️ **访问日志含口令**:rnacos 把登录请求整条 URL(含 `password=`)打进 stdout,
@@ -207,12 +220,12 @@ app 不直连图库——所有图查询都由 semantica 承担(`/query`、`/rea
 | `.env.graph.example`      | `compose.graph.yaml`(图库机)      | `.env`       |
 | `.env.monitoring.example` | `compose.monitoring.yaml`(监控机) | `.env`       |
 
-| 机器   | 配置文件                           | 关键键                                                                                                                                                                                                                                                                                                                                                                 |
-| ------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `RNACOS_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT`;启用配置中心另加 `RNACOS_ENABLED` `RNACOS_SERVER_ADDR` `RNACOS_NAMESPACE` `RNACOS_CONSOLE_PASSWORD`(=`RNACOS_USERNAME`/`RNACOS_PASSWORD`) |
-| 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                                                                                                                                                                                   |
-| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE` `NEO4J_IMAGE`                                                                                                                                                                                                                                                                                                           |
-| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                                                                                                                                                                            |
+| 机器   | 配置文件                           | 关键键                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `RNACOS_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT`;启用配置中心另加 `RNACOS_ENABLED` `RNACOS_SERVER_ADDR` `RNACOS_NAMESPACE` `RNACOS_CONSOLE_PASSWORD`(=`RNACOS_USERNAME`/`RNACOS_PASSWORD`);启用业务图查询另加 `NEO4J_URI` `NEO4J_USER` `NEO4J_PASSWORD` |
+| 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                                                                                                                                                                                                                                                |
+| 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE` `NEO4J_IMAGE`                                                                                                                                                                                                                                                                                                                                                                        |
+| 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                                                                                                                                                                                                                                         |
 
 - `DATABASE_URL` / `REDIS_URL` 由 `compose.yaml` 的 `environment` 块用
   `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接,不需手填;两者必须与 `.env` 里的

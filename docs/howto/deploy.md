@@ -141,6 +141,35 @@ docker compose up -d
 docker compose ps
 ```
 
+### 启用 rnacos 前的卷属主修复（存量机器）
+
+app 以非 root 的 `lucent`(uid 100)运行,rnacos 的 Rust SDK 会往 `~/nacos` 与
+`~/logs/nacos` 写缓存和日志。镜像已预建这两个目录并归 `lucent`,**新建的命名卷**会
+继承该属主;**已经在旧镜像上创建过的卷是 root 属主**,直接启用 `RNACOS_ENABLED=true`
+会让 SDK 启动即 panic:
+
+```text
+initializing rolling file appender failed: ... Permission denied
+fatal runtime error: failed to initiate panic, ... aborting
+```
+
+此时 app 会崩溃循环(迁移已跑完、服务起不来)。一次性修复:
+
+```bash
+cd /opt/lucent
+for v in lucent_nacos-client-logs lucent_nacos-client-cache; do
+  docker run --rm --user root \
+    -v "$v":/target \
+    --entrypoint sh "$(docker inspect lucent-app-1 --format '{{.Config.Image}}')" \
+    -c 'chown -R "$(id -u lucent):$(id -g lucent)" /target && chmod -R u+rwX /target'
+done
+docker compose up -d --force-recreate app
+docker logs lucent-app-1 --tail 20      # 期望不再出现 panic
+```
+
+> 卷名带 compose 项目前缀(本部署为 `lucent_`),用 `docker volume ls` 确认。
+> 迁移后再启用 rnacos 的机器同样适用。
+
 ## 二、图库机(腾讯云 Neo4j + semantica)
 
 工作目录 `/opt/lucent-neo4j`,用 **`compose.graph.yaml`** 起两个服务。
@@ -260,20 +289,21 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 
 ### 主站 `/opt/lucent/.env`(模板 `.env.production.example`)
 
-| 键                                     | 值 / 说明                                                                                                      |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `LUCENT_IMAGE`                         | `<registry>/lucent:sha-<短sha>`                                                                                |
-| `LUCENT_DB_IMAGE`                      | `<registry>/lucent-db:pg18-<日期>-<sha8>`;由独立 `release-db.yml` 发布,**不跟 app 发布走**                     |
-| `POSTGRES_PASSWORD` / `REDIS_PASSWORD` | compose 插值用;**必须与 `DATABASE_URL`/`REDIS_URL` 内嵌口令一致**                                              |
-| `PUBLIC_BASE_URL`                      | `http://<主站IP>:3000`                                                                                         |
-| `CORS_ORIGIN`                          | 当前 `*`;收紧时改成客户端来源                                                                                  |
-| `TRUST_PROXY`                          | `false`(当前无反代;接入反代后改 `true`)                                                                        |
-| `SEMANTICA_BASE_URL`                   | `http://<图库IP>:8099`(公网)                                                                                   |
-| `VICTORIALOGS_URL`                     | `http://<监控IP>:9428/insert/jsonline`(公网)                                                                   |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`          | `http://<监控IP>:10428/insert/opentelemetry/v1/traces`                                                         |
-| `OTEL_ENABLED`                         | 默认开启,留空即上报;**仅填 `false` 才关闭**;路径必须写全(见上一行,非标准 `/v1/traces`)                         |
-| `METRICS_USER` / `METRICS_PASSWORD`    | app `/metrics` 的 Basic Auth + VM 抓取凭据;**与监控机一致**                                                    |
-| 其余密钥                               | JWT / ADMIN / 邮件 / AI / 对象存储 / 推送,见 [environment-variables.md](../reference/environment-variables.md) |
+| 键                                            | 值 / 说明                                                                                                                                             |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LUCENT_IMAGE`                                | `<registry>/lucent:sha-<短sha>`                                                                                                                       |
+| `LUCENT_DB_IMAGE`                             | `<registry>/lucent-db:pg18-<日期>-<sha8>`;由独立 `release-db.yml` 发布,**不跟 app 发布走**                                                            |
+| `POSTGRES_PASSWORD` / `REDIS_PASSWORD`        | compose 插值用;**必须与 `DATABASE_URL`/`REDIS_URL` 内嵌口令一致**                                                                                     |
+| `PUBLIC_BASE_URL`                             | `http://<主站IP>:3000`                                                                                                                                |
+| `CORS_ORIGIN`                                 | 当前 `*`;收紧时改成客户端来源                                                                                                                         |
+| `TRUST_PROXY`                                 | `false`(当前无反代;接入反代后改 `true`)                                                                                                               |
+| `SEMANTICA_BASE_URL`                          | `http://<图库IP>:8099`(公网)                                                                                                                          |
+| `NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD` | 可选;**启用 `/medicines/relations/*` 的 9 个业务图查询时必填**,填图库机 bolt 地址(跨云用公网 IP,安全组放行 `7687`);任一为空则端点返回 `notConfigured` |
+| `VICTORIALOGS_URL`                            | `http://<监控IP>:9428/insert/jsonline`(公网)                                                                                                          |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`                 | `http://<监控IP>:10428/insert/opentelemetry/v1/traces`                                                                                                |
+| `OTEL_ENABLED`                                | 默认开启,留空即上报;**仅填 `false` 才关闭**;路径必须写全(见上一行,非标准 `/v1/traces`)                                                                |
+| `METRICS_USER` / `METRICS_PASSWORD`           | app `/metrics` 的 Basic Auth + VM 抓取凭据;**与监控机一致**                                                                                           |
+| 其余密钥                                      | JWT / ADMIN / 邮件 / AI / 对象存储 / 推送,见 [environment-variables.md](../reference/environment-variables.md)                                        |
 
 ### 主站 `/opt/lucent/deploy/lightrag/.env`
 

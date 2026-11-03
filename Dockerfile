@@ -93,6 +93,13 @@ RUN addgroup -S lucent && adduser -S lucent -G lucent
 # 只改这一个目录的属主（元数据层，几十字节），
 # 不做 `chown -R`——那会把整份 node_modules 复制成一个新层。
 RUN chown lucent:lucent /app
+# rnacos 客户端 SDK 会写 ~/nacos（配置缓存）与 ~/logs/nacos（SDK 日志），
+# compose 把两个命名卷挂在这两个路径上。命名卷**首次创建时**会从镜像目录复制内容
+# 并继承属主，因此这里必须先建好目录并归 lucent；否则卷以 root 初始化，非 root 的
+# SDK 写日志会 panic（2026-11-03 生产实测：容器崩溃循环 21 次）。
+# 存量机器上的旧卷不会因此自动修复，需一次性 chown（见 docs/howto/deploy.md）。
+RUN mkdir -p /home/lucent/logs/nacos /home/lucent/nacos \
+    && chown -R lucent:lucent /home/lucent
 # 生产依赖（已 prune + 瘦身）
 # 全部用 COPY --chown 落地：此前在末尾 `RUN chown -R /app` 会把整份 /app
 # （含 1.4 GB node_modules）复制成一个新层，未压缩镜像因此翻倍。

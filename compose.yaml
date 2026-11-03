@@ -136,6 +136,11 @@ services:
       # 冷启动策略依赖这两处持久化:rnacos 不可达时 getConfig 会交回磁盘上的
       # 上一份文档(~HOME/nacos/config/<namespace>);SDK 日志(~HOME/logs/nacos)
       # 不落卷则每次重建都丢,排查时无从对照。
+      #
+      # ⚠️ 属主:这两个目录由镜像预建并归 `lucent` 用户,命名卷首次创建时继承该属主。
+      #    若卷已经以 root 创建(存量机器,或未重建镜像就启用 rnacos),非 root 的
+      #    Rust SDK 写日志会 panic 并使容器崩溃循环 —— 先按 docs/howto/deploy.md
+      #    「启用 rnacos 前的卷属主修复」一次性 chown。
       - nacos-client-cache:/home/lucent/nacos
       - nacos-client-logs:/home/lucent/logs/nacos
     expose:
