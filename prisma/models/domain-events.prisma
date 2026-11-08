@@ -21,6 +21,9 @@ model DomainEvent {
   attempts       Int       @default(0)
   lastError      String?   @map("last_error")
   occurredAt     DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(3)
+  /// Row insert time. Distinct from `occurredAt` (when the fact happened, set by
+  /// the producer) because an event may be appended after the fact it records.
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@unique([dedupeKey])
   @@index([publishedAt, occurredAt])
