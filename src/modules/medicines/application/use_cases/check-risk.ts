@@ -184,7 +184,7 @@ export class MedicineRiskCheckService {
         result,
         riskScore: result.overallRiskScore,
         riskLevel: result.overallRiskLevel,
-        stale: false,
+        isStale: false,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       };
@@ -762,7 +762,7 @@ export class MedicineRiskCheckService {
     result: unknown;
     riskScore: number;
     riskLevel: string;
-    stale: boolean;
+    isStale: boolean;
     createdAt: Date;
     updatedAt: Date;
   }): MedicineRiskCheckRecord {
@@ -771,7 +771,7 @@ export class MedicineRiskCheckService {
       result: record.result as MedicineRiskCheckResult,
       riskScore: record.riskScore,
       riskLevel: record.riskLevel as MedicineRiskLevel,
-      stale: record.stale,
+      isStale: record.isStale,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };

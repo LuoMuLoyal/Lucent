@@ -105,7 +105,7 @@ export class CredentialAuthService {
         }
         return this.userService
           .update(user.id, {
-            emailVerified: true,
+            isEmailVerified: true,
             emailVerifiedAt: now(),
           })
           .andThen((updatedUser) =>

@@ -135,7 +135,7 @@ export const medicineRiskCheckRecordSchema = z.object({
     .describe('Persisted risk score (0-100).')
     .meta({ example: 42 }),
   riskLevel: z.enum(MEDICINE_RISK_LEVELS).describe('Persisted risk level.'),
-  stale: z.boolean().describe('Whether the record is stale.'),
+  isStale: z.boolean().describe('Whether the record is stale.'),
   createdAt: z.iso.datetime().describe('Created at (ISO 8601).'),
   updatedAt: z.iso.datetime().describe('Updated at (ISO 8601).'),
 });

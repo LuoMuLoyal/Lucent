@@ -38,7 +38,7 @@ function collectResult<T, E>(
 const mockUser: User = {
   id: 'user-1',
   email: 'test@example.com',
-  emailVerified: true,
+  isEmailVerified: true,
   nickname: 'Tester',
   avatar: null,
   status: UserStatus.active,

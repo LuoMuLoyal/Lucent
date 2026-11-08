@@ -29,7 +29,7 @@ export function toSessionUser(user: SessionUser): SessionUserDto {
     email: user.email,
     nickname: user.nickname,
     avatar: user.avatar,
-    emailVerified: toEmailVerified(user.emailVerifiedAt),
+    isEmailVerified: toEmailVerified(user.emailVerifiedAt),
     emailVerifiedAt: formatDateTime(user.emailVerifiedAt),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),

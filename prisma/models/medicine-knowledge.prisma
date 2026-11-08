@@ -174,7 +174,7 @@ model MedicalQaChunk {
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([safetyLabel])
-  @@map("medical_qa_chunks")
+  @@map("medicine_qa_chunks")
 }
 
 model DrugbankDrug {
@@ -479,7 +479,7 @@ model DrugbankPatent {
   country                  String?
   approvedOn               DateTime?         @map("approved_on") @db.Date
   expiresOn                DateTime?         @map("expires_on") @db.Date
-  pediatricExtension       Boolean?          @map("pediatric_extension")
+  hasPediatricExtension    Boolean?          @map("has_pediatric_extension")
   createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   importRun                DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
@@ -606,9 +606,9 @@ model DrugbankProduct {
   strength             String?
   route                String?
   fdaApplicationNumber String?           @map("fda_application_number")
-  generic              Boolean?
-  overTheCounter       Boolean?          @map("over_the_counter")
-  approved             Boolean?
+  isGeneric            Boolean?          @map("is_generic")
+  isOverTheCounter     Boolean?          @map("is_over_the_counter")
+  isApproved           Boolean?          @map("is_approved")
   country              String?
   startedMarketingOn   DateTime?         @map("started_marketing_on") @db.Date
   endedMarketingOn     DateTime?         @map("ended_marketing_on") @db.Date
@@ -655,7 +655,7 @@ model DrugbankManufacturer {
   importRunId String?           @map("import_run_id")
   drugbankId  String            @map("drugbank_id")
   name        String
-  generic     Boolean?
+  isGeneric   Boolean?          @map("is_generic")
   url         String?
   createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)

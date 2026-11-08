@@ -47,7 +47,7 @@ describe('auth-response.helper', () => {
     expect(data.user.email).toBe('test@example.com');
     expect(data.user.nickname).toBe('TestUser');
     expect(data.user.avatar).toBe('https://example.com/avatar.png');
-    expect(data.user.emailVerified).toBe(true);
+    expect(data.user.isEmailVerified).toBe(true);
     expect(data.user.emailVerifiedAt).toBe(
       mockUser.emailVerifiedAt!.toISOString(),
     );
@@ -66,12 +66,12 @@ describe('auth-response.helper', () => {
     );
   });
 
-  it('sets emailVerified to false when emailVerifiedAt is null', () => {
+  it('sets isEmailVerified to false when emailVerifiedAt is null', () => {
     const unverifiedUser = { ...mockUser, emailVerifiedAt: null };
     const result = buildAuthResponse(unverifiedUser, mockTokens);
     const data = result as any;
 
-    expect(data.user.emailVerified).toBe(false);
+    expect(data.user.isEmailVerified).toBe(false);
     expect(data.user.emailVerifiedAt).toBeNull();
   });
 

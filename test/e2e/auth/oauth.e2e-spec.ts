@@ -41,7 +41,7 @@ interface AuthResponseData {
     email: string;
     nickname: string | null;
     avatar: string | null;
-    emailVerified: boolean;
+    isEmailVerified: boolean;
     emailVerifiedAt: string | null;
     createdAt: string;
     updatedAt: string;

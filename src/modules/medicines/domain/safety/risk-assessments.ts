@@ -32,7 +32,7 @@ export interface RiskAssessmentRecord {
   riskScore: number;
   /** `safe` | `caution` | `risk` | `danger`. */
   riskLevel: string;
-  stale: boolean;
+  isStale: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -206,7 +206,7 @@ export class PrismaAccounts extends Accounts {
     try {
       await this.prisma.user.update({
         where: { id: userId },
-        data: { emailVerified: true, emailVerifiedAt: at },
+        data: { isEmailVerified: true, emailVerifiedAt: at },
       });
     } catch (error) {
       throw infraFailure(error, 'Failed to mark email verified');

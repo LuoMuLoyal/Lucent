@@ -64,9 +64,9 @@ export class PrismaRiskAssessmentStore implements RiskAssessmentStore {
         userId: assessment.userId,
         checkType: assessment.checkType,
         ...payload,
-        stale: false,
+        isStale: false,
       },
-      update: { ...payload, stale: false },
+      update: { ...payload, isStale: false },
     });
 
     return toRecord(row);
@@ -88,7 +88,7 @@ type RiskCheckRow = {
   checkType: string;
   riskScore: number;
   riskLevel: string;
-  stale: boolean;
+  isStale: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -101,7 +101,7 @@ function toRecord(row: RiskCheckRow): RiskAssessmentRecord {
     checkType: asCheckType(row.checkType),
     riskScore: row.riskScore,
     riskLevel: row.riskLevel,
-    stale: row.stale,
+    isStale: row.isStale,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

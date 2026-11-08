@@ -92,7 +92,7 @@ def main() -> None:
                     "country": country,
                     "approved_on": parse_date(patent.get("approved")),
                     "expires_on": parse_date(patent.get("expires")),
-                    "pediatric_extension": parse_flag(
+                    "has_pediatric_extension": parse_flag(
                         patent.get("pediatric-extension")
                     ),
                 }

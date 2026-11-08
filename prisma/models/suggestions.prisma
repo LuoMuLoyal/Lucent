@@ -75,7 +75,7 @@ model UserSuggestion {
   priorityScore      Int                        @map("priority_score")
   confidence         SuggestionConfidence
   lifecycleState     SuggestionLifecycleState   @default(generated) @map("lifecycle_state")
-  notificationEligible Boolean                   @default(false) @map("notification_eligible")
+  isNotificationEligible Boolean                 @default(false) @map("is_notification_eligible")
   notificationSentAt DateTime?                   @map("notification_sent_at") @db.Timestamptz(3)
   feedback           SuggestionFeedbackType?
   feedbackAt         DateTime?                   @map("feedback_at") @db.Timestamptz(3)

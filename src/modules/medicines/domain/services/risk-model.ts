@@ -126,7 +126,7 @@ export interface MedicineRiskCheckRecord {
   result: MedicineRiskCheckResult;
   riskScore: number;
   riskLevel: MedicineRiskLevel;
-  stale: boolean;
+  isStale: boolean;
   createdAt: string;
   updatedAt: string;
 }

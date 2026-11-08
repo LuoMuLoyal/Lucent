@@ -28,7 +28,7 @@ export const adminUserSummarySchema = z
     email: z.email(),
     nickname: z.string().nullable(),
     status: z.enum(UserStatus),
-    emailVerified: z.boolean(),
+    isEmailVerified: z.boolean(),
     createdAt: z.iso.datetime(),
     lastLoginAt: z.iso.datetime().nullable(),
     adminRole: z.enum(AdminRole).nullable(),

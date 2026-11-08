@@ -158,7 +158,7 @@ export class DietImbalanceRuleService implements SuggestionRule {
       },
       priorityScore: DIET_IMBALANCE_BASE_SCORE,
       confidence: SuggestionConfidence.LOW,
-      notificationEligible: false,
+      isNotificationEligible: false,
       subtype: 'diet',
       copyGeneration: {
         templateKey: 'diet.imbalance',

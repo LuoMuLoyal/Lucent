@@ -106,7 +106,7 @@ export class ActiveSuggestionsReadModel {
       triggerType: row.triggerType as SuggestionItemDto['triggerType'],
       lifecycleState:
         ACTIVE_LIFECYCLE_STATE as SuggestionItemDto['lifecycleState'],
-      notificationEligible: row.notificationEligible,
+      isNotificationEligible: row.isNotificationEligible,
       feedbackOptions: feedbackOptionsFor(row.type),
       subtype: row.subtype ?? undefined,
     };

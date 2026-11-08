@@ -13,10 +13,10 @@ import type { UpdateNotificationPreferencesDto } from '../dto/update.dto.js';
 import type { NotificationPreferencesDataDto } from '../dto/response.dto.js';
 
 export const NOTIFICATION_PREFERENCE_DEFAULTS = {
-  healthAlertsEnabled: true,
-  weeklyInsightEnabled: false,
-  waterRemindersEnabled: true,
-  sleepReminderEnabled: false,
+  isHealthAlertsEnabled: true,
+  isWeeklyInsightEnabled: false,
+  isWaterRemindersEnabled: true,
+  isSleepReminderEnabled: false,
   sleepBedtimeMinutes: null,
   sleepWakeTimeMinutes: null,
 } as const;
@@ -58,8 +58,8 @@ export class NotificationPreferencesService {
     try {
       const preferences = await this.get(userId);
       return HEALTH_ALERT_RULE_IDS.has(ruleId)
-        ? preferences.healthAlertsEnabled
-        : preferences.waterRemindersEnabled;
+        ? preferences.isHealthAlertsEnabled
+        : preferences.isWaterRemindersEnabled;
     } catch (error) {
       // Notification preferences are a delivery gate, not a prerequisite for
       // materializing Today suggestions. Fail closed for the notification
@@ -95,18 +95,18 @@ export class NotificationPreferencesService {
         where: { userId },
         create: {
           userId,
-          healthAlertsEnabled:
-            dto.healthAlertsEnabled ??
-            NOTIFICATION_PREFERENCE_DEFAULTS.healthAlertsEnabled,
-          weeklyInsightEnabled:
-            dto.weeklyInsightEnabled ??
-            NOTIFICATION_PREFERENCE_DEFAULTS.weeklyInsightEnabled,
-          waterRemindersEnabled:
-            dto.waterRemindersEnabled ??
-            NOTIFICATION_PREFERENCE_DEFAULTS.waterRemindersEnabled,
-          sleepReminderEnabled:
-            dto.sleepReminderEnabled ??
-            NOTIFICATION_PREFERENCE_DEFAULTS.sleepReminderEnabled,
+          isHealthAlertsEnabled:
+            dto.isHealthAlertsEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.isHealthAlertsEnabled,
+          isWeeklyInsightEnabled:
+            dto.isWeeklyInsightEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.isWeeklyInsightEnabled,
+          isWaterRemindersEnabled:
+            dto.isWaterRemindersEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.isWaterRemindersEnabled,
+          isSleepReminderEnabled:
+            dto.isSleepReminderEnabled ??
+            NOTIFICATION_PREFERENCE_DEFAULTS.isSleepReminderEnabled,
           sleepBedtimeMinutes: dto.sleepBedtimeMinutes ?? null,
           sleepWakeTimeMinutes: dto.sleepWakeTimeMinutes ?? null,
         },
@@ -119,17 +119,17 @@ export class NotificationPreferencesService {
     dto: UpdateNotificationPreferencesDto,
   ): Prisma.UserNotificationPreferenceUpdateInput {
     const data: Prisma.UserNotificationPreferenceUpdateInput = {};
-    if (dto.healthAlertsEnabled !== undefined) {
-      data.healthAlertsEnabled = dto.healthAlertsEnabled;
+    if (dto.isHealthAlertsEnabled !== undefined) {
+      data.isHealthAlertsEnabled = dto.isHealthAlertsEnabled;
     }
-    if (dto.weeklyInsightEnabled !== undefined) {
-      data.weeklyInsightEnabled = dto.weeklyInsightEnabled;
+    if (dto.isWeeklyInsightEnabled !== undefined) {
+      data.isWeeklyInsightEnabled = dto.isWeeklyInsightEnabled;
     }
-    if (dto.waterRemindersEnabled !== undefined) {
-      data.waterRemindersEnabled = dto.waterRemindersEnabled;
+    if (dto.isWaterRemindersEnabled !== undefined) {
+      data.isWaterRemindersEnabled = dto.isWaterRemindersEnabled;
     }
-    if (dto.sleepReminderEnabled !== undefined) {
-      data.sleepReminderEnabled = dto.sleepReminderEnabled;
+    if (dto.isSleepReminderEnabled !== undefined) {
+      data.isSleepReminderEnabled = dto.isSleepReminderEnabled;
     }
     if (dto.sleepBedtimeMinutes !== undefined) {
       data.sleepBedtimeMinutes = dto.sleepBedtimeMinutes;
@@ -156,19 +156,19 @@ export class NotificationPreferencesService {
   }
 
   private toDto(row: {
-    healthAlertsEnabled: boolean;
-    weeklyInsightEnabled: boolean;
-    waterRemindersEnabled: boolean;
-    sleepReminderEnabled: boolean;
+    isHealthAlertsEnabled: boolean;
+    isWeeklyInsightEnabled: boolean;
+    isWaterRemindersEnabled: boolean;
+    isSleepReminderEnabled: boolean;
     sleepBedtimeMinutes: number | null;
     sleepWakeTimeMinutes: number | null;
     updatedAt: Date;
   }): NotificationPreferencesDataDto {
     return {
-      healthAlertsEnabled: row.healthAlertsEnabled,
-      weeklyInsightEnabled: row.weeklyInsightEnabled,
-      waterRemindersEnabled: row.waterRemindersEnabled,
-      sleepReminderEnabled: row.sleepReminderEnabled,
+      isHealthAlertsEnabled: row.isHealthAlertsEnabled,
+      isWeeklyInsightEnabled: row.isWeeklyInsightEnabled,
+      isWaterRemindersEnabled: row.isWaterRemindersEnabled,
+      isSleepReminderEnabled: row.isSleepReminderEnabled,
       sleepBedtimeMinutes: row.sleepBedtimeMinutes,
       sleepWakeTimeMinutes: row.sleepWakeTimeMinutes,
       configured: true,

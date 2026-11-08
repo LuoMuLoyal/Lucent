@@ -26,7 +26,7 @@ export interface MedicineRiskCheckRecordRow {
   result: unknown;
   riskScore: number;
   riskLevel: string;
-  stale: boolean;
+  isStale: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

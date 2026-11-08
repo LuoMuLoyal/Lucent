@@ -76,7 +76,7 @@ export class CoverageRuleService implements SuggestionRule {
           },
           priorityScore: COVERAGE_BASE_SCORE,
           confidence: SuggestionConfidence.HIGH,
-          notificationEligible: false,
+          isNotificationEligible: false,
           subtype: 'profile',
           copyGeneration: {
             templateKey: 'coverage.profile.incomplete',
@@ -115,7 +115,7 @@ export class CoverageRuleService implements SuggestionRule {
           priorityScore:
             COVERAGE_BASE_SCORE - COVERAGE_EMPTY_TODAY_SCORE_OFFSET,
           confidence: SuggestionConfidence.HIGH,
-          notificationEligible: false,
+          isNotificationEligible: false,
           subtype: 'empty_today',
           copyGeneration: {
             templateKey: 'coverage.record.empty_today',

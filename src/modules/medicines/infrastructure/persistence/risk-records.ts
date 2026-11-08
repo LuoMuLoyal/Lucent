@@ -19,7 +19,7 @@ type PrismaRiskCheckRecord = {
   result: unknown;
   riskScore: number;
   riskLevel: string;
-  stale: boolean;
+  isStale: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -30,7 +30,7 @@ function toRecordRow(row: PrismaRiskCheckRecord): MedicineRiskCheckRecordRow {
     result: row.result,
     riskScore: row.riskScore,
     riskLevel: row.riskLevel,
-    stale: row.stale,
+    isStale: row.isStale,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -55,7 +55,7 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
   async markAllStale(userId: string): Promise<void> {
     await this.prisma.medicineRiskCheckRecord.updateMany({
       where: { userId },
-      data: { stale: true },
+      data: { isStale: true },
     });
   }
 

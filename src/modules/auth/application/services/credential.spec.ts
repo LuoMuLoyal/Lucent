@@ -36,7 +36,7 @@ function collectResult<T, E>(
 const mockUser: User = {
   id: 'user-1',
   email: 'test@example.com',
-  emailVerified: true,
+  isEmailVerified: true,
   nickname: 'Tester',
   avatar: null,
   status: UserStatus.active,
@@ -228,7 +228,7 @@ describe('CredentialAuthService', () => {
         nickname: 'NewUser',
       });
       expect(userService.update).toHaveBeenCalledWith('user-1', {
-        emailVerified: true,
+        isEmailVerified: true,
         emailVerifiedAt: expect.any(Date),
       });
       expect(sessionTokens.issue).toHaveBeenCalledWith(

@@ -9,10 +9,10 @@ import { z } from 'zod';
  * outbound parsing tolerates whatever the service layer produces.
  */
 export const notificationPreferencesSchema = z.object({
-  healthAlertsEnabled: z.boolean(),
-  weeklyInsightEnabled: z.boolean(),
-  waterRemindersEnabled: z.boolean(),
-  sleepReminderEnabled: z.boolean(),
+  isHealthAlertsEnabled: z.boolean(),
+  isWeeklyInsightEnabled: z.boolean(),
+  isWaterRemindersEnabled: z.boolean(),
+  isSleepReminderEnabled: z.boolean(),
   sleepBedtimeMinutes: z.number().int().nullable(),
   sleepWakeTimeMinutes: z.number().int().nullable(),
   configured: z

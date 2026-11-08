@@ -279,7 +279,7 @@ export class EventReviewService {
     try {
       const records = await this.riskCheck.getRecords(userId);
       const staticRecord = records.static;
-      if (staticRecord == null || staticRecord.stale) {
+      if (staticRecord == null || staticRecord.isStale) {
         return [];
       }
       return staticRecord.result.redFlags.map((flag) => ({

@@ -119,7 +119,7 @@ const recordRow: RiskAssessmentRecord = {
   },
   riskScore: 0,
   riskLevel: 'safe',
-  stale: false,
+  isStale: false,
   createdAt: new Date('2026-06-01T00:00:00.000Z'),
   updatedAt: new Date('2026-06-01T00:00:00.000Z'),
 };
@@ -448,7 +448,7 @@ describe('MedicineRiskCheckService', () => {
     // 返回 record 形 DTO 即时快照
     expect(result).toMatchObject({
       checkType: 'static',
-      stale: false,
+      isStale: false,
       riskScore: 15,
       riskLevel: 'caution',
     });

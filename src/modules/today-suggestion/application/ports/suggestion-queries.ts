@@ -43,7 +43,7 @@ export interface ActiveSuggestionRow {
   secondaryActions: unknown;
   priorityScore: number;
   confidence: string;
-  notificationEligible: boolean;
+  isNotificationEligible: boolean;
   locale: string | null;
   generatedAt: Date;
 }

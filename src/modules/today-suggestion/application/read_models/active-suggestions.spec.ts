@@ -48,7 +48,7 @@ describe('ActiveSuggestionsReadModel', () => {
       secondaryActions: null,
       priorityScore: 900,
       confidence: 'high',
-      notificationEligible: false,
+      isNotificationEligible: false,
       subtype: null,
       locale: 'zh-CN',
       generatedAt: new Date('2026-07-09T08:00:00.000Z'),

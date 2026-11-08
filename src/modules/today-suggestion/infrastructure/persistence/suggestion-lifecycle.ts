@@ -41,7 +41,7 @@ export class PrismaSuggestionLifecycleStore extends SuggestionLifecycleStore {
         priorityScore: candidate.priorityScore,
         confidence: candidate.confidence,
         lifecycleState: SuggestionLifecycleState.ACTIVE,
-        notificationEligible: candidate.notificationEligible,
+        isNotificationEligible: candidate.isNotificationEligible,
         ...optionalSubtype(candidate.subtype),
         locale: input.locale,
         ...(input.sourceVersion != null

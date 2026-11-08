@@ -122,7 +122,7 @@ export class WaterShortfallRuleService implements SuggestionRule {
       },
       priorityScore: WATER_SHORTFALL_BASE_SCORE,
       confidence: SuggestionConfidence.MEDIUM,
-      notificationEligible: false,
+      isNotificationEligible: false,
       subtype: 'water',
       copyGeneration: {
         templateKey: 'water.behind.target',

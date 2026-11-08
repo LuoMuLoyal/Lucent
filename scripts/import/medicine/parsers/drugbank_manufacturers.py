@@ -67,7 +67,7 @@ def main() -> None:
                     "id": stable_uuid("drugbank_manufacturers", source_id, name),
                     "drugbank_id": source_id,
                     "name": name,
-                    "generic": parse_flag(attrs.get("generic")),
+                    "is_generic": parse_flag(attrs.get("generic")),
                     "url": normalize_text(attrs.get("url")),
                 }
             )

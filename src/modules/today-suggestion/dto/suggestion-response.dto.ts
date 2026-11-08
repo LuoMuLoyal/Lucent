@@ -87,7 +87,7 @@ export const suggestionItemSchema = z.object({
   ruleVersion: z.string().describe('Rule version'),
   triggerType: z.enum(TriggerType).describe('Trigger type'),
   lifecycleState: z.enum(SuggestionLifecycleState).describe('Lifecycle state'),
-  notificationEligible: z
+  isNotificationEligible: z
     .boolean()
     .optional()
     .describe('Whether this card can trigger a notification'),

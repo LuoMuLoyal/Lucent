@@ -40,7 +40,7 @@ describe('MissedDoseRuleService', () => {
     expect(candidate).not.toBeNull();
     expect(candidate!.type).toBe(SuggestionType.COMPLIANCE);
     expect(candidate!.confidence).toBe(SuggestionConfidence.HIGH);
-    expect(candidate!.notificationEligible).toBe(true);
+    expect(candidate!.isNotificationEligible).toBe(true);
     expect(candidate!.copyGeneration.templateKey).toBe('missed.dose.pending');
     expect(candidate!.copyGeneration.params['confirmationStatus']).toBe(
       'unconfirmed',

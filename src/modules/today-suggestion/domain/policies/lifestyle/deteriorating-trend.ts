@@ -137,7 +137,7 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
           daysCount >= DETERIORATING_TREND_HIGH_CONFIDENCE_DAYS
             ? SuggestionConfidence.HIGH
             : SuggestionConfidence.MEDIUM,
-        notificationEligible: false,
+        isNotificationEligible: false,
         subtype: 'symptom',
         copyGeneration: {
           templateKey: 'symptom.deteriorating.trend',

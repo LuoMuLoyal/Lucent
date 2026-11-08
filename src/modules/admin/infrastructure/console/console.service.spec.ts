@@ -120,7 +120,7 @@ describe('AdminConsoleService', () => {
         email: 'amy@example.com',
         nickname: 'Amy',
         status: UserStatus.active,
-        emailVerified: true,
+        isEmailVerified: true,
         createdAt,
         lastLoginAt: null,
         adminUser: { role: AdminRole.EDITOR },

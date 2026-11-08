@@ -54,7 +54,7 @@ export class PrismaSuggestionQueries implements SuggestionQueryPort {
       secondaryActions: row.secondaryActions,
       priorityScore: row.priorityScore,
       confidence: row.confidence,
-      notificationEligible: row.notificationEligible,
+      isNotificationEligible: row.isNotificationEligible,
       locale: row.locale,
       generatedAt: row.generatedAt,
     }));

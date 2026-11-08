@@ -33,10 +33,10 @@ if (
     try {
       const user = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, status: true, emailVerified: true },
+        select: { id: true, status: true, isEmailVerified: true },
       });
 
-      if (user === null || user.status !== UserStatus.active || !user.emailVerified) {
+      if (user === null || user.status !== UserStatus.active || !user.isEmailVerified) {
         console.error('An active user with a verified email is required.');
         process.exitCode = 1;
       } else {

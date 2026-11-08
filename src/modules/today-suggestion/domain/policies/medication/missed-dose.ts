@@ -136,7 +136,7 @@ export class MissedDoseRuleService implements SuggestionRule {
         MISSED_DOSE_BASE_SCORE +
         Math.floor(overdueMinutes / MISSED_DOSE_OVERDUE_DIVISOR),
       confidence: SuggestionConfidence.HIGH,
-      notificationEligible: true,
+      isNotificationEligible: true,
       copyGeneration: {
         templateKey: 'missed.dose.pending',
         params: {

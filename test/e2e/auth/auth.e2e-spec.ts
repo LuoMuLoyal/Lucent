@@ -19,7 +19,7 @@ interface UserDto {
   email: string;
   nickname: string | null;
   avatar?: string | null;
-  emailVerified: boolean;
+  isEmailVerified: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -203,7 +203,7 @@ describe('Auth API (e2e)', () => {
       const data = expectData(body);
       expect(data.user.email).toBe(email);
       expect(data.user.nickname).toBe(NEW_USER_NICKNAME);
-      expect(data.user.emailVerified).toBe(true);
+      expect(data.user.isEmailVerified).toBe(true);
       expect(data.user.id).toBeDefined();
       expect(data.user.createdAt).toBeDefined();
       expect(data.tokens.accessToken).toBeDefined();

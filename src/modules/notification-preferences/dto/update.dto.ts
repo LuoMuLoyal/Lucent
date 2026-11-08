@@ -12,19 +12,19 @@ import { z } from 'zod';
  */
 export const updateNotificationPreferencesSchema = z
   .object({
-    healthAlertsEnabled: z
+    isHealthAlertsEnabled: z
       .boolean()
       .describe('Enable health-rule notifications.')
       .optional(),
-    weeklyInsightEnabled: z
+    isWeeklyInsightEnabled: z
       .boolean()
       .describe('Enable weekly longitudinal insights.')
       .optional(),
-    waterRemindersEnabled: z
+    isWaterRemindersEnabled: z
       .boolean()
       .describe('Enable water shortfall notifications.')
       .optional(),
-    sleepReminderEnabled: z
+    isSleepReminderEnabled: z
       .boolean()
       .describe('Enable local bedtime sleep reminders.')
       .optional(),

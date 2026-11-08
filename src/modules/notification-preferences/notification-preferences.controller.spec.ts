@@ -8,10 +8,10 @@ import {
 describe('NotificationPreferencesController', () => {
   it('returns the authenticated user preferences resource', async () => {
     const preferences = {
-      healthAlertsEnabled: true,
-      weeklyInsightEnabled: false,
-      waterRemindersEnabled: true,
-      sleepReminderEnabled: false,
+      isHealthAlertsEnabled: true,
+      isWeeklyInsightEnabled: false,
+      isWaterRemindersEnabled: true,
+      isSleepReminderEnabled: false,
       sleepBedtimeMinutes: null,
       sleepWakeTimeMinutes: null,
       configured: false,
@@ -31,10 +31,10 @@ describe('NotificationPreferencesController', () => {
 
   it('partially updates preferences and returns the resource', async () => {
     const preferences = {
-      healthAlertsEnabled: false,
-      weeklyInsightEnabled: false,
-      waterRemindersEnabled: true,
-      sleepReminderEnabled: false,
+      isHealthAlertsEnabled: false,
+      isWeeklyInsightEnabled: false,
+      isWaterRemindersEnabled: true,
+      isSleepReminderEnabled: false,
       sleepBedtimeMinutes: null,
       sleepWakeTimeMinutes: null,
       configured: true,
@@ -49,11 +49,11 @@ describe('NotificationPreferencesController', () => {
     await expect(
       controller.patch(
         { sub: 'user-1', email: 'a@b.c', status: 'active' },
-        { healthAlertsEnabled: false },
+        { isHealthAlertsEnabled: false },
       ),
     ).resolves.toEqual(preferences);
     expect(service.patch).toHaveBeenCalledWith('user-1', {
-      healthAlertsEnabled: false,
+      isHealthAlertsEnabled: false,
     });
   });
 

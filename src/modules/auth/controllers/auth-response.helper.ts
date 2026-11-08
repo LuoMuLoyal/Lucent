@@ -16,7 +16,7 @@ export interface AuthResponseData {
     email: string;
     nickname: string | null;
     avatar: string | null;
-    emailVerified: boolean;
+    isEmailVerified: boolean;
     emailVerifiedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -51,7 +51,7 @@ export function buildAuthResponse(
       email: user.email,
       nickname: user.nickname,
       avatar: user.avatar,
-      emailVerified: toEmailVerified(user.emailVerifiedAt),
+      isEmailVerified: toEmailVerified(user.emailVerifiedAt),
       emailVerifiedAt: formatDateTime(user.emailVerifiedAt),
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),

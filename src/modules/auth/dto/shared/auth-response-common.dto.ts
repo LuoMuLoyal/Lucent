@@ -14,7 +14,7 @@ export const userBriefSchema = z.object({
   id: z.string().describe('用户 ID'),
   email: z.string().nullable().describe('邮箱地址，第三方账号可能为空'),
   nickname: z.string().nullable().describe('昵称'),
-  emailVerified: z.boolean().describe('邮箱是否已验证'),
+  isEmailVerified: z.boolean().describe('邮箱是否已验证'),
   emailVerifiedAt: z.string().nullable().describe('邮箱验证时间 (ISO 8601)'),
   createdAt: z.string().describe('创建时间 (ISO 8601)'),
 });
@@ -28,7 +28,7 @@ export const userFullSchema = z.object({
   email: z.string().nullable().describe('邮箱地址，第三方账号可能为空'),
   nickname: z.string().nullable().describe('昵称'),
   avatar: z.string().nullable().describe('头像 URL'),
-  emailVerified: z.boolean().describe('邮箱是否已验证'),
+  isEmailVerified: z.boolean().describe('邮箱是否已验证'),
   emailVerifiedAt: z.string().nullable().describe('邮箱验证时间 (ISO 8601)'),
   createdAt: z.string().describe('创建时间 (ISO 8601)'),
   updatedAt: z.string().describe('更新时间 (ISO 8601)'),

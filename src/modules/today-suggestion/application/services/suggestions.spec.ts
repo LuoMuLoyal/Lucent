@@ -37,7 +37,7 @@ function buildCandidate(
     },
     priorityScore: 500,
     confidence: 'high' as never,
-    notificationEligible: false,
+    isNotificationEligible: false,
     copyGeneration: {
       templateKey: 'test.template',
       params: {},
@@ -69,7 +69,7 @@ function buildDto(
     ruleVersion: candidate.ruleVersion,
     triggerType: candidate.triggerType,
     lifecycleState: SuggestionLifecycleState.ACTIVE,
-    notificationEligible: candidate.notificationEligible,
+    isNotificationEligible: candidate.isNotificationEligible,
     feedbackOptions: [
       'accepted' as never,
       'later' as never,

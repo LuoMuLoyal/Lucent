@@ -34,7 +34,7 @@ interface SessionUserDto {
   id: string;
   email: string;
   nickname: string | null;
-  emailVerified: boolean;
+  isEmailVerified: boolean;
   emailVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;

@@ -37,7 +37,7 @@ import { UserHealthContextService } from './health-context.js';
 const mockUserBase = {
   id: 'user-uuid-1',
   email: 'test@example.com',
-  emailVerified: true,
+  isEmailVerified: true,
   nickname: 'TestUser',
   avatar: null,
   status: UserStatus.active,

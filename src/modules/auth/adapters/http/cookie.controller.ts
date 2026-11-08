@@ -105,7 +105,7 @@ import {
  *
  * 账户资料只有一个读入口：`GET /account`（`AccountController`）。同一个资源两个
  * 入口会让客户端只能靠约定记住「读自己用 me、改自己用 account」，而两份响应形状
- * 本来就不一致（`SessionUser` 有 `emailVerified`，`AccountDto` 有
+ * 本来就不一致（`SessionUser` 有 `isEmailVerified`，`AccountDto` 有
  * `hasPassword`/`linkedIdentities`）。登录/注册/刷新的响应里仍带 `user` 块，
  * 那是**会话建立的产物**，不是第二个读账户的入口。
  *

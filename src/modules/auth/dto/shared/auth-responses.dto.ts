@@ -82,7 +82,10 @@ export type SendVerificationCodeResponseDto = z.infer<
 
 /** Replaces the private `VerifyEmailDataDto` + exported `VerifyEmailResponseDto`. */
 export const verifyEmailResponseSchema = z.object({
-  emailVerified: z.boolean().describe('邮箱是否已验证').meta({ example: true }),
+  isEmailVerified: z
+    .boolean()
+    .describe('邮箱是否已验证')
+    .meta({ example: true }),
 });
 
 /** Strongly typed verify-email response body. */

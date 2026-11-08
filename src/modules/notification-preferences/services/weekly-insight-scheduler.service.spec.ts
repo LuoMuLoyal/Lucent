@@ -35,7 +35,7 @@ describe('WeeklyInsightSchedulerService', () => {
       },
     };
     const preferences = {
-      get: vi.fn().mockResolvedValue({ weeklyInsightEnabled: true }),
+      get: vi.fn().mockResolvedValue({ isWeeklyInsightEnabled: true }),
     };
     const reports = {
       generate: vi.fn().mockResolvedValue(buildSummary()),
@@ -94,7 +94,7 @@ describe('WeeklyInsightSchedulerService', () => {
       },
     };
     const preferences = {
-      get: vi.fn().mockResolvedValue({ weeklyInsightEnabled: true }),
+      get: vi.fn().mockResolvedValue({ isWeeklyInsightEnabled: true }),
     };
     const reports = {
       generate: vi.fn().mockResolvedValue(
@@ -133,7 +133,7 @@ describe('WeeklyInsightSchedulerService', () => {
       },
     };
     const preferences = {
-      get: vi.fn().mockResolvedValue({ weeklyInsightEnabled: false }),
+      get: vi.fn().mockResolvedValue({ isWeeklyInsightEnabled: false }),
     };
     const reports = { generate: vi.fn() };
     const notifications = { createOrReplaceScoped: vi.fn() };
@@ -162,7 +162,7 @@ describe('WeeklyInsightSchedulerService', () => {
       },
     };
     const preferences = {
-      get: vi.fn().mockResolvedValue({ weeklyInsightEnabled: true }),
+      get: vi.fn().mockResolvedValue({ isWeeklyInsightEnabled: true }),
     };
     const reports = {
       generate: vi.fn().mockResolvedValue(buildSummary()),

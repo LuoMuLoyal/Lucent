@@ -28,7 +28,7 @@ const mockUser = {
   nickname: 'TestUser',
   avatar: null,
   status: UserStatus.active,
-  emailVerified: true,
+  isEmailVerified: true,
   emailVerifiedAt: null,
   lastLoginAt: null,
   deletedAt: null,

@@ -76,7 +76,7 @@ export type SessionRegisterDto = z.infer<typeof sessionRegisterSchema>;
  * 登录响应不该为一个布尔位多打一次库。
  *
  * 字段是 `AccountDto` 的**子集**（`email` / `nickname` / `avatar` /
- * `emailVerifiedAt` / `createdAt` / `updatedAt`），外加 `emailVerified`
+ * `emailVerifiedAt` / `createdAt` / `updatedAt`），外加 `isEmailVerified`
  * 这个供登录态直接判断的布尔位。
  */
 export const sessionUserSchema = z.object({
@@ -87,7 +87,7 @@ export const sessionUserSchema = z.object({
     .describe('邮箱地址。OAuth-only 账号在补填邮箱前为 null'),
   nickname: z.string().nullable().describe('昵称'),
   avatar: z.string().nullable().describe('头像 URL'),
-  emailVerified: z.boolean().describe('邮箱是否已验证'),
+  isEmailVerified: z.boolean().describe('邮箱是否已验证'),
   emailVerifiedAt: z.string().nullable().describe('邮箱验证时间 (ISO 8601)'),
   createdAt: z.string().describe('创建时间 (ISO 8601)'),
   updatedAt: z.string().describe('更新时间 (ISO 8601)'),

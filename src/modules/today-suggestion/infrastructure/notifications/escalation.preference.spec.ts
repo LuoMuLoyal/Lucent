@@ -23,7 +23,7 @@ function candidate(ruleId: string): SuggestionCandidate {
     },
     priorityScore: 900,
     confidence: SuggestionConfidence.HIGH,
-    notificationEligible: true,
+    isNotificationEligible: true,
     copyGeneration: { templateKey: 'test', params: {} },
   };
 }
@@ -61,7 +61,7 @@ describe('EscalationService notification preference gates', () => {
     },
   );
 
-  it('uses waterRemindersEnabled only for water shortfall', async () => {
+  it('uses isWaterRemindersEnabled only for water shortfall', async () => {
     const notifications = {
       createOrReplaceScoped: vi.fn().mockReturnValue(okAsync({} as never)),
     };

@@ -173,7 +173,7 @@ export class MoodSleepRuleService implements SuggestionRule {
       },
       priorityScore: MOOD_SLEEP_BASE_SCORE,
       confidence: SuggestionConfidence.LOW,
-      notificationEligible: false,
+      isNotificationEligible: false,
       subtype: 'mood',
       copyGeneration: {
         templateKey: 'mood.sleep.correlation',

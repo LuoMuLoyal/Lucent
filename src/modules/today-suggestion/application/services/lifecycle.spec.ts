@@ -70,7 +70,7 @@ describe('LifecycleService', () => {
       },
       priorityScore: 60,
       confidence: 'medium' as never,
-      notificationEligible: true,
+      isNotificationEligible: true,
       copyGeneration: {
         templateKey: 'test.template',
         params: {},

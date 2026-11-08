@@ -18,7 +18,7 @@ const ESCALATION_MIN_PRIORITY_SCORE = 700;
  * and triggers the notification via INotificationSender.
  *
  * Escalation conditions (all must be true):
- * 1. notificationEligible == true
+ * 1. isNotificationEligible == true
  * 2. triggerType == EVENT
  * 3. confidence == 'high'
  * 4. priorityScore >= 700 (only high-priority cards)
@@ -148,7 +148,7 @@ export class EscalationService {
    */
   private isEligible(candidate: SuggestionCandidate): boolean {
     return (
-      candidate.notificationEligible &&
+      candidate.isNotificationEligible &&
       candidate.triggerType === TriggerType.EVENT &&
       candidate.confidence === SuggestionConfidence.HIGH &&
       candidate.priorityScore >= ESCALATION_MIN_PRIORITY_SCORE

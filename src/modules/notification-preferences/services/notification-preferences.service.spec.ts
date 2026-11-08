@@ -23,10 +23,10 @@ describe('NotificationPreferencesService', () => {
     const service = new NotificationPreferencesService(prisma as never);
 
     await expect(service.get('user-1')).resolves.toEqual({
-      healthAlertsEnabled: true,
-      weeklyInsightEnabled: false,
-      waterRemindersEnabled: true,
-      sleepReminderEnabled: false,
+      isHealthAlertsEnabled: true,
+      isWeeklyInsightEnabled: false,
+      isWaterRemindersEnabled: true,
+      isSleepReminderEnabled: false,
       sleepBedtimeMinutes: null,
       sleepWakeTimeMinutes: null,
       configured: false,
@@ -40,10 +40,10 @@ describe('NotificationPreferencesService', () => {
       userNotificationPreference: {
         findUnique: vi.fn(),
         upsert: vi.fn().mockResolvedValue({
-          healthAlertsEnabled: false,
-          weeklyInsightEnabled: true,
-          waterRemindersEnabled: true,
-          sleepReminderEnabled: false,
+          isHealthAlertsEnabled: false,
+          isWeeklyInsightEnabled: true,
+          isWaterRemindersEnabled: true,
+          isSleepReminderEnabled: false,
           sleepBedtimeMinutes: 1380,
           sleepWakeTimeMinutes: null,
           updatedAt,
@@ -55,16 +55,16 @@ describe('NotificationPreferencesService', () => {
     await expect(
       unwrapOk(
         service.patch('user-1', {
-          healthAlertsEnabled: false,
-          weeklyInsightEnabled: true,
+          isHealthAlertsEnabled: false,
+          isWeeklyInsightEnabled: true,
           sleepBedtimeMinutes: 1380,
         }),
       ),
     ).resolves.toEqual({
-      healthAlertsEnabled: false,
-      weeklyInsightEnabled: true,
-      waterRemindersEnabled: true,
-      sleepReminderEnabled: false,
+      isHealthAlertsEnabled: false,
+      isWeeklyInsightEnabled: true,
+      isWaterRemindersEnabled: true,
+      isSleepReminderEnabled: false,
       sleepBedtimeMinutes: 1380,
       sleepWakeTimeMinutes: null,
       configured: true,
@@ -75,8 +75,8 @@ describe('NotificationPreferencesService', () => {
       expect.objectContaining({
         where: { userId: 'user-1' },
         update: {
-          healthAlertsEnabled: false,
-          weeklyInsightEnabled: true,
+          isHealthAlertsEnabled: false,
+          isWeeklyInsightEnabled: true,
           sleepBedtimeMinutes: 1380,
         },
       }),
@@ -122,16 +122,16 @@ describe('NotificationPreferencesService', () => {
   });
 
   it.each(['sleep_shortfall', 'event_check_in_trend', 'deteriorating_symptom'])(
-    'maps %s to healthAlertsEnabled',
+    'maps %s to isHealthAlertsEnabled',
     async (ruleId) => {
       const prisma = {
         userNotificationPreference: {
           findUnique: vi.fn().mockResolvedValue({
             ...{
-              healthAlertsEnabled: false,
-              weeklyInsightEnabled: false,
-              waterRemindersEnabled: true,
-              sleepReminderEnabled: false,
+              isHealthAlertsEnabled: false,
+              isWeeklyInsightEnabled: false,
+              isWaterRemindersEnabled: true,
+              isSleepReminderEnabled: false,
               sleepBedtimeMinutes: null,
               sleepWakeTimeMinutes: null,
               updatedAt: new Date('2026-08-20T00:00:00.000Z'),
@@ -147,14 +147,14 @@ describe('NotificationPreferencesService', () => {
     },
   );
 
-  it('maps water_behind_target only to waterRemindersEnabled', async () => {
+  it('maps water_behind_target only to isWaterRemindersEnabled', async () => {
     const prisma = {
       userNotificationPreference: {
         findUnique: vi.fn().mockResolvedValue({
-          healthAlertsEnabled: false,
-          weeklyInsightEnabled: false,
-          waterRemindersEnabled: true,
-          sleepReminderEnabled: false,
+          isHealthAlertsEnabled: false,
+          isWeeklyInsightEnabled: false,
+          isWaterRemindersEnabled: true,
+          isSleepReminderEnabled: false,
           sleepBedtimeMinutes: null,
           sleepWakeTimeMinutes: null,
           updatedAt: new Date('2026-08-20T00:00:00.000Z'),

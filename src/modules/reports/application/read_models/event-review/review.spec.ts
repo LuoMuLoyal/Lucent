@@ -499,7 +499,7 @@ describe('EventReviewService', () => {
       ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
       riskCheck.getRecords.mockResolvedValue({
         static: {
-          stale: false,
+          isStale: false,
           result: {
             redFlags: [
               {
@@ -563,7 +563,7 @@ describe('EventReviewService', () => {
       ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
       riskCheck.getRecords.mockResolvedValue({
         static: {
-          stale: true,
+          isStale: true,
           result: {
             redFlags: [
               {

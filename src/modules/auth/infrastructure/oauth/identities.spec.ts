@@ -17,7 +17,7 @@ import type { OAuthProviderProfile } from '../../application/ports/oauth-provide
 const mockUser: User = {
   id: 'user-1',
   email: 'test@example.com',
-  emailVerified: true,
+  isEmailVerified: true,
   nickname: 'OAuthUser',
   avatar: 'https://example.com/avatar.jpg',
   status: UserStatus.active,

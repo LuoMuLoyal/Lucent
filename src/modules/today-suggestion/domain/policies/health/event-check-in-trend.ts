@@ -114,7 +114,7 @@ export class EventCheckInTrendRuleService implements SuggestionRule {
       },
       priorityScore: 750,
       confidence: SuggestionConfidence.HIGH,
-      notificationEligible: true,
+      isNotificationEligible: true,
       subtype: 'health_event',
       copyGeneration: {
         templateKey: 'health_event.check_in_trend',

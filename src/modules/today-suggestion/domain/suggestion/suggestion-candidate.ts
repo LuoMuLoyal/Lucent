@@ -64,7 +64,7 @@ export interface SuggestionCandidate {
   priorityScore: number;
   confidence: SuggestionConfidence;
   expiresAt?: Date;
-  notificationEligible: boolean;
+  isNotificationEligible: boolean;
   /** Signal IDs that composed this candidate, if any. */
   composedFrom?: string[];
   /** Sub-type for rendering variety (e.g. 'water', 'sleep', 'diet'). */

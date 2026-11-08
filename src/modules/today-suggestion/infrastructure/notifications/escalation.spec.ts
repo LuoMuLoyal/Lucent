@@ -25,7 +25,7 @@ function buildCandidate(
     },
     priorityScore: 800,
     confidence: SuggestionConfidence.HIGH,
-    notificationEligible: true,
+    isNotificationEligible: true,
     copyGeneration: {
       templateKey: 'test.template',
       params: {},
@@ -107,8 +107,8 @@ describe('EscalationService', () => {
     });
   });
 
-  it('should not escalate if notificationEligible is false', async () => {
-    const candidate = buildCandidate({ notificationEligible: false });
+  it('should not escalate if isNotificationEligible is false', async () => {
+    const candidate = buildCandidate({ isNotificationEligible: false });
 
     const result = await service.escalateIfNeeded(
       'user-1',
@@ -269,7 +269,7 @@ describe('EscalationService', () => {
   it('should use suggestion type in the notification scope for deduplication', async () => {
     const candidate = buildCandidate({
       type: SuggestionType.BEHAVIOR_ADVICE,
-      notificationEligible: true,
+      isNotificationEligible: true,
       triggerType: TriggerType.EVENT,
       confidence: SuggestionConfidence.HIGH,
       priorityScore: 750,

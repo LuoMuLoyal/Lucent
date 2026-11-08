@@ -61,7 +61,7 @@ describe('EventCheckInTrendRuleService', () => {
     expect(candidate!.triggerType).toBe(TriggerType.EVENT);
     expect(candidate!.confidence).toBe(SuggestionConfidence.HIGH);
     expect(candidate!.priorityScore).toBe(750);
-    expect(candidate!.notificationEligible).toBe(true);
+    expect(candidate!.isNotificationEligible).toBe(true);
     expect(candidate!.copyGeneration.templateKey).toBe(
       'health_event.check_in_trend',
     );
@@ -83,7 +83,7 @@ describe('EventCheckInTrendRuleService', () => {
 
     expect(candidate).not.toBeNull();
     expect(candidate!.priorityScore).toBeGreaterThanOrEqual(700);
-    expect(candidate!.notificationEligible).toBe(true);
+    expect(candidate!.isNotificationEligible).toBe(true);
     expect(candidate!.copyGeneration.params['symptomRecordCount']).toBe(3);
     expect(
       candidate!.copyGeneration.params['consecutiveWorsenedCheckIns'],
@@ -108,7 +108,7 @@ describe('EventCheckInTrendRuleService', () => {
     expect(candidate!.triggerType).toBe(TriggerType.EVENT);
     expect(candidate!.confidence).toBe(SuggestionConfidence.HIGH);
     expect(candidate!.priorityScore).toBeGreaterThanOrEqual(700);
-    expect(candidate!.notificationEligible).toBe(true);
+    expect(candidate!.isNotificationEligible).toBe(true);
     expect(candidate!.copyGeneration.params['symptomRecordCount']).toBe(3);
   });
 
@@ -161,6 +161,6 @@ describe('EventCheckInTrendRuleService', () => {
     expect(candidate!.triggerType).toBe(TriggerType.EVENT);
     expect(candidate!.confidence).toBe(SuggestionConfidence.HIGH);
     expect(candidate!.priorityScore).toBeGreaterThanOrEqual(700);
-    expect(candidate!.notificationEligible).toBe(true);
+    expect(candidate!.isNotificationEligible).toBe(true);
   });
 });

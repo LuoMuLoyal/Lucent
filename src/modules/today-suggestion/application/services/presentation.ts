@@ -208,7 +208,7 @@ export class SuggestionPresentationService {
       ruleVersion: candidate.ruleVersion,
       triggerType: candidate.triggerType,
       lifecycleState,
-      notificationEligible: candidate.notificationEligible,
+      isNotificationEligible: candidate.isNotificationEligible,
       feedbackOptions: this.feedbackOptionsFor(candidate.type),
       subtype: candidate.subtype,
     };

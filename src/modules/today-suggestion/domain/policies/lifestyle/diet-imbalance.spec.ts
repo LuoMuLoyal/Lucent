@@ -62,7 +62,7 @@ describe('DietImbalanceRuleService', () => {
       ruleId: 'diet_imbalance',
       subtype: 'diet',
       confidence: 'low',
-      notificationEligible: false,
+      isNotificationEligible: false,
       primaryAction: { route: '/record/create?kind=meal' },
       copyGeneration: {
         templateKey: 'diet.imbalance',

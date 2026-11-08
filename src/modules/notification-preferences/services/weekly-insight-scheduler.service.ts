@@ -50,7 +50,7 @@ export class WeeklyInsightSchedulerService {
         }
 
         const preferences = await this.preferences.get(user.id);
-        if (!preferences.weeklyInsightEnabled) {
+        if (!preferences.isWeeklyInsightEnabled) {
           continue;
         }
 

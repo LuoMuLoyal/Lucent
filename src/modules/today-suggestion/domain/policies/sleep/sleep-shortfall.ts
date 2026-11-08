@@ -100,7 +100,7 @@ export class SleepShortfallRuleService implements SuggestionRule {
       },
       priorityScore: SLEEP_SHORTFALL_BASE_SCORE,
       confidence: SuggestionConfidence.MEDIUM,
-      notificationEligible: false,
+      isNotificationEligible: false,
       subtype: 'sleep',
       copyGeneration: {
         templateKey: 'sleep.shortfall',
