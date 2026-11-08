@@ -7,6 +7,7 @@ import {
   type DomainEventJobData,
 } from '../../../../common/index.js';
 import { ReportsService } from '../../application/use_cases/get-dashboard.js';
+import type { ReportsCacheInvalidationPort } from '../../application/ports/cache-invalidation-events.js';
 
 /** BullMQ queue the reports dashboard cache invalidation runs on. */
 export const REPORT_CACHE_INVALIDATION_QUEUE_NAME =
@@ -24,7 +25,9 @@ export const REPORT_CACHE_INVALIDATION_QUEUE_NAME =
  * e2e keep working. Either way the only data needed is the event's payload.
  */
 @Injectable()
-export class ReportsCacheInvalidationQueueService implements OnModuleInit {
+export class ReportsCacheInvalidationQueueService
+  implements OnModuleInit, ReportsCacheInvalidationPort
+{
   private readonly logger = new Logger(
     ReportsCacheInvalidationQueueService.name,
   );
@@ -60,6 +63,16 @@ export class ReportsCacheInvalidationQueueService implements OnModuleInit {
   }
 
   /**
+   * Port 实现：失效某用户的看板缓存。
+   *
+   * 队列消费者（`invalidateFromEvent`）与跨模块调用方走同一条路径——这正是
+   * 端口存在的意义：调用方不需要知道当前是「直接删」还是「排一条作业」。
+   */
+  async invalidate(userId: string): Promise<void> {
+    await this.reportsService.invalidateUserDashboard(userId);
+  }
+
+  /**
    * Drops the user's cached dashboard. Idempotent by nature: deleting an
    * already-deleted key is a no-op, and `ReportsService` itself downgrades a
    * cache failure to a warning (TTL is the safety net).
@@ -75,6 +88,6 @@ export class ReportsCacheInvalidationQueueService implements OnModuleInit {
       );
       return;
     }
-    await this.reportsService.invalidateUserDashboard(userId);
+    await this.invalidate(userId);
   }
 }

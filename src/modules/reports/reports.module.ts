@@ -32,6 +32,7 @@ import { ReportsPresenterService } from './application/read_models/dashboard/das
 
 import { ReportsService } from './application/use_cases/get-dashboard.js';
 import { ReportsCacheInvalidationQueueService } from './adapters/queue/cache-invalidation.js';
+import { REPORTS_CACHE_INVALIDATION } from './application/ports/cache-invalidation-events.js';
 import { EventReviewService } from './application/read_models/event-review/review.js';
 import { EventReviewFactsService } from './application/read_models/event-review/facts.js';
 import { EventReviewChangesService } from './application/read_models/event-review/changes.js';
@@ -84,6 +85,10 @@ import { CLINIC_SUMMARY_PROVIDERS } from './infrastructure/persistence/clinic-su
     EventReviewActionsService,
     EventReviewNextStepService,
     ReportsCacheInvalidationQueueService,
+    {
+      provide: REPORTS_CACHE_INVALIDATION,
+      useExisting: ReportsCacheInvalidationQueueService,
+    },
     ...CLINIC_SUMMARY_PROVIDERS,
     {
       provide: REPORT_DASHBOARD_CONTEXT,

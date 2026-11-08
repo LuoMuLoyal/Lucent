@@ -18,6 +18,7 @@ import { SafetyTipsAdminService } from './application/use_cases/safety-tips-admi
 import { MedicineRecognitionQueueService } from './adapters/queue/recognition.js';
 import { MedicineRiskCheckService } from './application/use_cases/check-risk.js';
 import { MedicineRiskRefreshQueueService } from './adapters/queue/risk-refresh.js';
+import { MEDICINE_RISK_REFRESH_QUEUE } from './application/ports/risk-refresh-queue.js';
 import { MedicineRiskLlmGeneratorService } from './infrastructure/llm/risk-check.js';
 import { RiskDetectionService } from './domain/services/risk-scoring.js';
 import { CnMedicinesService } from './infrastructure/persistence/cn.js';
@@ -60,6 +61,10 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     MedicineRecognitionQueueService,
     MedicineRiskCheckService,
     MedicineRiskRefreshQueueService,
+    {
+      provide: MEDICINE_RISK_REFRESH_QUEUE,
+      useExisting: MedicineRiskRefreshQueueService,
+    },
     MedicineRiskLlmGeneratorService,
     RiskDetectionService,
     MedicinesCacheAdminService,

@@ -9,6 +9,7 @@ import {
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
+import type { MedicineRiskRefreshQueuePort } from '../../application/ports/risk-refresh-queue.js';
 
 /** BullMQ queue the medicines risk refresh runs on. */
 export const MEDICINE_RISK_REFRESH_QUEUE_NAME = QUEUE_NAMES.medicineRiskRefresh;
@@ -36,7 +37,9 @@ export const MEDICINE_RISK_REFRESH_DELAY_MS = 5_000;
  * which was also keyed by user: one user's burst collapses into one check.
  */
 @Injectable()
-export class MedicineRiskRefreshQueueService implements OnModuleInit {
+export class MedicineRiskRefreshQueueService
+  implements OnModuleInit, MedicineRiskRefreshQueuePort
+{
   private readonly logger = new Logger(MedicineRiskRefreshQueueService.name);
   private readonly queue: Queue<DomainEventJobData> | null;
 
@@ -88,7 +91,15 @@ export class MedicineRiskRefreshQueueService implements OnModuleInit {
       );
       return;
     }
+    await this.schedule(userId);
+  }
 
+  /**
+   * Port 实现：为 `userId` 安排一次静态风险检查。
+   *
+   * 事件消费者（`refreshForEvent`）与直接调用方走同一条路径。
+   */
+  async schedule(userId: string): Promise<void> {
     // Mark stale first, and unconditionally: the record must read as stale even
     // if scheduling fails, and the old listener behaved the same way.
     try {
@@ -104,7 +115,7 @@ export class MedicineRiskRefreshQueueService implements OnModuleInit {
       await this.runCheck(userId);
       return;
     }
-    await this.enqueueRefresh(userId, data);
+    await this.enqueueRefresh(userId);
   }
 
   /**
@@ -124,15 +135,21 @@ export class MedicineRiskRefreshQueueService implements OnModuleInit {
    * waiting for the user to finish typing before computing once is the better
    * trade. Do not "unify" them without re-deciding that trade-off.
    */
-  private async enqueueRefresh(
-    userId: string,
-    data: DomainEventJobData,
-  ): Promise<void> {
+  private async enqueueRefresh(userId: string): Promise<void> {
     const queue = this.queue;
     if (queue == null) {
       return;
     }
     const jobId = buildRiskRefreshJobId(userId);
+    // The worker only needs `userId`; the original event is not forwarded so a
+    // `schedule()` call made directly (not from an event) has a payload too.
+    const data: DomainEventJobData = {
+      userId,
+      eventType: 'medicine.risk-refresh.requested',
+      eventId: jobId,
+      version: 1,
+      occurredAt: new Date().toISOString(),
+    };
     try {
       const existing = await queue.getJob(jobId);
       if (existing != null) {
