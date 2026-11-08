@@ -57,7 +57,8 @@ ADR-0013（三通道）。
 ## Dependencies
 
 - 引用：`notifications`（`INotificationSender`、`PushDeliveryService`）、
-  Prisma、cache-manager、EventEmitter2。
+  Prisma、cache-manager、`common/events`（`DomainEventPublisher` 发布
+  `reminder.changed`）。
 - 被引用：`assistant`（注入 `MedicineRemindersService`，只调 `list` 列提醒，
   供只读工具使用；模块里导出的 `MedicineReminderReaderPort` 由
   `MedicineReminderRepository` 的 `useExisting` 提供，目前无跨模块消费者）、

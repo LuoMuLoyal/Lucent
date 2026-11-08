@@ -3,6 +3,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { MedicineRemindersController } from './adapters/http/medicine-reminders.controller.js';
 import { ReminderDeliveriesController } from './adapters/http/reminder-deliveries.controller.js';
 import { ReminderDispatchQueue } from './adapters/queue/dispatch.js';
+import { REMINDER_DISPATCH_SCHEDULER } from './application/ports/reminder-dispatch-scheduler.js';
 import { MedicineRemindersOwnership } from './application/use_cases/ownership.js';
 import { MedicineRemindersMapper } from './application/read_models/mapper.js';
 import { MedicineRemindersService } from './application/services/reminders.js';
@@ -40,6 +41,10 @@ import { PrismaReminders } from './infrastructure/persistence/reminders.js';
     { provide: ReminderDispatcher, useExisting: ReminderSchedulerService },
 
     ReminderDispatchQueue,
+    {
+      provide: REMINDER_DISPATCH_SCHEDULER,
+      useExisting: ReminderDispatchQueue,
+    },
     DeliveryReceiptsService,
     { provide: ReminderDeliveries, useExisting: DeliveryReceiptsService },
   ],

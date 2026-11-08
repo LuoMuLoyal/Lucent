@@ -7,6 +7,7 @@ import {
   REMINDER_SCHEDULER_CRON,
   ReminderDispatcher,
 } from '../../application/ports/delivery-services.js';
+import type { ReminderDispatchSchedulerPort } from '../../application/ports/reminder-dispatch-scheduler.js';
 
 /** BullMQ queue name for the high-frequency reminder-dispatch job. */
 export const REMINDER_QUEUE_NAME = QUEUE_NAMES.reminderDispatch;
@@ -34,7 +35,9 @@ const JOB_REMINDER = 'reminder-dispatch';
  * declared by the module that runs them.
  */
 @Injectable()
-export class ReminderDispatchQueue implements OnModuleInit {
+export class ReminderDispatchQueue
+  implements OnModuleInit, ReminderDispatchSchedulerPort
+{
   private readonly logger = new Logger(ReminderDispatchQueue.name);
   private queue: Queue | null = null;
 
@@ -44,8 +47,22 @@ export class ReminderDispatchQueue implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    await this.registerSchedule();
+  }
+
+  /**
+   * Port 实现：建立队列并注册周期性派发任务。
+   *
+   * Redis 未配置时静默跳过（本地开发与 e2e 无 Redis），而不是让启动失败。
+   */
+  async registerSchedule(): Promise<void> {
     if (!this.factory.isAvailable) {
       this.logger.log('Reminder dispatch disabled; REDIS_URL not configured');
+      return;
+    }
+    if (this.queue != null) {
+      // 幂等：重复调用只更新已存在的任务定义，不产生第二条节奏。
+      this.logger.debug('Reminder dispatch schedule already registered');
       return;
     }
 
