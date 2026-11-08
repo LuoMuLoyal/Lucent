@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
@@ -115,7 +114,6 @@ const isTestRuntime =
       isGlobal: true,
       useClass: CacheConfigService,
     }),
-    EventEmitterModule.forRoot(),
     // Rate limiting: Redis-backed when REDIS_URL is set, in-memory fallback.
     // useFactory + inject resolves ConfigService through DI (ConfigService is
     // global) instead of re-instantiating a useClass placeholder; `imports`

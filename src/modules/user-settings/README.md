@@ -78,7 +78,8 @@ import `common/`）。两份由 `user-setting-keys.spec.ts` 钉住，漂移即�
 
 ## Dependencies
 
-- 引用：Prisma、cache-manager、EventEmitter2。
+- 引用：Prisma、cache-manager、`common/events`（`DomainEventPublisher` 发布
+  `settings.changed`）。
 - 被引用：`assistant`（能力发现与策略门禁）、`reports`（dashboard 经
   `IUserSettingsPort` 读 `aiSummariesEnabled`）、`today-suggestion`（collectors
   经 `IUserSettingsPort` 读设置）。三者都只依赖端口，不依赖具体类。
