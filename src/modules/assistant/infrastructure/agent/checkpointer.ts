@@ -17,6 +17,19 @@ import { EnvKey } from '../../../../config/env/env-keys.enum.js';
  * When the URL is missing or initialization fails the service returns `null`
  * from {@link getSaver}, letting callers degrade to the old stateless
  * behavior instead of breaking the assistant.
+ *
+ * ## Why the checkpoint tables get their own schema
+ *
+ * `PostgresSaver.setup()` creates and migrates its own tables at startup. Left
+ * on the default `public` schema, those four tables (`checkpoints`,
+ * `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`) become the
+ * one place where table structure is not owned by `prisma/models/**` — a fact
+ * that is invisible in the Prisma schema and in migration reviews, and that
+ * `docs/reference/database-conventions.md` forbids for every other table.
+ *
+ * The package takes a `schema` option and emits `CREATE SCHEMA IF NOT EXISTS`
+ * in `setup()`, so the isolation costs one constructor argument and no manual
+ * DDL. Keep `LANGGRAPH_CHECKPOINTER_SCHEMA` distinct from `public`.
  */
 @Injectable()
 export class AssistantCheckpointerService
@@ -38,10 +51,15 @@ export class AssistantCheckpointerService
     }
     try {
       this.pool = new Pool({ connectionString: databaseUrl, max: 5 });
-      const postgresSaver = new PostgresSaver(this.pool);
-      await postgresSaver.setup(); // idempotent: creates tables and runs migrations
+      const schema =
+        this.configService.get<string>(EnvKey.LANGGRAPH_CHECKPOINTER_SCHEMA) ??
+        'langgraph';
+      const postgresSaver = new PostgresSaver(this.pool, undefined, { schema });
+      await postgresSaver.setup(); // idempotent: creates the schema, tables and runs migrations
       this.saver = postgresSaver;
-      this.logger.log('Assistant checkpoint persistence ready');
+      this.logger.log(
+        `Assistant checkpoint persistence ready (schema=${schema})`,
+      );
     } catch (error) {
       this.logger.error(
         `Checkpoint init failed; falling back: ${String(error)}`,

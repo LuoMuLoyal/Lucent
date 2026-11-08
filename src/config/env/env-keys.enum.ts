@@ -5,6 +5,15 @@ export enum EnvKey {
   CORS_ORIGIN = 'CORS_ORIGIN',
   TRUST_PROXY = 'TRUST_PROXY',
   DATABASE_URL = 'DATABASE_URL',
+  /**
+   * Schema the LangGraph checkpoint tables live in.
+   *
+   * Kept out of `public` so `prisma/models/**` stays the only owner of that
+   * schema: the checkpointer creates and migrates its own tables at startup
+   * (`PostgresSaver.setup()`), which would otherwise be the one place where
+   * table structure bypasses Prisma migrations.
+   */
+  LANGGRAPH_CHECKPOINTER_SCHEMA = 'LANGGRAPH_CHECKPOINTER_SCHEMA',
   PUBLIC_BASE_URL = 'PUBLIC_BASE_URL',
   REDIS_URL = 'REDIS_URL',
   JWT_ACCESS_SECRET = 'JWT_ACCESS_SECRET',

@@ -167,6 +167,12 @@ const envSchema = z.object({
 
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,
+  // PostgreSQL identifier rules; the checkpointer quotes it, but rejecting a
+  // malformed name here keeps a typo from silently creating a stray schema.
+  [EnvKey.LANGGRAPH_CHECKPOINTER_SCHEMA]: z
+    .string()
+    .regex(/^[a-z_][a-z0-9_]*$/, 'validation.field.invalid')
+    .default('langgraph'),
   [EnvKey.REDIS_URL]: redisUrl,
 
   // ── JWT (secrets in .env; TTLs non-sensitive with defaults) ─────
