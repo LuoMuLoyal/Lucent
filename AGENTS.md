@@ -91,7 +91,7 @@
 
 - API contract changed → `pnpm export:openapi`. Do not hand-write endpoint docs.
 - OpenAPI spec stays OAS 3.0 direct output — 3.1/3.2 upgrade is deferred (upstream
-  dart-dio bugs + validator gaps): see docs/logs/migration-log/2026-09-05.md for the
+  dart-dio bugs + validator gaps): see docs/archive/2026-09/2026-09-05.md for the
   "why not" decision record.
 - Architecture/module structure changed → `pnpm docs:compodoc`.
 - Medicine import strategy changed → update `src/modules/medicines/README.md`.
