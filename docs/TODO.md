@@ -335,7 +335,7 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
 
 已核对（非推测）：
 
-- `prisma/models/medicine-user.prisma` 的 `UserMedicineDoseLog` 只有 5 个 `@@index`，
+- `prisma/models/medication-tracking.prisma` 的 `UserMedicineDoseLog` 只有 5 个 `@@index`，
   无 `@@unique`；4 个涉及该表的 migration 里 `UNIQUE` 命中为 0；
 - 连 **dev（15432）与 test（5432）两个库**查 `pg_indexes`：该表唯一索引只有主键
   `user_medicine_dose_logs_pkey`，槽位相关索引全是普通索引；
