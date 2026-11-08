@@ -79,8 +79,16 @@ METRICS_PASSWORD
 生产(`compose.yaml`,服务器 `/opt/lucent/.env`)下 `DATABASE_URL` / `REDIS_URL` 由
 `compose.yaml` 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
-`ADMIN_CONSOLE_ENABLED`(`'true'` / `'false'`,默认 `'true'`)控制管理控制台 SPA 是否由
-后端同源挂载在 `/admin`;设为 `'false'` 时后端不注册任何静态路由,须由外部 Web 服务器
+`LANGGRAPH_CHECKPOINTER_SCHEMA`(默认 `langgraph`)决定 assistant 的 LangGraph
+checkpoint 表落在哪个 schema。取值须符合 PostgreSQL 标识符规则(小写字母/数字/下划线,
+首字符非数字)。**不要设成 `public`**:`public` 只由 `prisma/models/**` 管理,而
+`PostgresSaver.setup()` 会在首次启动时自建 `checkpoints` / `checkpoint_blobs` /
+`checkpoint_writes` / `checkpoint_migrations` 并跑它自己的迁移——放在 `public` 就是
+全仓唯一绕过 Prisma 迁移的表结构。独立 schema 由 checkpointer 自己
+`CREATE SCHEMA IF NOT EXISTS`,无需手工 DDL。切到非 `public` 后,旧位置的历史
+checkpoint 不再被读取,assistant 会从空会话起步。
+
+`ADMIN_CONSOLE_ENABLED`(`'true'` / `'false'`,默认 `'true'`)控制管理控制台 SPA 是否由后端同源挂载在 `/admin`;设为 `'false'` 时后端不注册任何静态路由,须由外部 Web 服务器
 托管构建产物。`ADMIN_CONSOLE_DIR` 覆盖构建产物目录,留空按仓库内 `admin/dist` 解析,
 容器内为 `/app/admin/dist`。构建产物缺失时后端只记一条 warn 并跳过挂载,不影响其它路由。
 控制台没有独立凭据:登录使用真实 Lucent 账号,权限来自 `AdminUser` 角色矩阵。

@@ -161,6 +161,31 @@ if (!exists.rows[0]?.ok) {
 }
 ```
 
+#### 第三方库自建表：移出 `public`，不要开豁免
+
+有些依赖会在运行时建自己的表（当前唯一一个是 `@langchain/langgraph-checkpoint-postgres`
+的 `checkpoints` / `checkpoint_blobs` / `checkpoint_writes` / `checkpoint_migrations`）。
+给它们开一条「本文件管不到」的豁免是错的——豁免留在 `public` 里就是豁免了整条规则，
+而漂移静默的危害不因表的所有者而不同。
+
+正确做法是**把它们隔离到独立 schema**，让 `public` 保持「只由 `prisma/models/**` 定义」
+这个不变式。这类包多数本就支持指定 schema：
+
+```ts
+new PostgresSaver(pool, undefined, { schema: 'langgraph' });
+```
+
+`schema` 由 `LANGGRAPH_CHECKPOINTER_SCHEMA` 配置（默认 `langgraph`，见
+`docs/reference/environment-variables.md`）。`setup()` 会自己
+`CREATE SCHEMA IF NOT EXISTS`，因此隔离的成本只是一行构造参数，**不需要手工 DDL，
+也不产生新的 Prisma 迁移**。
+
+判断标准不是「这张表是不是我们的」，而是「它会不会让 `public` 的实际结构与
+`prisma/models/**` 不一致」——会，就隔离。
+
+同实例上的其它独立数据（如 LightRAG 的 graph/vector/kv 存储）走独立 **database**
+而非 schema，因为它们是独立进程、通过自己的 env 决定连接，不属于 Lucent 的连接域。
+
 ### 3.1 `onDelete` 的选法
 
 | 场景                     | 动作               | 例                                                |
