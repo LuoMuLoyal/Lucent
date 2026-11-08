@@ -212,12 +212,10 @@ export const enzymeDuelSchema = z.object({
  * `notConfigured` 表示「我们无法回答」。把后者压成空数组，会让界面把
  * 知识缺口显示成「没有风险」——在用药场景里这是最危险的静默降级。
  */
-export const graphQueryStatusSchema = z.enum([
-  'ok',
-  'notConfigured',
-  'unavailable',
-  'timeout',
-]);
+export const graphQueryStatusSchema = z
+  .enum(['ok', 'notConfigured', 'unavailable', 'timeout'])
+  .describe('Whether the graph could answer the query.')
+  .meta({ example: 'ok' });
 
 export type GraphQueryStatus = z.infer<typeof graphQueryStatusSchema>;
 

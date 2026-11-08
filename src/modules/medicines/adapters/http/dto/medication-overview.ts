@@ -42,13 +42,15 @@ export const medicationOverviewResponseSchema = z.object({
   totalMedicines: z
     .number()
     .int()
-    .describe('Every current medicine on record.'),
+    .describe('Every current medicine on record.')
+    .meta({ example: 3 }),
   resolvableMedicines: z
     .number()
     .int()
     .describe(
       'How many could be resolved to ingredients. The rest cannot participate in duplicate detection.',
-    ),
+    )
+    .meta({ example: 2 }),
   duplicates: z
     .array(duplicateIngredientGroupSchema)
     .describe('One entry per shared ingredient; empty when nothing overlaps.'),
