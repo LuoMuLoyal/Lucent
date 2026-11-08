@@ -1,37 +1,15 @@
-// Domain: User Core (User, Identity, Session, Profile, Settings, Audit)
-// Owning modules: user, auth, user-settings, audit-log
+// Domain: Identity & Access (User, Session, Account)
+// Owning modules: auth, user, account
+//
+// `User` is the aggregate root every other context's user-scoped table points
+// at, so it lives here. Its relation lists name models declared in sibling
+// files — Prisma merges the whole `prisma/models` folder into one schema, so a
+// relation may cross files.
 
 enum UserStatus {
   active
   suspended
   deleted
-}
-
-enum AdminRole {
-  SUPER_ADMIN
-  ADMIN
-  EDITOR
-  VIEWER
-}
-
-enum SexAtBirth {
-  female
-  male
-  intersex
-  unknown
-}
-
-enum UnitSystem {
-  metric
-  imperial
-}
-
-enum ActivityLevel {
-  sedentary
-  lightlyActive
-  moderatelyActive
-  veryActive
-  extremelyActive
 }
 
 enum UserSessionDeviceType {
@@ -64,7 +42,7 @@ model User {
   // null — that would match an arbitrary email-less user; see
   // `AuthIdentityService.findByEmail` for the null-guarded form.
   email                  String?                     @unique
-  emailVerified          Boolean                     @default(false) @map("email_verified") @db.Boolean
+  isEmailVerified        Boolean                     @default(false) @map("is_email_verified") @db.Boolean
   nickname               String?
   avatar                 String?
   status                 UserStatus                  @default(active)
@@ -110,24 +88,6 @@ model User {
   @@map("users")
 }
 
-model UserProfile {
-  userId                String          @id @map("user_id")
-  birthDate             DateTime?       @map("birth_date") @db.Date
-  sexAtBirth            SexAtBirth?     @map("sex_at_birth")
-  heightCm              Int?            @map("height_cm")
-  locale                String?
-  timezone              String?
-  unitSystem            UnitSystem?     @map("unit_system")
-  activityLevel         ActivityLevel?  @map("activity_level")
-  onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
-  extras                Json?           @db.JsonB
-  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_profiles")
-}
-
 model UserSession {
   id               String                 @id @default(uuid())
   userId           String                 @map("user_id")
@@ -159,35 +119,4 @@ model UserSession {
   @@index([userId, expiresAt])
   @@index([expiresAt])
   @@map("user_sessions")
-}
-
-model UserSetting {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  key       String
-  value     Json?    @db.JsonB
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, key])
-  // userId index removed — redundant prefix of unique(userId, key)
-  @@map("user_settings")
-}
-
-/// Security audit trail for sensitive operations.
-model AuditLog {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  action       String
-  resourceType String?  @map("resource_type")
-  resourceId   String?  @map("resource_id")
-  metadata     Json?    @db.JsonB
-  ipAddress    String?  @map("ip_address")
-  userAgent    String?  @map("user_agent")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-
-  @@index([userId, createdAt])
-  @@index([action, createdAt])
-  @@map("audit_logs")
 }

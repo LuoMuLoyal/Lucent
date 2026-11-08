@@ -1,0 +1,54 @@
+// Domain: Notifications
+// Owning module: notifications
+
+enum UserNotificationType {
+  ai_today_summary
+  ai_weekly_insight
+  ai_proactive_suggestion
+  medicine_missed_dose
+  password_changed
+  report_generated
+  medicine_reminder
+  system_announcement
+  oauth_login
+  identity_linked
+}
+
+/// User-scoped notification controls. This is intentionally separate from
+/// generic user settings because server-side notification producers consume
+/// these values as delivery gates.
+model UserNotificationPreference {
+  userId                 String   @id @map("user_id")
+  isHealthAlertsEnabled   Boolean  @default(true) @map("is_health_alerts_enabled")
+  isWeeklyInsightEnabled  Boolean  @default(false) @map("is_weekly_insight_enabled")
+  isWaterRemindersEnabled Boolean  @default(true) @map("is_water_reminders_enabled")
+  isSleepReminderEnabled  Boolean  @default(false) @map("is_sleep_reminder_enabled")
+  sleepBedtimeMinutes    Int?     @map("sleep_bedtime_minutes")
+  sleepWakeTimeMinutes   Int?     @map("sleep_wake_time_minutes")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
+}
+
+model UserNotification {
+  id            String                @id @default(uuid())
+  userId        String                @map("user_id")
+  type          UserNotificationType  @map("type")
+  scopeKey      String?               @map("scope_key")
+  title         String
+  content       String
+  action        String?               @map("action")
+  actionPayload Json?                 @map("action_payload") @db.JsonB
+  isRead        Boolean               @default(false) @map("is_read")
+  readAt        DateTime?             @map("read_at") @db.Timestamptz(3)
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@unique([userId, type, scopeKey])
+  // isRead index replaced by partial index in migration (WHERE is_read = false)
+  @@map("user_notifications")
+}
