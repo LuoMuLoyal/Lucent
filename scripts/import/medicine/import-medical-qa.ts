@@ -4,7 +4,7 @@
  * Imports the alpaca_zh_demo.json medical Q&A dataset (~1.36M records, ~1.83 GB)
  * into the RAG pipeline.
  *
- * Single-phase: stream-parse NDJSON → safety filter → write medical_qa_chunks.
+ * Single-phase: stream-parse NDJSON → safety filter → write medicine_qa_chunks.
  * The chunk table is the fact source that LightRAG ingestion reads
  * (`scripts/import/medicine/rebuild-lightrag-index.ts`); this script no longer
  * builds any vector index of its own.
@@ -120,26 +120,22 @@ async function filterAndWrite(options: {
     written: 0,
   };
 
-  // Ensure table exists (idempotent; matches Prisma-managed schema)
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS medical_qa_chunks (
-      id TEXT PRIMARY KEY,
-      qa_id TEXT NOT NULL UNIQUE,
-      question TEXT NOT NULL,
-      answer TEXT NOT NULL,
-      safety_label TEXT NOT NULL CHECK (safety_label IN ('safe', 'caution', 'blocked')),
-      created_at TIMESTAMPTZ DEFAULT now(),
-      updated_at TIMESTAMPTZ DEFAULT now()
-    )
-  `);
+  // 表由 Prisma 迁移创建（prisma/models/medicine-knowledge.prisma）。
+  // 这里不建表：脚本自建的列定义会与迁移漂移，且 IF NOT EXISTS 会让漂移静默。
+  const exists = await client.query(
+    `SELECT to_regclass('public.medicine_qa_chunks') IS NOT NULL AS ok`,
+  );
+  if (!exists.rows[0]?.ok) {
+    throw new Error('medicine_qa_chunks 不存在——先跑 pnpm db:migrate:all');
+  }
 
   // Clear existing if re-importing
   const existingCount = await client.query(
-    'SELECT count(*) FROM medical_qa_chunks',
+    'SELECT count(*) FROM medicine_qa_chunks',
   );
   if (Number(existingCount.rows[0].count) > 0) {
     console.log(`Clearing ${existingCount.rows[0].count} existing chunks...`);
-    await client.query('DELETE FROM medical_qa_chunks');
+    await client.query('DELETE FROM medicine_qa_chunks');
   }
 
   const fileStream = fs.createReadStream(sourcePath, { encoding: 'utf-8' });
@@ -175,7 +171,7 @@ async function filterAndWrite(options: {
     }
 
     await client.query(
-      `INSERT INTO medical_qa_chunks (id, qa_id, question, answer, safety_label)
+      `INSERT INTO medicine_qa_chunks (id, qa_id, question, answer, safety_label)
        VALUES ${values.join(', ')}
        ON CONFLICT (qa_id) DO UPDATE SET
          question = EXCLUDED.question,
@@ -258,7 +254,7 @@ Usage: node import-medical-qa.ts [options]
 Options:
   --source <path>        NDJSON source file (default: DrugDataBase/qa/medical_qa.ndjson)
   --limit <n>            Max records to import (default: all)
-  --filter               Parse NDJSON → safety filter → write medical_qa_chunks
+  --filter               Parse NDJSON → safety filter → write medicine_qa_chunks
   --help, -h             Show this help
 
 Examples:
