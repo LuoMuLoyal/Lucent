@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-22
+updated: 2026-11-09
 ---
 
 # Environment Variables
@@ -690,6 +690,10 @@ OTEL_EXPORTER_OTLP_ENDPOINT
 OTEL_METRICS_EXPORTER
 OTEL_TRACES_SAMPLER
 OTEL_TRACES_SAMPLER_ARG
+LANGFUSE_ENABLED
+LANGFUSE_PUBLIC_KEY
+LANGFUSE_SECRET_KEY
+LANGFUSE_BASE_URL
 VICTORIALOGS_URL
 ```
 
@@ -755,6 +759,25 @@ VICTORIALOGS_URL
   实测发到 `/opentelemetry/v1/traces` 返回 400 —— 写错路径的表现是"一个 span 都
   没有"而非报错。Grafana 侧用内置 `jaeger` 数据源读它
   （`http://victoriatraces:10428/select/jaeger`，同机走容器网络）。
+- `LANGFUSE_ENABLED` — 是否把 **LLM 调用**上报到 Langfuse。**默认 `false`**（与
+  `OTEL_ENABLED` 的默认开启相反）：没有 Cloud 凭据时开启只会让每个 span 走一遍注定
+  失败的导出。只有本项为 `true` **且** `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY`
+  都非空时才真正生效。
+  Langfuse 是**与上面的 OTLP 链路并行的第二个 trace 出口**，不是替代品：
+  `src/tracing.ts` 同时注册 `BatchSpanProcessor`（→ Jaeger/VictoriaTraces）和
+  `LangfuseSpanProcessor`，两者各自过滤、互不影响。实现细节上必须两个都注册为
+  `spanProcessors` 条目 —— `NodeSDK` 对 `traceExporter` 与 `spanProcessors` 是
+  if/else 关系（`build/src/sdk.js`），混用会让后者静默吞掉前者。
+  ⚠️ **Langfuse 不受 `OTEL_TRACES_SAMPLER` 控制**：它自带 exporter 全量上报，
+  接上后 Langfuse 是全量、VictoriaTraces 仍按采样率走，两者的存储/带宽要分开算。
+  承载内容见 `src/common/llm/tracing/langfuse-callback.ts`：assistant 的 LangGraph
+  调用（`runConversation` / `resumeConversation`）与 `BaseLlmGeneratorService` 的
+  结构化生成/流式生成都会带上 prompt 原文、tool 入参与结果、token 用量。
+- `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` — Langfuse 项目 API 密钥对
+  （`pk-lf-…` / `sk-lf-…`）。**secret key 是凭据，不得提交**，只写进本地 `.env`。
+- `LANGFUSE_BASE_URL` — Langfuse 服务地址。Cloud 按区域选：
+  `https://cloud.langfuse.com`（EU，默认）/ `https://us.cloud.langfuse.com`（US）/
+  `https://jp.cloud.langfuse.com`（JP）。留空时 SDK 自己回落 EU。
 - `VICTORIALOGS_URL` — VictoriaLogs HTTP ingest endpoint. When set in production,
   the logger batches entries as newline-delimited JSON and POSTs them directly
   to this URL (no Vector sidecar needed).
