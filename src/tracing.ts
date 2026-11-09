@@ -19,10 +19,13 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config as loadDotenv } from 'dotenv';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { getEnvFilePaths } from './config/env/env-file-paths.js';
 
@@ -59,14 +62,65 @@ loadTracingEnvironment();
  */
 const enabled = process.env['OTEL_ENABLED'] !== 'false';
 
+/**
+ * Whether to attach the Langfuse span processor.
+ *
+ * Langfuse is an **additional** OTel sink beside the OTLP exporter above, not
+ * a replacement: both span processors see every span and each decides what to
+ * keep. `LangfuseSpanProcessor` applies its own default filter (Langfuse SDK
+ * spans, spans carrying `gen_ai.*` attributes, and known LLM instrumentation
+ * scopes), so the Prisma/HTTP/Redis traffic that dominates this process stays
+ * out — only LLM work reaches Langfuse.
+ *
+ * Gated on `LANGFUSE_ENABLED` **and** both keys: without credentials every
+ * span would take a round trip that is guaranteed to fail. Default off, see
+ * `environment.validation.ts` (which must stay in lockstep with this module —
+ * this runs before ConfigModule and reads the bare `process.env`).
+ */
+const langfuseEnabled =
+  process.env['LANGFUSE_ENABLED'] === 'true' &&
+  process.env['LANGFUSE_PUBLIC_KEY'] != null &&
+  process.env['LANGFUSE_PUBLIC_KEY'] !== '' &&
+  process.env['LANGFUSE_SECRET_KEY'] != null &&
+  process.env['LANGFUSE_SECRET_KEY'] !== '';
+
+function buildLangfuseProcessor(): SpanProcessor {
+  const baseUrl = process.env['LANGFUSE_BASE_URL'];
+  return new LangfuseSpanProcessor({
+    // `langfuseEnabled` guarantees both keys are non-empty here; re-reading
+    // the env gives a narrowed `string | undefined`, so fall back to '' to
+    // satisfy `exactOptionalPropertyTypes` without a cast.
+    publicKey: process.env['LANGFUSE_PUBLIC_KEY'] ?? '',
+    secretKey: process.env['LANGFUSE_SECRET_KEY'] ?? '',
+    ...(baseUrl != null && baseUrl !== '' ? { baseUrl } : {}),
+    // Tags every trace with the deployment it came from, so a staging run is
+    // never mistaken for production in the Cloud UI.
+    environment: process.env['NODE_ENV'] ?? 'development',
+  });
+}
+
 if (enabled) {
+  // Both sinks are registered as explicit span processors rather than one via
+  // `traceExporter` and the other via `spanProcessors`: NodeSDK resolves those
+  // options with an if/else chain (`build/src/sdk.js`), so supplying
+  // `spanProcessors` would silently discard the `traceExporter` and cut the
+  // Jaeger/VictoriaTraces pipeline. Building the OTLP batch processor here
+  // keeps both paths alive regardless of whether Langfuse is enabled.
+  const spanProcessors: SpanProcessor[] = [
+    new BatchSpanProcessor(
+      new OTLPTraceExporter({
+        url:
+          process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] ??
+          'http://127.0.0.1:4318/v1/traces',
+      }),
+    ),
+  ];
+  if (langfuseEnabled) {
+    spanProcessors.push(buildLangfuseProcessor());
+  }
+
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({ 'service.name': 'lucent' }),
-    traceExporter: new OTLPTraceExporter({
-      url:
-        process.env['OTEL_EXPORTER_OTLP_ENDPOINT'] ??
-        'http://127.0.0.1:4318/v1/traces',
-    }),
     // `PrismaInstrumentation` must be registered before the Prisma Client is
     // first instantiated — this module is main.ts's first import, so that
     // holds. Sampler selection stays with the OTel standard env vars
@@ -75,6 +129,7 @@ if (enabled) {
       getNodeAutoInstrumentations(),
       new PrismaInstrumentation(),
     ],
+    spanProcessors,
   });
 
   sdk.start();
