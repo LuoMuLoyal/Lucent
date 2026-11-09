@@ -119,6 +119,17 @@ const envSchema = z.object({
   // 仅当 sampler 为 `traceidratio` / `parentbased_traceidratio` 时生效。
   // 写成字符串再 coerce：环境变量天然是字符串，直接 `z.number()` 会永远校验失败。
   [EnvKey.OTEL_TRACES_SAMPLER_ARG]: z.coerce.number().min(0).max(1).optional(),
+  // Langfuse 是**独立的** LLM trace 出口，与上面的 OTLP/Jaeger 链路并行：
+  // `CallbackHandler` + `LangfuseSpanProcessor` 自带 exporter，不受
+  // `OTEL_TRACES_SAMPLER` 管，也不会把现有 trace 后端换掉。
+  // 默认关闭（与 `OTEL_ENABLED` 的默认开启相反）：没有 Cloud 凭据时开启只会
+  // 让每个 span 走一遍注定失败的导出，所以必须有 key 才生效。
+  [EnvKey.LANGFUSE_ENABLED]: z.enum(['true', 'false']).default('false'),
+  [EnvKey.LANGFUSE_PUBLIC_KEY]: z.string().optional(),
+  [EnvKey.LANGFUSE_SECRET_KEY]: z.string().optional(),
+  // Cloud 区域：EU `https://cloud.langfuse.com`、US `https://us.cloud.langfuse.com`、
+  // JP `https://jp.cloud.langfuse.com`。留空时 SDK 自己回落 EU。
+  [EnvKey.LANGFUSE_BASE_URL]: optionalEmptyUri,
   [EnvKey.VICTORIALOGS_URL]: optionalEmptyUri,
 
   // ── App (non-sensitive, defaults below) ─────────────────────────
