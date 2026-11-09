@@ -119,10 +119,12 @@ describe('ReportsAiSummaryGeneratorService', () => {
       maxRetries: 0,
     });
     expect(withStructuredOutput).toHaveBeenCalled();
-    expect(invoke).toHaveBeenCalledWith([
-      expect.any(SystemMessage),
-      expect.any(HumanMessage),
-    ]);
+    expect(invoke).toHaveBeenCalledWith(
+      [expect.any(SystemMessage), expect.any(HumanMessage)],
+      // Langfuse tracing is off in tests, so the base generator passes no
+      // call config — the argument is present but `undefined`.
+      undefined,
+    );
     expect(result.summary).toBe('ok');
   });
 

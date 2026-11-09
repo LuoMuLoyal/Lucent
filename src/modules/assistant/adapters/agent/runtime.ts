@@ -6,6 +6,7 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { trace } from '@opentelemetry/api';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -74,6 +75,10 @@ import { extractMessageText } from './message-text.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import { AssistantStreamService } from '../../application/services/stream.js';
+import {
+  getLangfuseCallbackHandler,
+  langfuseTraceConfig,
+} from '../../../../common/llm/tracing/langfuse-callback.js';
 
 import {
   ASSISTANT_NODE_TIMEOUT_MS,
@@ -132,6 +137,9 @@ export class AssistantRuntimeService {
     private readonly intentClassifier?: AssistantIntentClassifierService,
     @Optional()
     private readonly runtimeConfigService?: RuntimeConfigService,
+    /** Global config module; absent only in tests that build this class by hand. */
+    @Optional()
+    private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -182,6 +190,17 @@ export class AssistantRuntimeService {
 
   hasChatModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig('chat');
+  }
+
+  /**
+   * Langfuse handler for this service, or `null` when tracing is off or no
+   * `ConfigService` was injected (tests construct this class without one).
+   */
+  private async langfuseHandler() {
+    if (this.configService == null) {
+      return null;
+    }
+    return getLangfuseCallbackHandler(this.configService);
   }
 
   /**
@@ -288,10 +307,23 @@ export class AssistantRuntimeService {
         : {}),
     });
 
-    const config = enableHithl
-      ? { configurable: { thread_id: input.conversationId } }
-      : undefined;
-
+    // Langfuse trace identity rides on `config.metadata.langfuse.*`; the
+    // handler is a process-wide singleton, so the config is the only per-turn
+    // binding. `null` handler (tracing off) yields `undefined` and the graph
+    // runs exactly as before.
+    const langfuse = langfuseTraceConfig(await this.langfuseHandler(), {
+      userId: input.userId,
+      ...(input.conversationId != null
+        ? { sessionId: input.conversationId }
+        : {}),
+      tags: ['assistant'],
+    });
+    const config = {
+      ...(enableHithl
+        ? { configurable: { thread_id: input.conversationId } }
+        : {}),
+      ...langfuse,
+    };
     // Acquire the circuit breaker before invoking the graph. The LangGraph
     // agent↔tools loop may issue multiple LLM calls inside a single
     // `graph.invoke()`; wrapping the whole invocation ensures that any LLM
@@ -353,9 +385,9 @@ export class AssistantRuntimeService {
     note?: string;
   }): Promise<{ finalContent: string | null }> {
     const graph = this.buildGraphWithCheckpointer(input.conversationId);
-    const config = { configurable: { thread_id: input.conversationId } };
+    const threadConfig = { configurable: { thread_id: input.conversationId } };
 
-    const snapshot = await graph.getState(config);
+    const snapshot = await graph.getState(threadConfig);
     const pending = (
       snapshot.values as { pendingReview?: AssistantPendingReview }
     ).pendingReview;
@@ -374,9 +406,17 @@ export class AssistantRuntimeService {
     // thread is resumed (applyApprovedProposals), so no batch-level expiry
     // check exists here (F-11).
 
+    // The resume turn is a separate trace from the turn that suspended: it
+    // re-enters the graph at `write_review`, so it produces its own model call
+    // and its own Langfuse trace, tied to the same session.
+    const langfuse = langfuseTraceConfig(await this.langfuseHandler(), {
+      userId: input.userId,
+      sessionId: input.conversationId,
+      tags: ['assistant', 'resume'],
+    });
     const result = await graph.invoke(
       new Command({ resume: { decision: input.decision, note: input.note } }),
-      config,
+      { ...threadConfig, ...langfuse },
     );
     return { finalContent: result.finalContent ?? null };
   }

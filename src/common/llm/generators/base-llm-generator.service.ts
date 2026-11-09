@@ -1,8 +1,10 @@
 import {
   Injectable,
   Logger,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import {
   AIMessageChunk,
@@ -20,6 +22,10 @@ import {
   isRetryableLlmError,
 } from '../retry/llm-retry.helper.js';
 import { LlmCircuitBreakerService } from '../safety/llm-circuit-breaker.service.js';
+import {
+  getLangfuseCallbackHandler,
+  langfuseTraceConfig,
+} from '../tracing/langfuse-callback.js';
 import { MetricsService } from '../../metrics/metrics.service.js';
 
 const MODEL_OPTIONS = {
@@ -60,10 +66,29 @@ export abstract class BaseLlmGeneratorService<
     private readonly llmRuntimeService: LlmRuntimePort,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
+    /**
+     * Optional so subclasses and their specs keep their existing three-argument
+     * constructor signature. Absent (`undefined`) means "Langfuse is off":
+     * every tracing helper below treats it that way, so a generator built
+     * without it runs exactly as before.
+     */
+    @Optional()
+    private readonly configService?: ConfigService,
   ) {}
 
   hasAnalysisModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig(this.modelRole);
+  }
+
+  /**
+   * Langfuse handler for this generator, or `null` when tracing is off or no
+   * `ConfigService` was injected (the specs construct generators without one).
+   */
+  private async langfuseHandler() {
+    if (this.configService == null) {
+      return null;
+    }
+    return getLangfuseCallbackHandler(this.configService);
   }
 
   /**
@@ -115,13 +140,20 @@ export abstract class BaseLlmGeneratorService<
     const modelName =
       this.llmRuntimeService.getModelName(this.modelRole) ?? 'unknown';
 
+    // Langfuse trace identity. The handler only becomes meaningful once
+    // `src/tracing.ts` registered the span processor; with tracing off this
+    // resolves to `undefined` and the model call is untouched.
+    const langfuse = langfuseTraceConfig(await this.langfuseHandler(), {
+      tags: ['llm', this.modelRole, this.options.streamName],
+    });
+
     // Acquire outside the try block so that an `LlmCircuitOpenError` thrown
     // by `acquire()` does not trigger `recordFailure()`, which would corrupt
     // the half-open probe counter and prematurely trip the breaker.
     this.circuitBreaker.acquire();
     try {
       const result = await withLlmRetry(
-        () => model.invoke(messages) as Promise<TOutput>,
+        () => model.invoke(messages, langfuse) as Promise<TOutput>,
         {
           onRetry: (error, attempt) => {
             if (isRetryableLlmError(error)) {
@@ -208,9 +240,15 @@ export abstract class BaseLlmGeneratorService<
     // no-op once fix-3 is applied, but is clearer this way).
     this.circuitBreaker.acquire();
     try {
+      const streamLangfuse = langfuseTraceConfig(await this.langfuseHandler(), {
+        tags: ['llm', this.modelRole, this.options.streamName, 'stream'],
+      });
       stream = await withLlmRetry(
         async () => {
-          const s = await model.stream(this.buildMessages(context, promptCopy));
+          const s = await model.stream(
+            this.buildMessages(context, promptCopy),
+            streamLangfuse,
+          );
           lastStream = s;
           return s;
         },
