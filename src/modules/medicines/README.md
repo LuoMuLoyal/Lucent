@@ -93,6 +93,19 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
   序列。**刻意与详情分离**——单药实测可达 96 KB（Imatinib 28 个靶点 × 2 个数据集），
   不该随每次详情请求下发；客户端只在用户展开序列区时才调。源无序列时返回空数组而非 404
   （CN 源没有序列列，但药品本身是存在的）。
+- `GET /api/v1/medicines/:id/network` — 单药邻域图（**Postgres，不经 Neo4j**）：返回
+  中心药、真实度数（`count(*)`）、限流后的邻居与事实边、被截掉的数量与排序方式。
+  - 限制规则在 `domain/relations/network.ts`（纯函数）。默认 30 个邻居、硬顶 100，
+    名额**靶点优先、相互作用补足**（靶点稀疏且信息密度高）。
+  - **`truncated` 与 `ordering` 是必填**：单药相互作用度数实测中位数 542、`DB00176`
+    达 2,249；不把「还有 N 个未显示」说出来，30 个邻居就会被当成全部。`ordering`
+    恒为 `drugbank_id_asc`，如实声明这不是重要性排序。
+  - 邻居按 `(drugbank_id, interacts_with_id)` 索引序取 Top-N（实测 0.086 ms）。曾按
+    「伙伴度数」排序，2,249 个邻居各算一次度数导致单条查询 **757 ms**，已放弃。
+  - `source=cn` 返回空图（中文说明书没有靶点/相互作用边），但**仍校验药品存在**——
+    对不存在的 id 返回 200 空图等于宣称「这个药存在且没有关系」。
+  - `inCatalogue` 单独查：`drugbank_drug_interactions.interacts_with_id` 刻意不建外键
+    （伙伴可能已下线），靠 JOIN 判断会把这些节点静默丢掉，导致边数与度数对不上。
 - `POST risk-check`（static/LLM 用药风险检查；`candidate` 预检仅支持
   static：解析来源详情即时静态检查，不落库不写 records 缓存，不产生最新
   记录；已在药箱的候选不重复加入）/ `GET risk-check`（最近记录，30 分钟缓存）。
