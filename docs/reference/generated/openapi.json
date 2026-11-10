@@ -4307,6 +4307,78 @@
         "tags": ["Medicines"]
       }
     },
+    "/api/v1/medicines/{id}/network": {
+      "get": {
+        "description": "Facts only: no inferred edges. Neighbours are capped (default 30, max 100) and taken in index order by partner id, NOT ranked by importance; the response always states how many were omitted (`truncated`) and which ordering was used.",
+        "operationId": "getMedicineNetwork",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "DrugBank id of the centre drug",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.",
+            "schema": {
+              "enum": ["drugbank", "cn"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "depth",
+            "required": false,
+            "in": "query",
+            "description": "Neighbourhood depth. Only 1 is supported: depth 2 on the interaction graph is quadratic and unreadable.",
+            "schema": {
+              "enum": [1],
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum neighbour nodes (1-100, default 30). Deterministic index order, not importance-ranked.",
+            "schema": {
+              "default": 30,
+              "description": "Maximum neighbour nodes in total (1-100), not per category. Targets are placed first (sparse, high information density), interaction partners fill the remainder. The selection is deterministic but not ranked by importance.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Neighbourhood graph. Empty neighbours with truncated=0 when the drug has no relations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineNetworkResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown medicine id."
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Neighbourhood graph of one drug (targets + truncated interaction partners)",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/medicines/risk-check": {
       "get": {
         "operationId": "getRiskCheck",
@@ -9764,6 +9836,51 @@
           }
         },
         "required": ["id", "source", "drug", "targets"],
+        "additionalProperties": false
+      },
+      "MedicineNetworkResponse": {
+        "type": "object",
+        "properties": {
+          "center": {
+            "$ref": "#/components/schemas/MedicineNetworkResponseCenter"
+          },
+          "degree": {
+            "$ref": "#/components/schemas/MedicineNetworkResponseDegree"
+          },
+          "neighbours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineNetworkResponseNeighbours"
+            },
+            "description": "At most `limit` neighbours; complete only when `truncated` is 0."
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineNetworkResponseEdges"
+            },
+            "description": "One edge per neighbour, always from the centre outward. Facts only."
+          },
+          "truncated": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Neighbours omitted by the limit. Non-zero means the UI must say \"and N more\"; treating the list as complete would misstate the drug’s degree."
+          },
+          "ordering": {
+            "type": "string",
+            "enum": ["drugbank_id_asc"],
+            "description": "How the shown neighbours were chosen. drugbank_id_asc means deterministic index order, NOT ranked by importance."
+          }
+        },
+        "required": [
+          "center",
+          "degree",
+          "neighbours",
+          "edges",
+          "truncated",
+          "ordering"
+        ],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponse": {
@@ -16091,6 +16208,92 @@
           "length",
           "sequence"
         ],
+        "additionalProperties": false
+      },
+      "MedicineNetworkResponseCenter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "DrugBank id of the centre drug."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the centre drug."
+          }
+        },
+        "required": ["id", "name"],
+        "additionalProperties": false
+      },
+      "MedicineNetworkResponseDegree": {
+        "type": "object",
+        "properties": {
+          "interactions": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Total interacting drugs, from count(*), not the truncated list length."
+          },
+          "targets": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Total drug-target edges of the centre drug."
+          }
+        },
+        "required": ["interactions", "targets"],
+        "additionalProperties": false
+      },
+      "MedicineNetworkResponseNeighbours": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Entity id: DrugBank id for drugs, target id for proteins."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "nodeKind": {
+            "type": "string",
+            "enum": ["drug", "protein"],
+            "description": "Node type, used for shape and legend grouping."
+          },
+          "inCatalogue": {
+            "type": "boolean",
+            "description": "Whether the neighbour exists in the local catalogue. Interaction partners may have been retired upstream, so out-of-catalogue nodes are name-only and must not be linked."
+          }
+        },
+        "required": ["id", "name", "nodeKind", "inCatalogue"],
+        "additionalProperties": false
+      },
+      "MedicineNetworkResponseEdges": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["interaction", "target"],
+            "description": "Which fact this edge states."
+          },
+          "neighbourId": {
+            "type": "string",
+            "description": "Matches the neighbour id this edge ends at."
+          },
+          "relationKind": {
+            "nullable": true,
+            "description": "Target-edge relation kind (target / enzyme / carrier / transporter).",
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target-edge action labels (inhibitor, agonist, ...)."
+          }
+        },
+        "required": ["kind", "neighbourId", "relationKind", "actions"],
         "additionalProperties": false
       },
       "MedicineRiskCheckRecordsResponseStatic": {

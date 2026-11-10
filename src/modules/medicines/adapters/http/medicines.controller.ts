@@ -42,6 +42,10 @@ import {
 
 import { medicineSequenceDataSchema } from './dto/sequence.js';
 
+import { medicineNetworkQuerySchema } from './dto/network.js';
+import type { MedicineNetworkQueryDto } from './dto/network.js';
+import { medicineNetworkSchema } from './dto/network.js';
+
 import {
   medicineSafetyTipResponseSchema,
   medicineSafetyTipsResponseSchema,
@@ -63,6 +67,7 @@ import { MedicinesService } from '../../application/use_cases/medicines.js';
 import { MedicineSearchReadModel } from '../../application/read_models/medicine-card.js';
 import { MedicineDetailReadModel } from '../../application/read_models/medicine-detail.js';
 import { MedicineSequenceReadModel } from '../../application/read_models/medicine-sequence.js';
+import { ReadMedicineNetwork } from '../../application/use_cases/read-network.js';
 
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
 import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
@@ -83,6 +88,7 @@ export class MedicinesController {
     private readonly medicinesService: MedicinesService,
     private readonly recognitionQueueService: MedicineRecognitionQueueService,
     private readonly riskCheckService: MedicineRiskCheckService,
+    private readonly networkUseCase: ReadMedicineNetwork,
     private readonly i18n: I18nService,
   ) {}
 
@@ -218,6 +224,59 @@ export class MedicinesController {
         query,
         this.shouldBypassCache(bypassCacheHeader),
       ),
+    );
+  }
+
+  @Public()
+  @Get(':id/network')
+  @ApiOperation({
+    operationId: 'getMedicineNetwork',
+    summary:
+      'Neighbourhood graph of one drug (targets + truncated interaction partners)',
+    description:
+      'Facts only: no inferred edges. Neighbours are capped (default 30, max 100) and taken in index order by partner id, NOT ranked by importance; the response always states how many were omitted (`truncated`) and which ordering was used.',
+  })
+  @ApiParam({ name: 'id', description: 'DrugBank id of the centre drug' })
+  @ApiQuery({
+    name: 'depth',
+    required: false,
+    enum: [1],
+    description:
+      'Neighbourhood depth. Only 1 is supported: depth 2 on the interaction graph is quadratic and unreadable.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description:
+      'Maximum neighbour nodes (1-100, default 30). Deterministic index order, not importance-ranked.',
+  })
+  @ApiQuery({
+    name: 'source',
+    required: false,
+    enum: ['drugbank', 'cn'],
+    description:
+      'Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Neighbourhood graph. Empty neighbours with truncated=0 when the drug has no relations.',
+  })
+  @ApiResponse({ status: 404, description: 'Unknown medicine id.' })
+  @SerializeOptions({ schema: medicineNetworkSchema })
+  async getNetwork(
+    @Param('id') id: string,
+    @Query({ schema: medicineNetworkQuerySchema })
+    query: MedicineNetworkQueryDto,
+  ) {
+    return unwrapResult(
+      this.networkUseCase.execute({
+        id,
+        source: query.source,
+        depth: 1,
+        limit: query.limit,
+      }),
     );
   }
 
@@ -392,6 +451,15 @@ registerResponseSchema({
   schema: medicineSequenceDataSchema,
   description:
     'Sequences of the drug itself and of its targets. Empty arrays when the source has none.',
+});
+
+registerResponseSchema({
+  path: '/api/v1/medicines/{id}/network',
+  method: 'get',
+  componentName: 'MedicineNetworkResponse',
+  schema: medicineNetworkSchema,
+  description:
+    'Neighbourhood graph of one drug: facts only, capped neighbours, and an explicit truncated count.',
 });
 
 registerResponseSchema({

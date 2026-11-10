@@ -44,6 +44,9 @@ import { MEDICINES_CACHE_MAINTENANCE } from './application/ports/cache-maintenan
 import { MEDICINES_GRAPH_READER } from './domain/relations/relations.js';
 import { MedicineGraphExecutor } from './infrastructure/graph/executor.js';
 import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
+import { MEDICINES_NETWORK_READER } from './application/ports/network.js';
+import { PrismaMedicineNetworkReader } from './infrastructure/persistence/network.js';
+import { ReadMedicineNetwork } from './application/use_cases/read-network.js';
 
 @Module({
   imports: [LlmRuntimeModule, LlmCommonModule],
@@ -79,7 +82,13 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
     MedicationOverviewService,
     MedicineGraphExecutor,
     Neo4jGraphReader,
+    ReadMedicineNetwork,
+    PrismaMedicineNetworkReader,
     { provide: MEDICINES_GRAPH_READER, useExisting: Neo4jGraphReader },
+    {
+      provide: MEDICINES_NETWORK_READER,
+      useExisting: PrismaMedicineNetworkReader,
+    },
     { provide: MEDICINES_KNOWLEDGE_CACHE, useExisting: MedicinesCacheService },
     { provide: CN_MEDICINES_READER, useExisting: CnMedicinesService },
     {

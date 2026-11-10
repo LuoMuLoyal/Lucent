@@ -5,6 +5,7 @@ import { MedicinesService } from '../../application/use_cases/medicines.js';
 import { MedicineSearchReadModel } from '../../application/read_models/medicine-card.js';
 import { MedicineDetailReadModel } from '../../application/read_models/medicine-detail.js';
 import { MedicineSequenceReadModel } from '../../application/read_models/medicine-sequence.js';
+import { ReadMedicineNetwork } from '../../application/use_cases/read-network.js';
 import { MedicineRecognitionQueueService } from '../queue/recognition.js';
 import { MedicineRiskCheckService } from '../../application/use_cases/check-risk.js';
 import { runRiskCheckSchema } from './dto/risk-check.js';
@@ -22,6 +23,7 @@ describe('MedicinesController', () => {
   let search: { searchWithCache: ReturnType<typeof vi.fn> };
   let detail: { getWithCache: ReturnType<typeof vi.fn> };
   let sequences: { get: ReturnType<typeof vi.fn> };
+  let network: { execute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -45,6 +47,10 @@ describe('MedicinesController', () => {
         {
           provide: MedicineSequenceReadModel,
           useValue: { get: vi.fn() },
+        },
+        {
+          provide: ReadMedicineNetwork,
+          useValue: { execute: vi.fn() },
         },
         {
           provide: MedicineRecognitionQueueService,
@@ -76,6 +82,7 @@ describe('MedicinesController', () => {
     search = module.get(MedicineSearchReadModel);
     detail = module.get(MedicineDetailReadModel);
     sequences = module.get(MedicineSequenceReadModel);
+    network = module.get(ReadMedicineNetwork);
   });
 
   describe('getSafetyTips', () => {
@@ -236,6 +243,51 @@ describe('MedicinesController', () => {
       await controller.getSequences('DB00002', {}, 'no-cache');
 
       expect(sequences.get).toHaveBeenCalledWith('DB00002', {}, true);
+    });
+  });
+
+  describe('getNetwork', () => {
+    it('delegates to the use case with the resolved query and returns the graph', async () => {
+      const graph = {
+        center: { id: 'DB00176', name: 'Fluvoxamine' },
+        degree: { interactions: 2249, targets: 3 },
+        neighbours: [],
+        edges: [],
+        truncated: 2252,
+        ordering: 'drugbank_id_asc' as const,
+      };
+      network.execute.mockReturnValue(okAsync(graph));
+
+      const result = await controller.getNetwork('DB00176', {
+        limit: 30,
+      } as never);
+
+      expect(result).toEqual(graph);
+      expect(network.execute).toHaveBeenCalledWith({
+        id: 'DB00176',
+        source: undefined,
+        depth: 1,
+        limit: 30,
+      });
+    });
+
+    it('passes the source through so cn can answer with an empty graph', async () => {
+      network.execute.mockReturnValue(
+        okAsync({
+          center: { id: 'cn-1', name: '某药' },
+          degree: { interactions: 0, targets: 0 },
+          neighbours: [],
+          edges: [],
+          truncated: 0,
+          ordering: 'drugbank_id_asc' as const,
+        }),
+      );
+
+      await controller.getNetwork('cn-1', { limit: 30, source: 'cn' } as never);
+
+      expect(network.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'cn-1', source: 'cn' }),
+      );
     });
   });
 
