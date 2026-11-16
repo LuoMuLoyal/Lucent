@@ -405,11 +405,11 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
 
 ### `domain-events-outbox.service.ts` 的 `tx` 参数
 
-`append(input, tx?: Prisma.TransactionClient)` 把 Prisma 事务客户端暴露在
-`src/common/**` 的公开签名上。改成端口等于重新定义 ADR-0025 的事务边界，且所有
-`append(event, tx)` 调用点都要跟着改——**必须先定 6 个生产模块的事务边界**，
-否则只是把中间层改得更难懂。ADR-0025 已把「append 不在生产者写事务内」记为
-未达成项，两者要一起解决。
+`append(input, tx?: Prisma.TransactionClient)` 仍把 Prisma 事务客户端暴露在
+`src/common/**` 的公开签名上。E0（2026-11-16）已通过 `transaction-scope.ts` 的
+ambient scope 让调用方**不必**传它——正常路径下 `tx` 参数已无人使用，只剩下
+向后兼容的位置。收掉它需要确认没有外部调用点后再删参数；不急着做，因为当前
+签名不造成正确性问题。
 
 ### `product-events` 的 `FunnelData` 形状镜像
 
@@ -432,3 +432,36 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
 `kind`/`date`/`rangeKey`/`scopeKey`，因为 `reports` 与 `today-analysis` 两个消费方
 仍在传扁平形态。版本栅栏已在领域里判，双形态不造成正确性问题；收干净要改那两个
 模块的 4 处调用。
+
+## RabbitMQ 跨服务事件通道（2026-11-16，通道已建、未接入）
+
+连接、durable topic exchange 与 confirm 发布器已落地并通过真实 broker 验证
+（`src/common/events/rabbitmq-*.service.ts`），但**目前没有任何消息经过它**：
+`RabbitMqModule` 已声明，无模块 import。以下是接通前的必要项。
+
+### Step 2：outbox 扇出增加 AMQP 通道
+
+`DomainEventFanOutService` 现在只把 outbox 行转成 BullMQ job 或进程内调用。
+需要让 `subscriptions.ts` 的订阅可以声明 `transport: 'queue' | 'amqp'`，逐消费者
+切换，并保留双投递期以便回滚。切换前必须先明确「哪些事件属于跨服务」——
+消费方仍在同一进程时走 AMQP 只是多一跳。
+
+### 消费侧幂等尚未实现
+
+投递是至少一次（confirm 超时可重投），每个 job 带 `eventId`，但**还没有任何消费者
+持久化已处理的 `eventId`**。第一个跨服务消费者落地时必须同时实现去重存储，
+否则重复投递会产生重复副作用。各消费者对「已处理」的定义与保留期不同，
+不做公共去重表。
+
+### quorum queue / DLQ / 重放工具未做
+
+当前只声明了 exchange，未声明任何队列。接入消费者时需要：quorum queue、
+每队列 DLX/DLQ 隔离毒消息、以及查看/重放/丢弃积压的工具。发布侧已开 confirms，
+消费侧的失败语义还是空白。
+
+### AMQP 链路没有 TLS
+
+生产 `RABBITMQ_URL` 是 `amqp://` 明文。跨机流量可被旁路读取与篡改，包括事件
+payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `amqps://`
+（`RABBITMQ_URL` 的校验已接受 `amqps`），或经 stunnel/反代终结 TLS。
+15672 管理台只靠安全组收口来源 IP，接入 TLS 时一并处理。
