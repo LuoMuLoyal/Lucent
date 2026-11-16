@@ -61,6 +61,19 @@ const redisUrl = z
   )
   .optional();
 
+/**
+ * AMQP broker for cross-service events. Optional on purpose: with no URL the
+ * RabbitMQ transport stays disabled and in-process delivery is unaffected,
+ * mirroring how `REDIS_URL` gates BullMQ.
+ */
+const rabbitMqUrl = z
+  .string()
+  .refine(
+    (v) => v.startsWith('amqp://') || v.startsWith('amqps://'),
+    'must be an amqp or amqps URL',
+  )
+  .optional();
+
 const httpUrl = z
   .union([
     z.literal(''),
@@ -185,6 +198,18 @@ const envSchema = z.object({
     .regex(/^[a-z_][a-z0-9_]*$/, 'validation.field.invalid')
     .default('langgraph'),
   [EnvKey.REDIS_URL]: redisUrl,
+  [EnvKey.RABBITMQ_URL]: rabbitMqUrl,
+  // Must be a *topic* exchange: routing keys are `<domain>.<action>`.
+  [EnvKey.RABBITMQ_EXCHANGE]: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9._-]*$/, 'validation.field.invalid')
+    .default('lucent.events'),
+  [EnvKey.RABBITMQ_CONFIRM_TIMEOUT_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(60)
+    .default(10),
 
   // ── JWT (secrets in .env; TTLs non-sensitive with defaults) ─────
   [EnvKey.JWT_ACCESS_SECRET]: z.string().min(32),

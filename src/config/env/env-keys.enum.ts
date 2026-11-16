@@ -16,6 +16,15 @@ export enum EnvKey {
   LANGGRAPH_CHECKPOINTER_SCHEMA = 'LANGGRAPH_CHECKPOINTER_SCHEMA',
   PUBLIC_BASE_URL = 'PUBLIC_BASE_URL',
   REDIS_URL = 'REDIS_URL',
+  /**
+   * AMQP connection string for cross-service events. Unset disables the
+   * RabbitMQ transport entirely — same degradation model as `REDIS_URL`.
+   */
+  RABBITMQ_URL = 'RABBITMQ_URL',
+  /** Topic exchange every cross-service event is published to. */
+  RABBITMQ_EXCHANGE = 'RABBITMQ_EXCHANGE',
+  /** Seconds a publisher waits for broker confirms before failing the publish. */
+  RABBITMQ_CONFIRM_TIMEOUT_SECONDS = 'RABBITMQ_CONFIRM_TIMEOUT_SECONDS',
   JWT_ACCESS_SECRET = 'JWT_ACCESS_SECRET',
   JWT_REFRESH_SECRET = 'JWT_REFRESH_SECRET',
   JWT_ACCESS_TTL = 'JWT_ACCESS_TTL',
