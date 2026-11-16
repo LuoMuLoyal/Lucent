@@ -173,6 +173,58 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  # ── RustFS(自建对象存储,S3 兼容)─────────────────────────────
+  # 取代原有的托管存储(七牛云 Kodo)与 dev 的 SeaweedFS:同一份定义同时服务
+  # 生产与 dev(compose.dev.yaml 只是收紧端口、换 dev 凭据)。
+  #
+  # 拓扑:app 走容器网络访问 `rustfs:9000`;客户端直传 / 外部受众(识图模型)
+  # 也签名到同一端点 —— 那两路需要从**公网**经 IP:9000 访问,因此端口必须发布,
+  # 且路径式寻址(见下)。没有域名与 TLS 时的取舍见
+  # docs/reference/environment-variables.md 的对象存储小节。
+  #
+  # 端口与暴露面依据文件头的同一原则:9000 由安全组收口,9001(管理控制台)
+  # **绝不放行 0.0.0.0/0** —— 它握有根凭据登录入口,只放行运维 IP。
+  rustfs:
+    image: rustfs/rustfs:1.0.6
+    restart: unless-stopped
+    environment:
+      # ⚠️ 单盘只能配**一个**卷。RustFS 启动时校验各卷的物理设备 id,多个卷落在
+      # 同一块盘上会 FATAL(`local erasure endpoints must use distinct physical
+      # disks`)并崩溃循环 —— 不是"没冗余"的软失败,是起不来。
+      # 要冗余:给 RustFS 挂 4 个独立物理盘并为每个盘加一个卷,再把这里改成
+      # `/data/rustfs{0...3}`(配合 4 个 volume 映射)。
+      RUSTFS_VOLUMES: ${RUSTFS_VOLUMES:-/data}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: 'true'
+      # RustFS 不校验 SigV4 签名里的区域串(实测 z2 / cn-north-1 / 任意串都能通过),
+      # 它只校验凭据与签名本身。因此这里的值不参与鉴权,只作为服务端上报的区域;
+      # 仍建议与 app 的 STORAGE_S3_REGION 保持一致,免得将来接 CDN 或换回托管
+      # 存储时,"改了区域也不报错"的历史配置变成新的静默故障。
+      RUSTFS_REGION: ${RUSTFS_REGION:?RUSTFS_REGION is required}
+      # 不给默认值:镜像内建的 rustfsadmin/rustfsadmin 是公开值,缺变量即拒绝启动。
+      RUSTFS_ACCESS_KEY: ${STORAGE_S3_ACCESS_KEY:?STORAGE_S3_ACCESS_KEY is required}
+      RUSTFS_SECRET_KEY: ${STORAGE_S3_SECRET_KEY:?STORAGE_S3_SECRET_KEY is required}
+      RUSTFS_OBS_LOGGER_LEVEL: info
+    volumes:
+      - rustfs-data:/data
+    ports:
+      - '9000:9000' # S3 API(客户端直传与外部受众访问的入口,安全组收口)
+      - '9001:9001' # Console ⚠️ 只放行运维 IP
+    # app 不 depends_on 它:存储不可用时 app 仍要能起来并把问题报成
+    # DEPENDENCY_UNAVAILABLE,而不是跟着卡在启动。
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:9000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
   # ── LightRAG(中文散文检索 sidecar)────────────────────────────
   # 说明书字段级语义检索 + 医学问答的导入与查询都由它承担(app 侧只调 /query)。
   # 只 expose 给 app 走容器网络,不发布宿主机端口、不挂 Traefik —— 唯一调用方是
@@ -323,6 +375,9 @@ volumes:
   # neo4j-data / neo4j-logs 已随服务搬到 compose.graph.yaml(图库机)。
   lightrag-data:
   rnacos-data:
+  # RustFS 的对象数据(含版本/元数据)。备份单位是这个卷,不是 bucket ——
+  # 见 docs/howto/deploy.md 的存储备份小节。
+  rustfs-data:
   # 配置中心 SDK 在 app 容器里的磁盘缓存与日志(冷启动策略依赖前者)。
   nacos-client-cache:
   nacos-client-logs:

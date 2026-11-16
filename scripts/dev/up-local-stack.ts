@@ -7,12 +7,7 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(thisDir, '..', '..');
 const COMPOSE_FILE = path.join(REPO_ROOT, 'compose.dev.yaml');
 
-const DEFAULT_SERVICES = [
-  'postgres-dev',
-  'postgres-test',
-  'redis',
-  'seaweedfs',
-];
+const DEFAULT_SERVICES = ['postgres-dev', 'postgres-test', 'redis', 'rustfs'];
 const RNACOS_SERVICE = 'rnacos';
 const RNACOS_PASSWORD_ENV = 'RNACOS_CONSOLE_PASSWORD';
 

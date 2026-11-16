@@ -197,42 +197,46 @@ services:
       - '16686:16686' # Jaeger UI
       - '4318:4318' # OTLP HTTP receiver
 
-  # ── SeaweedFS (dev-only S3-compatible object storage) ──────
-  seaweedfs:
-    image: chrislusf/seaweedfs:4.41
-    container_name: lucent-seaweedfs
+  # ── RustFS (dev S3-compatible object storage) ──────────────
+  # 生产同一个镜像、同一份 compose 定义(compose.yaml 的 rustfs),这里只是把端口
+  # 收紧到回环并给出 dev 凭据。tag 与生产**手工对齐**(两处都写死了 1.0.6)。
+  #
+  # 端口 9000(S3 API)/ 9001(Console)。宿主侧一律绑 127.0.0.1:凭据是容器内共享的,
+  # 放开到 0.0.0.0 等于把存储面暴露到局域网。
+  rustfs:
+    image: rustfs/rustfs:1.0.6
+    container_name: lucent-rustfs
     restart: unless-stopped
-    # The image entrypoint (/entrypoint.sh) already dispatches the first
-    # argument as a weed subcommand — do NOT prefix it with `weed`.
-    command: >
-      server
-      -dir=/data
-      -s3
-      -master.port=9333
-      -volume.port=8080
-      -filer.port=8888
-      -s3.port=8333
     environment:
-      AWS_ACCESS_KEY_ID: lucent-dev
-      AWS_SECRET_ACCESS_KEY: lucent-dev-secret
+      # 单盘布局只能用**一个**卷:RustFS 启动时会校验每个卷的物理设备 id,
+      # 多个卷落在同一块盘上直接 FATAL(`local erasure endpoints must use
+      # distinct physical disks`)并进入崩溃循环。要多卷(纠删码冗余)必须给
+      # 每个卷配独立物理盘,否则就保持单卷 —— 单卷不提供冗余。
+      RUSTFS_VOLUMES: ${RUSTFS_VOLUMES:-/data}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: 'true'
+      # RustFS 不校验签名里的区域串(实测任意区域值都能通过),这里只用于对齐
+      # 上报值;dev 与 .env.development 的 STORAGE_S3_REGION 保持一致即可。
+      RUSTFS_REGION: ${RUSTFS_REGION:-us-east-1}
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-lucent-dev}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-lucent-dev-secret}
+      RUSTFS_OBS_LOGGER_LEVEL: info
+      # dev 不回连版本检查服务,减少离线开发时的启动噪声。
+      RUSTFS_CHECK_UPDATE: 'false'
     ports:
-      - '8333:8333' # S3 API
-      - '8888:8888' # Filer (anonymous read for dev)
+      - '127.0.0.1:9000:9000' # S3 API
+      - '127.0.0.1:9001:9001' # Console
     volumes:
-      - seaweedfs-data:/data
+      - rustfs-data:/data
     healthcheck:
-      test:
-        [
-          'CMD',
-          'weed',
-          'shell',
-          '-master=localhost:9333',
-          '-cluster=',
-          'cluster.check',
-        ]
+      # 镜像自带 curl;S3 API 的 /health 是未鉴权探针(RUSTFS_HEALTH_ENDPOINT_ENABLE
+      # 默认 true),比 console 端口更能代表"能接请求"。
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:9000/health || exit 1']
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   # ── rnacos（运行时配置中心；profile 内，默认不启动）──────────────
   # 承载「不重启进程可调参」的叠加层：环境变量仍是唯一基线，这里只发布非密钥
@@ -302,6 +306,6 @@ volumes:
   redisdata:
   neo4j-dev-data:
   neo4j-dev-logs:
-  seaweedfs-data:
+  rustfs-data:
   lightrag-data:
   rnacos-data:
