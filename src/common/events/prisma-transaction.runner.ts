@@ -19,7 +19,7 @@
  *    it is a database row in the same connection.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client.js';
 import { PrismaService } from '../../prisma/index.js';
 import { activeTransaction, runInTransaction } from './transaction-scope.js';
@@ -48,8 +48,10 @@ export class PrismaTransactionRunner {
       // Nested transactions are not a slower-but-correct path: Prisma hands
       // out a separate connection and the inner writes escape the outer
       // rollback. Failing loudly is the only safe behaviour.
-      // eslint-disable-next-line error-handling/no-bare-throw-error
-      throw new Error(
+      //
+      // A violated invariant is not a domain failure (ADR-0012), so this is the
+      // 500-family exception rather than a `DomainFailureException`.
+      throw new InternalServerErrorException(
         'Nested transaction detected: Prisma would silently use an independent ' +
           'connection and lose atomicity. Reuse the outer transaction instead ' +
           'of opening a new one.',
