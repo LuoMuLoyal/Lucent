@@ -18,7 +18,9 @@ COS 桶和凭据。
 `StorageModule` 根据 `STORAGE_PROVIDER` 环境变量绑定唯一具体实现：
 
 - `tencent-cos`（默认）→ `TencentCosStorageRuntime`，保留既有 COS SDK 调用。
-- `s3` → `S3StorageRuntime`，使用 AWS SDK v3 对接 SeaweedFS S3 API。
+- `s3` → `S3StorageRuntime`，使用 AWS SDK v3 对接 S3 兼容服务。
+  （2026-11-16 修订：原文写的是「对接 SeaweedFS S3 API」。自建 RustFS 取代
+  SeaweedFS 后 dev 与生产跑同一个镜像，此处只更正实现指向的存储服务，决策本身不变。）
 
 S3 实现维护三个 `S3Client` 实例，分别对应：
 
@@ -47,5 +49,8 @@ S3 实现维护三个 `S3Client` 实例，分别对应：
 - `createSignedPutUrl` / `createSignedGetUrl` 变为 `async`（AWS SDK v3
   的 `getSignedUrl` 是异步的），消费方和 controller 均已适配。
 - SeaweedFS 仅限开发环境；生产不启用 S3 provider。
+  （2026-11-16 修订：这两条已被后续决策取代 —— 生产已切到自建 RustFS 并启用
+  S3 provider，`STORAGE_PROVIDER=s3` 在 dev 与生产一致。保留原文仅为记录当时的
+  范围，当前状态以 `docs/reference/environment-variables.md` 为准。）
 - 若 SeaweedFS 不能稳定通过真实 presigned PUT/GET 验收，保留抽象与 COS
   实现，改用 MinIO 的相同 `S3StorageRuntime` 合同重新验证。

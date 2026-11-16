@@ -7,7 +7,7 @@
 ## Context
 
 Lucent 的对象存储抽象(`ObjectStorageRuntime`,ADR-0014)最初只支持两个实现:
-`tencent-cos`(生产)与 `s3`(开发 SeaweedFS)。用户计划把存储从腾讯云 COS
+`tencent-cos`(生产)与 `s3`(开发 S3 兼容存储)。用户计划把存储从腾讯云 COS
 迁往阿里云 OSS,并希望使用 OSS 专用 SDK(`ali-oss`)而非 S3 兼容层。
 
 权衡:

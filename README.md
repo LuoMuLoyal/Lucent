@@ -37,7 +37,7 @@ remaining-work ledger in [docs/TODO.md](docs/TODO.md) plus [plans/](plans/).
 ```bash
 npm install --global pnpm@12.0.0
 pnpm install
-pnpm dev:stack        # start local PostgreSQL + Redis + SeaweedFS
+pnpm dev:stack        # start local PostgreSQL + Redis + RustFS
 pnpm db:migrate       # apply migrations
 pnpm start:dev        # start dev server
 ```
@@ -142,10 +142,10 @@ Local infrastructure note:
 - GitHub Actions CI uses the same `pgvector/pgvector:pg18` PostgreSQL family for its test database
   service so vector-dependent backend paths are not validated against a weaker database baseline
   than local development.
-- `pnpm dev:stack` also starts SeaweedFS (`chrislusf/seaweedfs:4.41`) as the dev-only S3-compatible
-  object storage (S3 API on port `8333`, Filer on `8888`). Set `STORAGE_PROVIDER=s3` and configure
-  `STORAGE_S3_*` in `.env.development` to use local object storage instead of Tencent COS.
-  See ADR-0014.
+- `pnpm dev:stack` also starts RustFS (`rustfs/rustfs:1.0.6`) as the S3-compatible object
+  storage, the same image and service definition production runs (S3 API on port `9000`,
+  console on `9001`). Set `STORAGE_PROVIDER=s3` and configure `STORAGE_S3_*` in
+  `.env.development` to use it instead of a hosted provider. See ADR-0014.
 - The LightRAG and Semantica sidecars are declared in `compose.dev.yaml` behind profiles, so a plain
   `pnpm dev:stack` does not start them. Without them the corresponding assistant tools report
   `retrieval_unavailable` rather than silently returning empty evidence.

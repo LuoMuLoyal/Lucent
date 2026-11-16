@@ -137,6 +137,24 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 
 ## 后续可做
 
+### RustFS 缺少域名与 TLS，公网链路是明文 HTTP（2026-11-16，对象存储自建时登记）
+
+对象存储已从七牛云 Kodo 与 dev 的 SeaweedFS 统一换成自建 RustFS。眼下没有域名，客户端
+直传与外部受众（识图模型）都签名到 `http://<主站公网IP>:9000`，后果是：预签名 URL 走明文
+HTTP，公网链路上对象内容可被旁路读取与篡改。方案：给 RustFS 配域名 + 证书（容器内
+`RUSTFS_TLS_PATH` 挂 `rustfs_cert.pem` / `rustfs_key.pem`，或前置同机反代），然后把
+`STORAGE_S3_CLIENT_ENDPOINT`、`STORAGE_S3_EXTERNAL_ENDPOINT` 改成 `https://`。验收：
+预签名 PUT 与 GET 在客户端与外部模型两侧都走 HTTPS，且旧 HTTP 端点关闭。
+
+### RustFS 单盘布局没有真实冗余（2026-11-16，同上）
+
+`RUSTFS_VOLUMES` 默认是单卷 `/data`：单盘部署下这是**唯一**能启动的配置——实测配成
+`/data/rustfs{0...3}` 会 FATAL（`local erasure endpoints must use distinct physical
+disks`）并进入崩溃循环，因为 4 个目录属于同一块设备。代价是没有冗余，单盘故障即全量
+丢失。方案：给 RustFS 挂 4 块独立物理盘（或云盘）并逐个加卷，再把 `RUSTFS_VOLUMES`
+改成 `/data/rustfs{0...3}`；或者明确接受"无冗余"并配置定期异地备份。验收：拔掉一块盘
+的演练下对象仍可读，且备份可恢复。
+
 ### 按管理面契约重生成 Luminous 客户端（2026-10-19，管理面扩展收尾）
 
 管理面扩展新增/调整了 `/api/v1/admin/*`（QA 语料、漏斗指标、依赖状态、数据/用户/管理员 API），

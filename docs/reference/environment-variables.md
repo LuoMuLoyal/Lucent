@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-11-09
+updated: 2026-11-16
 ---
 
 # Environment Variables
@@ -33,8 +33,8 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - 启动顺序:`pnpm dev:stack` → `pnpm db:migrate` → `pnpm start:dev`
 - `pnpm dev:stack`(`compose.dev.yaml`)以 `pgvector/pgvector:pg18` 启动
   postgres-dev / postgres-test——Assistant RAG 的向量索引与查询依赖
-  `CREATE EXTENSION vector`;同时启动 SeaweedFS(dev-only S3 兼容存储,S3 API 端口 8333、
-  Filer 端口 8888,`STORAGE_PROVIDER=s3` 启用)与 Jaeger UI(OTLP 4318)。若本地卷由旧版
+  `CREATE EXTENSION vector`;同时启动 RustFS(S3 兼容自建对象存储,S3 API 端口 9000、
+  管理控制台 9001,`STORAGE_PROVIDER=s3` 启用)与 Jaeger UI(OTLP 4318)。若本地卷由旧版
   纯 Postgres 镜像创建,重建 dev/test 卷即可补齐扩展二进制
 - LightRAG sidecar 默认**不在** dev 栈里(拖慢启动且需要模型 key),它在
   `compose.dev.yaml` 的 `lightrag` profile 内:
@@ -262,7 +262,7 @@ truly configured only after `ALIYUN_OSS_ACCESS_KEY_ID`, `ALIYUN_OSS_ACCESS_KEY_S
 `ALIYUN_OSS_BUCKET` are all set. Like COS, OSS signed URLs are not audience-specific: the
 external audience (e.g. meal-analysis vision model) receives the same URL as the client.
 
-S3-compatible object storage (dev: SeaweedFS / prod: 七牛云 Kodo S3 兼容) — set `STORAGE_PROVIDER=s3` to use:
+S3-compatible object storage (self-hosted RustFS, same image in dev and prod) — set `STORAGE_PROVIDER=s3` to use:
 
 ```text
 STORAGE_PROVIDER=s3
@@ -285,10 +285,25 @@ STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS
 `STORAGE_S3_EXTERNAL_ENDPOINT` is optional; when absent, requests for external-audience URLs
 (e.g. meal-analysis vision model) will fail with a clear configuration error.
 
-七牛云 Kodo 走 S3 兼容接口时，endpoint 格式为 `https://s3.<region>.qiniucs.com`（如
-`cn-east-1` → `https://s3.cn-east-1.qiniucs.com`），`region` 字段对应七牛区域 ID
-（`cn-east-1` / `cn-north-1` 等）。七牛原生 SDK 不支持 presigned PUT URL（其上传模型
-是 uploadToken + 表单 POST），但 S3 兼容层支持 presigned PUT，与现有客户端直传契约兼容。
+自建 RustFS(`rustfs/rustfs:1.0.6`)同时承载 dev 与生产：dev 由 `compose.dev.yaml` 起在
+宿主回环(`http://127.0.0.1:9000`)，生产由 `compose.yaml` 起在与 app 同一 compose 网络里。
+生产的三处端点分两种受众，不能填成同一个值：
+
+- `STORAGE_S3_ENDPOINT` 是**服务端**视角，写容器名 `http://rustfs:9000`；
+- `STORAGE_S3_CLIENT_ENDPOINT` 与 `STORAGE_S3_EXTERNAL_ENDPOINT` 要由手机客户端与外部
+  识图模型从公网访问，必须写宿主公网地址(当前无域名、无 TLS，形如
+  `http://<主站公网IP>:9000`)。写容器名会让这两条链路全部超时。
+
+RustFS 未配置 `RUSTFS_SERVER_DOMAINS` 时只支持路径式寻址，而
+`S3StorageRuntime` 已固定 `forcePathStyle: true`，因此 `STORAGE_S3_PUBLIC_BASE_URL`
+留空即可 —— 运行时会按路径式补上 `/<bucket>` 段。
+
+`STORAGE_S3_REGION` 与 RustFS 容器的 `RUSTFS_REGION` 保持一致即可。实测 RustFS **不校验**
+SigV4 签名里的区域串(用 `z2`、`cn-north-1`、甚至任意乱串签名都能通过),它只校验凭据与
+签名本身,所以区域填错不会导致失败 —— 这与之前接七牛 Kodo 时"区域错配即静默 403"的
+行为不同,那段事故记录对本部署不适用。凭据同源：`STORAGE_S3_ACCESS_KEY` /
+`STORAGE_S3_SECRET_KEY` 就是容器读取的 `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`，
+compose 里不另存一份。
 
 Mail:
 
