@@ -26,7 +26,8 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 ## 本地开发基线
 
 - Development DB:`postgres/postgres@127.0.0.1:15432/lucent`;Test/e2e DB:
-  `lucent/lucent_dev@127.0.0.1:5432/lucent`;Redis:`redis://127.0.0.1:6379`
+  `lucent/lucent_dev@127.0.0.1:5432/lucent`;Redis:`redis://127.0.0.1:6379`;
+  RabbitMQ:`amqp://lucent:lucent-dev-rabbit@127.0.0.1:5672`(管理台 15672)
 - Global prefix `/api`,URI 版本默认 `1`;管理控制台 `/admin`(SPA,由后端同源挂载)
 - 健康探针:`GET /api/v1/health`(readiness 别名,关键依赖不可用返回 503)、
   `/api/v1/health/live`(纯进程存活)、`/api/v1/health/ready`、`/api/v1/health/deep`(诊断)
@@ -885,6 +886,30 @@ OPENAPI_EXPORT_SKIP_REDIS
   `redis.service.ts`. Both variables are `z.enum(['true', 'false']).optional()` in the
   env validation schema (they may be absent at runtime outside the export process).
   Typed as `EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT` / `EnvKey.OPENAPI_EXPORT_SKIP_REDIS`.
+
+### RabbitMQ — 跨服务领域事件（可选）
+
+与 BullMQ 是**两条通道**，不是替代关系：BullMQ 走 Redis 承担「命令/任务」（恰好
+一个执行者，需要重试与并发控制）；RabbitMQ 承担「事实/事件」的跨服务扇出
+（0..N 个订阅者，可回放）。
+
+```text
+RABBITMQ_URL
+RABBITMQ_EXCHANGE
+RABBITMQ_CONFIRM_TIMEOUT_SECONDS
+```
+
+- `RABBITMQ_URL` — `amqp://` 或 `amqps://`。**留空 = 关闭通道**，进程内事件投递与
+  BullMQ 链路完全不受影响；本地开发、单测、e2e 都没有 broker。与其他可选 URL 一样，
+  要留空必须**整行删掉**，写成 `RABBITMQ_URL=` 会因格式校验失败而拒绝启动。
+- `RABBITMQ_EXCHANGE` — durable **topic** exchange 名，默认 `lucent.events`。
+  routing key 与事件名逐字相同（`<domain>.<action>`），消费者用通配绑定，
+  如 `daily-record.*`。
+- `RABBITMQ_CONFIRM_TIMEOUT_SECONDS` — 等待 broker confirm 的秒数，默认 10。
+  超时即判发布失败。没有它，一个接受 TCP 但停止确认的 broker 会永久挂住 outbox poller。
+
+配置了 URL 但连不上属于 `dependency` 故障，会抛出并让 outbox 重试，**不会**降级成
+「未配置」——否则一次 broker 故障会让事件被静默跳过。
 
 ### rnacos — 运行时配置中心（可选）
 
