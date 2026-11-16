@@ -6,6 +6,7 @@ import {
   EventConsumerRegistry,
 } from './domain-events-fanout.service.js';
 import { DomainEventOutboxService } from './domain-events-outbox.service.js';
+import { PrismaTransactionRunner } from './prisma-transaction.runner.js';
 
 /**
  * Outbox glue for cross-context domain events (ADR-0025).
@@ -28,12 +29,14 @@ import { DomainEventOutboxService } from './domain-events-outbox.service.js';
     DomainEventFanOutService,
     EventConsumerRegistry,
     DomainEventPublisher,
+    PrismaTransactionRunner,
   ],
   exports: [
     DomainEventOutboxService,
     DomainEventFanOutService,
     EventConsumerRegistry,
     DomainEventPublisher,
+    PrismaTransactionRunner,
   ],
 })
 export class DomainEventsModule {}

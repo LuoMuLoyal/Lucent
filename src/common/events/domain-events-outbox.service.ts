@@ -26,6 +26,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
 import { DomainEventFanOutService } from './domain-events-fanout.service.js';
+import { activeTransaction } from './transaction-scope.js';
 import {
   OUTBOX_MAX_ATTEMPTS,
   OUTBOX_POLL_INTERVAL_MS,
@@ -87,8 +88,18 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   /**
-   * Persists a domain event. May be called with the caller's Prisma client
-   * (transactional with the aggregate write) or without (standalone).
+   * Persists a domain event.
+   *
+   * **Joins the caller's local transaction automatically.** When the caller is
+   * inside `PrismaTransactionRunner.transaction()`, the active
+   * `Prisma.TransactionClient` is picked up from the ambient scope
+   * (`transaction-scope.ts`), so the outbox row commits or rolls back with the
+   * aggregate write. Callers outside a transaction keep the standalone
+   * behaviour. An explicit `tx` still wins when passed.
+   *
+   * This buys *local* atomicity only: delivery to consumers stays
+   * at-least-once and asynchronous, so the system as a whole remains
+   * eventually consistent (ADR-0025).
    *
    * With a `dedupeKey`, an existing row wins and its id is returned: the
    * unique index makes the check atomic across instances (a concurrent insert
@@ -98,7 +109,7 @@ export class DomainEventOutboxService implements OnModuleInit, OnModuleDestroy {
     input: DomainEventAppendInput,
     tx?: Prisma.TransactionClient,
   ): Promise<string> {
-    const client = tx ?? this.prisma;
+    const client = tx ?? activeTransaction() ?? this.prisma;
     const create = async (): Promise<string> => {
       const row = await client.domainEvent.create({
         data: {

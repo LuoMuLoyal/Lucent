@@ -152,6 +152,7 @@ export {
 } from './events/subscriptions.js';
 export type { EventSubscription } from './events/subscriptions.js';
 export { DomainEventPublisher } from './events/domain-event-publisher.service.js';
+export { PrismaTransactionRunner } from './events/prisma-transaction.runner.js';
 export { EVENT_ORIGINS, eventOriginFor } from './events/event-origins.js';
 export type { EventOrigin } from './events/event-origins.js';
 export {
