@@ -238,6 +238,33 @@ services:
       retries: 5
       start_period: 20s
 
+  # ── RabbitMQ (dev 跨服务领域事件) ──────────────────────────
+  # 与 redis 的分工见 .env.development.example:RabbitMQ 承担「事实/事件」的跨服务
+  # 扇出，BullMQ 仍负责「命令/任务」。dev 只需要一个 broker，不配集群。
+  #
+  # 端口与其他 dev 服务(redis/postgres)一致映射到宿主,便于本机进程与容器内进程
+  # 用同一套 `amqp://127.0.0.1:5672` 配置。
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: lucent-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-lucent}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-lucent-dev-rabbit}
+    ports:
+      - '5672:5672' # AMQP
+      - '15672:15672' # Management UI
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      # `rabbitmq-diagnostics` 是镜像自带、不需要额外工具，且真正验证节点在跑
+      # (不只是端口开着)。
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
+
   # ── rnacos（运行时配置中心；profile 内，默认不启动）──────────────
   # 承载「不重启进程可调参」的叠加层：环境变量仍是唯一基线，这里只发布非密钥
   # 热键（白名单见 docs/reference/runtime-config.example.txt）。默认服务列表不含
@@ -304,6 +331,7 @@ volumes:
   pgdata-dev:
   pgdata-test:
   redisdata:
+  rabbitmqdata:
   neo4j-dev-data:
   neo4j-dev-logs:
   rustfs-data:

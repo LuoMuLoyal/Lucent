@@ -173,6 +173,39 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  # ── RabbitMQ(跨服务领域事件)─────────────────────────────────
+  # 与 redis 的分工:BullMQ 走 Redis 承担「命令/任务」(恰好一个执行者);
+  # RabbitMQ 承担「事实/事件」的跨服务扇出(0..N 个订阅者,可回放)。
+  #
+  # 端口必须发布到 0.0.0.0:消费者将来跑在**其他主机**上,要靠公网连过来。
+  # 可达范围按文件头的原则由安全组收口 —— 只放行确实需要发布/订阅的服务出口 IP,
+  # 15672 管理台尤其不能对全网开放(它握有 broker 全部权限的登录入口)。
+  # 未配置 TLS 时 AMQP 明文传输,链路加密是后续项(见 docs/TODO.md)。
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      # 不给默认值:broker 的口令泄露等于所有事件都能被伪造或窃取。
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    ports:
+      - '5672:5672' # AMQP(跨服务事件,安全组按来源 IP 收口)
+      - '15672:15672' # Management UI ⚠️ 只放行运维 IP
+    healthcheck:
+      # 镜像自带 `rabbitmq-diagnostics`,真正验证节点在跑而不只是端口开着。
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
   # ── RustFS(自建对象存储,S3 兼容)─────────────────────────────
   # 取代原有的托管存储(七牛云 Kodo)与 dev 的 SeaweedFS:同一份定义同时服务
   # 生产与 dev(compose.dev.yaml 只是收紧端口、换 dev 凭据)。
@@ -370,6 +403,9 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  # RabbitMQ 的持久化(definitions + 消息)。durable queue 的内容落在这里,
+  # 备份单位是这个卷。
+  rabbitmqdata:
   # victoriametrics-data / grafana-data / victorialogs-data 已随服务搬到
   # compose.monitoring.yaml(监控机),不再属于本文件的卷。
   # neo4j-data / neo4j-logs 已随服务搬到 compose.graph.yaml(图库机)。
