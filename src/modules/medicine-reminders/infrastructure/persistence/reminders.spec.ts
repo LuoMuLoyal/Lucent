@@ -6,6 +6,7 @@ import type {
 } from '../../../../common/result/index.js';
 
 import { PrismaReminders } from './reminders.js';
+import { PrismaTransactionRunner } from '../../../../common/index.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
@@ -52,7 +53,10 @@ describe('PrismaReminders', () => {
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
 
-    repository = new PrismaReminders(prisma);
+    repository = new PrismaReminders(
+      prisma,
+      new PrismaTransactionRunner(prisma),
+    );
   });
 
   describe('listActiveFacts (reader port)', () => {

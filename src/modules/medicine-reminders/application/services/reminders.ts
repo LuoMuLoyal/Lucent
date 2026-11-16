@@ -216,6 +216,14 @@ export class MedicineRemindersService {
               ],
             });
 
+            // Inside the transaction on purpose (ADR-0025 E0): the outbox row
+            // joins this transaction, so a rollback drops the event too instead
+            // of leaving a "reminder changed" fact for a write that never
+            // committed. Delivery remains asynchronous and at-least-once.
+            await this.publisher.publish(REMINDER_CHANGED, {
+              userId,
+            } satisfies ReminderChangedPayload);
+
             return ok(rows.map((row) => this.mapperService.toItem(row)));
           },
         );
@@ -224,11 +232,7 @@ export class MedicineRemindersService {
         // transaction map to DomainFailure; unknown errors rethrow.
         return fromPrismaResult(transaction)
           .andThen((result) => result)
-          .andThen((items) =>
-            fromPromise(this.emitReminderChanged(userId), (error) => {
-              throw error;
-            }).map(() => ({ items })),
-          );
+          .map((items) => ({ items }));
       });
   }
 

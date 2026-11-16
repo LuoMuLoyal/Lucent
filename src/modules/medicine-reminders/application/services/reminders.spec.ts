@@ -610,7 +610,7 @@ describe('MedicineRemindersService', () => {
       });
     });
 
-    it('should roll back and not emit an event when the transaction fails', async () => {
+    it('should roll back and not persist an event when the transaction fails', async () => {
       repository.findCurrentMedicine.mockResolvedValue({
         id: 'medicine-1',
         userId: 'user-1',
@@ -618,9 +618,9 @@ describe('MedicineRemindersService', () => {
 
       // Atomic rollback is guaranteed by Prisma `$transaction`, delegated by the
       // repository (verified in reminder.repository.spec.ts). This test focuses
-      // on the service not swallowing the error and not emitting the event: run
-      // the transaction callback against the tx client so its writes execute,
-      // then reject the transaction to simulate a post-callback failure.
+      // on the service not swallowing the error and on the event staying inside
+      // the transaction: the append runs against the same tx client, so a
+      // rollback discards the outbox row with the reminder writes (ADR-0025 E0).
       const tx = transactionClient();
       tx.userMedicineReminder.findMany.mockResolvedValue([]);
       repository.transaction.mockImplementation(async (fn) => {
@@ -638,7 +638,9 @@ describe('MedicineRemindersService', () => {
       expect(repository.transaction).toHaveBeenCalledTimes(1);
       expect(tx.userMedicineReminder.updateMany).toHaveBeenCalled();
       expect(tx.userMedicineReminder.create).toHaveBeenCalled();
-      expect(publisher.publish).not.toHaveBeenCalled();
+      // The append happens inside the callback (not after it), so it shares the
+      // transaction's fate. Its own failure must surface, not be swallowed.
+      expect(publisher.publish).toHaveBeenCalledTimes(1);
     });
 
     it('should map a P2002 race inside the transaction to RESOURCE_CONFLICT', async () => {

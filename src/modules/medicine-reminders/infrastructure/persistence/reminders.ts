@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import { fromPrismaResult, nonDeleted } from '../../../../common/index.js';
+import {
+  fromPrismaResult,
+  nonDeleted,
+  PrismaTransactionRunner,
+} from '../../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
@@ -38,7 +42,10 @@ export class PrismaReminders
   extends ReminderRepositoryPort
   implements MedicineReminderReaderPort
 {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly transactions: PrismaTransactionRunner,
+  ) {
     super();
   }
 
@@ -131,7 +138,11 @@ export class PrismaReminders
     });
   }
 
+  /**
+   * Goes through the shared runner so domain-event appends inside `fn` join this
+   * transaction (ADR-0025 E0) instead of opening their own connection.
+   */
   override transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>) {
-    return this.prisma.$transaction(fn);
+    return this.transactions.transaction(fn);
   }
 }
