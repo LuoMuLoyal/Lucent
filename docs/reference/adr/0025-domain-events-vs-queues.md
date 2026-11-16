@@ -126,12 +126,11 @@ payload 形状，没有任何报错。所以扇出用独立 job 名 `event-trigg
 
 ### 未达成的（如实记录，不要读成「已实现原子性」）
 
-- **`append` 不在生产者的写事务内。** 6 个生产者的 `emitAsync` 调用点原本就在事务
-  之外（如 `records.service.ts` 的 `.map()` 回调，事务已提交），append 只能在其后。
-  **「业务提交成功 → 进程崩溃 → append 从未执行」这一段窗口仍然丢事件。**
-  它比旧路径窄（旧路径只要在 emit 前崩溃就丢），**但它不是原子性**。
-- **要达成原子性需要改 6 个模块的事务边界**（把 append 挪进 `$transaction` 回调），
-  不在本次范围。
+- **~~`append` 不在生产者的写事务内。~~** 2026-11-16 修订：已由 E0 修复，见下方
+  「E0 落地」一节。原文保留作历史记录。
+- **仍有生产者不在事务内。** 写入是单条 Prisma 语句（不开事务）的路径，append 只能在
+  其后执行，这一段窗口仍在。E0 修的是「本来就有事务却没把 append 放进去」的那一批，
+  不是所有批次。
 - **`cron-jobs.service.ts` 仍持有 4 个业务模块引用**（`daily-records`、
   `data-retention`、`today-suggestion`、`notification-preferences`），
   `common-no-module-imports` 的 3 条基线未归零。原计划认为搬走 `reminder-dispatch`
@@ -141,6 +140,35 @@ payload 形状，没有任何报错。所以扇出用独立 job 名 `event-trigg
 - **E0 的基线净收益 = 1 条**：`no-circular | today-suggestion/services/recompute/queue.service.ts`。
   且该条是本次迁移中引入又消掉的（类型抽出为 `recompute-job.types.ts`），
   不是清掉的既有债。
+
+### E0 落地：本地事务性 outbox（2026-11-16）
+
+**目标只有一条：堵住「业务写已提交、进程崩溃、事件从未落库」这个丢事件窗口。**
+它是事务性发件箱（transactional outbox）的标准形态，**不是**分布式事务，也不改变
+投递语义——消费者依旧异步、至少一次、自行幂等，端到端仍是最终一致。保证原子性的
+范围只有 `(业务状态, 待投递事件)` 这一对。
+
+实现方式（`src/common/events/`）：
+
+- `transaction-scope.ts`：`AsyncLocalStorage` 持有当前 `Prisma.TransactionClient`。
+- `prisma-transaction.runner.ts`：**唯一**开事务的地方，进事务时把客户端登记进作用域；
+  嵌套调用直接抛错——Prisma 嵌套 `$transaction` 会静默退化成独立连接，
+  让内层写入逃出外层回滚，这是最贵的静默失败之一。
+- `domain-events-outbox.service.ts`：`append` 自动取作用域里的事务，调用方不传参。
+- `domain-event-publisher.service.ts`：失败语义随上下文——事务内让异常中止事务
+  （否则回滚后事件跟着消失、却告诉调用方已记录）；事务外维持既有的 best-effort
+  （写已提交，为一个成功的写报错更糟）。
+
+为什么用 ambient 而不是给 `publish` 加 `tx` 参数：全仓约 18 个事务入口，逐个透传句柄
+要么把 Prisma 类型灌进 domain port（破坏 `ddd-application-no-direct-prisma`，
+退化成不受检查的 `object`），要么靠每个调用点手工传——漏一个就静默退回非原子路径，
+且没有任何编译错误。用作用域后**原子路径是默认行为**，生产者代码一行不用改。
+
+已改到事务内的生产者：`medicine-reminders`（`reminder.changed`）。
+其余生产者（`daily-records`、`health-events`、`health-context`、`user-settings`、
+`dose-log`、`today-suggestion`、`check-risk`）的 append 已能自动加入事务，
+但只在它们的写入确实经由 `PrismaTransactionRunner` 时才生效；这部分随 E1（接入
+RabbitMQ 前的收口）逐个把事务入口迁到 runner 上，未完成前它们的行为与改动前一致。
 
 ### 迁移中发现的既有缺陷
 
