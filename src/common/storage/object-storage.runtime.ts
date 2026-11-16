@@ -4,7 +4,7 @@
  *
  * Concrete implementations:
  * - `TencentCosStorageRuntime` (production / test)
- * - `S3StorageRuntime`          (development with SeaweedFS)
+ * - `S3StorageRuntime`          (S3-compatible, self-hosted RustFS)
  * - `AliyunOssStorageRuntime`   (Alibaba Cloud OSS dedicated SDK)
  *
  * The `StorageModule` binds exactly one implementation to this abstract

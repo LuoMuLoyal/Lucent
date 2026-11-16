@@ -27,9 +27,9 @@ import {
 /**
  * S3-compatible object storage runtime.
  *
- * Uses AWS SDK v3 to talk to any S3-compatible API (SeaweedFS in
- * development).  Maintains three separate `S3Client` instances so
- * that presigned URLs are always signed for the correct endpoint:
+ * Uses AWS SDK v3 to talk to any S3-compatible API (self-hosted RustFS in
+ * both development and production).  Maintains three separate `S3Client`
+ * instances so that presigned URLs are always signed for the correct endpoint:
  *
  * - **internal** (`STORAGE_S3_ENDPOINT`) — server-side operations
  *   (`uploadBuffer`, `HeadBucket`, `CreateBucket`).
@@ -171,9 +171,9 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
    *
    * This runtime sets `forcePathStyle: true`, so an object at key
    * `files/…` is actually served from `{endpoint}/{bucket}/files/…`. A
-   * configured base without the bucket segment (e.g.
-   * `https://s3.cn-south-1.qiniucs.com`) therefore produced public URLs that
-   * 404 — see `docs/TODO.md`'s S3 entry.
+   * configured base without the bucket segment (e.g. a bare
+   * `https://s3.cn-south-1.qiniucs.com`, the hosted provider this replaced)
+   * therefore produced public URLs that 404 — see `docs/TODO.md`'s S3 entry.
    *
    * The bucket is appended here rather than required in the environment
    * variable because path-style addressing is this runtime's own fact: the

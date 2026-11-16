@@ -28,7 +28,7 @@ export enum ConfigKey {
   /** Aliyun OSS dedicated SDK configuration */
   AliyunOss = 'aliyunOss',
 
-  /** S3-compatible object storage configuration (dev: SeaweedFS) */
+  /** S3-compatible object storage configuration (self-hosted RustFS) */
   S3Storage = 's3Storage',
 
   /** JPush notification configuration */

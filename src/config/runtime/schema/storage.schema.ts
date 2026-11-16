@@ -86,7 +86,7 @@ export const storageRuntimeFields = {
     defaultValue: 'oss-cn-hangzhou',
   }),
 
-  // ── S3-compatible (dev: SeaweedFS) ────────────────────────────────
+  // ── S3-compatible (self-hosted RustFS) ────────────────────────────
   [EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS]: numberField({
     family: 'storage',
     min: MIN_EXPIRES_SECONDS,
