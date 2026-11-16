@@ -199,7 +199,7 @@ const definitions = {
   },
   /**
    * The surface exists (it is a stored layout target) but cannot be composed:
-   * `tab_chrome` is the bottom bar, not a page, so a generated tree has nowhere
+   * `tab` is the bottom bar, not a page, so a generated tree has nowhere
    * to mount.
    *
    * 400 rather than 404: the caller named a surface this backend has, it just

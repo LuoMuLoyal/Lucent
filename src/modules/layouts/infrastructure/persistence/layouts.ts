@@ -153,7 +153,7 @@ function toState(row: LayoutRow): LayoutState {
  *
  * No narrowing happens here on purpose: the server does not know whether a
  * given surface's document is an object (page layouts) or an array
- * (`tab_chrome`), and deciding would mean teaching storage about layout
+ * (`tab`), and deciding would mean teaching storage about layout
  * semantics. The column is `jsonb NOT NULL`, so the only alternative is `null`,
  * which the request schema refuses — nothing to sanitise.
  */

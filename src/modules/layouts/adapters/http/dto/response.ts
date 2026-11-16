@@ -33,7 +33,7 @@ export const layoutResponseSchema = z
     /**
      * Any JSON value, not just an object.
      *
-     * Page layouts are objects (`{ placements: [...] }`) but `tab_chrome`'s is
+     * Page layouts are objects (`{ placements: [...] }`) but `tab`'s is
      * an array (`[{ tabId, customLabel, ... }]`). Constraining this to an
      * object would make the tab-preferences payload unsavable.
      */

@@ -16,7 +16,7 @@
 - **不解释 `payload`**。组件 id、顺序、尺寸、tab 自定义文本全部由客户端定义。
   服务端解析它就等于把布局格式的演进绑到后端发布节奏上。
   `payload` 的 TS 类型是 `unknown` 而不是 `Record<string, unknown>`：页面布局是对象，
-  但 `tab_chrome` 是数组，收窄类型会强迫服务端知道「哪个 surface 是哪种形状」。
+  但 `tab` 是数组，收窄类型会强迫服务端知道「哪个 surface 是哪种形状」。
 - **不做合并**。布局是有序列表，两个不同顺序没有「正确的合并结果」。
 - **不渲染**。本模块没有任何 UI 概念，`surface` 对它只是一个字符串。
 - **不删除**。布局随用户级联删除（`onDelete: Cascade`）；「恢复默认」由客户端写入默认布局，
@@ -41,7 +41,7 @@ LayoutDoc = { surface, version, schemaVersion, payload, updatedAt }
 | `getLayout`   | `GET /layouts/:surface` |
 | `saveLayout`  | `PUT /layouts/:surface` |
 
-`surface` 取值：`today` / `record` / `medicine` / `review` / `mine` / `tab_chrome`。
+`surface` 取值：`today` / `record` / `medicine` / `review` / `mine` / `tab`。
 
 ### 为什么挂在 `/layouts` 而不是 `/user/layouts`
 
@@ -49,10 +49,14 @@ LayoutDoc = { surface, version, schemaVersion, payload, updatedAt }
 **应用偏好**而非「用户的身体数据」——后者占了 `/user/*` 的绝大多数。数据库表同样是
 `layouts`，与端点同名：**表就是资源**。
 
-### 为什么 `tab_chrome` 和页面布局共用资源
+### 为什么 `tab` 和页面布局共用资源
 
 两者在数据形态上完全一致：一个有序的配置文档。共用一套端点省掉三个接口，
 只是 `payload` 结构不同。
+
+`tab` 存的是底部 tab 的用户偏好（顺序 / 名称 / 图标 / 显隐），对应
+`PUT /layouts/tab`。名字就是 `tab`——它就是这个资源，不加 `_chrome` 之类的
+限定词，也不加 `/user` 前缀。
 
 ### 为什么是 `PUT` 而不是 `PATCH`
 
@@ -101,7 +105,7 @@ infrastructure/persistence/
    会在运行时抛 `Serialization failed: expected string, received Date`。
 
 2. **`payload` 不能声明成 `z.record`。**
-   `tab_chrome` 的文档是数组（`[{tabId, customLabel, orderIndex, visible}]`），
+   `tab` 的文档是数组（`[{tabId, customLabel, orderIndex, visible}]`），
    `z.record` 会把它当 400 拒掉。正确做法是 `z.unknown()` + 只拒绝 `undefined`/`null`。
 
 ## 演进约束
@@ -140,7 +144,7 @@ POST /layouts/:surface/generate
 | `generateLayoutSurface` | `POST /layouts/:surface/generate` |
 
 `surface` 只接受 `today` / `record` / `medicine` / `review` / `mine` ——
-`tab_chrome` 是底部栏不是页面，生成一棵树没有地方挂。这与存储端点的六值词表
+`tab` 是底部栏不是页面，生成一棵树没有地方挂。这与存储端点的六值词表
 **故意不同**：两件事回答的是不同问题。
 
 ### 为什么在 layouts 而不是 assistant

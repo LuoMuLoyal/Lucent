@@ -20,7 +20,7 @@ model Layout {
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Surface identifier: today / record / medicine / review / mine / tab_chrome.
+  /// Surface identifier: today / record / medicine / review / mine / tab.
   ///
   /// Deliberately a plain string with no foreign key: surfaces are a client
   /// concept, and adding one must not require a migration here. Validation

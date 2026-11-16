@@ -8753,14 +8753,7 @@
             "in": "path",
             "description": "Surface identifier.",
             "schema": {
-              "enum": [
-                "today",
-                "record",
-                "medicine",
-                "review",
-                "mine",
-                "tab_chrome"
-              ],
+              "enum": ["today", "record", "medicine", "review", "mine", "tab"],
               "type": "string"
             }
           }
@@ -8804,14 +8797,7 @@
             "in": "path",
             "description": "Surface identifier.",
             "schema": {
-              "enum": [
-                "today",
-                "record",
-                "medicine",
-                "review",
-                "mine",
-                "tab_chrome"
-              ],
+              "enum": ["today", "record", "medicine", "review", "mine", "tab"],
               "type": "string"
             }
           }
@@ -15416,7 +15402,7 @@
             "description": "Shape version of `payload`; must be within the server-supported range."
           },
           "payload": {
-            "description": "Client-owned layout document. Stored verbatim; the server never interprets it. An object for page layouts, an array for tab_chrome."
+            "description": "Client-owned layout document. Stored verbatim; the server never interprets it. An object for page layouts, an array for tab."
           }
         },
         "required": ["schemaVersion", "payload"],

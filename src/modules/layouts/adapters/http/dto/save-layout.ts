@@ -44,7 +44,7 @@ export const saveLayoutSchema = z
       .unknown()
       .describe(
         'Client-owned layout document. Stored verbatim; the server never interprets it. ' +
-          'An object for page layouts, an array for tab_chrome.',
+          'An object for page layouts, an array for tab.',
       )
       .refine(
         (value) => value !== undefined && value !== null,

@@ -31,7 +31,7 @@ describe('validateGenerationRequest', () => {
 
   it('rejects the tab bar, which is not a page', () => {
     const failure = validateGenerationRequest({
-      surface: 'tab_chrome',
+      surface: 'tab',
       prompt: 'hi',
     });
     expect(failure?.code).toBe('GENERATIVE_SURFACE_UNSUPPORTED');

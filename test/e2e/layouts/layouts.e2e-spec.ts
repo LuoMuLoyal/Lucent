@@ -184,9 +184,9 @@ describe('Layouts API (e2e)', () => {
       expect(response.body.code).toBe('LAYOUT_SCHEMA_VERSION_UNSUPPORTED');
     });
 
-    it('accepts an array payload (tab_chrome-style document)', async () => {
+    it('accepts an array payload (tab-style document)', async () => {
       // The server does not know which surface carries which shape, so an array
-      // is a legitimate payload: `tab_chrome` stores `[{tabId, ...}]`. Only a
+      // is a legitimate payload: `tab` stores `[{tabId, ...}]`. Only a
       // *missing* payload is rejected.
       const token = await makeToken();
       const response = await request(app.getHttpServer())
@@ -207,10 +207,10 @@ describe('Layouts API (e2e)', () => {
         .expect(400);
     });
 
-    it('accepts the tab_chrome surface (tab preferences share this resource)', async () => {
+    it('accepts the tab surface (tab preferences share this resource)', async () => {
       const token = await makeToken();
       const response = await request(app.getHttpServer())
-        .put(`${LAYOUTS_PATH}/tab_chrome`)
+        .put(`${LAYOUTS_PATH}/tab`)
         .set('Authorization', bearer(token))
         .send({
           schemaVersion: 1,
@@ -218,7 +218,7 @@ describe('Layouts API (e2e)', () => {
         })
         .expect(200);
 
-      expect(response.body.surface).toBe('tab_chrome');
+      expect(response.body.surface).toBe('tab');
     });
   });
 

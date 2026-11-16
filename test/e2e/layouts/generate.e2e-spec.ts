@@ -313,7 +313,7 @@ describe('Layouts generate endpoint (e2e)', () => {
 
   it('returns 400 GENERATIVE_SURFACE_UNSUPPORTED for the tab bar', async () => {
     const response = await request(app.getHttpServer())
-      .post(GENERATE_PATH('tab_chrome'))
+      .post(GENERATE_PATH('tab'))
       .set('Authorization', bearer(await token()))
       .send({ prompt: 'rearrange my tabs' })
       .expect(400);

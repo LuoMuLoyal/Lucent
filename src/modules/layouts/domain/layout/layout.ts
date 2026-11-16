@@ -24,7 +24,7 @@ import { isLayoutSurface } from './surface.js';
  * Opaque client document. The server stores it; it never reads into it.
  *
  * `unknown` rather than `Record<string, unknown>`: page layouts are objects but
- * `tab_chrome`'s payload is an array. Narrowing here would force the server to
+ * `tab`'s payload is an array. Narrowing here would force the server to
  * know which surface carries which shape — exactly what it promised not to do.
  */
 export type LayoutPayload = unknown;

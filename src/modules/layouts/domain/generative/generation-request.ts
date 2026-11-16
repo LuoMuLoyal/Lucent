@@ -27,7 +27,7 @@ export type GenerativeRange = (typeof GENERATIVE_RANGES)[number];
 /**
  * Surfaces the agent may compose.
  *
- * A strict subset of `LAYOUT_SURFACES`: `tab_chrome` is the bottom bar (icons,
+ * A strict subset of `LAYOUT_SURFACES`: `tab` is the bottom bar (icons,
  * labels, order), not a page. The client renders it from a different model, so
  * a generated tree there would have nowhere to mount.
  *
