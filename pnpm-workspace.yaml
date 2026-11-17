@@ -1,3 +1,11 @@
+# Workspace members. `admin/` was already an independent frontend project with
+# its own package.json, so it becomes a member rather than being moved; the
+# monolith keeps its original layout under apps/monolith.
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'admin'
+
 allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true

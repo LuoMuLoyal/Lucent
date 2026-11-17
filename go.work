@@ -1,0 +1,5 @@
+go 1.26.2
+
+// Only contract code lives in Go today. Services join this file when they are
+// extracted, which is what makes Turborepo see them as packages.
+use ./packages/contracts/go

@@ -2,7 +2,7 @@ services:
   # ── Neo4j (development) ──────────────────────────────────────
   # 英文侧 OAG 的图后端。semantica-service 经 Bolt 访问它;Lucent 自己**从不直连**。
   # dev 通常不需要这个容器 —— 直接 `docker run` 或本机装一个都行,见
-  # deploy/semantica/.env.example。这里定义它只是让"一条命令起 dev 依赖"成立。
+  # infra/semantica/.env.example。这里定义它只是让"一条命令起 dev 依赖"成立。
   #
   # 内存显式封顶(与 staging 同值):默认约 1.5 GiB。heap 512m + pagecache 256m
   # 是实测基线 —— 本图(3,278 节点 / 211,630 边)RSS 1,243 MiB。
@@ -100,10 +100,10 @@ services:
   # ── LightRAG sidecar（中文散文检索；profile 内，默认不启动）─────
   # 默认 `docker compose -f compose.dev.yaml up -d` **不会**起它——它拖慢本地启动
   # 且需要模型 key。需要中文散文检索时显式带 profile：
-  #   cp deploy/lightrag/.env.example deploy/lightrag/.env   # 填模型 key 与 LIGHTRAG_API_KEY
+  #   cp infra/lightrag/.env.example infra/lightrag/.env   # 填模型 key 与 LIGHTRAG_API_KEY
   #   docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
   #
-  # 配置只来自 deploy/lightrag/.env（独立文件，不含 Lucent 的 JWT_* / DATABASE_URL /
+  # 配置只来自 infra/lightrag/.env（独立文件，不含 Lucent 的 JWT_* / DATABASE_URL /
   # 微信密钥——见 docs/reference/environment-variables.md 的 LightRAG 小节）。
   # 端口只绑回环：Lucent 本地进程走 http://127.0.0.1:9621。
   lightrag:
@@ -112,7 +112,7 @@ services:
     profiles: ['lightrag']
     restart: unless-stopped
     env_file:
-      - deploy/lightrag/.env
+      - infra/lightrag/.env
     environment:
       # 容器内访问宿主 Postgres（独立 database `lightrag`，不污染 Prisma 迁移域）。
       # compose.dev 的 postgres-dev 发布在宿主 15432；容器走 host-gateway 回环。
@@ -132,7 +132,7 @@ services:
       - lightrag-data:/app/data
       # 只读挂载：prompt 是配置事实源，必须在宿主仓库里可评审、可 diff，
       # 而不是靠 docker cp 拷进容器（那样重启即丢、也没法 code review）。
-      - ./deploy/lightrag/prompts:/app/data/prompts:ro
+      - ./infra/lightrag/prompts:/app/data/prompts:ro
     healthcheck:
       test:
         [
@@ -150,12 +150,12 @@ services:
   # (NL→Cypher 的生成在 Lucent 侧),因此 Lucent 那边也没有对应的 API key 项。
   #
   # dev 默认不起它:**开发环境直接在本机跑**更省事,也不需要镜像:
-  #   cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
+  #   cd apps/ontology && uv run uvicorn semantica_service.main:app --port 8099
   # 然后在 .env.development 里设 SEMANTICA_ENABLED=true 与
   # SEMANTICA_BASE_URL=http://127.0.0.1:8099。本服务定义与下面 lightrag 同形,
   # 是为了需要容器化时形态一致(见 compose.yaml 的同名服务)。
   #
-  # 配置只来自 deploy/semantica/.env(独立文件,不含 Lucent 的 JWT_* / DATABASE_URL
+  # 配置只来自 infra/semantica/.env(独立文件,不含 Lucent 的 JWT_* / DATABASE_URL
   # / 微信密钥),模板见该目录 .env.example。
   semantica:
     image: ${SEMANTICA_IMAGE:-lucent-semantica:latest}
@@ -163,7 +163,7 @@ services:
     profiles: ['semantica']
     restart: unless-stopped
     env_file:
-      - deploy/semantica/.env
+      - infra/semantica/.env
     environment:
       # 容器内访问图库:走 compose 服务名 `neo4j-dev`(服务名即可解析)。
       # 口令与 neo4j-dev 的 NEO4J_AUTH 一致,改一处要改两处。

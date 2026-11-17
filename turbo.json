@@ -1,0 +1,77 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "futureFlags": {
+    "experimentalPythonWorkspaces": true,
+    "experimentalGoWorkspaces": true,
+    "experimentalTaskCommand": true
+  },
+  "globalDependencies": ["pnpm-workspace.yaml", ".node-version"],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "globalPassThroughEnv": [
+    "GOPROXY",
+    "GOFLAGS",
+    "GOPRIVATE",
+    "GONOSUMDB",
+    "GOSUMDB",
+    "GOMODCACHE",
+    "GOCACHE"
+  ],
+  "tasks": {
+    "//#verify": {
+      "outputs": []
+    },
+    "contracts#generate": {
+      "command": ["go", "generate", "./..."],
+      "outputs": ["openapi.gen.go"]
+    },
+    "semantica-service#check": {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--package",
+        "semantica-service",
+        "mypy",
+        "--config-file",
+        "pyproject.toml",
+        "src",
+        "tests"
+      ],
+      "outputs": []
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "lint:check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:ci": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "format:check": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}

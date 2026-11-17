@@ -1,0 +1,12 @@
+# oapi-codegen configuration for the Lucent HTTP contract.
+#
+# Scope is deliberately `types` only. A generated client is cheap to add but has
+# no consumer yet, and an unused client is dead code that still has to compile and
+# stay in sync. Types are what a Go service needs first: request/response shapes,
+# enums and the Problem Details error body.
+package: contracts
+# A YAML sequence — oapi-codegen parses the file with its "old style" config
+# reader first, which expects []string here (a bare scalar fails to unmarshal).
+generate:
+  - types
+output: openapi.gen.go

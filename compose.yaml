@@ -263,7 +263,7 @@ services:
   # 只 expose 给 app 走容器网络,不发布宿主机端口、不挂 Traefik —— 唯一调用方是
   # Lucent 内网。
   #
-  # 配置来自独立文件 deploy/lightrag/.env(见 deploy/lightrag/.env.example 的清单),
+  # 配置来自独立文件 infra/lightrag/.env(见 infra/lightrag/.env.example 的清单),
   # 与 app 的 .env **不共用**:那是独立进程、独立 image、独立升级周期,不该读到
   # JWT_* / DATABASE_URL / 微信密钥。部署平台需给该服务单独注入同一份内容。
   #
@@ -274,7 +274,7 @@ services:
     image: ${LIGHTRAG_IMAGE:-ghcr.io/hkuds/lightrag:latest}
     restart: unless-stopped
     env_file:
-      - deploy/lightrag/.env
+      - infra/lightrag/.env
     environment:
       # 同一 compose 网络 → 走服务名;database 独立于 lucent。
       POSTGRES_HOST: postgres
@@ -288,7 +288,7 @@ services:
     volumes:
       - lightrag-data:/app/data
       # 只读挂载：prompt 是配置事实源，需随镜像一起评审与回滚。
-      - ./deploy/lightrag/prompts:/app/data/prompts:ro
+      - ./infra/lightrag/prompts:/app/data/prompts:ro
     expose:
       - '9621'
     ports:

@@ -1,8 +1,13 @@
 # compiled output
-/dist
-/node_modules
-/src/node_modules
-/build
+#
+# Unanchored on purpose: these are build outputs and dependencies, and in a
+# workspace they appear under every app (`apps/<svc>/dist`, `apps/<svc>/node_modules`).
+# The leading `/` that used to be here only matched the repo root, so after the
+# monolith moved to `apps/monolith/` nothing was ignored and a bulk `git add -A`
+# swept ~2.3k build files into a commit.
+dist/
+node_modules/
+build/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
@@ -28,7 +33,7 @@ lerna-debug.log*
 .DS_Store
 
 # Tests
-/coverage
+coverage/
 /.nyc_output
 
 # IDEs and editors
@@ -61,7 +66,7 @@ lerna-debug.log*
 .deploy-image.env
 
 # YAML local overrides (machine-specific, never committed)
-config/*.local.yaml
+**/config/*.local.yaml
 
 # temp directory
 .temp
@@ -78,17 +83,17 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Prisma client output is local-only. Regenerate from schema with prisma/client
 # install hooks or `pnpm prisma:generate`; do not commit this directory.
-/generated/prisma
-/scripts/deploy/dist
+**/generated/prisma/
+**/scripts/deploy/dist/
 .codebase-memory/
 
-# Traefik 运行配置:服务器上由 deploy/traefik/*.yml.example 复制而来(含域名、
+# Traefik 运行配置:服务器上由 infra/traefik/*.yml.example 复制而来(含域名、
 # 邮箱、面板密码哈希),不入库——否则发布时的 `git reset --hard origin/main` 会覆盖它
-/deploy/traefik/*.yml
+/infra/traefik/*.yml
 
-# LightRAG sidecar 运行配置:由 deploy/lightrag/.env.example 复制而来(含模型 key、
+# LightRAG sidecar 运行配置:由 infra/lightrag/.env.example 复制而来(含模型 key、
 # 嵌入凭据、Postgres 口令),不入库;生产由部署平台按同一份清单注入
-/deploy/lightrag/.env
+/infra/lightrag/.env
 
 # LightRAG 灌入的断点续传账本:运行时状态,记录"哪份说明书已灌完"。
 # 服务端 doc_status 才是事实源(见 docs/howto/run-medicine-import.md),
@@ -105,3 +110,22 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # graphify 代码结构图谱（本机生成，不入库）
 graphify-out/
+
+# Turborepo local task cache (machine-local, never shared via git).
+.turbo/
+**/.turbo/
+
+
+# Go contract bindings: generated from docs/reference/generated/openapi.json.
+# Derived output, same treatment as the Prisma client and compodoc — the
+# contract JSON is what gets committed, not its language bindings.
+packages/contracts/go/openapi.gen.go
+
+# Local Python virtualenv. uv creates one at the workspace root when run from
+# there; nothing in the TS workspace uses it.
+.venv/
+
+# Python tool caches (uv/ruff/mypy/pytest create these wherever they run).
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

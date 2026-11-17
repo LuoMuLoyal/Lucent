@@ -1,0 +1,103 @@
+[project]
+name = "semantica-service"
+version = "0.1.0"
+description = "OAG sidecar for the English DrugBank graph"
+readme = "README.md"
+authors = [
+    { name = "Luo", email = "2508015296@qq.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic-settings>=2.6",
+    # The rule library is YAML so rules can be reviewed as data rather than as
+    # request parameters. Parsed with safe_load only: a rule file is
+    # configuration, never code.
+    "pyyaml>=6.0",
+    # semantica is installed from the fork's main branch, not PyPI: the
+    # released 0.6.8 lags main by 127 commits and predates every fork fix.
+    # extras are curated rather than [all] — [all] also pulls dev, infra,
+    # cloud and graph-all. The `explorer` extra is still deliberately absent:
+    # its routes are a development console, not our tool contract, and the
+    # service never mounts them. Visualization runs as a separate process
+    # against an export (scripts/export_context_graph.py), which needs only
+    # the dependency below.
+    # The `graph-apache-age` extra is gone with the AGE backend: it pulled in
+    # psycopg2 for the graph connection, which nothing here uses any more.
+    # Neo4j comes through semantica's own extra so the adapter it ships is
+    # importable.
+    "semantica[shacl,graph-neo4j,tripletstore-oxigraph]",
+    # Still required, and NOT via the graph extra: semantica's PostgresStorage
+    # — the hash-chained provenance store, which lives in Lucent's database
+    # rather than the graph's — imports psycopg2 itself. Dropping the AGE extra
+    # removed it, and because ProvenanceReader reports a lookup failure instead
+    # of raising, citations silently resolved to nothing. Declared explicitly so
+    # the dependency is visible where it is actually used.
+    "psycopg2-binary>=2.9.0",
+    # Required to import semantica.explorer at all: its export/import route
+    # declares a Form parameter, and FastAPI refuses to define the route
+    # without it. It ships in the `explorer` extra, which is not installed,
+    # so it is declared directly rather than pulling the whole extra in.
+    "python-multipart>=0.0.32",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.27",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "types-psycopg2>=2.9.21.20260911",
+    "types-pyyaml>=6.0",
+]
+
+[tool.uv.sources]
+# HTTPS, not SSH: this fork is public, and an HTTPS source resolves without
+# credentials on CI, in containers and on any other machine. SSH would force
+# every build environment to carry a deploy key for a repository that needs
+# none. (The fork is ours — `origin` — so switching schemes is safe: the lock
+# pins the commit either way.)
+semantica = { git = "https://github.com/LuoMuLoyal/semantica.git", branch = "main" }
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "T20"]
+
+# `Depends()`/`Security()` in an argument default is FastAPI's dependency
+# injection idiom, not the mutable-default bug B008 exists to catch: the call
+# is evaluated once at import and the router reads it as a marker. Bugbear
+# ships this exception list for exactly this case — the alternative is a
+# `# noqa: B008` on every dependency-using function.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Security"]
+
+# Operator scripts report through stdout — that IS their interface, so the
+# print ban applies to the service and tests only. Test doubles must keep the
+# real store's signature (`execute_query(self, query, parameters=None)`) to stay
+# substitutable, which leaves those arguments unused by design.
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["T201"]
+"tests/*" = ["ARG002"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+
+# semantica ships neither a py.typed marker nor stubs, so its types are
+# unavailable. Scoped to that one package: our own code stays under strict.
+[[tool.mypy.overrides]]
+module = ["semantica.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[build-system]
+requires = ["uv_build>=0.11.31,<0.12.0"]
+build-backend = "uv_build"

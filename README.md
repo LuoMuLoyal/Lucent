@@ -278,7 +278,7 @@ building & pushing the Docker image. See
   (the graph backend pair: Neo4j + semantica), `compose.monitoring.yaml`
   (the metrics/logs/traces stack) and `compose.dev.yaml` (local dev) at the repo
   root hold the stack definitions — one file per host, so the service list in each
-  file is exactly that host's stack; `deploy/` holds sidecar
+  file is exactly that host's stack; `infra/` holds sidecar
   configuration (LightRAG env template and prompt profiles); `monitoring/` contains
   VictoriaMetrics scrape config and Grafana provisioning/dashboards.
   Production env templates are split the same way: `.env.production.example`
