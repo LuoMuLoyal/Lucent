@@ -10,8 +10,11 @@
 //
 //	go generate ./...
 //
-// The generator version is pinned in the directive below so two machines cannot
-// produce different output from the same JSON.
+// The generator is a **module tool** (the `tool` directive in go.mod), not a
+// `go run pkg@version` invocation: the version is resolved from the lockfile like
+// any other dependency, so generation never needs to reach the network on a
+// machine that already has modules downloaded — and cannot silently pick up a
+// newer release.
 package contracts
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.2 -config oapi-codegen.yaml ../../../docs/reference/generated/openapi.json
+//go:generate go tool oapi-codegen -config oapi-codegen.yaml ../../../docs/reference/generated/openapi.json
