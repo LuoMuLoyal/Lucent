@@ -29,7 +29,7 @@ owner: backend
 > - **RabbitMQ** 作为跨服务消息总线；**BullMQ 不退役**，降级为服务内任务/定时队列。
 > - **数据**：单 Postgres 实例、**每服务独立 database**；独立 role、独立 Prisma client、
 >   独立迁移史；**不做 schema 隔离**。
-> - **仓库**：根包只做 workspace 编排；legacy 单体移入 `apps/legacy`。
+> - **仓库**：根包只做 workspace 编排；单体移入 `apps/monolith`。
 > - **共享层收敛**：只保留 `contracts`、`observability`、`api`、`config`、`testing`、`messaging`、
 >   `discovery`（服务发现客户端，技术上必需，避免每服务各写一份 resolver）；
 >   不再共享 `common`、`ai`、`authz`、`i18n`、`audit`、`prisma-*`。
@@ -58,14 +58,14 @@ owner: backend
 | 拓扑        | **Traefik + 7 个领域/支撑服务（identity/health/medicine/assistant/insights/notifications/content）+ admin BFF + `services/ontology` 推理支撑服务**；单体是过渡期上游 |
 | 提取顺序    | content → telemetry/事件底座 → medicine → notifications → health → insights 读模型 → assistant → identity → admin → 收尾                                             |
 | 网关        | **Traefik**：单二进制、无数据库；路由、`ReplacePathRegex` 重写、SSE/流式透传、限流、CORS；边缘不解析 JWT                                                             |
-| 网关管理    | **file provider（Git）+ Nomad provider**：路由/中间件在 `deploy/traefik/`，实例由 Nomad tags 发现；不用 decK/Konga                                                   |
+| 网关管理    | **file provider（Git）+ Nomad provider**：路由/中间件在 `infra/traefik/`，实例由 Nomad tags 发现；不用 decK/Konga                                                    |
 | 同步通信    | **gRPC**，契约在 `libs/contracts/proto`；未提取能力经**单体 ACL 适配器**访问                                                                                         |
 | 异步/一致性 | **RabbitMQ + 事务性 outbox + 幂等消费**；共存期由单体事件桥接；不引入 saga、不做补偿事务                                                                             |
 | 数据库      | **单 Postgres 实例、每服务独立 database**；独立 role、独立 Prisma、独立迁移；无跨库查询/FK/事务                                                                      |
 | 命名与契约  | **P0.5 一次性命名硬切**：模块/目录/文件/类/路径/operationId/DTO/错误码/事件名统一改；客户端同步发版；无 v1 别名                                                      |
 | 契约基线    | 硬切后的 OpenAPI 成为 P1–P9 的稳定基线；提取期禁止再改公开命名，内部契约可演进                                                                                       |
 | 回滚        | **读片路由回滚**；写片在首笔写入前可回滚，之后 forward-fix；旧库保留到 P9                                                                                            |
-| 仓库形态    | **pnpm workspace + Turborepo**；根只做编排，legacy 在 `apps/legacy`，新服务在 `apps/*`                                                                               |
+| 仓库形态    | **pnpm workspace + Turborepo**；根只做编排，单体在 `apps/monolith`，新服务在 `apps/*`                                                                                |
 | 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `services/ontology`（Semantica）；LightRAG 仍外置；不自研 Go/Rust 服务（Traefik 为现成二进制）                          |
 | 共享层      | 只共享 `contracts` / `observability` / `api` / `config` / `testing` / `messaging` / `discovery`                                                                      |
 | 弹性        | 每服务必备：超时、重试+jitter、熔断、幂等键、DLQ、背压、优雅停机、readiness                                                                                          |
@@ -126,7 +126,7 @@ forward-fix 为主，旧库保留到 P9。
 | **identity**      | 身份与访问：auth、账户、用户、设置、RBAC、会话、审计落库                     | auth、account、user、user-settings、audit-log                                                             | P8       | TypeScript    | `lucent_identity`         |
 | **admin BFF**     | 管理台后端：聚合读、运营写入口、队列面板、`/admin` 静态资源                  | admin、admin-console                                                                                      | P9       | TypeScript    | 无业务表                  |
 | **ontology**      | 推理支撑（非 bounded context）：本体/OAG 查询与推理、PROV-O 溯源             | 自建 `semantica-service`（FastAPI）；Neo4j 外置                                                           | P7       | Python        | `lucent_ontology` + Neo4j |
-| **legacy**        | 未提取能力的宿主；过渡期唯一全量实现                                         | 剩余模块 + 对外暴露临时 ACL 适配器                                                                        | P0–P9    | TypeScript    | `lucent`（P9 归档）       |
+| **monolith**      | 未提取能力的宿主；过渡期唯一全量实现                                         | 剩余模块 + 对外暴露临时 ACL 适配器                                                                        | P0–P9    | TypeScript    | `lucent`（P9 归档）       |
 
 `ontology` **不是第 8 个领域服务**：它不拥有用户/业务数据，只拥有推理所需的本体与
 PROV-O 溯源，按「推理支撑件」对待；领域边界仍以 7 个服务为准。它也不参与
@@ -140,9 +140,9 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
   用来验证 outbox/MQ/幂等，而不拿核心健康数据冒险。
 - **medicine 先于 health/insights/assistant**：药品知识是只读、无用户数据的上游；
   health 的风险/提醒、insights 的建议、assistant 的检索都依赖它。先提取 medicine，
-  后面三片只需一个稳定的 gRPC 读契约，不再反复走 legacy ACL。
+  后面三片只需一个稳定的 gRPC 读契约，不再反复走 monolith ACL。
 - **notifications 先于 health**：health 的提醒需要投递，insights 的建议也可能触发通知；
-  先把外部供应商、重试、DLQ 隔离开，再搬核心写模型。notifications 只经 legacy ACL 读用户联系方式。
+  先把外部供应商、重试、DLQ 隔离开，再搬核心写模型。notifications 只经 monolith ACL 读用户联系方式。
 - **health 先于 insights**：insights 的读模型消费 health 事件；health 不走完，insights 只能
   直读旧表，拆不干净。
 - **insights 先于 assistant**：assistant 的工具需要读报告摘要与今日建议；等 insights 读接口稳定后再搬。
@@ -182,11 +182,11 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
 
 | 包                   | 内容                                                                | 允许谁依赖          |
 | -------------------- | ------------------------------------------------------------------- | ------------------- |
-| `libs/contracts`     | proto、事件 schema、错误码、公开 wire schema、路由/数据所有权类型   | 所有服务 + legacy   |
-| `libs/observability` | OTel、日志、指标、trace context 传播                                | 所有服务 + legacy   |
+| `libs/contracts`     | proto、事件 schema、错误码、公开 wire schema、路由/数据所有权类型   | 所有服务 + monolith |
+| `libs/observability` | OTel、日志、指标、trace context 传播                                | 所有服务 + monolith |
 | `libs/api`           | Problem Details filter、gRPC status 映射、SSE helper                | 所有 HTTP/gRPC 服务 |
 | `libs/messaging`     | RabbitMQ 连接、publisher confirms、outbox relay、幂等消费 helper    | 使用 MQ 的服务      |
-| `libs/config`        | env 解析与校验的基础工具；各服务仍只校验自己的子集                  | 所有服务 + legacy   |
+| `libs/config`        | env 解析与校验的基础工具；各服务仍只校验自己的子集                  | 所有服务 + monolith |
 | `libs/discovery`     | `NacosNamingClient` 封装：注册/注销、实例订阅、健康实例选择与连接池 | 所有服务            |
 | `libs/testing`       | testcontainers、RabbitMQ/Postgres fixture、契约测试 helper          | 测试                |
 
@@ -198,11 +198,11 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
 Traefik 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行为与现在完全一致。
 
 - **无数据库、无控制面状态**：Traefik 用 **file provider + Nomad provider**，不建
-  `traefik` 库、不跑 migrations、不用 decK。路由/中间件是 `deploy/traefik/` 下的
+  `traefik` 库、不跑 migrations、不用 decK。路由/中间件是 `infra/traefik/` 下的
   Git 声明；实例列表由 Nomad provider 直接读 Nomad service registry。
 - **职责分离**：Git 拥有路由策略（routers/middlewares），Nomad 拥有实例（service tags）；
   两侧按服务名关联，不写死节点 IP。Traefik API/dashboard 只对运维网络开放。
-- **路由清单是事实源**：`deploy/traefik/route-ownership.yaml` 记录
+- **路由清单是事实源**：`infra/traefik/route-ownership.yaml` 记录
   `public path（正则）→ owner service → 内部重写路径 → 阶段`。动态配置由该清单生成，
   CI 校验它覆盖 `docs/reference/generated/openapi.json` 的全部 operation，且一条路径只能有一个 owner。
 - **按资源段路由**：用户域都在 `/api/v1/user/*` 下，因此匹配第二段资源名；公开根路径按实际清单登记。
@@ -232,10 +232,10 @@ Traefik 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行�
     canary 实例用独立 Nomad service 名，权重在 file provider 中声明；
   - 影子读：把选定读请求复制到新服务，比较状态码与响应（剔除时间戳、ID 排序等易变字段），
     影子流量不落业务写、不触发通知；
-  - 影子实现放 `deploy/shadow/` 的小代理，不把比较逻辑塞进 Traefik。
+  - 影子实现放 `infra/shadow/` 的小代理，不把比较逻辑塞进 Traefik。
 - **SSE/流式**：SSE 路由不挂 `Compress`/`Buffering` 中间件；入口点 `idleTimeout`
   覆盖最长对话；文件上传不启用 buffering。
-- **ACL 适配器**：未提取能力由单体暴露 `/internal/legacy/*`（HTTP 或 gRPC），仅服务网络可达。
+- **ACL 适配器**：未提取能力由单体暴露 `/internal/monolith/*`（HTTP 或 gRPC），仅服务网络可达。
   新服务只依赖该适配器的接口，不依赖单体内部模块；每提取一片就删掉对应 ACL 方法。
 - **Traefik 不承载业务逻辑**，不做 BFF 聚合。
 
@@ -245,36 +245,88 @@ Traefik 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行�
 package.json              # 根：只放 workspace devDeps、turbo 与脚本，不放业务代码
 pnpm-workspace.yaml       # packages: ["apps/*", "libs/*"]
 pyproject.toml            # 根：只声明 uv workspace 与 [tool.turbo].name，不放依赖
-uv.lock
+uv.lock                   # 根：uv workspace 的锁。Turbo 不生成也不更新它
 turbo.json                # futureFlags.experimentalPythonWorkspaces = true
+tsconfig.base.json        # libs/* 的 project references 基座
 apps/
-  legacy/                 # 原单体：src/ prisma/ test/ nest-cli.json package.json
+  monolith/               # 原单体：src/ prisma/ test/ nest-cli.json package.json
   content/  medicine/  notifications/  health/  insights/  assistant/  identity/  admin/
     package.json  nest-cli.json  src/main.ts  tsconfig.json  prisma/
 services/
   ontology/               # 自建 Semantica：pyproject.toml  uv.lock  src/  tests/  Dockerfile
 libs/
   contracts/ observability/ api/ messaging/ config/ testing/ discovery/
-deploy/
-  traefik/  shadow/  nomad/  rnacos/
+infra/
+  traefik/  shadow/  nomad/  rnacos/  ci/  observability/
+  contract/               # 契约基线、所有权清单与生成器
+  database/               # 数据所有权、迁移脚本
 scripts/contract/route-ownership.ts
 docs/
 ```
 
-- **标准布局**：根包不再是应用；P0.5 把 `src/`、`prisma/`、`test/`、`nest-cli.json` 与 legacy
-  `package.json` 移入 `apps/legacy/`，根只做编排。`scripts/`、`docs/`、`deploy/` 留在根。
-- **命名重构在 P0.5 一次做完**：模块、目录、文件、类、路由、DTO、operationId 一并改齐；
-  P1 起的提取阶段只搬代码，不再改名。旧→新映射表用于 codemod 与客户端迁移，完成后删除。
-- **新服务不依赖 legacy**：只依赖 `libs/*`、proto 与 ACL 契约。legacy 可依赖 `libs/*`。
+- **标准布局**：根包不再是应用；把 `src/`、`prisma/`、`test/`、`nest-cli.json` 与单体
+  `package.json` 移入 `apps/monolith/`，根只做编排。`scripts/`、`docs/`、`infra/` 留在根。
+- **目录名用 `monolith` 而不是 `legacy`**：该目录是「还没拆走的单体」，不是「废弃代码」；
+  `legacy` 会让读的人以为它只配维护不配修改。P9 删除时名字不影响收尾动作。
+  **术语约定**：文中「legacy」一词仍保留在 `legacy ACL`、`legacy role`、`legacy 流量`
+  这类表述里，指「尚未迁移的那部分能力/数据」，**等同于 `apps/monolith` + 旧库**。
+  保留它是因为这些说法已在前文大量出现，全部替换反而降低了可读性；读到 `legacy`
+  时按这个映射理解即可。
+- **`infra/` 而非 `deploy/`**：这里不只有「怎么部署」，还有契约基线、数据所有权、
+  CI 门禁与可观测性配置——它们都是基础设施，部署只是其中一类。按部署命名会让
+  「契约基线该放哪」这类问题反复出现。子目录职责：`traefik/`（边缘静态+动态配置）、
+  `nomad/`（每服务 jobspec）、`rnacos/`（注册中心）、`shadow/`（影子读代理）、
+  `contract/`（契约基线与所有权清单及生成器）、`database/`（数据所有权、迁移脚本）、
+  `ci/`（跨语言门禁脚本）、`observability/`（采集与仪表盘声明）。
+- **`semantica-service` 归 `Lucent` 管理**：它与 Lucent 的领域强耦合（读 Lucent 的
+  库、服务 Lucent 的 assistant），只是语言不同。业务归属不该因为语言而分裂到两个
+  仓库——那会让「改一处要动两个 repo」成为常态。物理上它仍在同一个 Git 仓库的
+  `services/ontology/`，由根 `pyproject.toml` 的 uv workspace 纳入；语言隔离靠
+  workspace 边界（独立的 `pyproject.toml`/`uv.lock`/`Dockerfile`/CI lane），
+  不靠仓库边界。
+- **命名重构与目录搬迁分两步**（见 §5 P0.5）：目录搬迁是纯结构变更、不改公开契约，
+  可以先行；命名硬切需要契约基线比对与客户端同步发版，必须等 P0 门禁通过。
+  绑在一起做会让排查时同时面对「路径变了」和「名字变了」两种噪音。
+- **新服务不依赖 monolith**：只依赖 `libs/*`、proto 与 ACL 契约。monolith 可依赖 `libs/*`。
 - **每服务自带 Prisma**：`apps/<svc>/prisma/schema.prisma` + 自己的 `src/generated/`；
   不建 `libs/prisma-*`，避免跨服务共享数据模型。
 - **`libs/*` 用 `tsc`**（`composite: true` + project references）产出 `dist` 与 `.d.ts`。
-- **P9 收尾**：删除 `apps/legacy/`，根包保持纯 workspace 编排。
+- **P9 收尾**：删除 `apps/monolith/`，根包保持纯 workspace 编排。
 - **admin 前端仍是独立工程链**，构建产物由 admin BFF 静态托管，Traefik 路由 `/admin` 过去。
 - **Python 只占 `services/ontology`**：自带 `pyproject.toml`、`uv.lock`、`Dockerfile`；
   根 `pyproject.toml` 只做 uv workspace 声明，不放依赖，避免变成第二份依赖清单。
 - **不共享跨语言代码**：TS 不 import Python，Python 不 import TS；唯一耦合是
   `libs/contracts` 里的 HTTP/proto schema 与生成客户端。
+
+#### 多语言 Task Graph 的前置条件（Turbo 2.11+）
+
+Turbo 的 uv 支持是 **experimental**，启用需要四个条件**同时满足**，缺一个 Python 包就
+不会出现在包图里（已按官方文档核对，2026-11）：
+
+1. `uv` 在 `PATH` 上；
+2. 根 `pyproject.toml` 声明 `[tool.uv.workspace] members = ["services/*"]`；
+3. 根 `pyproject.toml` 有 `[tool.turbo].name`（PEP 503 规范化的包标识）；
+4. 根有 `uv.lock`——**Turbo 从不生成或更新它**，漂移由 `uv lock --check` 阻断。
+
+启用后自动注册这些任务（无需在 `turbo.json` 里手写）：
+
+| 声明在 pyproject 的工具 | Turbo 任务        | 实际执行的命令                                               |
+| ----------------------- | ----------------- | ------------------------------------------------------------ |
+| Ruff                    | `lint` / `format` | `uv run --active --frozen --package <name> ruff check <dir>` |
+| mypy                    | `check`           | `uv run --active --frozen --package <name> mypy <dir>`       |
+| pytest                  | `test`            | `uv run --active --frozen --package <name> pytest <dir>`     |
+
+三条需要注意的行为：
+
+- **mypy 映射到 `check` 而不是 `lint`**：`lint` 只跑 ruff。想跑类型检查要用
+  `turbo run check --filter=ontology`。
+- **工具范围由 Turbo 决定**（传 `<dir>`），不是项目 README 里写的 `mypy src tests`。
+  若两者冲突，以成员 `pyproject.toml` 的配置为准，并在该目录下放 `mypy.ini` 显式声明范围。
+- **`format` 默认不缓存**（它会改写源文件）；`check`/`test` 在能识别 uv 与解释器时缓存。
+  识别失败时任务仍可运行，但缓存被显式关闭并告警。
+
+`experimentalPythonWorkspaces` 属于 `futureFlags`，**只能写在根 `turbo.json`**，
+写在包级配置里会直接报错。上游随时可能改语义或改名，升级 Turborepo 时把这一节当检查项。
 
 ### 2.4 进程间通信
 
@@ -289,7 +341,7 @@ docs/
     命令用 direct exchange；队列名带服务前缀，用 quorum queue，消费端手动 ack + prefetch 限流；
     不用每服务 vhost（会阻断跨服务事件，除非再加 shovel/federation）；
   - 新服务：状态变更与 outbox 写入同一事务，由 `OutboxRelay` 发布，publisher confirms 确认；
-  - legacy：P2 前加**事件桥**（`EventEmitter2` → RabbitMQ），把跨边界领域事件发出去；
+  - monolith：P2 前加**事件桥**（`EventEmitter2` → RabbitMQ），把跨边界领域事件发出去；
     bridge 是有损的过渡件，涉及写入的消费者必须配 reconciliation；
   - 投递语义：at-least-once + 消费端按 `event_id` 去重；
   - **DLQ**：每个业务队列配 `x-dead-letter-exchange`；毒消息进 DLQ，提供查看与重放工具；
@@ -301,7 +353,7 @@ docs/
   各服务自带 Redis 连接与队列，key/队列名带服务前缀，不做跨服务 job 耦合。
 - **身份**：用户 JWT 本地验签；actor 上下文（`userId`/`roles`/`scopes`/`traceparent`）经
   gRPC metadata 与 MQ header 传递；敏感操作在 identity 提取后查会话/吊销，
-  提取前走 legacy ACL（`identity-introspect`）。
+  提取前走 monolith ACL（`identity-introspect`）。
 - **服务认证**：内部 gRPC/HTTP 调用带**短期 service JWT**（5–15 分钟，EdDSA/RS256）：
   `sub`=调用方服务名、`aud`=目标服务、`scope`=允许的操作；目标服务校验签名、`aud`、`scope`
   与调用方 allowlist。service JWT 只证明“服务是谁”，actor header 只证明“用户是谁”，两者不混用。
@@ -315,11 +367,11 @@ docs/
 **拓扑（P0 起）**
 
 - **单 Postgres 实例、每服务独立 database**：
-  `lucent`（legacy）、`lucent_content`、`lucent_medicine`、`lucent_notifications`、
+  `lucent`（monolith）、`lucent_content`、`lucent_medicine`、`lucent_notifications`、
   `lucent_health`、`lucent_insights`、`lucent_assistant`、`lucent_identity`、
   `lucent_ontology`（推理溯源；Neo4j 图库仍在外部）。
   admin BFF 不建业务库。不做 schema 隔离；每个 database 用默认 schema。
-- 每服务**独立 role**，只对自己的 database 有 DDL/DML 权限；legacy role 不允许连接服务库。
+- 每服务**独立 role**，只对自己的 database 有 DDL/DML 权限；monolith role 不允许连接服务库。
 - 每服务**独立 Prisma schema、独立 client、独立迁移史**：`apps/<svc>/prisma/`，
   `migrate deploy` 只跑自己的库。P0 spike 先验证新库创建、迁移、回滚与连接池。
 - `ontology` 不用 Prisma：Python 侧自带迁移/初始化脚本，只对 `lucent_ontology` 有权限；
@@ -339,7 +391,7 @@ docs/
 
 - **禁止跨 database 查询、外键、事务**。不装 `dblink`/FDW 做跨库 join；`userId` 等只是逻辑引用，
   引用完整性由应用校验 + 对账 job 保证。
-- **表所有权清单**：`deploy/data-ownership.yaml` 记录每张表 → owner service → 迁移状态。
+- **表所有权清单**：`infra/data-ownership.yaml` 记录每张表 → owner service → 迁移状态。
   这是 ETL、授权和代码审查的共同事实源。
 
 **单片切换（写片）**
@@ -349,7 +401,7 @@ docs/
 3. 校验行数、关键字段校验和、序号/时间戳边界；重复执行幂等。
 4. 路由切到新服务；旧库对应表标记为只读（保留作灾备快照）。
 5. 更新 monolithic admin 的读适配器：该资源改走 owner 服务 gRPC，不再读旧库。
-6. soak 后删除 legacy 对应代码与旧表；旧库只保留归档快照。
+6. soak 后删除 monolith 对应代码与旧表；旧库只保留归档快照。
 
 **回滚边界（必须说清楚）**
 
@@ -422,7 +474,7 @@ docs/
   是核心能力且与 Lucent 契约共同演进，因此收进仓库；它是推理支撑件，不是第 8 个域服务。
   **assistant 持有客户端与检索编排**；**medicine 只拥有药品语料与索引重建任务**。
 - **LightRAG 继续外置**：第三方镜像（`ghcr.io/hkuds/lightrag`），源码不归本仓；
-  只保留 `deploy/lightrag/` 的配置与 prompt。按外部服务对待（超时、重试、熔断、降级、指标）。
+  只保留 `infra/lightrag/` 的配置与 prompt。按外部服务对待（超时、重试、熔断、降级、指标）。
 - **不再有 Go/Rust 服务**：如未来需要，先在边界稳定后重写单个服务并另开计划，
   不在本计划预留半成品目录。
 - **构建编排用 Turborepo 2.11+ 的多语言 Task Graph（experimental）**：
@@ -543,7 +595,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 2. **记录变更 → 建议重算**：health 事务写 + outbox 发 `DAILY_RECORD_CHANGED` →
    insights 幂等消费并重算；共存期若 health 未提取，由 legacy 事件桥发出。
 3. **提醒投递**：health 调度（BullMQ）→ notifications gRPC `notification.send`
-   （P4 前走 legacy ACL）→ 三渠道投递 → 投递结果事件 →
+   （P4 前走 monolith ACL）→ 三渠道投递 → 投递结果事件 →
    health 异步写 `UserReminderDelivery`。
 4. **assistant 工具读**：assistant 经 gRPC 读 identity 设置、health 健康上下文、
    medicine 目录/风险、insights 报告摘要；散文检索走 LightRAG 客户端；
@@ -588,6 +640,11 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ### P0.5 — 命名硬切（唯一一次公开契约破坏）
 
+**本阶段只做改名字。** 目录搬迁与 Turbo/多语言骨架属于结构变更、不改公开契约，
+可以（并且建议）在 P0 门禁通过前就先完成——见 §6 第 4/7/16/17 项。两者分开的理由
+见 §2.3：合并执行会让排查时同时面对「路径变了」与「名字变了」两种噪音。
+
+- 前置：P0 门禁全部通过、预发已验证；契约基线（`infra/contract/`）已冻结并复查。
 - 先定命名规范，再改代码：服务名、模块名、目录/文件名、类名、公开路径、operationId、
   DTO 字段、错误码、领域事件名、队列名。产出旧→新映射表。
 - 用 codemod + 手工收敛完成单体重命名；同步改 `RouterModule` 前缀、OpenAPI、i18n 文案键与
@@ -597,7 +654,8 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 - 硬切后导出新的 OpenAPI golden snapshot，作为 P1–P9 的契约基线；CI 增加命名基线检查，
   阻断提取期对公开路径/operationId/DTO 字段名的改动。
 - 门禁：全仓 typecheck/lint/arch/test 绿；客户端重新生成并通过 e2e；路由清单与新路径一致；
-  新 golden snapshot 与命名映射表一致。
+  新 golden snapshot 与命名映射表一致；**改名前后与基线 diff 只含预期变更**——这正是
+  契约基线存在的意义，没有它「只改了名字」只是一句断言。
 
 ### P1 — content 读面（第一次绞杀）
 
@@ -624,7 +682,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 - 建 `apps/notifications` 骨架，迁 notifications、notification-preferences、mail；
   接管站内/邮件/推送三渠道与 `lucent-mail` 队列。
-- identity 提取前，经 legacy ACL 读用户联系方式；投递结果以事件回给调用方。
+- identity 提取前，经 monolith ACL 读用户联系方式；投递结果以事件回给调用方。
 - 门禁：三渠道投递与偏好一致；重试/DLQ/限流可用；供应商超时不拖垮调用方；
   `UserReminderDelivery` 仍由 health 写入。
 
@@ -691,7 +749,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 ## 6. 构建与工具链改造清单（按断裂风险排序）
 
 1. **路由所有权清单与 Traefik 配置生成**：`scripts/contract/route-ownership.ts` 校验覆盖与单 owner，
-   生成 `deploy/traefik/dynamic/` 下的 routers/middlewares；CI 阻断未登记路由，
+   生成 `infra/traefik/dynamic/` 下的 routers/middlewares；CI 阻断未登记路由，
    并启动 Traefik 容器加载配置，断言日志无 error 且 routers/services 数量匹配。
 2. **共享契约包**：`libs/contracts`（proto、事件 schema、错误码、公开 wire schema、
    路由/数据所有权类型）先落地；**公开 HTTP DTO 仍由 owner 服务持有**，只把跨服务
@@ -699,10 +757,13 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 3. **命名 codemod（P0.5，最高风险）**：旧→新映射表驱动模块/目录/文件/类/import 的重命名；
    `#generated/*`、`RouterModule`、OpenAPI operationId、i18n 键、事件/队列常量同步更新。
    一次改完，避免提取期反复改名。
-4. **根布局迁移（P0.5）**：`src/`、`prisma/`、`test/`、`nest-cli.json`、legacy `package.json`
-   移入 `apps/legacy/`；根 `package.json` 只留 workspace/turbo/脚本；同步修 tsconfig、
-   `#generated/*`、vitest、eslint、knip、depcruise 的路径。
-5. **Prisma 独立**：legacy 用 `apps/legacy/prisma` + `#generated/*`；新服务各自
+4. **根布局迁移（可先于命名硬切执行）**：`src/`、`prisma/`、`test/`、`nest-cli.json`、
+   单体 `package.json` 移入 `apps/monolith/`；根 `package.json` 只留 workspace/turbo/脚本；
+   同步修 tsconfig、`#generated/*`、vitest、eslint、knip、depcruise 的路径。
+   **这一步不改任何公开契约**（路径、DTO 字段、operationId 全部不动），所以它不需要
+   契约基线比对，也不需要客户端同步发版——与第 3 步的命名硬切**分开执行**。
+   合并执行会让出问题时同时面对「路径变了」与「名字变了」两种噪音，排查成本翻倍。
+5. **Prisma 独立**：legacy 用 `apps/monolith/prisma` + `#generated/*`；新服务各自
    `apps/<svc>/prisma/schema.prisma` 与 `src/generated/`；每库独立迁移史，不共享 client。
 6. **工具链 glob**：`eslint.config.ts`、`eslint.arch.config.ts`、`.oxlintrc.json`、`knip.config.ts`、
    `.dependency-cruiser.cjs`、`scripts/arch/check-ast-conventions.ts` 覆盖 `apps/**`+`libs/**`；
@@ -716,20 +777,31 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 10. **OpenAPI**：P0.5 重新导出命名后的 spec；新服务导出自己的 spec；`merge-openapi.ts`
     合并为完成态产物，共存期用 P0.5 golden snapshot 做 diff。
 11. **docs 工具**：`scripts/docs/links.ts` 与 `scripts/docs/verify.ts` 的路径记号加 `apps|libs`，
-    `src/...` 改为 `apps/legacy/src/...`；P0.5 同步重写模块 README 与 `docs/README.md`。
+    `src/...` 改为 `apps/monolith/src/...`；P0.5 同步重写模块 README 与 `docs/README.md`。
 12. **i18n**：不建 `libs/i18n`；legacy 继续用现有 `nestjs-i18n`，新服务各自配置 locale/
     文案目录；错误码与文案键在 `libs/contracts` 中登记，避免各服务私有码漂移。
 13. **服务模板**：一个 NestJS 服务模板，内置 §2.9 弹性契约、RabbitMQ/outbox 接入、
     service JWT 校验、OTel、健康检查、Dockerfile 与 CI lane；新服务从模板生成。
 14. **`prisma.Path/`**：空目录无引用，迁移时删除。
-15. **Nomad/rnacos 资产**：`deploy/nomad/` 每服务 jobspec、`deploy/traefik/`（静态配置 +
-    生成的路由/中间件）、`deploy/rnacos/`（注册中心配置，无网关同步器）、`libs/discovery`；
+15. **Nomad/rnacos 资产**：`infra/nomad/` 每服务 jobspec、`infra/traefik/`（静态配置 +
+    生成的路由/中间件）、`infra/rnacos/`（注册中心配置，无网关同步器）、`libs/discovery`；
     CI 增加 `nomad job validate`/`nomad job plan` 与 Traefik 配置加载检查；迁移与发布拆成
     独立步骤；本地 Compose 与 Nomad 的 env/端口只经 `libs/config` 子集映射，
     rnacos 连接复用现有 `RNACOS_*`，不做两套业务配置。
 16. **Python 资产**：根 `pyproject.toml`（只声明 uv workspace 与 `[tool.turbo].name`）、
     `uv.lock`、`services/ontology` 的 `pyproject.toml`/`Dockerfile`/`AGENTS.md`；
     CI 加 `setup-uv`（钉版本）、`uv lock --check`、独立 lane；wheel 树与模型权重不进 Git。
+17. **迁移期验证工作区（`Lumos-Services/`）的去向**：它是在 P0 spike 期间于仓库外
+    建立的一次性验证工作区，不是长期目录。处置原则是**按产出分类**：
+    - **并入 `infra/`**：已经通过验证且要长期维护的部分。契约基线
+      （`infra/contract/`）、数据所有权与生成器（`infra/database/`）、Traefik 静态与
+      动态配置（`infra/traefik/`）、路由所有权清单、Python 门禁脚本（`infra/ci/`）。
+      这些是**事实源**，必须在仓库里、被 CI 引用，否则下次没人知道它们存在。
+    - **作为参考保留、不并入**：只服务于 spike 结论的一次性脚本——灰度验证的假后端
+      （nginx canary）、透传探针、逐服务数据库 spike。它们证明过结论，结论已写进
+      `spikes/*/README.md`，脚本本身没有维护价值，留在迁移期工作区即可。
+    - **判定标准**：并入的是「CI 会跑它」或「它定义事实」；参考的是「只用来复现一次
+      性实验」。按这个标准而不是按「写得好不好」来决定，避免把实验脚本搬进产线路径。
 
 ---
 
@@ -791,7 +863,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 4. **proto** + `libs/contracts` 生成物；共享层只含
    `contracts/observability/api/messaging/config/testing/discovery` 七个包。
 5. **7 个领域/支撑服务的 Prisma schema + 独立迁移**（admin BFF 无业务库）；
-   `pnpm-workspace.yaml` + `turbo.json` 任务图；`apps/legacy` 标准布局；
+   `pnpm-workspace.yaml` + `turbo.json` 任务图；`apps/monolith` 标准布局；
    `services/ontology` 的 Python 工程 + `lucent_ontology` 迁移。
 6. **服务模板**：弹性契约、RabbitMQ/outbox、service JWT、OTel、健康检查、Dockerfile、CI lane。
 7. **影子代理与差异报告**；每片切换/回滚记录。
@@ -833,7 +905,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 | 契约在迁移中被动漂移                            | 高   | P0.5 golden snapshot + 每片差异测试 + 客户端 e2e                              |
 | 共享 libs 重新长成分布式单体                    | 中   | 只允许七个技术共享包；业务代码/Prisma/权限/文案一律留在服务内                 |
 | SSE/流式经 Traefik                              | 中   | P0 spike；不挂 Compress/Buffering、取消传播、背压测试                         |
-| 工具链路径断裂                                  | 中   | P0.5 一次性迁到 apps/legacy；每片 `turbo run check`                           |
+| 工具链路径断裂                                  | 中   | P0.5 一次性迁到 apps/monolith；每片 `turbo run check`                         |
 | 双工具链（Node + Python）长期维护成本           | 中   | 只保留一个 Python 单元；CI 独立 lane + 路径过滤；依赖更新分别自动化           |
 | Turbo 多语言支持仍是 experimental               | 中   | 钉 Turbo 版本；CI 保留 `uv run pytest`/`uv build` 直跑 fallback               |
 | Python 依赖/镜像体积膨胀                        | 中   | wheel 树与模型权重不进 Git；多阶段镜像 + 私有 registry + 构建缓存             |
@@ -847,7 +919,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 **提取顺序 content → telemetry → medicine → notifications → health → insights → assistant → identity → admin**、
 **RabbitMQ**（跨服务，共享 `lucent` vhost + 每服务独立账号/权限）、**BullMQ 保留**（服务内任务）、
 **TS 业务服务 + Python 推理服务**（Python 仅 `services/ontology`；LightRAG 外置）、
-**Turborepo 2.11 多语言 Task Graph + uv**、**每服务独立 database**、**service JWT**、**根布局 `apps/legacy`**、
+**Turborepo 2.11 多语言 Task Graph + uv**、**每服务独立 database**、**service JWT**、**根布局 `apps/monolith`**、
 **共享层七个包**、**Traefik 无数据库（file provider + Nomad provider，边缘不解析 JWT）**、
 **可观测沿用 VictoriaMetrics 栈**、**部署 Nomad + rnacos（本地 Compose，状态服务外置；
 不引入 Consul）**。
