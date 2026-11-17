@@ -46,8 +46,8 @@ updated: 2026-10-16
    mkdir -p /opt/lucent && cd /opt/lucent
    cp /path/to/compose.yaml .
    cp .env.production.example .env && vim .env      # 填值,清单见 §四
-   mkdir -p deploy/lightrag
-   cp deploy/lightrag/.env.example deploy/lightrag/.env && vim deploy/lightrag/.env
+   mkdir -p infra/lightrag
+   cp infra/lightrag/.env.example infra/lightrag/.env && vim infra/lightrag/.env
    ```
 
 3. **拉镜像**(tag 是 multi-arch,Docker 自动选本机架构那一层):
@@ -121,7 +121,7 @@ for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/v1/health/ready && 
 
 ### 改 sidecar 配置
 
-`deploy/lightrag/.env` 改动后**必须重建容器**:
+`infra/lightrag/.env` 改动后**必须重建容器**:
 
 ```bash
 cd /opt/lucent
@@ -187,7 +187,7 @@ docker compose up -d semantica      # 再起 sidecar
 > `docker compose up -d` 看不到它,不存在"误起"的可能。
 > 该服务原先的 profile 门控是共用一份 compose 时的产物,已随拆分删除。
 >
-> ⚠️ `API_TOKEN`(sidecar 侧的鉴权令牌,模板在 `deploy/semantica/` 目录下)
+> ⚠️ `API_TOKEN`(sidecar 侧的鉴权令牌,模板在 `infra/semantica/` 目录下)
 > 必须与主站 app 的 `SEMANTICA_API_KEY` **一致**,否则 401。
 
 验证(**从主站侧**验证跨云可达才有意义):
@@ -305,7 +305,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | `METRICS_USER` / `METRICS_PASSWORD`           | app `/metrics` 的 Basic Auth + VM 抓取凭据;**与监控机一致**                                                                                           |
 | 其余密钥                                      | JWT / ADMIN / 邮件 / AI / 对象存储 / 推送,见 [environment-variables.md](../reference/environment-variables.md)                                        |
 
-### 主站 `/opt/lucent/deploy/lightrag/.env`
+### 主站 `/opt/lucent/infra/lightrag/.env`
 
 | 键                                                            | 值 / 说明                                                                                                                 |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -324,7 +324,7 @@ curl -fsS -X POST -u "admin:$PW" -H 'Content-Type: application/json' \
 | `SEMANTICA_IMAGE` | `<registry>/lucent-semantica:latest-amd64`  |
 | `NEO4J_IMAGE`     | `neo4j:5.26.31-community`                   |
 
-> `API_TOKEN` 写在 sidecar 自己的 env_file(模板在 `deploy/semantica/` 目录下),
+> `API_TOKEN` 写在 sidecar 自己的 env_file(模板在 `infra/semantica/` 目录下),
 > 不在本文件;本文件只有 compose 插值要用的那几项。
 
 ### 监控机 `/opt/lucent-monitoring/.env`(模板 `.env.monitoring.example`)

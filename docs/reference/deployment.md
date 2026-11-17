@@ -97,7 +97,7 @@ VM 与 Grafana 同机会让同一份数据在公网上往返两次并穿过窄�
 | 主站   | `app`(管理面)     | 同 `lucent` 镜像                           | `3000`(同 app)        | `/admin` 控制台与 `/admin/queues` 队列面板(bull-board)同源;**不新开端口**;管理员 JWT + `AdminUser` 角色鉴权,面板变更写 `audit_logs` |
 | 主站   | `postgres`        | `<registry>/lucent-db:sha-<sha8>`          | `5432`                | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`**                     |
 | 主站   | `redis`           | `redis:8-alpine`                           | `6379`                | requirepass + appendonly;卷 `redis-data`                                                                                            |
-| 主站   | `lightrag`        | `ghcr.io/hkuds/lightrag:latest`            | `9621`                | 中文散文检索 sidecar;独立 `deploy/lightrag/.env`;卷 `lightrag-data`                                                                 |
+| 主站   | `lightrag`        | `ghcr.io/hkuds/lightrag:latest`            | `9621`                | 中文散文检索 sidecar;独立 `infra/lightrag/.env`;卷 `lightrag-data`                                                                 |
 | 主站   | `rnacos`          | `qingpan/rnacos:v0.8.7`(钉版本)            | `8848`/`9848`/`10848` | 运行时配置中心;卷 `rnacos-data`;文档只收非密钥热键;控制台口令必须显式给,端口只放行受信来源                                          |
 | 主站   | `node-exporter`   | `prom/node-exporter:v1.9.1`                | `9100`                | 宿主机指标;**只放行监控机出口 IP**                                                                                                  |
 | 图库机 | `neo4j`           | `neo4j:5.26.31-community`                  | `7474`/`7687`         | 固定 heap 512m + pagecache 256m                                                                                                     |
@@ -138,9 +138,9 @@ ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 \
 
 ### LightRAG sidecar(中文散文检索)
 
-- **配置独立**:`lightrag` 服务的 `env_file` 是 `deploy/lightrag/.env`,**不共用**
+- **配置独立**:`lightrag` 服务的 `env_file` 是 `infra/lightrag/.env`,**不共用**
   app 的 `.env`。那是独立进程,不该读到 `JWT_*` / `DATABASE_URL` / 微信密钥。
-  清单见 `deploy/lightrag/.env.example`。
+  清单见 `infra/lightrag/.env.example`。
 - **Lucent 侧只需两项**:`LIGHTRAG_ENABLED=true` 与 `LIGHTRAG_API_KEY`(须与
   sidecar env 的同名项一致,是鉴权握手)。`LIGHTRAG_BASE_URL` 走默认的
   `http://lightrag:9621`(同 compose 网络)。
@@ -223,7 +223,7 @@ ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 \
 | 机器   | 配置文件                           | 关键键                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 主站   | `/opt/lucent/.env`                 | `LUCENT_IMAGE` `LUCENT_DB_IMAGE` `RNACOS_IMAGE` `POSTGRES_PASSWORD` `REDIS_PASSWORD` `METRICS_USER` `METRICS_PASSWORD` `PUBLIC_BASE_URL` `CORS_ORIGIN` `SEMANTICA_BASE_URL` `VICTORIALOGS_URL` `OTEL_EXPORTER_OTLP_ENDPOINT`;启用配置中心另加 `RNACOS_ENABLED` `RNACOS_SERVER_ADDR` `RNACOS_NAMESPACE` `RNACOS_CONSOLE_PASSWORD`(=`RNACOS_USERNAME`/`RNACOS_PASSWORD`);启用业务图查询另加 `NEO4J_URI` `NEO4J_USER` `NEO4J_PASSWORD` |
-| 主站   | `/opt/lucent/deploy/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `deploy/lightrag/.env.example`                                                                                                                                                                                                                                                                                                                |
+| 主站   | `/opt/lucent/infra/lightrag/.env` | `EMBEDDING_*` `EXTRACT_LLM_MODEL` `EMBEDDING_SEND_DIM` `ENTITY_TYPE_PROMPT_FILE`;模板 `infra/lightrag/.env.example`                                                                                                                                                                                                                                                                                                                |
 | 图库机 | `/opt/lucent-neo4j/.env`           | `NEO4J_PASSWORD` `API_TOKEN` `SEMANTICA_IMAGE` `NEO4J_IMAGE`                                                                                                                                                                                                                                                                                                                                                                        |
 | 监控机 | `/opt/lucent-monitoring/.env`      | `LUCENT_PUBLIC_HOST` `METRICS_USER` `METRICS_PASSWORD` `GRAFANA_ADMIN_PASSWORD` `ALERT_EMAIL_TO` `MAIL_*` `GF_SMTP_ENABLED`                                                                                                                                                                                                                                                                                                         |
 
@@ -302,7 +302,7 @@ SSE 连接会收到终止事件后关闭,建议低峰发布。
 - **三台共同**:Docker 20.10+ 与 `docker compose` 插件;云安全组按上文原则放行;
   无需 Node/pnpm/PM2(应用在容器里跑,不需要宿主运行时)。
 - **主站**:工作目录下有 `compose.yaml`、`.env`、
-  `deploy/lightrag/.env`。
+  `infra/lightrag/.env`。
 - **图库机**:工作目录下有 `compose.graph.yaml` 与 `.env`;Neo4j 固定内存约 852 MiB,
   注意主机余量。
 - **监控机**:工作目录下有 `compose.monitoring.yaml`、`.env` 与 `monitoring/`

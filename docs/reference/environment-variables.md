@@ -535,7 +535,7 @@ base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独�
 > （`leaflet:` / `qa:`）区分来源。需要真正隔离时应另起一个 sidecar 实例。
 
 **sidecar 自身的配置不在这里。** LightRAG 进程（Python 容器）读它自己那份独立 env
-文件：模板位于 `deploy/lightrag/`（`env.example`，入库并作为 LightRAG 全部变量的
+文件：模板位于 `infra/lightrag/`（`env.example`，入库并作为 LightRAG 全部变量的
 唯一清单），使用时同目录复制去掉 `.example` 后缀；其中包含存储四件套
 （`LIGHTRAG_KV_STORAGE` / `LIGHTRAG_VECTOR_STORAGE` / `LIGHTRAG_GRAPH_STORAGE` /
 `LIGHTRAG_DOC_STATUS_STORAGE`）、独立 `POSTGRES_*` 与按角色分离的模型变量
@@ -563,7 +563,7 @@ base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独�
 > `Chinese`；默认实体本体是 `Person`/`Organization`/`Location` 那套通用类型，对药品
 > 说明书不对口，用 `ENTITY_TYPE_PROMPT_FILE` 指定领域 profile（`PROMPT_DIR` 默认
 > `./prompts`，只认裸文件名 + 固定子目录 `entity_type/`，**不接受绝对路径**）。
-> 完整清单与实测数据见 `deploy/lightrag/.env.example` 与
+> 完整清单与实测数据见 `infra/lightrag/.env.example` 与
 > `lightrag-eval/results/mode-comparison.md` §九。
 
 > **嵌入维度是「声明」与「投递」两个变量，只设一个会写入失败**（2026-10-02 实测）。
@@ -587,7 +587,7 @@ base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独�
 启用步骤（复制模板 → 填模型 key → 起 profile，见模板头注释）：
 
 ```bash
-cp deploy/lightrag/.env.example deploy/lightrag/.env   # 填入模型 key 与 LIGHTRAG_API_KEY
+cp infra/lightrag/.env.example infra/lightrag/.env   # 填入模型 key 与 LIGHTRAG_API_KEY
 docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
 # 然后在 .env.development 里设 LIGHTRAG_ENABLED=true 与同名 LIGHTRAG_API_KEY
 ```
@@ -657,7 +657,7 @@ NEO4J_TX_TIMEOUT_MS # 默认 8000；同时用作 driver 的 connectionTimeout
 挂掉不会把另一个的工具也标成不可用。
 
 **sidecar 自身的配置不在这里**：Neo4j URI / 凭据 / 库名 / 连接池 / 查询超时在它自己的
-env 文件里（模板位于 `deploy/semantica/`，复制去掉后缀即为运行时文件，变量清单与
+env 文件里（模板位于 `infra/semantica/`，复制去掉后缀即为运行时文件，变量清单与
 semantica-service 仓的同名同义），与 Lucent 的 `DATABASE_URL` 完全独立（图在 Neo4j 中，
 **不进 Prisma 迁移域**，也没有共用的 Postgres database）。dev 也可以直接在本机跑（不起容器）：
 
