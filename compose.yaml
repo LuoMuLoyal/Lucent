@@ -328,7 +328,11 @@ services:
   # dashboard 不在此文件——生产不需要一个能浏览用户记忆的 Web 面，
   # 需要时走 SSH 隧道临时起，别把它常驻在公网机器的 compose 里。
   mem0:
-    image: ${MEM0_IMAGE:-mem0/mem0-api-server:latest}
+    # 官方 `mem0/mem0-api-server` 只有 arm64，amd64 宿主拉不下来（实测
+    # `no matching manifest for linux/amd64`）。这个镜像是官方 `server/` 源码的
+    # amd64 重建，已验证能起到 healthy。社区维护，故 pin digest 而非 latest：
+    # 它持有 JWT_SECRET 与数据库口令，镜像内容变更必须是显式动作。
+    image: ${MEM0_IMAGE:-amerenda/mem0-server@sha256:7d3dd4e35f893ed9aa6a4b6adbe2b7bcb05bf801737e383b7b43cd5b9521089d}
     restart: unless-stopped
     env_file:
       - infra/mem0/.env
@@ -345,14 +349,19 @@ services:
       # （见 docs/TODO.md「端口暴露面」）。app 走 compose 服务名 `mem0:8000`，
       # 这条发布只给运维直连排障用。⚠️ 无内建 TLS，别跨公网调用。
       - '8888:8000'
+    volumes:
+      # history 是容器内 SQLite（默认 /app/history/history.db），不在 Postgres
+      # 里。不挂卷则首次启动 `unable to open database file`，重建还丢变更历史。
+      - mem0-history:/app/history
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test:
-        [
+      test: [
           'CMD-SHELL',
-          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8000/health\").read()" || exit 1',
+          # 没有 `/health` 端点（实测 404）。`/docs` 是 FastAPI 自带的 OpenAPI
+          # 页面，不需要鉴权，且只有应用真正完成 startup 才会 200。
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8000/docs\")" || exit 1',
         ]
       interval: 15s
       timeout: 5s
@@ -460,6 +469,9 @@ volumes:
   # neo4j-data / neo4j-logs 已随服务搬到 compose.graph.yaml(图库机)。
   lightrag-data:
   rnacos-data:
+  # Mem0 的变更历史(SQLite)。与记忆本体分开:本体在 Postgres 的 pgvector 表里,
+  # 这里只是它的 history.db。不挂卷则容器重建即丢历史、首启还会打不开文件。
+  mem0-history:
   # RustFS 的对象数据(含版本/元数据)。备份单位是这个卷,不是 bucket ——
   # 见 docs/howto/deploy.md 的存储备份小节。
   rustfs-data:

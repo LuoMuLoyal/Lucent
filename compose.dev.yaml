@@ -244,13 +244,18 @@ services:
   # 它自己的 `users` 表与 Prisma 的 `User` 同名，同库必然撞名。
   #
   # 配置只来自 infra/mem0/.env（模板见该目录 .env.example），不含 Lucent 的
-  # JWT_* / DATABASE_URL / 微信密钥。容器内访问宿主 Postgres 走 host-gateway。
+  # JWT_* / DATABASE_URL / 微信密钥。
   #
   # 为什么不把它的 compose 整段搬过来：它自带 `pgvector/pgvector:pg17` +
   # init-db.sh + 卷，那是「独立部署」的形状；并进 dev stack 时这些都要去掉，
   # 否则同一台机器上会有两份 Postgres 和两份 pgvector 扩展。
   mem0:
-    image: ${MEM0_IMAGE:-mem0/mem0-api-server:latest}
+    # 官方 `mem0/mem0-api-server` **只有 arm64**（实测：`no matching manifest for
+    # linux/amd64`），amd64 宿主拉不下来。这个镜像是官方 `server/` 源码的 amd64
+    # 重建（Dockerfile 与 requirements 与上游逐字一致，main.py / auth.py /
+    # alembic 都在，已验证容器能起到 healthy）。社区维护，故 pin digest 而不是
+    # `latest`：它持有 JWT_SECRET 与数据库口令，镜像内容变更必须是显式动作。
+    image: ${MEM0_IMAGE:-amerenda/mem0-server@sha256:7d3dd4e35f893ed9aa6a4b6adbe2b7bcb05bf801737e383b7b43cd5b9521089d}
     container_name: lucent-mem0
     profiles: ['mem0']
     restart: unless-stopped
@@ -268,14 +273,20 @@ services:
     ports:
       # 只绑回环：管理面不出宿主。
       - '127.0.0.1:8888:8000'
+    volumes:
+      # Mem0 的 history 是本地 SQLite（`HISTORY_DB_PATH`，默认
+      # `/app/history/history.db`），不落在 Postgres 里。不挂卷则首次启动因为没有
+      # 该目录直接 `unable to open database file`，重建容器还会丢变更历史。
+      - mem0-history:/app/history
     depends_on:
       postgres-dev:
         condition: service_healthy
     healthcheck:
-      test:
-        [
+      test: [
           'CMD-SHELL',
-          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8000/health\").read()" || exit 1',
+          # 没有 `/health` 端点（实测 404）。`/docs` 是 FastAPI 自带的 OpenAPI
+          # 页面，不需要鉴权，且只有应用真正完成 startup 才会 200。
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8000/docs\")" || exit 1',
         ]
       interval: 15s
       timeout: 5s
@@ -398,3 +409,4 @@ volumes:
   rustfs-data:
   lightrag-data:
   rnacos-data:
+  mem0-history:
