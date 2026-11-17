@@ -51,9 +51,12 @@ const HTTP_METHODS = [
 ];
 
 function loadOpenApiDocument(): OpenApiDocument {
+  // The generated contract belongs to the repository (it is published as the
+  // client-facing spec), not to this app, so it stays at the workspace root:
+  // test/contract/ → test → monolith → apps → root.
   const specPath = resolve(
     dirname(fileURLToPath(import.meta.url)),
-    '../../docs/reference/generated/openapi.json',
+    '../../../../docs/reference/generated/openapi.json',
   );
   return JSON.parse(readFileSync(specPath, 'utf-8')) as OpenApiDocument;
 }

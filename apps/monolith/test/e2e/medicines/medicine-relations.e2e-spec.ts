@@ -126,7 +126,7 @@ describe('Medicine relations graph API (e2e)', () => {
 
     beforeAll(async () => {
       const specPath = new URL(
-        '../../../docs/reference/generated/openapi.json',
+        '../../../../../docs/reference/generated/openapi.json',
         import.meta.url,
       );
       const raw = await readFile(specPath, 'utf8');

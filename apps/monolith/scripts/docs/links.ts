@@ -24,7 +24,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 const VAULT_ROOT = 'docs';
 
@@ -75,6 +75,37 @@ function collectMarkdownFiles(repoRoot: string): string[] {
  * Link-target validation still applies to the first two (only path tokens are
  * skipped), so a genuinely broken Markdown link is still reported.
  */
+/**
+ * Resolves a repo-root-relative path against the workspace root **and** the app
+ * roots under `apps/*`.
+ *
+ * Docs are written from a reader's point of view: "the code is at
+ * `src/app.module.ts`". After the monorepo move that path lives at
+ * `apps/monolith/src/app.module.ts`, and rewriting hundreds of doc lines to the
+ * prefixed form would make them read like build output instead of prose. Instead
+ * the checker accepts either location, so the docs stay readable while a genuinely
+ * missing file is still reported.
+ *
+ * Returns the path as it should be recorded (relative to the workspace root), or
+ * `null` when it exists nowhere.
+ */
+function resolveWithAppPrefixes(
+  repoRoot: string,
+  rel: string,
+): string | null {
+  const normalized = rel.replace(/\\/g, '/');
+  if (existsSync(resolve(repoRoot, normalized))) return normalized;
+
+  const appsDir = resolve(repoRoot, 'apps');
+  if (!existsSync(appsDir)) return null;
+  for (const entry of readdirSync(appsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const candidate = `apps/${entry.name}/${normalized}`;
+    if (existsSync(resolve(repoRoot, candidate))) return candidate;
+  }
+  return null;
+}
+
 function collectPathCheckFiles(
   repoRoot: string,
   docsFiles: string[],
@@ -86,11 +117,17 @@ function collectPathCheckFiles(
     }
   }
   const add = (rel: string) => {
-    if (existsSync(resolve(repoRoot, rel))) set.add(rel.replace(/\\/g, '/'));
+    const found = resolveWithAppPrefixes(repoRoot, rel);
+    if (found !== null) set.add(found.replace(/\\/g, '/'));
   };
-  const modulesDir = resolve(repoRoot, 'src', 'modules');
-  if (existsSync(modulesDir)) {
-    for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {
+  // Resolved paths are workspace-root-relative, so anything that touches the
+  // filesystem must resolve them against `repoRoot` first — the process cwd is
+  // the app directory, not the workspace root.
+  const modulesDir = resolveWithAppPrefixes(repoRoot, 'src/modules');
+  if (modulesDir !== null) {
+    for (const entry of readdirSync(resolve(repoRoot, modulesDir), {
+      withFileTypes: true,
+    })) {
       if (entry.isDirectory()) add(`src/modules/${entry.name}/README.md`);
     }
   }
@@ -169,10 +206,11 @@ function targetExists(
 
   // Markdown links resolve relative to the file's own directory.
   const base = dirname(file);
-  const path = /\.md$/i.test(target)
-    ? `${base}/${target}`
-    : `${base}/${target}.md`;
-  return existsSync(resolve(repoRoot, path));
+  const raw = /\.md$/i.test(target) ? `${base}/${target}` : `${base}/${target}.md`;
+  // Lexically normalise (`docs/../src/...` → `src/...`) so the app-prefix
+  // fallback sees a clean workspace-relative path instead of `..` segments.
+  const path = relative(repoRoot, resolve(repoRoot, raw)).replace(/\\/g, '/');
+  return resolveWithAppPrefixes(repoRoot, path) !== null;
 }
 
 function checkFile(file: string, repoRoot: string): BrokenLink[] {
@@ -233,7 +271,7 @@ function findBrokenPaths(file: string, repoRoot: string): BrokenLink[] {
     for (const m of line.matchAll(PATH_TOKEN_RE)) {
       const token = m[1];
       if (isPlaceholderPath(token)) continue;
-      if (!existsSync(resolve(repoRoot, token))) {
+      if (resolveWithAppPrefixes(repoRoot, token) === null) {
         broken.push({ file, line: i + 1, target: token, kind: 'path' });
       }
     }

@@ -39,9 +39,11 @@ interface OpenApiSchema {
 }
 
 function loadOpenApiSpec(): OpenApiSpec {
+  // The published contract lives at the workspace root (see the sibling
+  // openapi-metadata spec): test/contract/ → test → monolith → apps → root.
   const specPath = resolve(
     dirname(fileURLToPath(import.meta.url)),
-    '../../docs/reference/generated/openapi.json',
+    '../../../../docs/reference/generated/openapi.json',
   );
   return JSON.parse(readFileSync(specPath, 'utf-8')) as OpenApiSpec;
 }
