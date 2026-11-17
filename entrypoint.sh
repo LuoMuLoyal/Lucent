@@ -33,5 +33,22 @@ until apps/monolith/node_modules/.bin/prisma migrate deploy; do
   sleep "$RETRY_DELAY"
 done
 
-echo "[entrypoint] migrations applied; starting lucent app."
+echo "[entrypoint] migrations applied."
+
+# Mem0 sidecar 的两个 database + pgvector 扩展。`CREATE DATABASE` 不能进事务、
+# 也不能对着不存在的库执行，所以它不放进 prisma 迁移；放在这里是因为这是
+# 「数据存储就绪」的唯一入口，每次启动都跑一遍（每条语句都先做存在性检查，
+# 幂等）。MEM0_ENABLED 不为 true 时脚本直接返回。
+#
+# 为什么不放 docker/postgres 的 initdb 目录：那套只在**数据目录为空**时执行，
+# 存量卷全都已初始化，会静默跳过——正是最需要它的地方失效。
+#
+# 放在 apps/monolith/scripts 下是因为它 import `pg`（该 workspace 成员的依赖），
+# pnpm 只链进 apps/monolith/node_modules；上面 prisma 也走同一个目录。
+if [ "${MEM0_ENABLED}" = "true" ]; then
+  echo "[entrypoint] ensuring mem0 sidecar databases..."
+  node apps/monolith/scripts/db/ensure-mem0-databases.ts
+fi
+
+echo "[entrypoint] starting lucent app."
 exec node apps/monolith/dist/main.js

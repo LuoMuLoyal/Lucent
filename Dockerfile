@@ -127,6 +127,10 @@ COPY --chown=lucent:lucent package.json pnpm-workspace.yaml ./
 COPY --chown=lucent:lucent apps/monolith/package.json ./apps/monolith/package.json
 # 启动入口:先 prisma migrate deploy 再启动应用(见脚本头注释)
 COPY --chown=lucent:lucent --chmod=755 entrypoint.sh ./entrypoint.sh
+# Mem0 sidecar 的 database + pgvector 引导（entrypoint 在 MEM0_ENABLED=true 时调用）。
+# 以 `.ts` 交付：Node 26 原生剥离类型，仓库也禁止 `.js`（pre-commit 的 check-no-js
+# 会拦）。它 import 的 `pg` 由上面 COPY 的 node_modules 提供。
+COPY --chown=lucent:lucent apps/monolith/scripts/db ./apps/monolith/scripts/db
 # 运行时只写 stdout(容器收集)+ VictoriaLogs(见 compose.yaml),
 # 不再需要容器内日志目录。
 USER lucent
