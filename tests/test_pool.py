@@ -161,7 +161,12 @@ def test_failed_connect_does_not_leak_a_slot(settings: Settings) -> None:
 
     strict = Settings(neo4j_password="p", pool_min_size=1, pool_max_size=1)
     pool = StorePool(strict)
-    pool_module.Neo4jGraphStore = FailingStore  # type: ignore[misc]
+    # Assigning a subclass of the fake onto the module symbol is the point of the
+    # test: it swaps the constructor the pool uses. Two codes fire here —
+    # `attr-defined` (the module does not re-export the symbol) and `assignment`
+    # (subclass narrowed onto the declared type) — and the pair is tight enough
+    # that, if the underlying code ever changes, `unused-ignore` will say so.
+    pool_module.Neo4jGraphStore = FailingStore  # type: ignore[attr-defined, assignment]
     try:
         for _ in range(3):
             with pytest.raises(RuntimeError, match="no server"):
