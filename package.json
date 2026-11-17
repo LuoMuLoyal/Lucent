@@ -20,9 +20,31 @@
     "dev": "turbo run dev --filter=lucent",
     "monolith": "pnpm --filter lucent",
     "contract:go": "turbo run contracts#generate",
-    "contract:go:check": "node infra/ci/check-go-contract.mjs"
+    "prepare": "simple-git-hooks"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "eslint": "^9.18.0",
+    "lint-staged": "^17.0.5",
+    "oxlint": "^1.80.0",
+    "prettier": "^3.4.2",
+    "simple-git-hooks": "^2.14.0",
     "turbo": "2.11.11"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx --no-install lint-staged",
+    "commit-msg": "npx --no-install commitlint --edit $1",
+    "pre-push": "pnpm --filter lucent lint:check && pnpm --filter lucent docs:verify && pnpm --filter lucent docs:links"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "oxlint --config apps/monolith/.oxlintrc.json --fix --no-error-on-unmatched-pattern",
+      "eslint --config apps/monolith/eslint.config.ts --fix --no-warn-ignored",
+      "prettier --config apps/monolith/.prettierrc --ignore-path apps/monolith/.prettierignore --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --config apps/monolith/.prettierrc --ignore-path apps/monolith/.prettierignore --write"
+    ]
   }
 }

@@ -16,7 +16,6 @@
   },
   "scripts": {
     "check": "pnpm lint:oxlint && pnpm lint:eslint && pnpm format:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci",
-    "prepare": "simple-git-hooks",
     "postinstall": "pnpm prisma:generate",
     "build": "nest build",
     "typecheck": "pnpm exec tsc -p tsconfig.typecheck.json --noEmit",
@@ -152,8 +151,6 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.3",
-    "@commitlint/config-conventional": "^21.2.3",
     "@compodoc/compodoc": "^2.0.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
@@ -179,29 +176,12 @@
     "globals": "^17.13.0",
     "jiti": "^2.7.0",
     "knip": "6.41.0",
-    "lint-staged": "^17.0.5",
     "oxlint": "^1.80.0",
     "prettier": "^3.4.2",
-    "simple-git-hooks": "^2.14.0",
     "supertest": "^7.3.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.20.0",
     "unplugin-swc": "^2.0.0",
     "vitest": "^4.1.10"
-  },
-  "simple-git-hooks": {
-    "pre-commit": "npx --no-install lint-staged",
-    "commit-msg": "npx --no-install commitlint --edit $1",
-    "pre-push": "pnpm lint:check && pnpm docs:verify && pnpm docs:links"
-  },
-  "lint-staged": {
-    "*.ts": [
-      "oxlint --fix --no-error-on-unmatched-pattern",
-      "eslint --fix --no-warn-ignored",
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml}": [
-      "prettier --write"
-    ]
   }
 }
