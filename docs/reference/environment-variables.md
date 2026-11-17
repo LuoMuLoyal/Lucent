@@ -621,6 +621,35 @@ SEMANTICA_API_KEY    # 与 sidecar 的 API_TOKEN 必须一致；仅 ENABLED=true
 成 `kind: 'unauthorized'` 后呈现的是"推理服务不可用"——一个配置错误被伪装成基础设施故障。
 关闭状态下即便残留了 base URL / key 也不报错。
 
+### Mem0 sidecar — 跨会话长期记忆
+
+```text
+MEM0_ENABLED    # 默认 false；关闭时记忆块为空、检索工具返回"未配置"信封，不抛错
+MEM0_BASE_URL   # dev http://127.0.0.1:8888；生产 http://mem0:8000（compose 服务名）
+MEM0_API_KEY    # 与 sidecar 的 ADMIN_API_KEY 必须一致；仅 ENABLED=true 时强制
+MEM0_TIMEOUT_MS # 默认 5000；记忆读写都在请求路径上
+```
+
+**sidecar 自己的配置不在本文件。** 它读 `infra/mem0/.env`（模板见该目录），
+与 lightrag / semantica 同一处置：独立进程、独立镜像、独立升级周期。
+两侧唯一共享的值是 `MEM0_API_KEY` ↔ `ADMIN_API_KEY`。
+
+**存储是两个独立 database，不是两个 schema。** 复用既有 Postgres 容器，但
+`mem0`（pgvector 记忆表）与 `mem0_app`（它自己的 `users` / `api_keys` /
+`request_logs`，Alembic 首启建表）必须是独立库：它的 `users` 表与 Prisma 的
+`User` 同名，同库必然撞名。两个库都要 `CREATE EXTENSION vector`。
+
+**provider 白名单写死在 sidecar 里。** `server/main.py` 的
+`BUNDLED_LLM_PROVIDERS` / `BUNDLED_EMBEDDER_PROVIDERS` 只接受
+openai / anthropic / gemini，白名单外的 provider 在 `POST /configure` 阶段即
+400。但 `openai` provider 支持 `baseURL`（`mem0ai` 的
+`baseURL: config.baseURL || config.url`），所以模型池只要是 OpenAI 兼容的，
+配 `provider: openai` + 自建 `baseURL` 即可零改造接入，不必改它的 Python。
+
+**`AUTH_DISABLED` 不得为 true**（`JWT_SECRET` 缺失时 auth 端点直接 500）。
+`MEM0_TELEMETRY` 默认 true 会向 Mem0 上报 install UUID 与邮件域，两个 compose
+都已设成 `false`。
+
 ### Neo4j 直连 — 业务只读图查询
 
 ```text

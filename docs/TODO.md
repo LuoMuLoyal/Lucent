@@ -465,3 +465,17 @@ ambient scope 让调用方**不必**传它——正常路径下 `tx` 参数已�
 payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `amqps://`
 （`RABBITMQ_URL` 的校验已接受 `amqps`），或经 stunnel/反代终结 TLS。
 15672 管理台只靠安全组收口来源 IP，接入 TLS 时一并处理。
+
+## deepagents 接入请求路径（2026-11-17，装配已完成、未接线）
+
+`adapters/agent/deep-agent.ts` 已能装配（工具桥 + 三个子智能体 + 每会话 workspace），
+但 `runtime.ts` 不调用它，生产路径仍是手写的 `graph.ts`。接线时的约束：
+
+- **流式形状不同**：`graph.ts` 通过 `onText` 逐块推送；deepagents 拥有自己的 run
+  loop 与 `messages`/`files` 状态。SSE 契约（`chunk`→`result`→`done`）必须保持不变。
+- **proposals 契约不能丢**：写入提案挂在 `write_review` 的 interrupt 上，由 confirm
+  端点 resume。deepagents 的 `interruptOn` 是第二套挂起机制，两者只能留一套。
+- **checkpointer 只有一个**：`AssistantCheckpointerService` 已持有 conversation 的
+  checkpoint，而 regeneration 依赖 checkpoint id。再挂一个会和它争夺「当前状态」。
+- **无沙箱**：`LocalShellBackend` 是无 confinement 的宿主 shell，它的原文把
+  「web servers, APIs, multi-tenant」列为不适用场景。真正隔离需要每会话一个容器。
