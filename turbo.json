@@ -1,11 +1,30 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "futureFlags": {
-    "experimentalPythonWorkspaces": true
+    "experimentalPythonWorkspaces": true,
+    "experimentalTaskCommand": true
   },
   "globalDependencies": ["pnpm-workspace.yaml", ".node-version"],
   "globalEnv": ["NODE_ENV", "CI"],
   "tasks": {
+    "//#verify": {
+      "outputs": []
+    },
+    "semantica-service#check": {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "--package",
+        "semantica-service",
+        "mypy",
+        "--config-file",
+        "pyproject.toml",
+        "src",
+        "tests"
+      ],
+      "outputs": []
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]

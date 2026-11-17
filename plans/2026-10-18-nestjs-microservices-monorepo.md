@@ -7,7 +7,7 @@ owner: backend
 
 > 2026-10-18 起草；2026-10-19 改为**绞杀者（Strangler Fig）模式**，同日第二轮按
 > **标准微服务**收敛；第三轮把部署改为 **Nomad + rnacos**，并将自建 Semantica 收编为
-> **`services/ontology`**（TS + Python 的受控多语言仓库，LightRAG 仍外置）。
+> **`apps/ontology`**（TS + Python 的受控多语言仓库，LightRAG 仍外置）。
 >
 > 目标：在 **Traefik 边缘 + RabbitMQ 事件总线** 的支撑下，按 bounded context 逐片把单包 NestJS
 > 单体绞杀为 **identity / health / medicine / assistant / insights / notifications / content
@@ -18,7 +18,7 @@ owner: backend
 > **2026-10-19 本轮裁决（标准收敛）**：
 >
 > - **多语言（受控）**：业务服务与 admin BFF 只用 TypeScript；**唯一** Python 单元是
->   `services/ontology`（自建 Semantica FastAPI，本体/OAG 推理），因为它是核心能力且与
+>   `apps/ontology`（自建 Semantica FastAPI，本体/OAG 推理），因为它是核心能力且与
 >   Lucent 契约共同演进，收进仓库利于契约与客户端同 PR 变更。
 >   LightRAG 仍是第三方镜像，继续外置；不引入 Go/Rust 服务。
 > - **服务边界**：按 bounded context 划 **identity / health / medicine / assistant / insights /
@@ -55,7 +55,7 @@ owner: backend
 | 议题        | 裁决                                                                                                                                                                 |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 切换方式    | **绞杀者渐进**：Traefik 第一天挡在单体前；按路由/资源逐片切换，旧栈全程可服务                                                                                        |
-| 拓扑        | **Traefik + 7 个领域/支撑服务（identity/health/medicine/assistant/insights/notifications/content）+ admin BFF + `services/ontology` 推理支撑服务**；单体是过渡期上游 |
+| 拓扑        | **Traefik + 7 个领域/支撑服务（identity/health/medicine/assistant/insights/notifications/content）+ admin BFF + `apps/ontology` 推理支撑服务**；单体是过渡期上游 |
 | 提取顺序    | content → telemetry/事件底座 → medicine → notifications → health → insights 读模型 → assistant → identity → admin → 收尾                                             |
 | 网关        | **Traefik**：单二进制、无数据库；路由、`ReplacePathRegex` 重写、SSE/流式透传、限流、CORS；边缘不解析 JWT                                                             |
 | 网关管理    | **file provider（Git）+ Nomad provider**：路由/中间件在 `infra/traefik/`，实例由 Nomad tags 发现；不用 decK/Konga                                                    |
@@ -66,7 +66,7 @@ owner: backend
 | 契约基线    | 硬切后的 OpenAPI 成为 P1–P9 的稳定基线；提取期禁止再改公开命名，内部契约可演进                                                                                       |
 | 回滚        | **读片路由回滚**；写片在首笔写入前可回滚，之后 forward-fix；旧库保留到 P9                                                                                            |
 | 仓库形态    | **pnpm workspace + Turborepo**；根只做编排，单体在 `apps/monolith`，新服务在 `apps/*`                                                                                |
-| 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `services/ontology`（Semantica）；LightRAG 仍外置；不自研 Go/Rust 服务（Traefik 为现成二进制）                          |
+| 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `apps/ontology`（Semantica）；LightRAG 仍外置；不自研 Go/Rust 服务（Traefik 为现成二进制）                          |
 | 共享层      | 只共享 `contracts` / `observability` / `api` / `config` / `testing` / `messaging` / `discovery`                                                                      |
 | 弹性        | 每服务必备：超时、重试+jitter、熔断、幂等键、DLQ、背压、优雅停机、readiness                                                                                          |
 | 服务认证    | **短期 service JWT**（`sub`=服务名、`aud`=目标、`scope`）；mTLS 后置                                                                                                 |
@@ -98,7 +98,7 @@ forward-fix 为主，旧库保留到 P9。
   （12 个队列）、OTel/Winston/Prometheus、`nestjs-i18n`、zod 4。
 - **AI 面已经是异构的**：LightRAG 与 Semantica 均为独立 Python 服务（Neo4j 本体推理），
   Lucent 只做 HTTP 客户端与 envelope 归一；`assistant` 的编排仍是 TypeScript/LangGraph。
-  本计划把 **Semantica 源码收进 `services/ontology`**，LightRAG 继续用第三方镜像外置。
+  本计划把 **Semantica 源码收进 `apps/ontology`**，LightRAG 继续用第三方镜像外置。
 - **构建/工具链**：SWC builder、`#generated/*` import map（约 220 处 import 站点，四处定义需一致）、
   vitest 多套配置、dependency-cruiser/eslint.arch/oxlint/knip、`scripts/` 独立 tsconfig。
 - **部署**：单进程、单镜像；`entrypoint.sh` 跑 `prisma migrate deploy` 后 `node dist/main.js`。
@@ -250,10 +250,9 @@ turbo.json                # futureFlags.experimentalPythonWorkspaces = true
 tsconfig.base.json        # libs/* 的 project references 基座
 apps/
   monolith/               # 原单体：src/ prisma/ test/ nest-cli.json package.json
+  ontology/               # 自建 Semantica：pyproject.toml  uv.lock  src/  tests/  Dockerfile
   content/  medicine/  notifications/  health/  insights/  assistant/  identity/  admin/
     package.json  nest-cli.json  src/main.ts  tsconfig.json  prisma/
-services/
-  ontology/               # 自建 Semantica：pyproject.toml  uv.lock  src/  tests/  Dockerfile
 libs/
   contracts/ observability/ api/ messaging/ config/ testing/ discovery/
 infra/
@@ -281,7 +280,7 @@ docs/
 - **`semantica-service` 归 `Lucent` 管理**：它与 Lucent 的领域强耦合（读 Lucent 的
   库、服务 Lucent 的 assistant），只是语言不同。业务归属不该因为语言而分裂到两个
   仓库——那会让「改一处要动两个 repo」成为常态。物理上它仍在同一个 Git 仓库的
-  `services/ontology/`，由根 `pyproject.toml` 的 uv workspace 纳入；语言隔离靠
+  `apps/ontology/`，由根 `pyproject.toml` 的 uv workspace 纳入；语言隔离靠
   workspace 边界（独立的 `pyproject.toml`/`uv.lock`/`Dockerfile`/CI lane），
   不靠仓库边界。
 - **命名重构与目录搬迁分两步**（见 §5 P0.5）：目录搬迁是纯结构变更、不改公开契约，
@@ -293,7 +292,7 @@ docs/
 - **`libs/*` 用 `tsc`**（`composite: true` + project references）产出 `dist` 与 `.d.ts`。
 - **P9 收尾**：删除 `apps/monolith/`，根包保持纯 workspace 编排。
 - **admin 前端仍是独立工程链**，构建产物由 admin BFF 静态托管，Traefik 路由 `/admin` 过去。
-- **Python 只占 `services/ontology`**：自带 `pyproject.toml`、`uv.lock`、`Dockerfile`；
+- **Python 只占 `apps/ontology`**：自带 `pyproject.toml`、`uv.lock`、`Dockerfile`；
   根 `pyproject.toml` 只做 uv workspace 声明，不放依赖，避免变成第二份依赖清单。
 - **不共享跨语言代码**：TS 不 import Python，Python 不 import TS；唯一耦合是
   `libs/contracts` 里的 HTTP/proto schema 与生成客户端。
@@ -304,7 +303,7 @@ Turbo 的 uv 支持是 **experimental**，启用需要四个条件**同时满足
 不会出现在包图里（已按官方文档核对，2026-11）：
 
 1. `uv` 在 `PATH` 上；
-2. 根 `pyproject.toml` 声明 `[tool.uv.workspace] members = ["services/*"]`；
+2. 根 `pyproject.toml` 声明 `[tool.uv.workspace] members = ["apps/ontology"]`；
 3. 根 `pyproject.toml` 有 `[tool.turbo].name`（PEP 503 规范化的包标识）；
 4. 根有 `uv.lock`——**Turbo 从不生成或更新它**，漂移由 `uv lock --check` 阻断。
 
@@ -470,7 +469,7 @@ Turbo 的 uv 支持是 **experimental**，启用需要四个条件**同时满足
 
 - **TypeScript 仍是默认**：content、medicine、notifications、health、insights、assistant、
   identity、admin BFF 与 legacy 全部 TS。
-- **唯一 Python 单元是 `services/ontology`**：自建 Semantica（FastAPI）承担本体/OAG 推理，
+- **唯一 Python 单元是 `apps/ontology`**：自建 Semantica（FastAPI）承担本体/OAG 推理，
   是核心能力且与 Lucent 契约共同演进，因此收进仓库；它是推理支撑件，不是第 8 个域服务。
   **assistant 持有客户端与检索编排**；**medicine 只拥有药品语料与索引重建任务**。
 - **LightRAG 继续外置**：第三方镜像（`ghcr.io/hkuds/lightrag`），源码不归本仓；
@@ -478,7 +477,7 @@ Turbo 的 uv 支持是 **experimental**，启用需要四个条件**同时满足
 - **不再有 Go/Rust 服务**：如未来需要，先在边界稳定后重写单个服务并另开计划，
   不在本计划预留半成品目录。
 - **构建编排用 Turborepo 2.11+ 的多语言 Task Graph（experimental）**：
-  - 根 `pyproject.toml` 声明 `[tool.uv.workspace] members = ["services/ontology"]` 与
+  - 根 `pyproject.toml` 声明 `[tool.uv.workspace] members = ["apps/ontology"]` 与
     `[tool.turbo].name`；`turbo.json` 开 `experimentalPythonWorkspaces`；
   - 根 `uv.lock` 是锁文件，Turbo 不生成也不更新它，CI 用 `uv lock --check` 阻断漂移；
   - `turbo run build/test/lint/check` 自动映射到 `uv build` / `pytest` / `ruff` / `mypy`；
@@ -634,7 +633,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
      Nomad 健康检查与 Nacos 心跳并存、**Traefik Nomad provider 实例发现与 canary 权重**、
      canary 发布与 `nomad job revert`、迁移 batch job、ACL/Variables 与 `RNACOS_*` 衔接最小可用。
   7. **多语言构建**：Turbo 2.11 `experimentalPythonWorkspaces` + uv workspace 发现、
-     `services/ontology` 的 `build/test/lint/check` 映射与缓存、`uv lock --check`、
+     `apps/ontology` 的 `build/test/lint/check` 映射与缓存、`uv lock --check`、
      CI 中 `uv run pytest` fallback；确认 Turborepo 2.11+ 版本钉死。
 - 门禁：P0 全部在预发跑通；Traefik 透传下契约测试与现网行为一致；不通过不进 P0.5。
 
@@ -704,8 +703,8 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 - 建 `apps/assistant` 骨架，迁 assistant、llm-runtime、`HistoricalAiSummaryService`；
   assistant 的编排保持 TypeScript（LangGraph），LightRAG 仍是外部服务，
-  ontology 是 `services/ontology` 的 Python 推理支撑件（HTTP 客户端 + 超时/熔断/降级）。
-- 同步把 `semantica-service` 源码收进 `services/ontology`，建立 Python 构建/测试 lane
+  ontology 是 `apps/ontology` 的 Python 推理支撑件（HTTP 客户端 + 超时/熔断/降级）。
+- 同步把 `semantica-service` 源码收进 `apps/ontology`，建立 Python 构建/测试 lane
   与独立镜像；对外契约不变（`/query`、`/reason`），先搬目录再谈优化。
 - 工具读经 gRPC：medicine 目录/风险、health 上下文、insights 报告、identity 设置；
   中文散文检索走 LightRAG 客户端，本体推理走 ontology。
@@ -789,7 +788,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
     独立步骤；本地 Compose 与 Nomad 的 env/端口只经 `libs/config` 子集映射，
     rnacos 连接复用现有 `RNACOS_*`，不做两套业务配置。
 16. **Python 资产**：根 `pyproject.toml`（只声明 uv workspace 与 `[tool.turbo].name`）、
-    `uv.lock`、`services/ontology` 的 `pyproject.toml`/`Dockerfile`/`AGENTS.md`；
+    `uv.lock`、`apps/ontology` 的 `pyproject.toml`/`Dockerfile`/`AGENTS.md`；
     CI 加 `setup-uv`（钉版本）、`uv lock --check`、独立 lane；wheel 树与模型权重不进 Git。
 17. **迁移期验证工作区（`Lumos-Services/`）的去向**：它是在 P0 spike 期间于仓库外
     建立的一次性验证工作区，不是长期目录。处置原则是**按产出分类**：
@@ -864,7 +863,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
    `contracts/observability/api/messaging/config/testing/discovery` 七个包。
 5. **7 个领域/支撑服务的 Prisma schema + 独立迁移**（admin BFF 无业务库）；
    `pnpm-workspace.yaml` + `turbo.json` 任务图；`apps/monolith` 标准布局；
-   `services/ontology` 的 Python 工程 + `lucent_ontology` 迁移。
+   `apps/ontology` 的 Python 工程 + `lucent_ontology` 迁移。
 6. **服务模板**：弹性契约、RabbitMQ/outbox、service JWT、OTel、健康检查、Dockerfile、CI lane。
 7. **影子代理与差异报告**；每片切换/回滚记录。
 8. **合并后的 OpenAPI** + 契约 diff 报告。
@@ -874,7 +873,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 11. **模块 README** 与 `docs/README.md` 的路径记号更新。
 12. **迁移日志**：每阶段追加 `docs/logs/migration-log/YYYY-MM-DD.md`（append-only）。
 13. **多语言工具链**：根 `pyproject.toml` + `uv.lock`、Turbo 2.11 多语言任务图、
-    `services/ontology` 独立镜像与 CI lane、`uv run pytest` fallback。
+    `apps/ontology` 独立镜像与 CI lane、`uv run pytest` fallback。
 
 ---
 
@@ -914,11 +913,11 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ## 11. 待裁决点
 
-已裁决：**7 个领域/支撑服务 + admin BFF 的限界划分**（`services/ontology` 为推理支撑件，
+已裁决：**7 个领域/支撑服务 + admin BFF 的限界划分**（`apps/ontology` 为推理支撑件，
 不是第 8 个域服务）、
 **提取顺序 content → telemetry → medicine → notifications → health → insights → assistant → identity → admin**、
 **RabbitMQ**（跨服务，共享 `lucent` vhost + 每服务独立账号/权限）、**BullMQ 保留**（服务内任务）、
-**TS 业务服务 + Python 推理服务**（Python 仅 `services/ontology`；LightRAG 外置）、
+**TS 业务服务 + Python 推理服务**（Python 仅 `apps/ontology`；LightRAG 外置）、
 **Turborepo 2.11 多语言 Task Graph + uv**、**每服务独立 database**、**service JWT**、**根布局 `apps/monolith`**、
 **共享层七个包**、**Traefik 无数据库（file provider + Nomad provider，边缘不解析 JWT）**、
 **可观测沿用 VictoriaMetrics 栈**、**部署 Nomad + rnacos（本地 Compose，状态服务外置；

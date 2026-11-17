@@ -150,7 +150,7 @@ services:
   # (NL→Cypher 的生成在 Lucent 侧),因此 Lucent 那边也没有对应的 API key 项。
   #
   # dev 默认不起它:**开发环境直接在本机跑**更省事,也不需要镜像:
-  #   cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
+  #   cd apps/ontology && uv run uvicorn semantica_service.main:app --port 8099
   # 然后在 .env.development 里设 SEMANTICA_ENABLED=true 与
   # SEMANTICA_BASE_URL=http://127.0.0.1:8099。本服务定义与下面 lightrag 同形,
   # 是为了需要容器化时形态一致(见 compose.yaml 的同名服务)。

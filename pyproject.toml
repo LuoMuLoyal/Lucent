@@ -1,0 +1,15 @@
+[tool.turbo]
+# Identity for Turborepo's package graph. Must be PEP 503-normalized (lowercase,
+# hyphens); Turbo refuses to register the workspace without it.
+name = "lucent-python"
+
+[tool.uv.workspace]
+# Python packages live alongside the TypeScript apps: `apps/` means "deployable
+# unit", and ontology is exactly that — a FastAPI service with its own image.
+# Splitting it into a separate top-level `services/` only to mark the language
+# made "what gets deployed" harder to answer, without buying anything: the
+# toolchain boundary is enforced by each member having its own pyproject.toml.
+#
+# Explicit list rather than `apps/*` on purpose — a glob would make uv scan every
+# TypeScript app for a pyproject.toml that will never exist there.
+members = ["apps/ontology"]

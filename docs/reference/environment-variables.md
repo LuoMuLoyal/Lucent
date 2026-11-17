@@ -662,7 +662,7 @@ semantica-service 仓的同名同义），与 Lucent 的 `DATABASE_URL` 完全�
 **不进 Prisma 迁移域**，也没有共用的 Postgres database）。dev 也可以直接在本机跑（不起容器）：
 
 ```bash
-cd semantica-service && uv run uvicorn semantica_service.main:app --port 8099
+cd apps/ontology && uv run uvicorn semantica_service.main:app --port 8099
 # 然后在 .env.development 里设 SEMANTICA_ENABLED=true 与
 # SEMANTICA_BASE_URL=http://127.0.0.1:8099
 ```
