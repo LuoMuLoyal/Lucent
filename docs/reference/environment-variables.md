@@ -639,6 +639,35 @@ MEM0_TIMEOUT_MS # 默认 5000；记忆读写都在请求路径上
 `request_logs`，Alembic 首启建表）必须是独立库：它的 `users` 表与 Prisma 的
 `User` 同名，同库必然撞名。两个库都要 `CREATE EXTENSION vector`。
 
+**建库是启动时自动做的，不是运维手动步骤。**
+`apps/monolith/scripts/db/ensure-mem0-databases.ts` 在 `MEM0_ENABLED=true` 时由
+`entrypoint.sh` 调用（在 `prisma migrate deploy` 之后、应用启动之前），建好两个库
+并 `CREATE EXTENSION IF NOT EXISTS vector`。每条语句先做存在性检查，重复启动是
+空操作；`MEM0_ENABLED` 不为 `true` 时脚本直接返回，不碰数据库。
+
+不放 `docker/postgres` 的 initdb 目录，是因为那套**只在数据目录为空时执行**——
+存量卷（dev 与生产机）都已初始化，放那里会被静默跳过，正是最需要它的地方失效。
+本地要单独跑：`pnpm db:ensure:mem0`（需 `MEM0_ENABLED=true` 与 `DATABASE_URL`）。
+
+`CREATE DATABASE` 与 `CREATE EXTENSION vector` 都需要超级用户。`DATABASE_URL` 用的是
+部署自己的角色，官方 Postgres 镜像在设置 `POSTGRES_USER` 时把它建成超级用户，
+dev（`postgres`）与生产（`lucent`）都满足。
+
+**镜像不是上游那个。** 官方 `mem0/mem0-api-server:latest` **只有 arm64**
+（实测 `no matching manifest for linux/amd64`），amd64 宿主拉不下来；而且它自
+2025-09 后再未推送，早于 auth 与 dashboard 的加入。两个 compose 因此 pin 到
+`amerenda/mem0-server` 的具体 digest——官方 `server/` 源码的 amd64 重建
+（`Dockerfile` / `requirements.txt` 与上游逐字一致），持有 `JWT_SECRET` 与数据库
+口令的镜像必须锁 digest，不能跟 `latest`。
+
+**healthcheck 打 `/docs` 而不是 `/health`。** 这个服务没有 `/health` 端点（实测
+404）；`/docs` 是 FastAPI 自带的 OpenAPI 页面，不需要鉴权，且只有应用真正完成
+startup 才会 200。
+
+**`/app/history` 必须挂卷。** Mem0 的变更历史是容器内 SQLite
+（`HISTORY_DB_PATH`，默认 `/app/history/history.db`），不在 Postgres 里。不挂卷
+会在首次启动直接 `unable to open database file`，重建容器还会丢历史。
+
 **provider 白名单写死在 sidecar 里。** `server/main.py` 的
 `BUNDLED_LLM_PROVIDERS` / `BUNDLED_EMBEDDER_PROVIDERS` 只接受
 openai / anthropic / gemini，白名单外的 provider 在 `POST /configure` 阶段即
