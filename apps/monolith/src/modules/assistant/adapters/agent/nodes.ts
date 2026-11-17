@@ -17,10 +17,14 @@ export type RuntimeNode = (
 ) => Promise<Partial<AssistantRuntimeState>>;
 
 /**
- * Creates the agent node: binds the narrowed tools, invokes the LLM, and
+ * Creates the agent node: binds every candidate tool, invokes the LLM, and
  * either emits tool calls or stores the final text reply.
  *
- * Shared by the main graph and the read/write/knowledge sub-graphs.
+ * There is no narrowing step. `state.allowedTools` is what the caller already
+ * permission-filtered (user context switches ∩ implemented ∩ sidecar reachable);
+ * which of those the model actually calls, and how many times, is the model's
+ * decision. `selectedTools` accumulates across iterations so the caller can see
+ * what the turn actually used.
  */
 export function createAgentNode(deps: {
   createModel: () => BaseChatModel;
@@ -29,7 +33,8 @@ export function createAgentNode(deps: {
   toolBudgets?: () => ToolLimitBudgets;
 }): RuntimeNode {
   return async (state) => {
-    if (state.relevantTools.length === 0) {
+    const toolNames = state.allowedTools;
+    if (toolNames.length === 0) {
       return {
         pendingToolCalls: [],
         finalContent: null,
@@ -38,10 +43,7 @@ export function createAgentNode(deps: {
     }
 
     const model = deps.createModel();
-    const toolDefs = buildToolDefinitions(
-      state.relevantTools,
-      deps.toolBudgets?.(),
-    );
+    const toolDefs = buildToolDefinitions(toolNames, deps.toolBudgets?.());
     const boundModel = model.bindTools?.(toolDefs);
 
     if (boundModel == null || typeof boundModel.stream !== 'function') {
@@ -75,17 +77,33 @@ export function createAgentNode(deps: {
         messages: [response],
         pendingToolCalls: calls,
         finalContent: null,
-        selectedTools: calls.map((call) => call.name),
+        selectedTools: [
+          ...state.selectedTools,
+          ...calls.map((call) => call.name),
+        ],
       };
     }
 
     const content = extractMessageText(response.content);
 
+    // An empty reply is not an answer. Storing `''` would let `respond` treat the
+    // turn as finished and throw on the empty content, when what actually
+    // happened is that the model stopped without saying anything — `respond` can
+    // still produce a reply from the results, and `validate` can still explain
+    // why (empty coverage, capped loop).
+    if (content.trim().length === 0) {
+      return {
+        messages: [response],
+        pendingToolCalls: [],
+        finalContent: null,
+        stopReason: null,
+      };
+    }
+
     return {
       messages: [response],
       pendingToolCalls: [],
       finalContent: content,
-      selectedTools: [],
       stopReason: 'answered' as const,
     };
   };
@@ -94,8 +112,6 @@ export function createAgentNode(deps: {
 /**
  * Creates the tools node: executes the pending tool calls and appends
  * ToolMessages plus accumulated results.
- *
- * Shared by the main graph and the read/write/knowledge sub-graphs.
  */
 export function createToolsNode(deps: {
   executeTools: (

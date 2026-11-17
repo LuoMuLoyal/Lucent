@@ -140,4 +140,14 @@ export const retrievalRuntimeFields = {
     max: MAX_TOOL_BUDGET_MS,
     defaultValue: 11_000,
   }),
+  // Tool-loop cap. A count, not a duration, so it gets its own bounds: the
+  // graph's only bound on a turn now that no router narrows the tool set. The
+  // floor of 1 still allows a single tool round; the ceiling keeps a runaway
+  // turn from spending the whole node timeout budget on round trips.
+  [EnvKey.ASSISTANT_MAX_TOOL_LOOPS]: numberField({
+    family: 'retrieval',
+    min: 1,
+    max: 32,
+    defaultValue: 8,
+  }),
 } satisfies Record<string, RuntimeFieldSpec<unknown>>;

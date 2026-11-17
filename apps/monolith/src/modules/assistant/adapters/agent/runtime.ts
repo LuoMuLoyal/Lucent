@@ -54,10 +54,6 @@ import { toDomainFailure } from '../../application/services/provider-failures.js
 import {
   assistantSystemPromptVariables,
   buildAssistantSystemPrompt,
-  buildReadSystemPrompt,
-  buildWriteSystemPrompt,
-  buildKnowledgeSystemPrompt,
-  buildSimpleChatSystemPrompt,
 } from '../../application/services/prompts.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import { resolveRuntimePrompt } from '../../../../config/runtime/prompt-registry.js';
@@ -66,11 +62,10 @@ import {
   CODE_TOOL_LIMIT_BUDGETS,
   type ToolLimitBudgets,
 } from '../acl/tools/shared/tool-definitions.js';
+import { MAX_TOOL_LOOPS } from '../acl/tools/shared/tool-constants.js';
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './state.js';
 import type { AssistantValidationFlags } from './state.js';
 import type { AssistantPendingReview } from './state.js';
-import { AssistantIntentClassifierService } from '../../application/services/intent-classifier.js';
-import { buildIntentRouterSystemPrompt } from '../../application/services/intent-router-prompt.js';
 import type { CheckpointerPort } from '../../application/ports/agent-runtime.js';
 import { extractMessageText } from './message-text.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
@@ -130,12 +125,6 @@ export class AssistantRuntimeService {
     @Inject(ASSISTANT_CONVERSATIONS)
     private readonly conversationRepository: ConversationRepositoryPort,
     private readonly streamService: AssistantStreamService,
-    /**
-     * 每轮工具选择器。生产由 Nest 注入（provider 已注册）；缺省时按图契约降级为
-     * "绑定全部候选工具 + mixed"，而不是让整轮直接失败 —— 与 `routeTools` 缺失时
-     * 的行为保持一致。
-     */
-    private readonly intentClassifier?: AssistantIntentClassifierService,
     @Optional()
     private readonly runtimeConfigService?: RuntimeConfigService,
     /** Global config module; absent only in tests that build this class by hand. */
@@ -172,6 +161,22 @@ export class AssistantRuntimeService {
       this.runtimeConfigService?.getSnapshot().values[
         EnvKey.ASSISTANT_NODE_TIMEOUT_MS
       ] ?? ASSISTANT_NODE_TIMEOUT_MS
+    );
+  }
+
+  /**
+   * Tool-loop cap for this graph build.
+   *
+   * A runtime budget, not a code constant: the loop is the only thing bounding a
+   * turn now that there is no router to narrow the tool set, so widening it is
+   * an operational decision. The cap is surfaced to callers as
+   * `stopReason: 'tool_cap_reached'` — never a silent truncation.
+   */
+  private readMaxToolLoops(): number {
+    return (
+      this.runtimeConfigService?.getSnapshot().values[
+        EnvKey.ASSISTANT_MAX_TOOL_LOOPS
+      ] ?? MAX_TOOL_LOOPS
     );
   }
 
@@ -291,34 +296,9 @@ export class AssistantRuntimeService {
       executeTools,
       toolBudgets: () => this.readToolLimitBudgets(),
       nodeTimeoutMs: () => this.readNodeTimeoutMs(),
+      maxToolLoops: () => this.readMaxToolLoops(),
       buildSystemPrompt: (toolNames) =>
         this.resolveAssistantSystemPrompt(toolNames),
-      buildReadSystemPrompt,
-      buildWriteSystemPrompt,
-      buildKnowledgeSystemPrompt,
-      buildSimpleChatSystemPrompt,
-      // 每轮工具选择：模型不可用/输出非法时由分类器内部降级为"全部候选工具"，
-      // 这里不做任何规则回退。分类器未注入时同样降级（图契约见 `routeTools`）。
-      routeTools: (routing) =>
-        this.intentClassifier == null
-          ? Promise.resolve({
-              source: 'degraded_all_tools' as const,
-              reason: 'no intent classifier is wired',
-            })
-          : this.intentClassifier.selectTools(
-              routing.userMessage,
-              routing.locale,
-              routing.enabledContextSources,
-              routing.candidateTools,
-              routing.history,
-            ),
-      routingPromptFingerprint: () =>
-        resolveRuntimePrompt(
-          this.runtimeConfigService,
-          'intentRouter',
-          () => buildIntentRouterSystemPrompt(),
-          {},
-        ),
       ...(input.buildMemoryBlock != null
         ? { buildMemoryBlock: input.buildMemoryBlock }
         : {}),
@@ -553,37 +533,9 @@ export class AssistantRuntimeService {
       executeTools: () => Promise.resolve([]),
       toolBudgets: () => this.readToolLimitBudgets(),
       nodeTimeoutMs: () => this.readNodeTimeoutMs(),
+      maxToolLoops: () => this.readMaxToolLoops(),
       buildSystemPrompt: (toolNames) =>
         this.resolveAssistantSystemPrompt(toolNames),
-      buildReadSystemPrompt,
-      buildWriteSystemPrompt,
-      buildKnowledgeSystemPrompt,
-      buildSimpleChatSystemPrompt,
-      // 每轮工具选择：模型不可用/输出非法时由分类器内部降级为"全部候选工具"，
-      // 这里不做任何规则回退。分类器未注入时同样降级（图契约见 `routeTools`）。
-      routeTools: (routing) =>
-        this.intentClassifier == null
-          ? Promise.resolve({
-              source: 'degraded_all_tools' as const,
-              reason: 'no intent classifier is wired',
-            })
-          : this.intentClassifier.selectTools(
-              routing.userMessage,
-              routing.locale,
-              routing.enabledContextSources,
-              routing.candidateTools,
-              // 这条路径是 checkpoint resume：线程从挂起的 `write_review` 继续，
-              // `classify_intent` 不会重跑，历史由 checkpoint 自带。
-              // 空数组是显式的「此处无需路由历史」，不是遗漏。
-              routing.history,
-            ),
-      routingPromptFingerprint: () =>
-        resolveRuntimePrompt(
-          this.runtimeConfigService,
-          'intentRouter',
-          () => buildIntentRouterSystemPrompt(),
-          {},
-        ),
       ...(onText != null ? { onText } : {}),
       respondCache: this.respondCache,
       checkpointer,

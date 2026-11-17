@@ -43,8 +43,15 @@ export const RECENT_CONVERSATION_LIMIT = 20;
 /** Maximum compact text length before truncation in assistant tool outputs. */
 export const MAX_COMPACT_LENGTH = 48;
 
-/** Maximum number of tool execution loops allowed in the assistant runtime graph. */
-export const MAX_TOOL_LOOPS = 3;
+/**
+ * Code baseline for the tool-execution loop cap.
+ *
+ * Runtime key ASSISTANT_MAX_TOOL_LOOPS (default 8) overrides it. The baseline is
+ * what unit tests and a snapshot-less build see; 3 was too small once one loop
+ * serves every domain — read a record, look up a drug, then check the meal digest
+ * already spends three rounds before any answer is written.
+ */
+export const MAX_TOOL_LOOPS = 8;
 
 /**
  * Daily record kinds the assistant write path can create (F-16). Mirrors the

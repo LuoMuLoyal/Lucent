@@ -6,16 +6,11 @@ import type {
 } from '../../domain/policies/tool-permission.js';
 import type { AssistantToolExecutionResult } from '../../application/ports/assistant.js';
 import type { AssistantToolCall } from '../../application/ports/assistant.js';
-import type { AssistantIntent } from '../../application/services/intent.js';
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',
-  'classify_intent',
   'agent',
   'tools',
-  'read_subgraph',
-  'write_subgraph',
-  'knowledge_subgraph',
   'respond',
 ] as const;
 
@@ -28,11 +23,12 @@ export interface AssistantValidationFlags {
 }
 
 /**
- * One prior turn, as the routing model needs to see it.
+ * One prior turn of the conversation.
  *
- * Deliberately its own shape rather than `BaseMessage`: the router prompt is
- * plain text, and keeping it free of LangChain message classes means the state
- * channel carries data, not framework objects.
+ * Kept as plain data rather than `BaseMessage`: the graph does not interpret it,
+ * it only forwards it (today: nowhere — the agent node reads `messages`, which
+ * the checkpointer populates). It stays on the state so a resumed or stateless
+ * turn can still be inspected without reaching into framework objects.
  */
 export interface AssistantConversationTurn {
   role: 'user' | 'assistant';
@@ -85,15 +81,12 @@ export const AssistantRuntimeState = Annotation.Root({
    * Prior turns of this conversation, oldest first, **excluding** the current
    * message.
    *
-   * `classify_intent` feeds it to the routing model. Without it the router sees
-   * only the final message, so a follow-up ("那你查一下") carries no antecedent:
-   * the model returns an empty set, `deriveIntent([])` collapses the turn to
-   * `simple_chat`, and the answer binds no tools at all. Routing picks *which
-   * tools this turn needs*, and "this turn" is not interpretable alone.
+   * Carried for context inspection. The routing that once depended on it is
+   * gone: `agent` now binds every candidate tool, so no per-turn selection has
+   * to be justified against the conversation.
    *
-   * Carried in the request (`dto.messages`), not read from the checkpoint: the
-   * graph also runs stateless (no `conversationId`), where there is no
-   * checkpoint to read history from.
+   * Taken from the request (`dto.messages`), not the checkpoint: the graph also
+   * runs stateless (no `conversationId`), where there is no checkpoint to read.
    */
   conversationHistory: Annotation<AssistantConversationTurn[]>({
     reducer: (_left, right) => right,
@@ -102,11 +95,11 @@ export const AssistantRuntimeState = Annotation.Root({
 
   // ── prepare_context output ─────────────────────────────────────────────
   /**
-   * 跨会话记忆块（`prepare_context` 取到、`classify_intent` 拼进消息）。
+   * 跨会话记忆块（`prepare_context` 取到、`agent` 拼进消息）。
    *
-   * 记忆块的取用是异步的、且只在"新会话且开启记忆"时才做，但消息列表必须等
-   * 意图选定（system prompt 随意图变）之后才能一次性写出来 —— 见 `messages` 通道
-   * 的说明。所以两步之间用这个通道传递文本，而不是先写消息再改写。
+   * 记忆块的取用是异步的、且只在"新会话且开启记忆"时才做，而 prompt 必须
+   * 一次性写出来（`messages` 是 append reducer，先写再改会追加出第二份）。
+   * 所以两步之间用这个通道传递文本，而不是先写消息再改写。
    */
   memoryBlock: Annotation<string>({
     reducer: (_left, right) => right,
@@ -123,40 +116,15 @@ export const AssistantRuntimeState = Annotation.Root({
    * 本轮**允许**绑定的工具集（候选集/硬上限）。
    *
    * 由调用方在进入图之前算好：用户 context 开关 ∩ 已实现 ∩ sidecar 可用
-   * （`policy.service.ts` 的 `toolCapabilities[].enabled`）。模型选出的工具必须与它求交，
-   * 降级（模型不可用）时也**只能**开到它为止。
+   * （`policy.service.ts` 的 `toolCapabilities[].enabled`）。`agent` 绑定它**全量**，
+   * 模型自己决定调什么、调几次。
    */
   allowedTools: Annotation<ToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
   }),
 
-  // ── classify_intent output ─────────────────────────────────────────────
-  /** Semantic intent of the current user message. */
-  intent: Annotation<AssistantIntent | null>({
-    reducer: (_left, right) => right,
-    default: () => null,
-  }),
-
-  /** 模型为本轮选出的工具（与 `allowedTools` 求交后的结果）。 */
-  relevantTools: Annotation<ToolName[]>({
-    reducer: (_left, right) => right,
-    default: () => [],
-  }),
-
-  /** 本轮路由来源：`llm` 正常，`degraded_all_tools` 表示降级为全开。 */
-  routingSource: Annotation<'llm' | 'degraded_all_tools'>({
-    reducer: (_left, right) => right,
-    default: () => 'llm',
-  }),
-
-  /** Which sub-graph is currently active (read/write/knowledge). */
-  activeSubGraph: Annotation<AssistantIntent | null>({
-    reducer: (_left, right) => right,
-    default: () => null,
-  }),
-
-  /** Validation flags set by sub-graph validate nodes. */
+  /** Validation flags set by the post-tools validation node. */
   validationFlags: Annotation<AssistantValidationFlags>({
     reducer: (_left, right) => right,
     default: () => DEFAULT_VALIDATION_FLAGS,
@@ -172,11 +140,10 @@ export const AssistantRuntimeState = Annotation.Root({
   /**
    * ⚠️ **append reducer**：谁写谁往后接，不能用来"改写首条 System"。
    *
-   * 旧实现让 `prepare_context` 先写 `[System, (memory), Human]`、再让
-   * `classify_intent` 写 `[System', ...state.messages.slice(1)]` 想替换首条 —— 实际是又
-   * 追加了一遍，同一轮出现两条 System、两条用户消息（2026-10-07 定位，见计划 C7）。
-   * 现在的分工是：`prepare_context` 只准备记忆块，`classify_intent` 选定提示词后
-   * **一次性**写出完整消息列表。
+   * 旧实现让 `prepare_context` 先写 `[System, (memory), Human]`、再让下游想替换首条 ——
+   * 实际是又追加了一遍，同一轮出现两条 System、两条用户消息（2026-10-07 定位，见计划 C7）。
+   * 现在 `prepare_context` 只准备记忆块，`agent` 在**第一次**调用时一次性写出完整
+   * 消息列表；工具循环的后续轮次只追加 assistant 与 tool 消息。
    */
   messages: Annotation<BaseMessage[]>({
     reducer: (left, right) => [...left, ...right],
@@ -202,6 +169,20 @@ export const AssistantRuntimeState = Annotation.Root({
   loopCount: Annotation<number>({
     reducer: (_left, right) => right,
     default: () => 0,
+  }),
+
+  /**
+   * True when the loop stopped while the model still had tool calls pending.
+   *
+   * `pendingToolCalls` cannot carry this: `tools` clears it on every iteration,
+   * so by the time `validate` runs it is empty whether the turn finished
+   * naturally or was cut off by the cap. Without this flag the cap is
+   * indistinguishable from an ordinary ending, and the reply silently presents a
+   * truncated investigation as a complete answer.
+   */
+  loopCapped: Annotation<boolean>({
+    reducer: (_left, right) => right,
+    default: () => false,
   }),
 
   /** LLM's text response when no more tools are needed. */

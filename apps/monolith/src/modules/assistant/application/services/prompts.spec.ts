@@ -1,165 +1,123 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAssistantSystemPrompt,
-  buildKnowledgeSystemPrompt,
-  buildReadSystemPrompt,
-  buildSimpleChatSystemPrompt,
-  buildWriteSystemPrompt,
+  assistantSystemPromptVariables,
 } from './prompts.js';
 
 const READ_TOOLS = ['get_today_records', 'get_sleep_summary_by_range'] as const;
+const WRITE_TOOLS = ['propose_create_daily_record'] as const;
+const KNOWLEDGE_TOOLS = [
+  'search_cn_medicine_products',
+  'search_cn_medicine_knowledge',
+] as const;
 
-describe('assistant system prompts', () => {
-  it('shares identity and safety lines across all prompts', () => {
-    for (const prompt of [
-      buildAssistantSystemPrompt(READ_TOOLS),
-      buildReadSystemPrompt(READ_TOOLS),
-      buildWriteSystemPrompt(READ_TOOLS),
-      buildKnowledgeSystemPrompt(READ_TOOLS),
-      buildSimpleChatSystemPrompt(),
-    ]) {
-      expect(prompt).toContain('You are the Luminous health chat assistant.');
-      expect(prompt).toContain(
-        'Do not diagnose diseases or change medication plans.',
-      );
-    }
+/**
+ * One prompt now serves every turn.
+ *
+ * There used to be four (read / write / knowledge / simple-chat), each asserted
+ * separately, because the router picked one per turn. With one loop and one
+ * tool set there is nothing to pick between, so the safety properties that were
+ * duplicated across the four are asserted once, against the prompt that actually
+ * ships.
+ */
+describe('assistant system prompt', () => {
+  it('carries the identity and safety preamble', () => {
+    const prompt = buildAssistantSystemPrompt(READ_TOOLS);
+    expect(prompt).toContain('You are the Luminous health chat assistant.');
+    expect(prompt).toContain(
+      'Do not diagnose diseases or change medication plans.',
+    );
+    expect(prompt).toContain(
+      'Only use facts recorded by the user or returned by allowed tools.',
+    );
   });
 
-  it('read prompt emphasizes the result envelope', () => {
-    const prompt = buildReadSystemPrompt(READ_TOOLS);
+  it('names the allowed tools and their scope', () => {
+    const prompt = buildAssistantSystemPrompt(READ_TOOLS);
+    expect(prompt).toContain('Allowed tools in this run:');
+    expect(prompt).toContain('get_today_records');
+    // The scope line exists because a turn's candidate set is not a statement
+    // about the product: a 2026-10-07 incident had the model tell users a
+    // capability did not exist because that turn did not include its tool.
+    expect(prompt).toContain("this run's permission-filtered set");
+    expect(prompt).toContain(
+      'Never tell the user that a capability does not exist',
+    );
+  });
+
+  it('says "none" when the candidate set is empty', () => {
+    const prompt = buildAssistantSystemPrompt([]);
+    expect(prompt).toContain('Allowed tools in this run: none.');
+    expect(prompt).toContain(
+      'No server-approved user data tools are available',
+    );
+  });
+
+  it('emphasizes the result envelope and forbids smoothing over gaps', () => {
+    const prompt = buildAssistantSystemPrompt(READ_TOOLS);
     expect(prompt).toContain('coverage');
     expect(prompt).toContain('ambiguities');
     expect(prompt).toContain('When coverage is partial or empty');
-    expect(prompt).not.toContain('Proposal tools do not perform writes');
-  });
-
-  it('write prompt emphasizes proposal-only semantics', () => {
-    const prompt = buildWriteSystemPrompt(['propose_create_daily_record']);
-    expect(prompt).toContain('Proposal tools do not perform writes');
-    expect(prompt).toContain('confirmation-required');
-    expect(prompt).toContain('refusal to guess the write target');
-    expect(prompt).not.toContain('coverage is partial or empty');
-  });
-
-  it('knowledge prompt emphasizes evidence-source separation', () => {
-    const prompt = buildKnowledgeSystemPrompt([
-      'search_cn_medicine_products',
-      'search_cn_medicine_knowledge',
-    ]);
-    expect(prompt).toContain('Do not attribute one to another');
-    expect(prompt).toContain('Prefer Chinese package-insert evidence');
-    expect(prompt).toContain('Prefer DrugBank scientific evidence');
-    expect(prompt).toContain('If retrieval misses');
-    expect(prompt).toContain('open QA corpus');
-    expect(prompt).toContain('Trust layering for knowledge answers');
-  });
-
-  it('assistant prompt frames medical QA as low-trust reference', () => {
-    const prompt = buildAssistantSystemPrompt(READ_TOOLS);
-    expect(prompt).toContain('open QA corpus');
-    expect(prompt).toContain('Trust layering for knowledge answers');
-    expect(prompt).not.toContain('curated medical Q&A database');
-  });
-
-  it('simple-chat prompt forbids claiming data access', () => {
-    const prompt = buildSimpleChatSystemPrompt();
-    expect(prompt).toContain('No data tools were selected for this turn');
-    expect(prompt).toContain('Do not claim you inspected that data');
-    expect(prompt).not.toContain('Allowed tools in this run');
-  });
-
-  it('simple-chat prompt does not deny the tools exist product-wide', () => {
-    // A routing miss used to make the model tell users the assistant has no
-    // data tools at all. The prompt must forbid that inference explicitly.
-    const prompt = buildSimpleChatSystemPrompt();
-    expect(prompt).not.toContain('No server-approved data tools are available');
     expect(prompt).toContain(
-      'Do not state or imply that such tools are unavailable in this product',
+      'A missing edge means the source data has no such assertion',
     );
-    expect(prompt).toContain('the toolset is chosen per message');
   });
 
-  // ── AI safety policy edge-case tests ─────────────────────────────
+  it('states proposal-only semantics for writes', () => {
+    const prompt = buildAssistantSystemPrompt(WRITE_TOOLS);
+    expect(prompt).toContain('Proposal tools do not perform writes');
+    expect(prompt).toContain('confirmation-required drafts');
+    expect(prompt).toContain('refusal to guess the write target');
+  });
 
-  describe('AI safety policy edge cases', () => {
-    const ALL_PROMPTS = [
-      buildAssistantSystemPrompt(READ_TOOLS),
-      buildReadSystemPrompt(READ_TOOLS),
-      buildWriteSystemPrompt(['propose_create_daily_record']),
-      buildKnowledgeSystemPrompt([
-        'search_cn_medicine_products',
-        'search_cn_medicine_knowledge',
-      ]),
-      buildSimpleChatSystemPrompt(),
-    ];
+  it('keeps the three evidence sources separate', () => {
+    const prompt = buildAssistantSystemPrompt(KNOWLEDGE_TOOLS);
+    expect(prompt).toContain('Do not attribute one to another');
+    expect(prompt).toContain('Trust order:');
+    expect(prompt).toContain('package-insert prose (highest)');
+    expect(prompt).toContain('open QA corpus (low-trust reference)');
+    expect(prompt).toContain('If retrieval misses, say evidence was not found');
+  });
 
-    it('every prompt forbids diagnosing diseases', () => {
-      for (const prompt of ALL_PROMPTS) {
-        expect(prompt).toContain('Do not diagnose diseases');
-      }
-    });
+  it('frames the open QA corpus as low-trust reference', () => {
+    const prompt = buildAssistantSystemPrompt(KNOWLEDGE_TOOLS);
+    expect(prompt).toContain('open QA corpus');
+    expect(prompt).toContain('lower-trust educational reference');
+  });
 
-    it('every prompt forbids changing medication plans', () => {
-      for (const prompt of ALL_PROMPTS) {
-        expect(prompt).toMatch(/change medication plans/);
-      }
-    });
+  it('requires provenance ids from ontology reasoning without overstating them', () => {
+    const prompt = buildAssistantSystemPrompt(['reason_over_ontology']);
+    expect(prompt).toContain('[prov: <id>]');
+    expect(prompt).toContain('never cite an id the result does not contain');
+    expect(prompt).toContain('verifiability "uncited"');
+  });
 
-    it('every prompt forbids fabricating facts when context is missing', () => {
-      // Every sub-graph must contain a prohibition against fabrication:
-      // - "invent" (assistant/read/knowledge)
-      // - "improvise" (write)
-      // - "Do not claim you inspected" (simple-chat)
-      for (const prompt of ALL_PROMPTS) {
-        const forbidsFabrication =
-          prompt.includes('invent') ||
-          prompt.includes('improvise') ||
-          prompt.includes('Do not claim');
-        expect(forbidsFabrication).toBe(true);
-      }
-    });
+  it('tells the model a turn may span several unrelated tools', () => {
+    // The single loop is what makes this possible; before, a turn was confined
+    // to one sub-graph and could not change domain mid-way.
+    const prompt = buildAssistantSystemPrompt(READ_TOOLS);
+    expect(prompt).toContain('A single turn may need several unrelated tools');
+  });
 
-    it('every prompt establishes identity as the Luminous health chat assistant', () => {
-      for (const prompt of ALL_PROMPTS) {
-        expect(prompt).toContain('You are the Luminous health chat assistant.');
-      }
-    });
+  it('never repeats tool parameter rules that the tool definitions carry', () => {
+    // DSH tool-design rule: each fact stated once. Parameter ranges and
+    // defaults belong on the parameter, not in the prompt.
+    const prompt = buildAssistantSystemPrompt(KNOWLEDGE_TOOLS);
+    expect(prompt).not.toContain('maximum:');
+    expect(prompt).not.toContain('Defaults to');
+  });
 
-    it('every prompt restricts facts to user-recorded or tool-returned data', () => {
-      for (const prompt of ALL_PROMPTS) {
-        expect(prompt).toContain(
-          'Only use facts recorded by the user or returned by allowed tools.',
-        );
-      }
-    });
+  describe('variables', () => {
+    it('reports tool availability as a string the override renderer can fill', () => {
+      const withTools = assistantSystemPromptVariables(READ_TOOLS);
+      expect(withTools.tools).toBe(READ_TOOLS.join(', '));
+      expect(withTools.toolAvailability).toContain('If a tool is available');
 
-    it('knowledge prompt forbids prescribing medications', () => {
-      const prompt = buildKnowledgeSystemPrompt([
-        'search_cn_medicine_products',
-      ]);
-      expect(prompt).toMatch(/do not diagnose/i);
-      expect(prompt).toContain('not permission to diagnose or prescribe');
-    });
-
-    it('write prompt does not grant autonomous write authority', () => {
-      const prompt = buildWriteSystemPrompt(['propose_create_daily_record']);
-      // Proposals are drafts, never applied
-      expect(prompt).toContain('Proposal tools do not perform writes.');
-      expect(prompt).toContain('Never describe a proposal as already applied.');
-      // Missing target is a refusal, not improvisation
-      expect(prompt).toContain('refusal to guess the write target');
-    });
-
-    it('assistant prompt enforces trust layering for medical evidence', () => {
-      const prompt = buildAssistantSystemPrompt([
-        'search_cn_medicine_products',
-        'search_cn_medicine_knowledge',
-      ]);
-      // Trust hierarchy must be stated
-      expect(prompt).toContain('Trust layering for knowledge answers');
-      expect(prompt).toContain('package-insert facts');
-      expect(prompt).toContain('scientific grounding');
-      expect(prompt).toContain('open QA corpus');
+      const without = assistantSystemPromptVariables([]);
+      expect(without.tools).toBe('none');
+      expect(without.toolAvailability).toContain(
+        'No server-approved user data tools are available',
+      );
     });
   });
 });

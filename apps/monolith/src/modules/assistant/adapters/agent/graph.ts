@@ -1,5 +1,4 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
-import { InMemoryCache } from '@langchain/langgraph-checkpoint';
 import type { BaseMessage } from '@langchain/core/messages';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.helper.js';
@@ -10,100 +9,27 @@ import {
   RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
   TOOL_EXECUTION_TIMEOUT_MS,
 } from '../acl/tools/shared/tool-constants.js';
-import type { ToolName } from '../../domain/policies/tool-permission.js';
 import type { AssistantGraphDeps } from './deps.js';
 import { AssistantRuntimeState } from './state.js';
-import {
-  deriveIntent,
-  type AssistantIntent,
-} from '../../application/services/intent.js';
-import type { AssistantToolRoutingOutcome } from '../../application/services/intent.js';
 import { buildRespondNode } from './respond.js';
 import { createAgentNode, createToolsNode } from './nodes.js';
-import { buildReadSubGraph } from './subgraphs/read.js';
-import { buildWriteSubGraph } from './subgraphs/write.js';
-import { buildKnowledgeSubGraph } from './subgraphs/knowledge.js';
 import { createWriteReviewNode, createWriteReviewSetupNode } from './review.js';
+import { createValidateNode } from './validate.js';
 
 export {
   AssistantRuntimeState,
   ASSISTANT_RUNTIME_NODE_NAMES,
 } from './state.js';
 export { selectPermittedTools } from '../../domain/policies/tool-permission.js';
-export {
-  deriveIntent,
-  type AssistantIntent,
-} from '../../application/services/intent.js';
-export type { AssistantToolRoutingOutcome } from '../../application/services/intent.js';
 export { buildRespondNode } from './respond.js';
-export { buildReadSubGraph } from './subgraphs/read.js';
-export { buildWriteSubGraph } from './subgraphs/write.js';
-export { buildKnowledgeSubGraph } from './subgraphs/knowledge.js';
-
-/**
- * Process-wide shared node cache. Nodes that opt into `cachePolicy` share this
- * instance across `buildAssistantRuntimeGraph` calls, so deterministic nodes
- * (classify_intent, prepare_context) are memoized between user requests.
- */
-const ASSISTANT_NODE_CACHE = new InMemoryCache();
-
-/** TTL for deterministic-rule node caching (seconds). */
-const NODE_CACHE_TTL_SECONDS = 3600;
-
-/**
- * Cache key for the `classify_intent` node.
- *
- * Every input that can change the routing decision must appear here. That is
- * the whole point of spelling it out instead of using LangGraph's default
- * `JSON.stringify(args)`: the default hashes whatever the node happens to
- * receive, which is an implementation detail (reducers, channel subsets), while
- * this list is the contract.
- *
- * `conversationHistory` is the reason this function exists. A follow-up like
- * "那你查一下" is routed to a different tool set depending on what came before
- * it; if two histories shared one key, the first answer would be replayed for
- * every later follow-up — the original defect, unchanged, just harder to see.
- */
-function buildClassifyIntentCacheKey(
-  args: unknown[],
-  deps: AssistantGraphDeps,
-): string {
-  const state = (args[0] ?? {}) as Partial<AssistantRuntimeState>;
-  return JSON.stringify({
-    userMessage: state.userMessage ?? '',
-    locale: state.locale ?? '',
-    enabledContextSources: state.enabledContextSources ?? [],
-    allowedTools: state.allowedTools ?? [],
-    // Bound the history's contribution: the router only reads the last few
-    // turns, so folding the whole transcript into the key would make the cache
-    // useless on long conversations without changing any decision.
-    history: (state.conversationHistory ?? [])
-      .slice(-CLASSIFY_CACHE_HISTORY_TURNS)
-      .map((turn) => `${turn.role}:${turn.content}`),
-    memoryInjected: state.memoryInjected ?? false,
-    // The prompt itself is part of the decision: a runtime prompt override must
-    // not reuse a result computed under the previous prompt.
-    prompt: deps.routingPromptFingerprint?.() ?? '',
-  });
-}
-
-/**
- * How many trailing turns participate in the classify cache key.
- *
- * Matches what the router prompt actually renders (`ROUTER_CACHE_TURNS`); a
- * turn older than this cannot change the decision, so it must not split the
- * cache either.
- */
-const CLASSIFY_CACHE_HISTORY_TURNS = 6;
 
 /**
  * Run timeout for a single node of the assistant runtime graph.
  *
- * A node is not one model call. `agent` streams a model response and the
- * tool-running nodes (including the sub-graphs, which execute tools inside
- * their own node) may run a tool whose own budget is far larger than the model
- * timeout — `reason_over_ontology` alone allows 45s for generation plus the
- * sidecar round trip.
+ * A node is not one model call. `agent` streams a model response and `tools`
+ * may run a tool whose own budget is far larger than the model timeout —
+ * `reason_over_ontology` alone allows 45s for generation plus the sidecar round
+ * trip.
  *
  * Bounding nodes by the *model* timeout put the ceiling below the tools' own
  * budgets, so those budgets could never be reached: the node was cancelled at
@@ -123,96 +49,45 @@ export const ASSISTANT_NODE_TIMEOUT_MS =
   5_000;
 
 /**
- * 选本轮工具：正常走注入的模型路由端口；端口缺失时降级为**全部候选工具**。
+ * Builds the assistant runtime graph: one ReAct loop, no routing layer.
  *
- * 降级不抛异常、也不回退到任何规则子集 —— 关键词机制已整体退役，唯一的兜底就是
- * "把可用的都绑上、交给通用 agent 节点"，并让指标上的 `degraded_all_tools` 可见。
- */
-function routeTools(
-  deps: AssistantGraphDeps,
-  state: AssistantRuntimeState,
-  candidateTools: readonly ToolName[],
-): Promise<AssistantToolRoutingOutcome> {
-  if (deps.routeTools == null) {
-    return Promise.resolve({
-      source: 'degraded_all_tools',
-      reason: 'no tool router is wired',
-    });
-  }
-  return deps.routeTools({
-    userMessage: state.userMessage,
-    locale: state.locale,
-    enabledContextSources: state.enabledContextSources,
-    candidateTools,
-    // 历史是本轮路由的必要输入：没有它，"那你查一下"这四个字无法判定需要哪个工具。
-    history: state.conversationHistory,
-  });
-}
-
-/** Picks the system prompt for the classified intent, falling back to the generic builder. */ function selectSystemPrompt(
-  deps: AssistantGraphDeps,
-  intent: AssistantIntent,
-  relevantTools: readonly ToolName[],
-): string {
-  switch (intent) {
-    case 'simple_chat':
-      return (
-        deps.buildSimpleChatSystemPrompt?.() ??
-        deps.buildSystemPrompt(relevantTools)
-      );
-    case 'read_data':
-      return (
-        deps.buildReadSystemPrompt?.(relevantTools) ??
-        deps.buildSystemPrompt(relevantTools)
-      );
-    case 'write_proposal':
-      return (
-        deps.buildWriteSystemPrompt?.(relevantTools) ??
-        deps.buildSystemPrompt(relevantTools)
-      );
-    case 'knowledge':
-      return (
-        deps.buildKnowledgeSystemPrompt?.(relevantTools) ??
-        deps.buildSystemPrompt(relevantTools)
-      );
-    case 'mixed':
-      return deps.buildSystemPrompt(relevantTools);
-  }
-}
-
-/**
- * Builds a LangGraph with a real agent ↔ tools loop and intent routing.
- *
- * Graph structure:
  * ```
- * START → prepare_context → classify_intent ─┬→ respond (simple_chat)
- *                                             ├→ read_subgraph (read_data)
- *                                             ├→ write_subgraph (write_proposal)
- *                                             ├→ knowledge_subgraph (knowledge)
- *                                             └→ agent ↔ tools (mixed/fallback)
- * read/write/knowledge subgraph → respond → END
+ * START → prepare_context → agent ⇄ tools → respond → END
  * ```
  *
- * - `prepare_context` sets up allowed tools and initial messages.
- * - `classify_intent` runs the keyword router, narrowing `relevantTools` and
- *   tagging the message with a semantic `intent`.
- * - `agent` calls the LLM with the narrowed tools bound. If the LLM returns
- *   tool calls, routes to `tools`. Otherwise stores the text response and
- *   routes to `respond`.
- * - `tools` executes the requested tools, appends ToolMessages, and loops
- *   back to `agent`.
- * - Loop is capped at {@link MAX_TOOL_LOOPS}.
+ * - `prepare_context` takes the memory block and writes the prompt plus the
+ *   user message. It does not choose tools.
+ * - `agent` binds **every** candidate tool (`state.allowedTools`, already
+ *   permission-filtered) and calls the model. The model decides what to call,
+ *   how often, and whether to change direction. If it returns tool calls the
+ *   graph goes to `tools`; otherwise the turn is answered.
+ * - `tools` executes the requested tools, appends one `ToolMessage` per call,
+ *   and loops back to `agent`. The loop is capped at {@link MAX_TOOL_LOOPS} and
+ *   the cap is visible as `stopReason: 'tool_cap_reached'`.
+ * - `respond` produces the final text when `agent` ended without one.
+ *
+ * ## Why there is no `classify_intent` / sub-graph layer
+ *
+ * The previous design ran a separate model call to pick a tool subset, projected
+ * that subset into an `intent`, and switched into a fixed sub-graph. Three
+ * consequences, all observed in production:
+ *
+ * 1. The router saw only the current message, so a follow-up ("那你查一下") bound
+ *    no tool at all.
+ * 2. The sub-graphs were hard boundaries: a read turn that discovered it needed
+ *    a drug lookup could not change direction inside the same turn.
+ * 3. Tool selection is what function calling already does. Spending a model call
+ *    to pre-decide it, then treating the answer as a hard constraint, is paying
+ *    twice for the same decision.
  */
 export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
   const checkpointer = deps.checkpointer ?? null;
   const hasHithl = checkpointer != null;
+  const maxToolLoops = deps.maxToolLoops?.() ?? MAX_TOOL_LOOPS;
 
   const builder = new StateGraph(AssistantRuntimeState)
     // ── prepare_context ────────────────────────────────────────────────
     .addNode('prepare_context', async (state) => {
-      // 只做"取上下文"：候选工具集由调用方算好（含 sidecar 可用性），记忆块在这里
-      // 取好但**先不写消息** —— system prompt 要等意图选定才能确定，而 `messages`
-      // 是 append reducer，先写再改会追加出第二份 System + 用户消息（计划 C7）。
       let memoryBlock = '';
       if (
         state.memoryEnabled &&
@@ -222,9 +97,21 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
         memoryBlock = await deps.buildMemoryBlock(state.userId);
       }
 
+      // The prompt is written here, in one shot: `messages` is an append
+      // reducer, so anything written earlier could only be appended to, never
+      // replaced. There is no per-turn tool subset left to wait for.
+      const messages: BaseMessage[] = [
+        new SystemMessage(deps.buildSystemPrompt(state.allowedTools)),
+      ];
+      if (memoryBlock.length > 0) {
+        messages.push(new HumanMessage(memoryBlock));
+      }
+      messages.push(new HumanMessage(state.userMessage));
+
       return {
         memoryBlock,
         memoryInjected: memoryBlock.length > 0,
+        messages,
         loopCount: 0,
         pendingToolCalls: [],
         toolResults: [],
@@ -234,76 +121,13 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
       };
     })
 
-    // ── classify_intent ────────────────────────────────────────────────
-    // 模型选工具（确定性规则表已整体退役）。这一步不便宜，节点级 cachePolicy
-    // 覆盖图级 `cachePolicy: false`，同一 (用户, 消息, 候选集) 在 TTL 内复用。
-    // 失败不抛：降级为"绑定全部候选工具 + intent=mixed"，走通用 agent 节点。
-    .addNode(
-      'classify_intent',
-      async (state: AssistantRuntimeState) => {
-        const candidateTools = state.allowedTools;
-        const routing = await routeTools(deps, state, candidateTools);
-        // 降级 = 绑定**全部候选工具**（不是某个规则子集，规则表已退役）。
-        // 正常路径则把模型的选择与候选集求交：路由端口无论返回什么（模型幻觉、
-        // 提示注入、注入的测试替身），候选集都是硬上限。真源在分类器里（会记 warn），
-        // 这一层是契约自守。
-        const permitted = new Set(candidateTools);
-        const selectedTools =
-          routing.source === 'degraded_all_tools'
-            ? [...candidateTools]
-            : routing.tools.filter((tool) => permitted.has(tool));
-
-        // 意图一律从"本轮真正绑定的工具集"派生。
-        //
-        // 降级时绑定的是整个候选集，而生产里的候选集总是同时含知识类与写入类工具，
-        // 于是自然派生成 `mixed` → 通用 agent 节点（这正是降级想要的形状）；窄候选集
-        // （例如只剩写入工具）仍会走它该走的子图，而不是被强行塞进通用节点。
-        const intent: AssistantIntent =
-          selectedTools.length === 0
-            ? 'simple_chat'
-            : deriveIntent(selectedTools);
-
-        const systemPrompt = selectSystemPrompt(deps, intent, selectedTools);
-        // 一次性写出完整消息列表：此刻 `messages` 还是空的（prepare_context 没写），
-        // 所以 append 的结果就是唯一一份。
-        const messages: BaseMessage[] = [new SystemMessage(systemPrompt)];
-        if (state.memoryInjected) {
-          messages.push(new HumanMessage(state.memoryBlock));
-        }
-        messages.push(new HumanMessage(state.userMessage));
-
-        return {
-          intent,
-          relevantTools: selectedTools,
-          routingSource: routing.source,
-          messages,
-        };
-      },
-      {
-        cachePolicy: {
-          ttl: NODE_CACHE_TTL_SECONDS,
-          // 显式缓存键，不用 LangGraph 的默认 `JSON.stringify(args)`。
-          //
-          // 默认键是**节点输入**的哈希，而输入里现在含历史——但那是实现细节：
-          // 「输入里有历史」不等于「键里有历史」（reducer 合并、通道子集都会改变
-          // 实际参与哈希的东西）。这条键必须保证：历史变了，键就变。
-          // 否则同一句追问在不同历史下会共享同一个「无工具」结果，
-          // 缺陷会以换了输入、结论不变的形式复现。
-          keyFunc: (args: unknown[]): string =>
-            buildClassifyIntentCacheKey(args, deps),
-        },
-        // 重试由 `withLlmRetry`（3 次）负责；图级默认的 maxAttempts=3 会与之相乘
-        // （最多 9 次模型调用），所以这里把本节点的重试关掉（maxAttempts: 1）。
-        retryPolicy: { maxAttempts: 1 },
-      },
-    )
-
     // ── agent / tools ──────────────────────────────────────────────────
     .addNode('agent', createAgentNode(deps))
     .addNode('tools', createToolsNode(deps))
-    .addNode('read_subgraph', buildReadSubGraph(deps))
-    .addNode('write_subgraph', buildWriteSubGraph(deps))
-    .addNode('knowledge_subgraph', buildKnowledgeSubGraph(deps))
+    .addNode('validate', createValidateNode({ supportsReview: hasHithl }))
+    // Records that the loop stopped with work still pending, so `validate` can
+    // report the cap instead of mistaking it for a normal ending.
+    .addNode('capped', () => ({ loopCapped: true }))
 
     // ── respond ────────────────────────────────────────────────────────
     .addNode(
@@ -314,47 +138,36 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
         ...(deps.respondCache != null
           ? { respondCache: deps.respondCache }
           : {}),
+        maxToolLoops: () => maxToolLoops,
       }),
     )
 
     // ── Edges ──────────────────────────────────────────────────────────
     .addEdge(START, 'prepare_context')
-    .addEdge('prepare_context', 'classify_intent')
-    .addConditionalEdges('classify_intent', (state) => {
-      // simple_chat skips the agent node entirely and goes straight to
-      // respond; read/write/knowledge route to their sub-graphs; mixed and
-      // unknown intents use the full agent node.
-      switch (state.intent) {
-        case 'simple_chat':
-          return 'respond';
-        case 'read_data':
-          return 'read_subgraph';
-        case 'write_proposal':
-          return 'write_subgraph';
-        case 'knowledge':
-          return 'knowledge_subgraph';
-        default:
-          return 'agent';
-      }
-    })
+    .addEdge('prepare_context', 'agent')
     .addConditionalEdges('agent', (state) => {
-      if (
-        state.pendingToolCalls.length > 0 &&
-        state.loopCount < MAX_TOOL_LOOPS
-      ) {
-        return 'tools';
+      // The loop continues only while there is work the model actually asked
+      // for. Hitting the cap is a distinct stop reason, not a silent downgrade:
+      // `validate` + `respond` turn it into a reply that says the tool rounds
+      // ran out.
+      //
+      // No pending calls always means "stop": `agent` either produced text
+      // (`finalContent`) or had nothing to bind (`no_match`), and `respond` is
+      // the node that turns the latter into an answer. Looping back to `agent`
+      // here would spin forever.
+      if (state.pendingToolCalls.length === 0) {
+        return 'validate';
       }
-      if (
-        state.pendingToolCalls.length > 0 &&
-        state.loopCount >= MAX_TOOL_LOOPS
-      ) {
-        return 'respond';
-      }
-      return 'respond';
+      return 'tools';
     })
-    .addEdge('tools', 'agent')
-    .addEdge('read_subgraph', 'respond')
-    .addEdge('knowledge_subgraph', 'respond')
+    .addConditionalEdges('tools', (state) =>
+      // The cap is decided *after* execution, not before: `agent` reports the
+      // calls it wants, `tools` runs them, and only then does it mean anything
+      // to say "the model still wants more". Checking before the run would cut
+      // off the final round the model actually asked for.
+      state.loopCount >= maxToolLoops ? 'capped' : 'agent',
+    )
+    .addEdge('capped', 'validate')
     .addEdge('respond', END)
     // Graph-wide node defaults: every node inherits these unless it opts
     // out via addNode(..., { retryPolicy: false }). `retryOn` is an explicit
@@ -368,25 +181,28 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
       cachePolicy: false,
     });
 
-  // HITL review: when a checkpointer is available, write proposals pause at
-  // `write_review` until the client confirms via the confirm endpoint.
-  // Without a checkpointer (or without a thread) the write sub-graph flows
-  // straight to `respond` exactly as before.
+  // HITL review: when a checkpointer is available, a turn that produced
+  // proposals pauses at `write_review` until the client confirms via the
+  // confirm endpoint. Without a checkpointer (or without a thread) the turn
+  // flows straight to `respond` — `validate` still records `pendingReview`, but
+  // nothing suspends on it, so the reply says the draft is waiting without
+  // pretending a thread is parked.
   if (hasHithl) {
     builder
       .addNode('write_review_setup', createWriteReviewSetupNode())
       .addNode('write_review', createWriteReviewNode())
-      .addConditionalEdges('write_subgraph', (state) =>
-        state.stopReason === 'no_target' ? 'respond' : 'write_review_setup',
+      .addConditionalEdges('validate', (state) =>
+        state.pendingReview?.status === 'pending'
+          ? 'write_review_setup'
+          : 'respond',
       )
       .addEdge('write_review_setup', 'write_review')
       .addEdge('write_review', 'respond');
   } else {
-    builder.addEdge('write_subgraph', 'respond');
+    builder.addEdge('validate', 'respond');
   }
 
   return builder.compile({
-    cache: ASSISTANT_NODE_CACHE,
     ...(hasHithl ? { checkpointer } : {}),
   });
 }

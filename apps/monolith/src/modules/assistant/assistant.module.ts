@@ -55,7 +55,6 @@ import { AssistantToolKnowledgeRetrievalService } from './adapters/acl/tools/ret
 import { SemanticaClientService } from './infrastructure/retrieval/semantica-client.js';
 
 import { OntologyCypherGeneratorService } from './adapters/acl/tools/ontology/cypher-generator.service.js';
-import { AssistantIntentClassifierService } from './application/services/intent-classifier.js';
 
 import { AssistantToolOntologyReasoningService } from './adapters/acl/tools/ontology/ontology-reasoning.service.js';
 
@@ -124,7 +123,6 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     SemanticaClientService,
     { provide: ASSISTANT_SEMANTICA, useExisting: SemanticaClientService },
     OntologyCypherGeneratorService,
-    AssistantIntentClassifierService,
     AssistantToolOntologyReasoningService,
     AssistantToolRuleReasoningService,
     AssistantToolMedicineLookupService,

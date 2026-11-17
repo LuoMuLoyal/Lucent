@@ -66,18 +66,19 @@ export function buildRespondNode(deps: {
   createModel: () => BaseChatModel;
   respondCache?: AssistantRespondCache;
   onText?: (text: string) => void | Promise<void>;
+  /** Loop cap for this build; the code baseline when absent. */
+  maxToolLoops?: () => number;
 }): RespondNode {
   return async (state) => {
-    if (state.finalContent != null) {
-      if (state.finalContent.trim().length === 0) {
-        // eslint-disable-next-line error-handling/no-bare-throw-error -- an empty model stream is an LLM runtime anomaly, surfaced to the stream orchestrator unchanged
-        throw new Error('Assistant graph ended without any assistant content.');
-      }
-      return {};
-    }
-
+    // Only a turn that touched no tool and injected no memory may be cached.
+    //
+    // The old design also required `intent === 'simple_chat'`, which marked the
+    // turns the router had sent straight to `respond`. With one loop there is no
+    // such marker, so the condition is spelled out as what it always meant:
+    // nothing happened this turn, so the reply is a pure function of the
+    // message. A turn with tool results or injected memory still never touches
+    // the cache.
     const cacheable =
-      state.intent === 'simple_chat' &&
       !state.memoryInjected &&
       state.toolResults.length === 0 &&
       deps.respondCache != null &&
@@ -86,6 +87,24 @@ export function buildRespondNode(deps: {
     const cacheKey = cacheable
       ? `assistant:simple-chat:${state.locale}:${SIMPLE_CHAT_PROMPT_VERSION}:${makeShortHash(state.userMessage)}`
       : null;
+
+    if (state.finalContent != null) {
+      if (state.finalContent.trim().length === 0) {
+        // eslint-disable-next-line error-handling/no-bare-throw-error -- an empty model stream is an LLM runtime anomaly, surfaced to the stream orchestrator unchanged
+        throw new Error('Assistant graph ended without any assistant content.');
+      }
+      // The agent node answered directly. Cache it here rather than in the node
+      // that produced it: this is the single place that knows both the reply and
+      // whether the turn was cacheable at all.
+      if (cacheKey != null && deps.respondCache != null) {
+        await deps.respondCache.set(
+          cacheKey,
+          state.finalContent,
+          RESPONSE_CACHE_TTL_SECONDS,
+        );
+      }
+      return {};
+    }
 
     if (cacheKey != null && deps.respondCache != null) {
       const cached = await deps.respondCache.get(cacheKey);
@@ -96,14 +115,14 @@ export function buildRespondNode(deps: {
         };
       }
     }
-
-    // Tool-loop fallback: when the agent loop hit MAX_TOOL_LOOPS with tool
-    // calls still pending, append an explicit instruction so the fallback
-    // reply states the tool rounds were exhausted instead of answering out
-    // of context. The cacheable fast path never reaches here (pending tool
+    // Tool-loop fallback: when the agent loop hit its cap with tool calls
+    // still pending, append an explicit instruction so the fallback reply
+    // states the tool rounds were exhausted instead of answering out of
+    // context. The cacheable fast path never reaches here (pending tool
     // calls imply tool results).
+    const maxToolLoops = deps.maxToolLoops?.() ?? MAX_TOOL_LOOPS;
     const toolBudgetExhausted =
-      state.pendingToolCalls.length > 0 && state.loopCount >= MAX_TOOL_LOOPS;
+      state.pendingToolCalls.length > 0 && state.loopCount >= maxToolLoops;
     const messages = toolBudgetExhausted
       ? [...state.messages, new SystemMessage(TOOL_LOOP_EXHAUSTED_PROMPT)]
       : state.messages;
@@ -124,9 +143,15 @@ export function buildRespondNode(deps: {
       );
     }
 
+    // `validate` has already decided why this turn stopped, and it knows things
+    // this node does not (empty coverage, a missing proposal target, a loop that
+    // ran out). Writing `answered` unconditionally here would overwrite that
+    // verdict — which is exactly what made `tool_cap_reached` and `no_evidence`
+    // unreachable. `answered` is therefore only the fallback for a turn that had
+    // no verdict of its own.
     return {
       finalContent: content,
-      stopReason: 'answered' as const,
+      stopReason: state.stopReason ?? ('answered' as const),
     };
   };
 }

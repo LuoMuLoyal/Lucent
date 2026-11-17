@@ -112,16 +112,7 @@ describe('AssistantRuntimeService', () => {
       ragEnabled: false,
       retrievalAvailable: false,
       oagAvailable: false,
-      graphNodeNames: [
-        'prepare_context',
-        'classify_intent',
-        'agent',
-        'tools',
-        'read_subgraph',
-        'write_subgraph',
-        'knowledge_subgraph',
-        'respond',
-      ],
+      graphNodeNames: ['prepare_context', 'agent', 'tools', 'respond'],
       toolNames: [
         'get_today_records',
         'get_records_by_date',

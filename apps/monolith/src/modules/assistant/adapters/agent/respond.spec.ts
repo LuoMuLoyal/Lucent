@@ -3,8 +3,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { MAX_TOOL_LOOPS } from '../acl/tools/shared/tool-constants.js';
 import { buildRespondNode } from './respond.js';
 
+/**
+ * Builds a state object for the node.
+ *
+ * Defaults mirror the channels the real graph always supplies, so a test only
+ * has to name the fields its case is about. `toolResults` and `memoryInjected`
+ * in particular are read on every path (the cache gate), and a hand-built state
+ * that omitted them used to fail with a `TypeError` instead of exercising the
+ * behaviour under test.
+ */
 function stateWith(overrides: Record<string, unknown>) {
-  return overrides as never;
+  return {
+    finalContent: null,
+    messages: [],
+    pendingToolCalls: [],
+    loopCount: 0,
+    toolResults: [],
+    memoryInjected: false,
+    stopReason: null,
+    userMessage: 'hello',
+    locale: 'en',
+    ...overrides,
+  } as never;
 }
 
 describe('respond node', () => {

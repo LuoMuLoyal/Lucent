@@ -73,7 +73,6 @@
     "eslint|no-magic-numbers|src/modules/assistant/adapters/http/dto/stream-messages.dto.ts",
     "eslint|no-magic-numbers|src/modules/assistant/adapters/http/presenters/proposal.ts",
     "eslint|no-magic-numbers|src/modules/assistant/application/ports/message-schema.ts",
-    "eslint|no-magic-numbers|src/modules/assistant/application/services/intent-routing.ts",
     "eslint|no-magic-numbers|src/modules/assistant/application/services/memory.ts",
     "eslint|no-magic-numbers|src/modules/assistant/application/services/stream.ts",
     "eslint|no-magic-numbers|src/modules/assistant/application/use_cases/summaries.ts",
