@@ -1,16 +1,38 @@
 # AGENTS.md - Lucent
 
+## Repository Layout
+
+Lucent 是 **pnpm workspace + Turborepo 多语言仓库**，不是一个单独的 NestJS 应用。
+所有命令在**仓库根**执行；不要 `cd` 进 app 目录再跑，根脚本会经 `--filter` 转给成员。
+
+| 成员（turbo 名）    | 路径                    | 语言 | 说明                                 |
+| ------------------- | ----------------------- | ---- | ------------------------------------ |
+| `monolith`          | `apps/monolith`         | TS   | NestJS 后端（未拆走的单体）          |
+| `semantica-service` | `apps/ontology`         | Py   | OAG 推理 sidecar（uv，FastAPI）      |
+| `shadcn-admin`      | `admin`                 | TS   | React 管理控制台 SPA（独立前端项目） |
+| `contracts`         | `packages/contracts/go` | Go   | 从 `openapi.json` 生成的 Go 绑定     |
+
+`go.work` 与根 `pyproject.toml`/`uv.lock` 是跨语言编排入口；`infra/` 放基础设施
+（`ci/` 门禁脚本、`lightrag/` 与 `semantica/` sidecar 部署），文档与计划在**仓库根**的
+`docs/` 与 `plans/`。
+
+**下文所有 `src/...` 路径都相对 `apps/monolith/`。** 依赖图规则（dependency-cruiser，
+配置在 `apps/monolith/.dependency-cruiser.json`）同样以该目录为根，所以规则里写的
+`^src/common/` 就是 `apps/monolith/src/common/`。写路径时省略 `apps/monolith/` 前缀是为了
+让规则读起来像设计而不是像构建产物——但**命令不能省**：`pnpm arch:check` 在根目录不存在，
+必须 `pnpm --filter monolith arch:check`。
+
 ## Documentation Rules
 
 文档按六向裁决处置，动笔前先归入其一：
 ① **生成消除**：能由 openapi/compodoc/测试断言产出的内容不再手写；
-② **结构固化**：模块意图下沉到 `src/modules/<module>/README.md`（与代码同址，AI 按需读取）；
+② **结构固化**：模块意图下沉到 `apps/monolith/src/modules/<module>/README.md`（与代码同址，AI 按需读取）；
 ③ **测试承接**：可机器验证的断言归测试，文档归档；
 ④ **独立归宿**：决策→ADR、事实→迁移日志、规划→`plans/`；
 ⑤ **前移编码时刻**：规则改成 lint/AST 检查，而非文字约定；
 ⑥ **降级快照**：低频稳定叙事进 `docs/explanation/`（只减不增）。
 
-布局（详见 `docs/README.md`，唯一索引）：`docs/explanation/`（为什么）、
+布局（详见 `docs/README.md`，唯一索引，位于仓库根）：`docs/explanation/`（为什么）、
 `docs/reference/`（是什么，含 `adr/` 只增不改、`generated/` 生成物）、`docs/howto/`（怎么做）、
 `docs/logs/migration-log/`（按日追加账本）、`docs/archive/`（归档只进不出）。
 
@@ -32,22 +54,26 @@
 - **Front-matter**：`docs/reference/*.md` 与 `docs/howto/*.md` 必须带
   （`status: active|frozen|stale` / `owner: backend` / `quadrant: reference|howto|explanation` /
   `updated: YYYY-MM-DD`）；`explanation/` 无门禁（新鲜度仍由 git 时间兜底）。
-  `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档、模块缺 README；
+  `--verify` 通报缺失块、>90 天未更新、`status: stale` 未归档；
   `status: frozen` 豁免新鲜度检查。归档 = `git mv` 到 `docs/archive/` + `status: archived`。
 - **工具**：`pnpm docs:verify`（结构与新鲜度门禁 + append-only 守卫）、
   `pnpm docs:links`（链接完整性 + 路径存在性：docs 面、模块 README、plans/README 与根入口文档中
-  的 `docs|src|plans|scripts|test|deploy|prisma/**` 路径记号必须真实存在）。
+  的 `docs|src|plans|scripts|test|prisma|monitoring|infra|.github/**` 路径记号必须真实存在）。
+  两者经 `--filter monolith` 转给 `apps/monolith/scripts/docs/`。
   旧 `docs:check` 覆盖映射已于 2026-09-15 观察期满整体退役；
   推送前 `pre-push` 仅汇总 `lint:check + docs:verify + docs:links`
   （build、test:ci 有意下沉到 CI；`arch:check` 不在推送路径上，见下节）。
+- **`docs:links` 接受 `src/...` 与 `apps/*/src/...` 两种写法**（`resolveWithAppPrefixes`），
+  这是为了让文档读起来像散文而不是构建输出。代价是**路径漂移不会报错**：正文声称的路径
+  可能已经搬到别处而检查仍是绿的。改目录结构时必须手动核对正文，不能只看门禁。
 
 ## Architecture Checks (arch:check)
 
-`pnpm arch:check` 聚合三类检查。观察期已于 2026-09-24 裁决：除已转级/退役的规则外
+`pnpm --filter monolith arch:check` 聚合三类检查。观察期已于 2026-09-24 裁决：除已转级/退役的规则外
 全部**维持 warn 不阻断**，不再计划转 error。该检查**不随 `pre-push` 自动运行**，
-需要时手动 `pnpm arch:check`（推送路径只留 lint 与文档门禁）：
+需要时手动执行（推送路径只留 lint 与文档门禁）：
 
-- **依赖图**（dependency-cruiser，`.dependency-cruiser.cjs`）：模块间只准 barrel import
+- **依赖图**（dependency-cruiser，`apps/monolith/.dependency-cruiser.json`）：模块间只准 barrel import
   （module 类直引对方 `.module.ts` 豁免）；跨模块 import 其他模块 `repositories/`、`dto/` 禁止；
   `src/common/**` 禁止 import `src/modules/**`；业务模块禁止直连 `ioredis`/`keyv`（走公共缓存封装）；
   controller 禁止 import `@prisma/client` 与 `src/prisma/**`。DDD 分层护栏（ADR-0024，
@@ -58,7 +84,7 @@
 - **基线门禁**（`scripts/arch/arch-check-with-baseline.ts`，ADR-0024 Phase 0）：arch:check
   由「全 warn 放行」改为对账基线——三类观察（依赖图 / eslint.arch / AST 姿态）汇总为
   `tool|rule|file` 条目，新条目即 exit 1，基线只允许递减；修复后跑
-  `pnpm arch:baseline:update` 缩小基线；逐规则裁决期限记在基线的 `ruleExpiry`。
+  `pnpm --filter monolith arch:baseline:update` 缩小基线；逐规则裁决期限记在基线的 `ruleExpiry`。
 - **代码模式**（`eslint.arch.config.ts`，独立 flat config，与主 lint 互不影响）：
   service 层裸 `throw new Error`（ADR-0012 例外见下节）、`no-magic-numbers` 白名单、
   测试文件 `: any`。原 W1（空 catch）已转 error 并迁入 `eslint.config.ts`。
@@ -70,12 +96,16 @@
 
 - `README.md`, `CONTRIBUTING.md`, `docs/README.md`（文档唯一索引）
 - `docs/explanation/architecture.md`（跨模块心智模型）、`docs/reference/environment-variables.md`（环境变量）
-- `src/modules/<module>/README.md`（模块边界与契约）、`docs/reference/adr/`（架构决策）
+- `apps/monolith/src/modules/<module>/README.md`（模块边界与契约）、`docs/reference/adr/`（架构决策）
 - 功能实现细节以代码为准；历史状态文档归档在 `docs/archive/`
 
 ## Current Baseline
 
-- NestJS 12 (ESM, SWC builder), Prisma 7, PostgreSQL, Redis, JWT auth.
+- **Workspace**：Node `>=26 <27`（`.node-version` 钉 26.13.0）、pnpm `>=11 <13`、
+  Turborepo（`turbo.json` 开 `experimentalPythonWorkspaces` / `experimentalGoWorkspaces` /
+  `experimentalTaskCommand`）。根 `pnpm-workspace.yaml` 成员为 `apps/*`、`packages/*`、`admin`。
+- **后端**（`apps/monolith`）：NestJS 12 (ESM, SWC builder), Prisma 7, PostgreSQL, Redis, JWT auth。
+  `admin-console` 模块在进程内提供 `/admin` 静态托管与权限门禁，前端产物来自 `admin/`。
 - 请求/响应校验与序列化走 zod 4 + Standard Schema(`@Body/@Query/@Param({ schema })` 与
   `@SerializeOptions({ schema })`;DTO 为 `z.infer` 类型导出),不引入 class-validator。
 - Dev DB: `postgres/postgres@127.0.0.1:15432/lucent`. Test DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
@@ -86,6 +116,32 @@
   Health check: `GET /api/v1/health`.
 - 模块路由前缀见 `src/app.module.ts` 的 RouterModule 注册(如用户域挂在 `user` 前缀下);
   `export-openapi` 会把响应 schema 注册路径与真实 operation 对账,不一致即报错终止。
+
+## Commands
+
+**根脚本经 turbo 转给成员，多数只需在根执行。** 少数只存在于 app 内，必须 `--filter`。
+
+```bash
+pnpm install
+pnpm build / typecheck / lint:check / test / test:ci     # turbo 全仓
+pnpm dev                                                 # monolith start:dev
+pnpm dev:stack:up                                        # 本地 Postgres + Redis
+pnpm db:migrate:all                                      # dev + test 两个库
+pnpm export:openapi                                      # 契约源变化后必跑
+pnpm contract:go                                         # 重新生成 Go 绑定
+pnpm docs:verify / docs:links / docs:compodoc
+pnpm --filter monolith arch:check                        # 不在 pre-push 路径上
+pnpm --filter monolith typecheck:tools                   # scripts/ 的独立 tsconfig
+```
+
+- **改 Python（`apps/ontology`）**：`uv run --frozen --package semantica-service` 前缀或用
+  `turbo run check --filter=semantica-service`（`check` 已覆写为跑 `src tests` 的 mypy）。
+  成员锁不存在——只有根 `uv.lock`，改动后 `uv lock`。
+- **改 Go 绑定（`packages/contracts/go`）**：`go generate ./...`（生成器是 `go.mod` 的 `tool`
+  依赖，不联网），产物 `openapi.gen.go` 已 gitignore，不提交。
+- **改 `admin/`**：它是独立 pnpm 项目（`shadcn-admin`），有自己的一套 lint/format。
+- 测试跑的是 **vitest**（`vitest.config` 系列），单测与 e2e 分两个 config；
+  跑单个文件用 `pnpm --filter monolith test -- path/to/file.spec.ts`。
 
 ## Working Rules
 
@@ -102,6 +158,8 @@
 - `pnpm typecheck` validates spec/e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 - e2e 约定：每个资源端点必须有「跨用户访问 → 404」用例；所有 list 端点必须有 limit 上限用例
   （沿 `test/` 既有 e2e 模板，新端点一并补齐）。
+- **提交前 `pre-commit` 会拦 JavaScript 文件**（`infra/ci/check-no-js.ts`）：仓库是
+  TypeScript-only，`.js` 文件要么是生成物（该进 gitignore）要么是本该写 TS 的残留。
 
 ## Error Handling Rules (ADR-0012)
 
@@ -208,11 +266,13 @@ are aggregate roots (`account/`, `session/`) plus `services/`, `policies/`; insi
 ## Root `common/` Conventions
 
 - No scattered files at `common/` root — every file lives in a role-based sub-directory.
-- Role-based subdirectories: `api/`, `helpers/`, `services/`, `logger/`, `llm/`, `queue/`,
-  `metrics/`, `events/`, `storage/`, `types/`, `filters/`, `interceptors/`, `middleware/`,
-  `constants/`, `validators/`.
+- 现有子目录（新增一类横切能力时才加目录，不要往根目录扔文件）：`api/`、`constants/`、
+  `events/`、`filters/`、`health/`、`helpers/`、`interceptors/`、`llm/`、`logger/`、`metrics/`、
+  `queue/`、`redis/`、`result/`、`risk/`、`services/`、`storage/`、`tests/`、`throttler/`、
+  `types/`、`validators/`。
 - Files needing Nest DI (`@Injectable()`, module wiring) should not live in `helpers/`.
 - `common/index.ts` is the single barrel; no sub-directory barrels.
+- `src/prisma/` 与 `src/llm-runtime/` 与 `common/` 平级、独立，不并入。
 
 ## Module Export Rules
 

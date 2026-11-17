@@ -23,6 +23,11 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - nodemailer@10.0.8
   - amqplib@2.4.0
+  - '@langchain/langgraph-checkpoint-postgres@1.1.4'
+  - '@langchain/langgraph-checkpoint@1.2.3'
+  - '@langchain/langgraph-sdk@1.17.0'
+  - '@langchain/langgraph@1.7.5'
+  - deepagents@1.17.0
 overrides:
   stack-trace: 0.0.10
   find-my-way: 9.6.0
