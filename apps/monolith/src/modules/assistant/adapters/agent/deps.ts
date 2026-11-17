@@ -61,7 +61,21 @@ export interface AssistantGraphDeps {
     locale: string;
     enabledContextSources: readonly ContextSource[];
     candidateTools: readonly ToolName[];
+    /**
+     * Prior turns of this conversation, oldest first, excluding the current
+     * message. Required (not optional) so a new call site cannot silently omit
+     * it and reintroduce the "follow-up question binds no tool" defect.
+     */
+    history: readonly { role: 'user' | 'assistant'; content: string }[];
   }) => Promise<AssistantToolRoutingOutcome>;
+  /**
+   * Fingerprint of the routing system prompt currently in force.
+   *
+   * The `classify_intent` cache key includes it so a runtime prompt override
+   * cannot reuse a decision computed under the previous prompt. Absent means
+   * the code prompt, which is what the cache key already assumes.
+   */
+  routingPromptFingerprint?: () => string;
   /** Intent-specific prompt builders; fall back to buildSystemPrompt when absent. */
   buildReadSystemPrompt?: SystemPromptFn;
   buildWriteSystemPrompt?: SystemPromptFn;

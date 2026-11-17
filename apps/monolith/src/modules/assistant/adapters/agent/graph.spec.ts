@@ -41,6 +41,7 @@ const ROUTING_TABLE: ReadonlyArray<readonly [string, ToolName[]]> = [
   ],
   ['我的过敏情况', ['get_user_profile']],
   ['我的情况怎么样', ['get_user_profile']],
+  ['布洛芬有什么副作用', ['search_cn_medicine_knowledge']],
 ];
 
 const fakeRouteTools = (input: {
@@ -54,6 +55,35 @@ const fakeRouteTools = (input: {
     input.userMessage.includes(message),
   );
   const requested = entry?.[1] ?? ['get_today_records'];
+  return Promise.resolve({
+    source: 'llm',
+    tools: requested.filter((tool) => input.candidateTools.includes(tool)),
+  });
+};
+
+/**
+ * Stand-in router that resolves a bare follow-up from history.
+ *
+ * Mirrors the real defect's shape: the four-character message matches nothing on
+ * its own, and only the preceding turn tells it what the user is asking about.
+ */
+const followUpAwareRouteTools = (input: {
+  userMessage: string;
+  history: readonly { role: 'user' | 'assistant'; content: string }[];
+  candidateTools: readonly ToolName[];
+}): Promise<{ source: 'llm'; tools: ToolName[] }> => {
+  const isFollowUp = /那你查一下|查一下/.test(input.userMessage);
+  const previousUserTurn = [...input.history]
+    .reverse()
+    .find((turn) => turn.role === 'user');
+  const requested =
+    isFollowUp && previousUserTurn != null
+      ? (ROUTING_TABLE.find(([message]) =>
+          previousUserTurn.content.includes(message),
+        )?.[1] ?? [])
+      : (ROUTING_TABLE.find(([message]) =>
+          input.userMessage.includes(message),
+        )?.[1] ?? []);
   return Promise.resolve({
     source: 'llm',
     tools: requested.filter((tool) => input.candidateTools.includes(tool)),
@@ -824,5 +854,100 @@ describe('AssistantFoundationGraph', () => {
     expect(result.stopReason).not.toBe('awaiting_review');
     expect(result.finalContent).toBe('好的，这是一份待确认的饮水记录草稿。');
     expect('__interrupt__' in result).toBe(false);
+  });
+
+  /**
+   * The reported defect, end to end through the graph.
+   *
+   * A four-character follow-up carries no antecedent on its own. Before this
+   * change the router received only `userMessage`, returned an empty set,
+   * `deriveIntent([])` collapsed the turn into `simple_chat`, and the answer
+   * bound no tool — the user was told nothing useful about the drug they had
+   * just asked about.
+   */
+  describe('follow-up turns', () => {
+    function buildFollowUpGraph(
+      mockInvoke: ReturnType<typeof vi.fn>,
+      seen: Array<{ userMessage: string; history: unknown }>,
+    ) {
+      const mockModel = {
+        bindTools: vi.fn().mockReturnValue({
+          stream: streamFromInvoke(mockInvoke),
+        }),
+        stream: streamFromInvoke(mockInvoke),
+      };
+      return buildAssistantRuntimeGraph({
+        routeTools: (input) => {
+          seen.push({ userMessage: input.userMessage, history: input.history });
+          return followUpAwareRouteTools(input);
+        },
+        createModel: () => mockModel as never,
+        executeTools: vi.fn().mockResolvedValue([]) as never,
+        buildSystemPrompt: () => 'system prompt',
+      });
+    }
+
+    it('binds the previous turn’s tools for a bare follow-up', async () => {
+      const mockInvoke = vi
+        .fn()
+        .mockResolvedValue(
+          new AIMessage({ content: '布洛芬的常见不良反应有…' }),
+        );
+      const seen: Array<{ userMessage: string; history: unknown }> = [];
+      const graph = buildFollowUpGraph(mockInvoke, seen);
+
+      const result = await graph.invoke({
+        userId: 'user-1',
+        userMessage: '那你查一下',
+        locale: 'zh-CN',
+        allowedTools: [...TOOL_NAMES],
+        enabledContextSources: ['daily_records'],
+        conversationHistory: [
+          { role: 'user', content: '布洛芬有什么副作用' },
+          { role: 'assistant', content: '你是想了解它的不良反应吗？' },
+        ],
+      });
+
+      // 路由拿到了历史——这是修复的实质。
+      expect(seen[0]?.history).toEqual([
+        { role: 'user', content: '布洛芬有什么副作用' },
+        { role: 'assistant', content: '你是想了解它的不良反应吗？' },
+      ]);
+      // 不再塌成 simple_chat，工具被绑上了。
+      expect(result.intent).not.toBe('simple_chat');
+      expect(result.relevantTools.length).toBeGreaterThan(0);
+    });
+
+    it('routes the same follow-up differently under a different history', async () => {
+      // 同一句「那你查一下」，历史不同 → 工具不同。这条钉住的是缓存键必须含历史：
+      // 若两轮共用缓存，第二次会原样重放第一次的结果。
+      const seen: Array<{ userMessage: string; history: unknown }> = [];
+      const mockInvoke = vi
+        .fn()
+        .mockResolvedValue(new AIMessage({ content: '好的。' }));
+
+      const graph = buildFollowUpGraph(mockInvoke, seen);
+
+      const first = await graph.invoke({
+        userId: 'user-1',
+        userMessage: '那你查一下',
+        locale: 'zh-CN',
+        allowedTools: [...TOOL_NAMES],
+        enabledContextSources: ['daily_records'],
+        conversationHistory: [{ role: 'user', content: '我的过敏情况' }],
+      });
+      const second = await graph.invoke({
+        userId: 'user-1',
+        userMessage: '那你查一下',
+        locale: 'zh-CN',
+        allowedTools: [...TOOL_NAMES],
+        enabledContextSources: ['daily_records'],
+        conversationHistory: [{ role: 'user', content: '布洛芬有什么副作用' }],
+      });
+
+      expect(seen).toHaveLength(2);
+      expect(first.relevantTools).not.toEqual(second.relevantTools);
+      expect(second.relevantTools).toContain('search_cn_medicine_knowledge');
+    });
   });
 });

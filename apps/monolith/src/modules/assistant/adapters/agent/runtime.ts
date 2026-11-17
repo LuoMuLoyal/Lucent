@@ -70,6 +70,7 @@ import { ASSISTANT_RUNTIME_NODE_NAMES } from './state.js';
 import type { AssistantValidationFlags } from './state.js';
 import type { AssistantPendingReview } from './state.js';
 import { AssistantIntentClassifierService } from '../../application/services/intent-classifier.js';
+import { buildIntentRouterSystemPrompt } from '../../application/services/intent-router-prompt.js';
 import type { CheckpointerPort } from '../../application/ports/agent-runtime.js';
 import { extractMessageText } from './message-text.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
@@ -248,6 +249,19 @@ export class AssistantRuntimeService {
       memoryEnabled?: boolean;
       /** Whether this turn starts a new conversation. */
       isNewConversation?: boolean;
+      /**
+       * Prior turns of this conversation, oldest first, excluding the current
+       * message.
+       *
+       * Comes from the request body (`dto.messages`) rather than the
+       * checkpoint, because the graph also runs stateless (no `conversationId`)
+       * where there is no checkpoint to read from. Length is bounded by the
+       * caller; the router prompt clips per message.
+       */
+      conversationHistory?: readonly {
+        role: 'user' | 'assistant';
+        content: string;
+      }[];
       /** Builds the persisted memory block (default: no memory injection). */
       buildMemoryBlock?: (userId: string) => Promise<string>;
       /**
@@ -296,7 +310,15 @@ export class AssistantRuntimeService {
               routing.locale,
               routing.enabledContextSources,
               routing.candidateTools,
+              routing.history,
             ),
+      routingPromptFingerprint: () =>
+        resolveRuntimePrompt(
+          this.runtimeConfigService,
+          'intentRouter',
+          () => buildIntentRouterSystemPrompt(),
+          {},
+        ),
       ...(input.buildMemoryBlock != null
         ? { buildMemoryBlock: input.buildMemoryBlock }
         : {}),
@@ -340,6 +362,7 @@ export class AssistantRuntimeService {
           allowedTools: [...input.allowedTools],
           memoryEnabled: input.memoryEnabled ?? false,
           isNewConversation: input.isNewConversation ?? false,
+          conversationHistory: [...(input.conversationHistory ?? [])],
         },
         config,
       );
@@ -549,7 +572,18 @@ export class AssistantRuntimeService {
               routing.locale,
               routing.enabledContextSources,
               routing.candidateTools,
+              // 这条路径是 checkpoint resume：线程从挂起的 `write_review` 继续，
+              // `classify_intent` 不会重跑，历史由 checkpoint 自带。
+              // 空数组是显式的「此处无需路由历史」，不是遗漏。
+              routing.history,
             ),
+      routingPromptFingerprint: () =>
+        resolveRuntimePrompt(
+          this.runtimeConfigService,
+          'intentRouter',
+          () => buildIntentRouterSystemPrompt(),
+          {},
+        ),
       ...(onText != null ? { onText } : {}),
       respondCache: this.respondCache,
       checkpointer,

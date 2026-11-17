@@ -60,6 +60,12 @@ function toolCatalog(candidateTools: readonly ToolName[]): string {
     .join('\n');
 }
 
+/**
+ * Per-turn character cap when rendering conversation history into the routing
+ * prompt. A follow-up question is short; the turns before it may not be.
+ */
+export const ROUTER_HISTORY_MESSAGE_MAX_CHARS = 400;
+
 export function buildIntentRouterSystemPrompt(): string {
   return [
     'You route one turn of a health assistant: you decide which tools that turn may use.',
@@ -76,19 +82,70 @@ export function buildIntentRouterUserPrompt(input: {
   locale: string;
   enabledContextSources: readonly ContextSource[];
   candidateTools: readonly ToolName[];
+  /**
+   * Prior turns of this conversation, oldest first, excluding the current message.
+   *
+   * Without it, a follow-up like "那你查一下" is routed on four characters with no
+   * antecedent: the model cannot tell which tool the previous turn needed, returns
+   * an empty set, and `deriveIntent([])` collapses the turn into `simple_chat` —
+   * the answer then has no tools bound at all. The router decides *which tools this
+   * turn needs*, and "this turn" is not interpretable without what came before.
+   *
+   * Rendered **before** the tool catalog on purpose: the catalog is a hard
+   * constraint and the user message should stay the last thing read.
+   */
+  history?: readonly { role: 'user' | 'assistant'; content: string }[];
 }): string {
   const sources =
     input.enabledContextSources.length > 0
       ? input.enabledContextSources.join(', ')
       : 'none';
-  return [
+  const sections = [
     'Candidate tools for this turn:',
     toolCatalog(input.candidateTools),
     '',
     `Personal-data sources the user has enabled: ${sources}.`,
     'Tools whose data the user has not enabled are already absent from the candidate list.',
+  ];
+
+  if (input.history != null && input.history.length > 0) {
+    sections.push(
+      '',
+      // Say what the history is for, not how it was obtained: the router must
+      // resolve references ("that one", "那你查一下") against it instead of
+      // treating the final message as a standalone question.
+      'Earlier turns of this conversation, oldest first (use them to resolve references in the final message):',
+      renderHistory(input.history),
+    );
+  }
+
+  sections.push(
     '',
     `User message (language: ${input.locale}):`,
     input.userMessage,
-  ].join('\n');
+  );
+  return sections.join('\n');
+}
+
+/**
+ * Renders prior turns as a bounded transcript.
+ *
+ * Per-message clipping is deliberate: a past answer can be thousands of
+ * characters, and the router only needs to know *what was asked and which
+ * ground was covered* to pick tools for the follow-up. Full text here would
+ * spend the routing call's budget on content the answer model reads anyway.
+ */
+function renderHistory(
+  history: readonly { role: 'user' | 'assistant'; content: string }[],
+): string {
+  return history
+    .map((turn) => {
+      const text = turn.content.replace(/\s+/g, ' ').trim();
+      const clipped =
+        text.length > ROUTER_HISTORY_MESSAGE_MAX_CHARS
+          ? `${text.slice(0, ROUTER_HISTORY_MESSAGE_MAX_CHARS)}…`
+          : text;
+      return `${turn.role === 'user' ? 'User' : 'Assistant'}: ${clipped}`;
+    })
+    .join('\n');
 }

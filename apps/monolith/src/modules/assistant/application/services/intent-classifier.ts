@@ -37,6 +37,15 @@ export interface AssistantToolRoutingContext {
   locale: string;
   enabledContextSources: readonly ContextSource[];
   candidateTools: readonly ToolName[];
+  /**
+   * 本轮之前的对话（最旧在前，**不含**当前消息）。
+   *
+   * 「那你查一下」这类追问只有四个字：没有历史时模型无法知道上一轮问了什么、
+   * 需要哪个工具，于是返回空集，`deriveIntent([])` 把这一轮塌成 `simple_chat`，
+   * 答案一个工具都不绑。路由决定的是「这一轮需要哪些工具」，而「这一轮」
+   * 脱离前文不成立。
+   */
+  history: readonly { role: 'user' | 'assistant'; content: string }[];
 }
 
 /**
@@ -98,6 +107,14 @@ export class AssistantIntentClassifierService extends BaseLlmGeneratorService<
     locale: string,
     enabledContextSources: readonly ContextSource[],
     candidateTools: readonly ToolName[],
+    /**
+     * Prior turns, oldest first, excluding the current message.
+     *
+     * **Required on purpose.** An optional parameter defaulting to `[]` would
+     * let a call site omit it and silently restore the exact defect this exists
+     * to fix — a follow-up that binds no tool, with every test still green.
+     */
+    history: readonly { role: 'user' | 'assistant'; content: string }[],
   ): Promise<AssistantToolRoutingOutcome> {
     const candidates = [...candidateTools];
 
@@ -118,6 +135,7 @@ export class AssistantIntentClassifierService extends BaseLlmGeneratorService<
           locale,
           enabledContextSources,
           candidateTools: candidates,
+          history,
         },
         {},
       );

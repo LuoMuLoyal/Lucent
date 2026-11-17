@@ -19,6 +19,14 @@ import {
 } from '../ports/agent-runtime.js';
 import { IUserSettingsPort } from '../../../user-settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
+
+/**
+ * How many trailing turns are handed to the tool router.
+ *
+ * Six covers the references people actually write ("那你查一下", "刚才那个药",
+ * "和上一个比"), while keeping the routing call from replaying a long thread.
+ */
+const ROUTER_HISTORY_TURNS = 6;
 import {
   ASSISTANT_TOOL_EXECUTOR,
   type ToolExecutorPort,
@@ -131,6 +139,9 @@ export class AssistantStreamOrchestratorService {
         allowedTools: policy.enabledToolNames,
         memoryEnabled: settings.assistantMemoryEnabled,
         isNewConversation: this.isNewConversation(messages),
+        // 历史来自请求体，不从 checkpoint 读：无状态对话（无 conversationId）
+        // 根本没有 checkpoint 可读。最后一条就是本轮消息，故排除。
+        conversationHistory: this.conversationHistory(messages),
         ...(dto.conversationId != null
           ? { conversationId: dto.conversationId }
           : {}),
@@ -456,6 +467,27 @@ export class AssistantStreamOrchestratorService {
 
   private isNewConversation(messages: AssistantConversationMessage[]): boolean {
     return messages.filter((message) => message.role === 'user').length <= 1;
+  }
+
+  /**
+   * Prior turns handed to the tool router, oldest first.
+   *
+   * Excludes the final message (that is this turn) and keeps the last
+   * `ROUTER_HISTORY_TURNS`. The router only needs enough context to resolve a
+   * reference; replaying a long transcript would spend the routing call's
+   * budget on text the answer model reads anyway.
+   *
+   * Empty-content assistant turns are dropped: the graph persists a tool-only
+   * step with empty text, and an empty `Assistant:` line tells the router
+   * nothing while taking a slot in the window.
+   */
+  private conversationHistory(
+    messages: AssistantConversationMessage[],
+  ): Array<{ role: 'user' | 'assistant'; content: string }> {
+    return messages
+      .slice(0, -1)
+      .filter((message) => message.content.length > 0)
+      .slice(-ROUTER_HISTORY_TURNS);
   }
 
   private readLastUserMessage(

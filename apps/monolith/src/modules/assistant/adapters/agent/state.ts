@@ -27,6 +27,18 @@ export interface AssistantValidationFlags {
   missingProposedActions: boolean;
 }
 
+/**
+ * One prior turn, as the routing model needs to see it.
+ *
+ * Deliberately its own shape rather than `BaseMessage`: the router prompt is
+ * plain text, and keeping it free of LangChain message classes means the state
+ * channel carries data, not framework objects.
+ */
+export interface AssistantConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export const DEFAULT_VALIDATION_FLAGS: AssistantValidationFlags = {
   hasEmptyResults: false,
   hasPartialCoverage: false,
@@ -67,6 +79,25 @@ export const AssistantRuntimeState = Annotation.Root({
   isNewConversation: Annotation<boolean>({
     reducer: (_left, right) => right,
     default: () => false,
+  }),
+
+  /**
+   * Prior turns of this conversation, oldest first, **excluding** the current
+   * message.
+   *
+   * `classify_intent` feeds it to the routing model. Without it the router sees
+   * only the final message, so a follow-up ("那你查一下") carries no antecedent:
+   * the model returns an empty set, `deriveIntent([])` collapses the turn to
+   * `simple_chat`, and the answer binds no tools at all. Routing picks *which
+   * tools this turn needs*, and "this turn" is not interpretable alone.
+   *
+   * Carried in the request (`dto.messages`), not read from the checkpoint: the
+   * graph also runs stateless (no `conversationId`), where there is no
+   * checkpoint to read history from.
+   */
+  conversationHistory: Annotation<AssistantConversationTurn[]>({
+    reducer: (_left, right) => right,
+    default: () => [],
   }),
 
   // ── prepare_context output ─────────────────────────────────────────────

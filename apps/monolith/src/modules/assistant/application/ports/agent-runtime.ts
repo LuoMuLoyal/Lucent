@@ -85,6 +85,15 @@ export interface AgentRuntimePort {
       allowedTools: readonly ToolName[];
       memoryEnabled?: boolean;
       isNewConversation?: boolean;
+      /**
+       * Prior turns of this conversation, oldest first, excluding the current
+       * message. Feeds the tool router so a follow-up ("那你查一下") can resolve
+       * its antecedent; without it the turn binds no tools.
+       */
+      conversationHistory?: readonly {
+        role: 'user' | 'assistant';
+        content: string;
+      }[];
       buildMemoryBlock?: (userId: string) => Promise<string>;
       conversationId?: string;
     },

@@ -51,6 +51,52 @@ const ASSISTANT_NODE_CACHE = new InMemoryCache();
 const NODE_CACHE_TTL_SECONDS = 3600;
 
 /**
+ * Cache key for the `classify_intent` node.
+ *
+ * Every input that can change the routing decision must appear here. That is
+ * the whole point of spelling it out instead of using LangGraph's default
+ * `JSON.stringify(args)`: the default hashes whatever the node happens to
+ * receive, which is an implementation detail (reducers, channel subsets), while
+ * this list is the contract.
+ *
+ * `conversationHistory` is the reason this function exists. A follow-up like
+ * "那你查一下" is routed to a different tool set depending on what came before
+ * it; if two histories shared one key, the first answer would be replayed for
+ * every later follow-up — the original defect, unchanged, just harder to see.
+ */
+function buildClassifyIntentCacheKey(
+  args: unknown[],
+  deps: AssistantGraphDeps,
+): string {
+  const state = (args[0] ?? {}) as Partial<AssistantRuntimeState>;
+  return JSON.stringify({
+    userMessage: state.userMessage ?? '',
+    locale: state.locale ?? '',
+    enabledContextSources: state.enabledContextSources ?? [],
+    allowedTools: state.allowedTools ?? [],
+    // Bound the history's contribution: the router only reads the last few
+    // turns, so folding the whole transcript into the key would make the cache
+    // useless on long conversations without changing any decision.
+    history: (state.conversationHistory ?? [])
+      .slice(-CLASSIFY_CACHE_HISTORY_TURNS)
+      .map((turn) => `${turn.role}:${turn.content}`),
+    memoryInjected: state.memoryInjected ?? false,
+    // The prompt itself is part of the decision: a runtime prompt override must
+    // not reuse a result computed under the previous prompt.
+    prompt: deps.routingPromptFingerprint?.() ?? '',
+  });
+}
+
+/**
+ * How many trailing turns participate in the classify cache key.
+ *
+ * Matches what the router prompt actually renders (`ROUTER_CACHE_TURNS`); a
+ * turn older than this cannot change the decision, so it must not split the
+ * cache either.
+ */
+const CLASSIFY_CACHE_HISTORY_TURNS = 6;
+
+/**
  * Run timeout for a single node of the assistant runtime graph.
  *
  * A node is not one model call. `agent` streams a model response and the
@@ -98,11 +144,12 @@ function routeTools(
     locale: state.locale,
     enabledContextSources: state.enabledContextSources,
     candidateTools,
+    // 历史是本轮路由的必要输入：没有它，"那你查一下"这四个字无法判定需要哪个工具。
+    history: state.conversationHistory,
   });
 }
 
-/** Picks the system prompt for the classified intent, falling back to the generic builder. */
-function selectSystemPrompt(
+/** Picks the system prompt for the classified intent, falling back to the generic builder. */ function selectSystemPrompt(
   deps: AssistantGraphDeps,
   intent: AssistantIntent,
   relevantTools: readonly ToolName[],
@@ -233,7 +280,18 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
         };
       },
       {
-        cachePolicy: { ttl: NODE_CACHE_TTL_SECONDS },
+        cachePolicy: {
+          ttl: NODE_CACHE_TTL_SECONDS,
+          // 显式缓存键，不用 LangGraph 的默认 `JSON.stringify(args)`。
+          //
+          // 默认键是**节点输入**的哈希，而输入里现在含历史——但那是实现细节：
+          // 「输入里有历史」不等于「键里有历史」（reducer 合并、通道子集都会改变
+          // 实际参与哈希的东西）。这条键必须保证：历史变了，键就变。
+          // 否则同一句追问在不同历史下会共享同一个「无工具」结果，
+          // 缺陷会以换了输入、结论不变的形式复现。
+          keyFunc: (args: unknown[]): string =>
+            buildClassifyIntentCacheKey(args, deps),
+        },
         // 重试由 `withLlmRetry`（3 次）负责；图级默认的 maxAttempts=3 会与之相乘
         // （最多 9 次模型调用），所以这里把本节点的重试关掉（maxAttempts: 1）。
         retryPolicy: { maxAttempts: 1 },
