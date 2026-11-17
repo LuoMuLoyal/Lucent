@@ -9,6 +9,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createJiti } from 'jiti';
 
 export const RUNTIME_CONFIG_EXAMPLE_PATH =
@@ -96,8 +97,18 @@ export async function collectRuntimeConfigExampleProblems(
   const raw = readFileSync(path, 'utf8');
 
   const jiti = createJiti(import.meta.url);
+  // Resolved from this module, not from `repoRoot`: the schema belongs to the
+  // same package as this script, while `repoRoot` is the checked-in template's
+  // location (the repository root). Mixing the two bases breaks as soon as the
+  // code and the docs sit at different depths — which is exactly what the
+  // monorepo move did.
   const schema = await jiti.import<RuntimeConfigSchemaLike>(
-    join(repoRoot, 'src/config/runtime/runtime-config.schema.ts'),
+    fileURLToPath(
+      new URL(
+        '../../src/config/runtime/runtime-config.schema.ts',
+        import.meta.url,
+      ),
+    ),
   );
   const expectedKeys = [
     ...schema.RUNTIME_CONFIG_KEYS,

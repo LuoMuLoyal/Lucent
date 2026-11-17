@@ -1,7 +1,7 @@
 import type { KnipConfig } from 'knip';
 
 /**
- * 主仓（`src/`）的死代码/死依赖扫描。
+ * 主仓（`apps/monolith/src/`）的死代码/死依赖扫描。
  *
  * 目标只有一件事：让「声明了但一行都没 import 的依赖」不再靠人工 grep 发现。
  * 2026-10-16 的工程能力计划就是靠手工数 import 找出的 5 个死依赖，接上 knip 后
@@ -13,11 +13,11 @@ import type { KnipConfig } from 'knip';
  */
 const config: KnipConfig = {
   // 只从主程序入口与它的 spec 出发算可达性。
-  entry: ['src/main.ts', 'src/**/*.spec.ts'],
-  project: ['src/**/*.ts'],
+  entry: ['apps/monolith/src/main.ts', 'apps/monolith/src/**/*.spec.ts'],
+  project: ['apps/monolith/src/**/*.ts'],
   ignore: [
     // 生成物：Prisma client 与 OpenAPI 导出中间层，不是手写代码。
-    'src/generated/**',
+    'apps/monolith/src/generated/**',
   ],
   ignoreDependencies: [
     // 通过 CLI/配置字符串加载、没有静态 import 的依赖。

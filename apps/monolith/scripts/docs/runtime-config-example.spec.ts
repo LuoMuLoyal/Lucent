@@ -5,7 +5,13 @@ import {
   diffRuntimeConfigExampleKeys,
 } from './runtime-config-example.ts';
 
-const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
+// The template lives in the repository-root `docs/reference/`. URL resolution
+// starts from this file, so reaching the repo root from
+// apps/monolith/scripts/docs/ takes four levels: docs → scripts → monolith →
+// apps → root. This is a deliberate cross-layer read: the template documents the
+// whole deployment surface, so it stays at the root even though the schema that
+// validates it lives inside the app.
+const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 
 describe('diffRuntimeConfigExampleKeys', () => {
   it('accepts a document whose keys match exactly', () => {
