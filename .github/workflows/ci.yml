@@ -231,3 +231,43 @@ jobs:
 
       - name: E2E tests
         run: pnpm test:e2e:ci
+
+  # Go contract bindings. Separate job on purpose: it needs the Go toolchain, and
+  # its only concern is that `libs/contracts/go` still matches the published
+  # OpenAPI document. The backend's own "spec is committed" step above proves the
+  # JSON is fresh; this proves the Go copy followed it. Without both, a DTO rename
+  # can land with a stale Go struct that compiles fine and fails at runtime.
+  go-contract:
+    name: Go Contract Bindings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: libs/contracts/go/go.mod
+          cache-dependency-path: libs/contracts/go/go.sum
+
+      - name: Download modules
+        working-directory: libs/contracts/go
+        run: go mod download
+
+      # Bindings are derived output, not committed (same treatment as the Prisma
+      # client): the contract JSON is the artifact, its Go rendering is produced
+      # here. Everything below compiles the generated package, so order matters.
+      - name: Generate bindings
+        working-directory: libs/contracts/go
+        run: go generate ./...
+
+      # turborepo maps lint to `go vet ./...`; running it directly keeps this job
+      # independent of the Node workspace.
+      - name: Vet
+        working-directory: libs/contracts/go
+        run: go vet ./...
+
+      - name: Test
+        working-directory: libs/contracts/go
+        run: go test ./...

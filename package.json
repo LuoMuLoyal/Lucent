@@ -19,7 +19,8 @@
     "check": "turbo run check",
     "dev": "turbo run dev --filter=lucent",
     "monolith": "pnpm --filter lucent",
-    "verify": "node infra/ci/check.mjs"
+    "contract:go": "turbo run contracts#generate",
+    "contract:go:check": "node infra/ci/check-go-contract.mjs"
   },
   "devDependencies": {
     "turbo": "2.11.11"

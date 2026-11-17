@@ -115,3 +115,8 @@ graphify-out/
 .turbo/
 **/.turbo/
 
+
+# Go contract bindings: generated from docs/reference/generated/openapi.json.
+# Derived output, same treatment as the Prisma client and compodoc — the
+# contract JSON is what gets committed, not its language bindings.
+libs/contracts/go/openapi.gen.go

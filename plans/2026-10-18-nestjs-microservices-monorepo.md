@@ -20,7 +20,12 @@ owner: backend
 > - **多语言（受控）**：业务服务与 admin BFF 只用 TypeScript；**唯一** Python 单元是
 >   `apps/ontology`（自建 Semantica FastAPI，本体/OAG 推理），因为它是核心能力且与
 >   Lucent 契约共同演进，收进仓库利于契约与客户端同 PR 变更。
->   LightRAG 仍是第三方镜像，继续外置；不引入 Go/Rust 服务。
+>   LightRAG 仍是第三方镜像，继续外置。
+> - **Go（2026-11-17 修订）**：Go 工具链与契约绑定已接入（`go.work`、
+>   `libs/contracts/go`、Turbo 的 `experimentalGoWorkspaces`、独立 CI lane）。
+>   **业务服务用哪种语言仍是待决问题**——新拆出的服务可以选 Go，也可以留 TS；
+>   决定前按下面的门槛走，不要两边同时铺业务代码。原文「不引入 Go/Rust 服务」
+>   已被此条取代。
 > - **服务边界**：按 bounded context 划 **identity / health / medicine / assistant / insights /
 >   notifications / content 七个领域/支撑服务 + admin BFF**；不按现有依赖面合并
 >   （notifications、assistant、content 从旧 knowledge/identity 中拆出）。
@@ -66,7 +71,7 @@ owner: backend
 | 契约基线    | 硬切后的 OpenAPI 成为 P1–P9 的稳定基线；提取期禁止再改公开命名，内部契约可演进                                                                                       |
 | 回滚        | **读片路由回滚**；写片在首笔写入前可回滚，之后 forward-fix；旧库保留到 P9                                                                                            |
 | 仓库形态    | **pnpm workspace + Turborepo**；根只做编排，单体在 `apps/monolith`，新服务在 `apps/*`                                                                                |
-| 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `apps/ontology`（Semantica）；LightRAG 仍外置；不自研 Go/Rust 服务（Traefik 为现成二进制）                          |
+| 语言        | **TS 业务服务 + Python 推理服务**；Python 仅 `apps/ontology`（Semantica）；LightRAG 仍外置；**Go 工具链与契约绑定已就绪（2026-11-17），业务服务语言待定**；Traefik 为现成二进制                                                                                          |
 | 共享层      | 只共享 `contracts` / `observability` / `api` / `config` / `testing` / `messaging` / `discovery`                                                                      |
 | 弹性        | 每服务必备：超时、重试+jitter、熔断、幂等键、DLQ、背压、优雅停机、readiness                                                                                          |
 | 服务认证    | **短期 service JWT**（`sub`=服务名、`aud`=目标、`scope`）；mTLS 后置                                                                                                 |
@@ -474,8 +479,11 @@ Turbo 的 uv 支持是 **experimental**，启用需要四个条件**同时满足
   **assistant 持有客户端与检索编排**；**medicine 只拥有药品语料与索引重建任务**。
 - **LightRAG 继续外置**：第三方镜像（`ghcr.io/hkuds/lightrag`），源码不归本仓；
   只保留 `infra/lightrag/` 的配置与 prompt。按外部服务对待（超时、重试、熔断、降级、指标）。
-- **不再有 Go/Rust 服务**：如未来需要，先在边界稳定后重写单个服务并另开计划，
-  不在本计划预留半成品目录。
+- **Go 的边界（2026-11-17 修订）**：工具链与契约绑定已就绪（`go.work` →
+  `libs/contracts/go`，Turbo `experimentalGoWorkspaces`，独立 CI lane，生成物不提交、
+  由构建产出）。**业务服务语言仍是待决项**：新拆出的服务可以选 Go，也可以留 TS，
+  但不能两边同时铺同一套业务代码。原文「不再有 Go/Rust 服务」被此条取代；
+  仍然成立的是它的理由——不在边界稳定前预留半成品目录。
 - **构建编排用 Turborepo 2.11+ 的多语言 Task Graph（experimental）**：
   - 根 `pyproject.toml` 声明 `[tool.uv.workspace] members = ["apps/ontology"]` 与
     `[tool.turbo].name`；`turbo.json` 开 `experimentalPythonWorkspaces`；

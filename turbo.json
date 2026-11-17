@@ -2,13 +2,27 @@
   "$schema": "https://turborepo.dev/schema.json",
   "futureFlags": {
     "experimentalPythonWorkspaces": true,
+    "experimentalGoWorkspaces": true,
     "experimentalTaskCommand": true
   },
   "globalDependencies": ["pnpm-workspace.yaml", ".node-version"],
   "globalEnv": ["NODE_ENV", "CI"],
+  "globalPassThroughEnv": [
+    "GOPROXY",
+    "GOFLAGS",
+    "GOPRIVATE",
+    "GONOSUMDB",
+    "GOSUMDB",
+    "GOMODCACHE",
+    "GOCACHE"
+  ],
   "tasks": {
     "//#verify": {
       "outputs": []
+    },
+    "contracts#generate": {
+      "command": ["go", "generate", "./..."],
+      "outputs": ["openapi.gen.go"]
     },
     "semantica-service#check": {
       "command": [
