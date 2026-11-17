@@ -3,7 +3,7 @@
 # monolith keeps its original layout under apps/monolith.
 packages:
   - 'apps/*'
-  - 'libs/*'
+  - 'packages/*'
   - 'admin'
 
 allowBuilds:

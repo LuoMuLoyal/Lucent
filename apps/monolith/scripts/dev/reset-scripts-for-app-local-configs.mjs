@@ -30,7 +30,7 @@ const WRITE = process.argv.includes('--write');
 const pkg = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8'));
 
 /** The original globs; `src`/`test`/`scripts` all exist under this app now. */
-const APP_SOURCES = '"{src,apps,libs,test}/**/*.ts"';
+const APP_SOURCES = '"{src,test}/**/*.ts"';
 const PRETTIER_GLOBS =
   '"src/**/*.ts" "test/**/*.ts" "scripts/**/*.ts" "*.{ts,json,yml,yaml,md}"';
 
