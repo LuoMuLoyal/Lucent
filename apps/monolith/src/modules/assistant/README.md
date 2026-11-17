@@ -80,6 +80,39 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 - **响应缓存**覆盖「本轮无工具、无记忆注入」的回复，命中点在 `respond`（agent 直答
   与 respond 自答两条路径都会写）。
 
+### deepagents 装配（`deep-agent.ts`，未接入请求路径）
+
+`buildAssistantDeepAgent` 用 `createDeepAgent` 装配同一拓扑，额外拿到规划
+（`write_todos`）、文件系统、shell 与 `task` 子智能体委派。**它当前不被
+`runtime.ts` 调用**：`graph.ts` 仍是生产路径，因为两者在流式与返回形状上不同
+（deepagents 拥有自己的 run loop 与 `messages`/`files` 状态），换底座要单独验证。
+
+三个组成部分：
+
+- `tool-bridge.ts` —— 把 24 个既有工具包成 `StructuredTool`，实现**调用既有
+  `executeMany`**。参数 schema 用 zod 手写（只有 6 个工具带参数），上界读同一份
+  运行时预算，模型看到的范围与服务端夹紧一致。不要在这里重写执行逻辑：提案信封
+  与超时契约都在原执行器里，第二份执行器必然漂移。
+- `subagents.ts` —— `knowledge` / `records` / `analyst` 三个子智能体，**按上下文
+  形态分而不是按工具分**（长散文 / 多行结构化记录 / 文件与命令）。它们**不声明
+  `tools`**，继承父级工具集：隔离的是上下文窗口，不是能力。
+- `workspace.ts` —— 每会话一个临时目录 + 清洗过的环境变量。
+
+### 关于 shell：没有沙箱
+
+`LocalShellBackend` 的原文是「Commands are executed directly on the host system
+without any sandboxing, process isolation, or security restrictions」，它自己把
+「Production environments (e.g., web servers, APIs, multi-tenant...)」列为不适用
+场景。当前实现**直接使用它**，这是本阶段的明确取舍，不是遗漏。
+
+`workspace.ts` 仍然做两件事，因为它们零成本且消除了两个不需要攻击者就会发生的
+失败：**独立 cwd**（否则 `pwd` 是仓库根，`.env.development` 与源码都在那儿）与
+**环境变量清洗**（`/KEY|PASSWORD|SECRET|TOKEN|CREDENTIAL|URL|DSN|CONN/i` 与
+`DSH_*`）。`virtualMode: true` 只约束**文件工具**，不约束 shell 命令——两道理应分开。
+
+**因此：能读到 `~/.ssh` 或 `env` 的 agent，也能被任何影响其提示词的东西驱动。**
+真正隔离需要每会话一个容器，那是独立改动；本模块不应长出半套「看起来像防护」的围栏。
+
 ## Tools（`adapters/acl/tools/`，按域分目录）
 
 `read`（日报记录查询 + today/report/sleep 摘要读取，范围上限 14 天，统一 envelope：

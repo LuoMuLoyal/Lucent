@@ -300,11 +300,45 @@ ReAct 循环。** 即 Phase 2 先手工收敛成单循环（验证拓扑正确�
 - **多租户差异**：每会话一个独立临时 workspace。DSH 是单用户 CLI 不需要，
   Lucent 是 Web 多租户必须有。
 
-### 6.4 验收
+### 6.4 实施结果（装配层完成，未接入请求路径）
 
-- 子智能体可被 `task` 工具委派并返回结果。
-- 文件系统工具在 `workspace-write` 下只能写 workspace 内。
-- shell 默认 `read-only`，越界被拒且结果带模式标记。
+已落地三个文件：
+
+| 文件                            | 内容                                                                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `adapters/agent/tool-bridge.ts` | 24 个既有工具 → `StructuredTool`，实现调用**既有** `executeMany`；6 个带参数工具用 zod 手写 schema，上界读同一份运行时预算 |
+| `adapters/agent/subagents.ts`   | `knowledge` / `records` / `analyst` 三个子智能体；**不声明 `tools`**，继承父级工具集                                       |
+| `adapters/agent/workspace.ts`   | 每会话临时目录 + 环境变量清洗（`/KEY\|PASSWORD\|SECRET\|TOKEN\|CREDENTIAL\|URL\|DSN\|CONN/i` 与 `DSH_*`）                  |
+| `adapters/agent/deep-agent.ts`  | `createDeepAgent` 装配：模型、工具、子智能体、`LocalShellBackend`                                                          |
+
+**没有接入 `runtime.ts`。** `graph.ts` 仍是生产路径。原因是两者在流式与返回形状上
+不同（deepagents 拥有自己的 run loop 与 `messages`/`files` 状态，而 `graph.ts` 通过
+`onText` 流式输出并返回 `AssistantConversationResult`）。换底座是一个独立、
+可验证的步骤，混在装配里做会分不清是「装配错」还是「换底座错」。
+
+### 6.5 与原计划的偏离：沙箱
+
+原计划写的是「三模式沙箱 + 每会话 workspace」，**只实现了后一半**。
+
+- **没有沙箱。** 直接用 `LocalShellBackend`（unconfined host shell）。它的原文把
+  「web servers, APIs, multi-tenant」列为不适用场景，本项目的 assistant 正是这一类。
+- **仍然实现的两件事**：每会话独立 cwd（否则 `pwd` 是仓库根，`.env.development`
+  与源码都在那儿）、环境变量清洗（进程持有数据库 URL / Redis 密码 / provider key）。
+- **`virtualMode: true` 只约束文件工具**，不约束 shell 命令。两道理应分开，混为一谈
+  会让人以为 shell 也被围住了。
+
+这是明确取舍而非遗漏：真正隔离需要每会话一个容器（独立命名空间、无网络、只挂临时
+卷），是独立的基础设施改动。
+
+### 6.6 验收状态
+
+- ✅ 子智能体声明可被 `task` 委派（`deep-agent.spec.ts` 断言名称、描述、继承工具集）。
+- ✅ 工具桥把参数原样交给 `executeMany`，超时信封渲染为模型可读文本（6 条断言）。
+- ✅ 每会话 workspace 独立；非法 `conversationId`（如 `../../etc`）被拒绝。
+- ✅ 环境变量清洗：凭证名、连接串名、`DSH_*` 均被丢弃。
+- ❌ 文件系统工具在 `workspace-write` 下只能写 workspace 内 —— **无此模式，未测**。
+- ❌ shell 默认 `read-only` —— **无此模式，shell 不受限**。
+- ⬜ 真实模型端到端（子智能体实际被委派并返回）未验证：需要模型凭据，而单测只跑装配。
 
 ## 7. Phase 5：长期记忆 —— 用开源方案
 
@@ -454,15 +488,15 @@ WeKnora 的 `ExtractDelaySeconds` + `ExtractMinIntervalSeconds` +
 
 ## 8. 执行顺序
 
-| #   | Phase  | 内容                                                    | 预估   |
-| --- | ------ | ------------------------------------------------------- | ------ |
-| 0   | —      | **依赖升级（已完成）**                                  | —      |
-| 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证          | 0.5 天 |
-| 1   | 1      | **修路由缺陷（已实施，见 §3）**                         | 0.5 天 |
-| 2   | 2      | **删路由层、单循环、提示词收敛（已实施，见 §4）**       | 1–2 天 |
-| 3   | 4      | **deepagents 接入（提前）**：子智能体 + 文件系统 + 沙箱 | 4–6 天 |
-| 4   | 3      | MCP：知识检索组做 server + 地图天气做 client            | 2–3 天 |
-| 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐               | 3–5 天 |
+| #   | Phase  | 内容                                                 | 预估   |
+| --- | ------ | ---------------------------------------------------- | ------ |
+| 0   | —      | **依赖升级（已完成）**                               | —      |
+| 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证       | 0.5 天 |
+| 1   | 1      | **修路由缺陷（已实施，见 §3）**                      | 0.5 天 |
+| 2   | 2      | **删路由层、单循环、提示词收敛（已实施，见 §4）**    | 1–2 天 |
+| 3   | 4      | **deepagents 装配（已实施，见 §6；未接入请求路径）** | 4–6 天 |
+| 4   | 3      | MCP：知识检索组做 server + 地图天气做 client         | 2–3 天 |
+| 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐            | 3–5 天 |
 
 **顺序调整说明**：deepagents 提前到 MCP 之前。理由是 Phase 2 收敛出的单循环
 本就是 deepagents 会替换掉的东西——先接 deepagents，MCP 那一步直接在
