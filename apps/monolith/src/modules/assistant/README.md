@@ -61,6 +61,18 @@ owner: backend
   `agent` 节点）。**没有关键词回退**：规则表已整体退役。
   降级记 `assistant_intent_routing_total{source="degraded_all_tools"}`，应为 0 或极低。
 - 角色是 `language`（与 Cypher 生成同属"文本理解 → 结构化输出"），无需新增环境变量。
+- **路由必须看到对话历史。** 历史经 `conversationHistory` 通道进入图，取自请求体
+  `dto.messages`（不是 checkpoint——无状态对话没有 checkpoint），取最近 6 轮、排除
+  末条、丢弃空内容。没有它，「那你查一下」这四个字脱离前文无法判定工具，模型返回
+  空集，`deriveIntent([])` 把整轮塌成 `simple_chat`，答案一个工具都不绑。
+  提示词里的顺序固定为**候选工具目录 → 历史 → 本轮消息**：工具目录是硬约束，
+  本轮消息要最后读。
+- **`classify_intent` 的缓存键是显式 `keyFunc`**（`graph.ts`），不是 LangGraph 的默认
+  `JSON.stringify(args)`。默认键哈希节点输入，「输入里有历史」不等于「键里有历史」：
+  reducer 合并与通道子集都会改变实际参与哈希的内容。显式键列出 `userMessage` /
+  `locale` / `enabledContextSources` / `allowedTools` / 历史尾 6 轮 / `memoryInjected` /
+  提示词指纹。**历史上变了键必须变**，否则同一句追问在不同历史下共用一次「无工具」
+  结果，缺陷会以「输入变了、结论不变」的形式复现。
 
 ## Tools（`adapters/acl/tools/`，按域分目录）
 
@@ -278,3 +290,7 @@ validate/model-stream/`intent-classifier.service`/`intent-eval.fixture` 等 +
 leaflet 评测前选 mix 被拒/空结果/溯源缺失标 partial）、
 `repositories/conversation.repository.spec.ts`、`services/policy.service.spec.ts`、
 `application/use_cases/qa-chunks-admin.spec.ts`。
+
+路由历史的回归面在 `intent-classifier.spec.ts`（历史在提示词中的**位置顺序**、空历史
+不渲染空区块、超长单条被截断）与 `graph.spec.ts`（追问不再塌成 `simple_chat`；
+同一句追问在**不同历史下路由到不同工具**——后者钉住缓存键必须含历史）。
