@@ -123,30 +123,36 @@ return deps.routeTools({
 - 不做跨服务事件总线（ADR-0025 的 RabbitMQ 与本计划无关）。
 - 不修改微服务拆分计划。
 
-## 3. Phase 1：修路由缺陷（先做，独立可验收）
+## 3. Phase 1：修路由缺陷（已实施）
 
-半天成本，用现有架构验证 §1.1 的根因判断。**若直接重构，重构后发现
-「那你查一下」仍不可用，就分不清是哪一层的责任。**
+半天成本，用现有架构验证 §1.1 的根因判断。若直接重构，重构后发现
+「那你查一下」仍不可用，就分不清是哪一层的责任。
 
-### 3.1 改动
+### 3.1 实现与计划的三处偏离
 
-- `adapters/agent/state.ts`：新增 `routeHistory: Annotation<BaseMessage[]>`，
-  reducer 与 `messages` 相同。
-- `application/services/intent-classifier.ts:35-40` 的
-  `AssistantToolRoutingContext`：增加 `history: readonly {role, content}[]`。
-- `adapters/agent/graph.ts`：`classify_intent` 节点从 `state.messages` 取最近
-  `DEFAULT_HISTORY_LIMIT` 条传入 `routeTools`。
-- `application/services/intent-router-prompt.ts`：候选工具目录**放在历史之后**
-  （工具目录是硬约束，位置靠后更醒目）。
-- `classify_intent` 的 `cachePolicy` 键**必须包含历史摘要的 hash**。
-  **这是本步最容易漏的地方**：加历史却不改缓存键，缺陷会以「换汤不换药」
-  的形式复现。
+原计划写的是「从 `state.messages` 取最近 N 条」，实测后改了：
 
-### 3.2 验收
+1. **历史来自请求体（`dto.messages`），不是 checkpoint。** 无状态对话
+   （无 `conversationId`）没有 checkpoint 可读，而两条路径都必须能用。
+   因此新增 `conversationHistory` 通道，由 `stream-message.ts` 从请求消息
+   取最近 6 轮、排除末条、丢弃空内容。
+2. **缓存键用显式 `keyFunc`，不是「含历史摘要的 hash」。** LangGraph 的默认键是
+   `XXH3(JSON.stringify([packet.args]))`（`pregel/algo.js:447`），哈希的是节点
+   输入。「输入里含历史」不等於「键里含历史」——reducer 合并与通道子集都会改变
+   实际参与哈希的内容。显式列出 `userMessage` / `locale` / `enabledContextSources` /
+   `allowedTools` / 历史尾 6 轮 / `memoryInjected` / 提示词指纹，把契约写死。
+3. **`selectTools` 的 `history` 参数必填、不给默认值。** 若写成 `history = []`，
+   调用点漏传会静默退化成无历史且测试全绿，正是原缺陷的形态。必填后编译器
+   一次性报出全部 6 处漏传。
 
-- 单测：历史进入用户提示词；同一末句 + 不同历史选出的工具不同。
-- 手工复现：「布洛芬有什么副作用」→「那你查一下」，第二轮必须绑定知识检索类工具。
-- `pnpm typecheck`、`pnpm lint:check`。
+### 3.2 验收结果
+
+- `intent-classifier.spec.ts` 新增 3 条：历史进入提示词的**位置顺序**
+  （工具目录 → 历史 → 本轮消息）、空历史不渲染空区块、超长单条被截断。
+- `graph.spec.ts` 新增 2 条：贯穿整图断言追问不再塌成 `simple_chat`；
+  同一句追问在**不同历史下路由到不同工具**（钉住缓存键必须含历史）。
+- `typecheck` 0 error；`intent-classifier.spec.ts` 9 passed；
+  `graph.spec.ts` 19 passed。
 
 ## 4. Phase 2：删路由层，单一 ReAct 循环
 
@@ -299,8 +305,63 @@ ReAct 循环。** 即 Phase 2 先手工收敛成单循环（验证拓扑正确�
 | **OpenMemory / LongMemory** | 自托管，pgvector，MCP 兼容 HTTP 端点，五扇区记忆 + 时序事实图                                                                       | 备选：MCP 原生、有可解释回溯路径                                                                       |
 | **WeKnora**                 | 完整知识平台（Go + Vue，MIT，Docker），记忆只是其中一块                                                                             | **不作为记忆方案引入**（是整平台，改造成本远超收益），但其**记忆数据模型是本计划的设计参照**           |
 
-**决策：Phase 5 用 Mem0 的 TS 库**，`Memory({ config })` 直连既有 Postgres，
-不引入新中间件；若后续需要独立服务再切它的 REST server。
+**决策：Phase 5 用 Mem0 的 self-hosted server（REST），独立 database。**
+
+原先的「用 TS 库、不引入新中间件」判断已推翻。改判依据是它 `server/` 目录的
+compose 实读结果——三个组件的边际成本远低于「引入一个中间件」的常规印象，
+而且它独有的能力（运行时改 provider、审计日志、实体管理面）在库模式下拿不到。
+
+### 7.2.1 为什么是 server 而不是库
+
+| 能力                  | 库模式     | self-hosted server                                                          | 对本项目的价值                                                                   |
+| --------------------- | ---------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 运行时改 LLM/embedder | 改代码重发 | `POST /configure`，持久到 app DB 并叠在 `.env` 之上                         | **高**：多角色模型池（chat/vision/analysis/embedding/compression）换模型不用发版 |
+| 审计                  | 无         | `request_logs`（状态/延迟/auth 模式）+ dashboard                            | **高**：每条记忆写入可回溯，出问题能定位是哪次 turn 写的                         |
+| 实体管理              | 自己写     | dashboard 的 Entities 页，按 `user_id`/`agent_id`/`run_id` 列计数并可级联删 | **高**：`DELETE /memory` 之外多一个可核对的操作面                                |
+| per-user API Key      | 无         | `X-API-Key`（只存前缀 + bcrypt）                                            | 中：Lucent 内部调用可只用一把，不必按用户发                                      |
+| 部署面                | 0          | 2 个容器（API + dashboard）                                                 | 低：compose 已就绪，pgvector 镜像族已在用                                        |
+
+**库模式被排除的决定性理由**：`Memory` 构造时**同步探测 embedding 维度并做 LLM
+连通性检查**，未显式给 `embeddingDims` 时会阻塞在网络调用上（本计划起草时两次
+验证脚本都卡在这里）。把这种东西放进 Web 请求进程的依赖图中，等于给每个实例
+加一个启动期网络阻塞点。放在独立容器里，这份不确定性就被隔离在进程外。
+
+### 7.2.2 接入既有 stack 的三个硬约束
+
+读 `server/docker-compose.yaml`、`server/.env.example`、`server/main.py` 得到：
+
+1. **不要让它自带 Postgres。** 它的 compose 起 `pgvector/pgvector:pg17` +
+   `init-db.sh` + 卷。接入时改为指向既有 `lucent-postgres-dev`，
+   **新建独立 database `mem0`**，不用 `lucent` 库、不用独立 schema。
+   理由：它的 Alembic 会建 `users` / `api_keys` / `request_logs` 三张表，
+   `users` 与 Prisma 的 `User` 同名，同库必然撞名。独立库还能单独备份/清理。
+   Mem0 需要**两个** DB 名：`POSTGRES_DB`（记忆的 pgvector 表）与
+   `APP_DB_NAME`（默认 `mem0_app`，存它自己的元数据）。二者都要落在新建的库里。
+2. **provider 白名单写死在 Python 里。** `main.py:62-63`：
+   `BUNDLED_LLM_PROVIDERS = ("openai","anthropic","gemini")`、
+   `BUNDLED_EMBEDDER_PROVIDERS = ("openai","gemini")`。不在白名单的 provider
+   在 `POST /configure` 阶段就被 400 拒绝。
+   **但 `openai` provider 支持 `baseURL`**（`mem0ai/dist/oss/index.js:181`：
+   `baseURL: config.baseURL || config.url`），所以只要模型池是 OpenAI 兼容的，
+   用 `provider: openai` + 自建 `baseURL` 即可，**不需要改它的 Python 源码**。
+   这是能否零改造接入的关键点，见 §7.6 的实测要求。
+3. **`AUTH_DISABLED` 不得为 true。** `JWT_SECRET` 必填（缺失则 auth 端点 500）。
+   `DASHBOARD_URL` 要设成实际 origin（CORS 白名单）。
+   `MEM0_TELEMETRY` 默认 `true`，**设成 `false`**——它会上报 install UUID 与
+   邮件域，本项目没有理由向外发送。
+
+### 7.2.3 库边界
+
+```text
+mem0 容器  ──REST(/memories, /search)──>  Lucent assistant
+    │
+    └──> lucent-postgres-dev / database "mem0"
+           ├── POSTGRES_DB    = mem0        (pgvector 记忆表)
+           └── APP_DB_NAME    = mem0_app    (users / api_keys / request_logs, Alembic)
+```
+
+`lucent` 库里**不新增任何表**。Lucent 侧只保留一个轻薄的 HTTP client
+（`adapters/acl/memory/mem0-client.ts`），不再持有记忆的 schema。
 
 ### 7.3 数据模型对齐 WeKnora（本计划采纳的部分）
 
@@ -338,16 +399,45 @@ WeKnora 的 `ExtractDelaySeconds` + `ExtractMinIntervalSeconds` +
 - `DELETE /memory` 仍幂等清空全部。
 - embedding 不可达时检索退化为词法，对话不阻塞，`capabilities` 里可见。
 
+### 7.6 Phase 5 的执行子步骤
+
+按依赖顺序，每步可独立验证：
+
+1. **建库**（无凭据依赖，立即可做）：
+   `CREATE DATABASE mem0;` 与 `CREATE DATABASE mem0_app;`
+   （后者的角色与库名按 `APP_DB_NAME` 配）。同时 `CREATE EXTENSION vector;`
+   在 `mem0` 库上。
+2. **compose 接入**：在 `compose.dev.yaml` 增加 `mem0` 与 `mem0-dashboard`
+   两个 service，**删除它自带的 postgres**，`POSTGRES_HOST` 指向
+   `lucent-postgres-dev`。`MEM0_TELEMETRY=false`，`AUTH_DISABLED=false`。
+3. **验证 baseURL 能否复用模型池**（§7.2.2 第 2 条）：用 `provider: openai` +
+   自建 `baseURL` 跑一次 `POST /configure` → `POST /memories` → `POST /search`。
+   **通过 = 零改造接入；不通过 = 才需要扩展 `BUNDLED_*_PROVIDERS` 并重建镜像。**
+   这一步必须有真实 embedding 端点，是整个 Phase 的go/no-go 闸门。
+4. **Lucent 侧 client**：`adapters/acl/memory/mem0-client.ts`（HTTP，
+   `X-API-Key` 走 env）。端口：`memory` 上下文。
+5. **数据模型对齐**：§7.3 的字段落在 Mem0 的 `metadata` 还是自定义列，
+   在第 3 步通过后实测确定——**不通读文档猜**。
+6. **提取调度**：替换 `memory.ts` 的进程内 `setTimeout`。
+7. **删除旧自研记忆**：`domain/memory/` 的落库路径 + `AssistantMemory` 表。
+   迁移既有 `assistant_memories` 行到 Mem0（一次性脚本），或按裁决直接丢弃。
+
+### 7.7 在 Phase 5 之前就该做的
+
+§7.6 第 1–2 步（建库 + compose 接入）**不依赖 assistant 重构**，可以现在就做。
+先做掉它，Phase 5 启动时就没有基础设施等待。
+
 ## 8. 执行顺序
 
-| #   | Phase | 内容                                                    | 预估   |
-| --- | ----- | ------------------------------------------------------- | ------ |
-| 0   | —     | **依赖升级（已完成）**                                  | —      |
-| 1   | 1     | 修路由缺陷                                              | 0.5 天 |
-| 2   | 2     | 删路由层、单循环、提示词收敛                            | 1–2 天 |
-| 3   | 4     | **deepagents 接入（提前）**：子智能体 + 文件系统 + 沙箱 | 4–6 天 |
-| 4   | 3     | MCP：知识检索组做 server + 地图天气做 client            | 2–3 天 |
-| 5   | 5     | 记忆改用 Mem0 + WeKnora 数据模型                        | 3–5 天 |
+| #   | Phase  | 内容                                                    | 预估   |
+| --- | ------ | ------------------------------------------------------- | ------ |
+| 0   | —      | **依赖升级（已完成）**                                  | —      |
+| 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证          | 0.5 天 |
+| 1   | 1      | **修路由缺陷（已实施，见 §3）**                         | 0.5 天 |
+| 2   | 2      | 删路由层、单循环、提示词收敛                            | 1–2 天 |
+| 3   | 4      | **deepagents 接入（提前）**：子智能体 + 文件系统 + 沙箱 | 4–6 天 |
+| 4   | 3      | MCP：知识检索组做 server + 地图天气做 client            | 2–3 天 |
+| 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐               | 3–5 天 |
 
 **顺序调整说明**：deepagents 提前到 MCP 之前。理由是 Phase 2 收敛出的单循环
 本就是 deepagents 会替换掉的东西——先接 deepagents，MCP 那一步直接在
@@ -386,6 +476,6 @@ pnpm docs:verify && pnpm docs:links
   §4.3 重写时压缩这两条。
 - **deepagents 的 `LocalShellBackend` 不可直接用于生产**（官方明确列为不适用）。
   §6.3 的自包装层是本 Phase 的主要工作量，不是 deepagents 本身。
-- **Mem0 需要确认**：其 TS 库默认后端是 Qdrant 还是可配 Postgres/pgvector，
-  以及 `normalized_key`/`pending` 这类自定义字段能否落进 metadata。
-  这在 Phase 5 开工前必须实测，不能只读文档。
+- **Mem0 的 `baseURL` 复用是 Phase 5 的 go/no-go 闸门**（§7.6 第 3 步）。
+  通过则零改造接入；不通过才需要扩展 `BUNDLED_*_PROVIDERS` 并重建镜像，
+  那与 ADR-0018「配置只由 env 提供」有摩擦，届时需单独裁决。
