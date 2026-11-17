@@ -286,6 +286,11 @@ ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS=65000
 # 调大工具超时时要同步调大本键（默认 = 模型超时 + 最大工具预算 + 5 秒）。
 ASSISTANT_NODE_TIMEOUT_MS=80000
 
+# 一轮对话内 agent↔tools 循环的轮数上限（min 1 / max 32）。
+# 路由层删除后这是本轮唯一的成本边界：模型可以连续调工具直到自己停下。
+# 触顶不静默截断——stopReason 为 tool_cap_reached，回复会说明工具轮次已用尽。
+ASSISTANT_MAX_TOOL_LOOPS=8
+
 # 对话记忆抽取（把本轮对话里的长期事实写进记忆）的超时。
 # 默认比普通模型调用多 1 秒。
 ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS=11000

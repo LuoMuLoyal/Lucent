@@ -417,6 +417,11 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
   否则节点先取消，得到的是节点级失败而非工具级信封。
 - `LIGHTRAG_ENABLED` / `SEMANTICA_ENABLED` 也可热关：关闭后下一次检索直接返回"未配置"
   信封，`GET /admin/dependencies` 同步反映当前发布值。
+- `ASSISTANT_MAX_TOOL_LOOPS`（默认 8，min 1 / max 32）是一轮对话内 agent↔tools
+  循环的轮数上限。它是本轮对话唯一的成本边界：路由层删除后没有第二次模型调用来收窄
+  工具集，模型可以连续调工具直到自己停下。触顶不静默截断——`stopReason` 为
+  `tool_cap_reached`，回复会说明工具轮次已用尽。它与 `ASSISTANT_NODE_TIMEOUT_MS`
+  是两个独立约束：轮数够但每轮都慢，仍会先撞节点超时。
 
 队列与餐食清扫家族的运行时覆盖：
 

@@ -43,36 +43,42 @@ owner: backend
 
 ## Runtime Graph（`adapters/agent/`）
 
-`prepare_context`（取记忆块）→ `classify_intent`（**大模型选本轮工具**，见下节）
-→ 5 种 intent：`simple_chat` 直达 `respond`、`read_data`/`write_proposal`/`knowledge`
-走子图、`mixed` 走 `agent↔tools` 循环 → `write_review`（HITL 暂停，等 confirm，
-依赖 checkpointer）→ `respond` 流式输出。工具循环与检索次数受服务端上限约束（bounded）。
+单一 ReAct 循环：`prepare_context`（写提示词与用户消息）→ `agent ⇄ tools`
+（模型自己决定调什么、调几次）→ `validate`（判空覆盖/缺提案/触顶）→
+`respond`（流式输出）；有 checkpointer 且本轮产出了提案时，`validate` 之后
+插入 `write_review_setup → write_review`（HITL 暂停，等 confirm）。
 
-### 工具路由（`application/services/intent-classifier.ts`）
+```text
+START → prepare_context → agent ⇄ tools → validate → respond → END
+                                      └→ capped →↗        └→ write_review_* (HITL)
+```
 
-- **意图从工具集派生，不单独判定**：模型只回答"这轮需要哪些工具"
-  （`schemas/intent-routing.schema.ts`），`deriveIntent()`（`classify.ts`）再把它投影成
-  intent。两处各算一份会出现"绑了 A、intent 说是 B"的组合。
+### 为什么没有路由层与子图
+
+曾经有 `classify_intent`（一次模型调用）选出工具子集，再投影成 `intent`，再切进
+固定子图。三个后果都是生产实测的：
+
+1. 路由只看当前那条消息 → 「那你查一下」绑不到任何工具（回答里什么工具都没有）。
+2. 子图是硬边界：读记录的途中发现要查药品，**同一个 turn 里出不去**。
+3. 工具选择本来就是 function calling 在做的事。多花一次模型调用去预先决定，
+   再把结果当硬约束，是为同一个决定付两次钱。
+
+### 关键契约
+
 - **候选集是硬上限**：由 `policy.enabledToolNames` 算好传入 —— 用户 context 开关 ∩
-  已实现 ∩ **sidecar 可用**（LightRAG/Semantica 关掉时对应工具不在集合里，既不会被绑定
-  也不会写进提示词）。模型输出与候选集求交，越权/幻觉工具名丢弃并记 warn。
-- **降级 = 工具全开**：模型角色未配置、熔断、超时或结构化输出非法时，绑定**全部候选
-  工具**并派生出对应 intent（生产候选集含知识类与写入类，因此落成 `mixed` → 通用
-  `agent` 节点）。**没有关键词回退**：规则表已整体退役。
-  降级记 `assistant_intent_routing_total{source="degraded_all_tools"}`，应为 0 或极低。
-- 角色是 `language`（与 Cypher 生成同属"文本理解 → 结构化输出"），无需新增环境变量。
-- **路由必须看到对话历史。** 历史经 `conversationHistory` 通道进入图，取自请求体
-  `dto.messages`（不是 checkpoint——无状态对话没有 checkpoint），取最近 6 轮、排除
-  末条、丢弃空内容。没有它，「那你查一下」这四个字脱离前文无法判定工具，模型返回
-  空集，`deriveIntent([])` 把整轮塌成 `simple_chat`，答案一个工具都不绑。
-  提示词里的顺序固定为**候选工具目录 → 历史 → 本轮消息**：工具目录是硬约束，
-  本轮消息要最后读。
-- **`classify_intent` 的缓存键是显式 `keyFunc`**（`graph.ts`），不是 LangGraph 的默认
-  `JSON.stringify(args)`。默认键哈希节点输入，「输入里有历史」不等于「键里有历史」：
-  reducer 合并与通道子集都会改变实际参与哈希的内容。显式键列出 `userMessage` /
-  `locale` / `enabledContextSources` / `allowedTools` / 历史尾 6 轮 / `memoryInjected` /
-  提示词指纹。**历史上变了键必须变**，否则同一句追问在不同历史下共用一次「无工具」
-  结果，缺陷会以「输入变了、结论不变」的形式复现。
+  已实现 ∩ **sidecar 可用**。`agent` 绑定它**全量**，不再二次筛选。
+- **循环上限可配**：运行时键 `ASSISTANT_MAX_TOOL_LOOPS`（基线 8）。触顶记
+  `stopReason: 'tool_cap_reached'`，由 `validate` 的 `capped` 节点显式记录 ——
+  `tools` 每次迭代都会清空 `pendingToolCalls`，不另立标志位就分不清「自然结束」
+  与「被截断」，回复会把半截调查说成完整结论。
+- **`stopReason` 由 `validate` 决定，`respond` 不覆盖**。`respond` 只在没有上游
+  判定时回落到 `answered`；否则它会盖掉 `tool_cap_reached` 与 `no_evidence`。
+- **`agent` 收到空文本视为未作答**（`finalContent: null`），不是「回答为空串」：
+  后者会让 `respond` 直接抛错，而实际发生的是模型停下来了，`respond` 仍可作答。
+- **提示词只有一份**（`application/services/prompts.ts`）。工具清单是唯一变量，
+  按 DSH 的 `tool-design` 规则写：每条事实只说一次，参数规则留在参数上。
+- **响应缓存**覆盖「本轮无工具、无记忆注入」的回复，命中点在 `respond`（agent 直答
+  与 respond 自答两条路径都会写）。
 
 ## Tools（`adapters/acl/tools/`，按域分目录）
 
@@ -282,15 +288,14 @@ UserHealthContext、DailyRecords、MedicineReminders。Port DI（ADR-0009）：
 ## Tests
 
 `assistant.controller.spec.ts`、`services/core.service.spec.ts`、
-`adapters/agent/*.spec.ts`（classify/graph/nodes/respond/review/
-validate/model-stream/`intent-classifier.service`/`intent-eval.fixture` 等 +
-`subgraphs/*.spec.ts`）、`tools/**/*.spec.ts`
+`adapters/agent/*.spec.ts`（graph/nodes/respond/review/validate/model-stream 等）、
+`tools/**/*.spec.ts`
 （含 `retrieval/lightrag-client.service.spec.ts` 与
 `retrieval/knowledge.service.spec.ts`：成功/超时/4xx/5xx/未配置/qa 选 mix 被拒/
 leaflet 评测前选 mix 被拒/空结果/溯源缺失标 partial）、
 `repositories/conversation.repository.spec.ts`、`services/policy.service.spec.ts`、
 `application/use_cases/qa-chunks-admin.spec.ts`。
 
-路由历史的回归面在 `intent-classifier.spec.ts`（历史在提示词中的**位置顺序**、空历史
-不渲染空区块、超长单条被截断）与 `graph.spec.ts`（追问不再塌成 `simple_chat`；
-同一句追问在**不同历史下路由到不同工具**——后者钉住缓存键必须含历史）。
+`graph.spec.ts` 钉的是循环本身：绑定全量候选集、多轮跨域工具调用、循环上限可见
+（`tool_cap_reached`）、空覆盖与缺提案的 stop reason、以及 `respond` 不覆盖上游判定。
+`nodes.spec.ts` 钉 `agent` 的三条边界：绑全量、空文本不当答案、无候选时 `no_match`。

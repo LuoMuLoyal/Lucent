@@ -154,48 +154,73 @@ return deps.routeTools({
 - `typecheck` 0 error；`intent-classifier.spec.ts` 9 passed；
   `graph.spec.ts` 19 passed。
 
-## 4. Phase 2：删路由层，单一 ReAct 循环
+## 4. Phase 2：删路由层，单一 ReAct 循环（已实施）
 
 ### 4.1 目标拓扑
 
 ```text
-START → prepare_context → agent ⇄ tools → respond → END
+START → prepare_context → agent ⇄ tools → validate → respond → END
+                                        └→ capped ↗        └→ write_review_*（HITL）
 ```
 
 `agent` 绑定 `state.allowedTools` **全量**（permission 已算好的候选集）。
 
-### 4.2 删除清单
+### 4.2 已删除
 
 | 删除                                                                     | 理由                |
 | ------------------------------------------------------------------------ | ------------------- |
-| `application/services/intent-classifier.ts`                              | 路由层退役          |
+| `application/services/intent-classifier.ts`（+ spec）                    | 路由层退役          |
 | `application/services/intent.ts`（`deriveIntent`）                       | 意图不再需要        |
 | `intent-router-prompt.ts`、`intent-routing.ts`、`intent-eval.fixture.ts` | 随路由层退役        |
-| `adapters/agent/subgraphs/{read,write,knowledge}.ts`                     | 硬切换是缺陷        |
+| `adapters/agent/subgraphs/{read,write,knowledge}.ts`（+ spec）           | 硬切换是缺陷        |
 | `graph.ts` 的 `classify_intent` + 五路条件边                             | 改 `agent` 单一入口 |
 | `state.ts` 的 `intent`/`relevantTools`/`activeSubGraph`/`routingSource`  | 无消费者            |
+| `prompts.ts` 的 read/write/knowledge/simple-chat 四份                    | 收敛为一份          |
 
-`validate.ts` **保留**：`validateReadResults` 的空结果/部分覆盖标记移到
-`tools` 之后、`respond` 之前。它解决的是「模型把空结果说成有结果」，与路由无关。
+`validate.ts` **保留并扩展**：三个子图的 `*_validate` 合并成一个节点，
+`validateReadResults` 的空结果/部分覆盖标记移到 `tools` 之后、`respond` 之前。
+它解决的是「模型把空结果说成有结果」，与路由无关。
 
-### 4.3 系统提示词收敛
+### 4.3 实施中发现的三个真实缺陷
 
-4 个提示词（simple/read/write/knowledge）收敛为一个，工具清单由
-`buildToolDefinitions` 动态拼入。`selectSystemPrompt`（`graph.ts:104-134`）删除。
+计划没有预见到，是实现与测试逼出来的：
+
+1. **`tool_cap_reached` 不可达。** `tools` 每次迭代都清空 `pendingToolCalls`，
+   所以 `validate` 看到的永远是空列表，分不清「自然结束」与「被截断」。
+   修法：新增 `loopCapped` 通道 + `capped` 节点，在 `tools` **执行之后**判上限
+   （不是在 `agent` 之前判——那样会砍掉模型实际请求的最后一轮）。
+2. **`respond` 无条件覆盖 `stopReason`。** 它总是写 `answered`，把 `validate`
+   算出的 `tool_cap_reached` 与 `no_evidence` 全部盖掉。修法：只在上游无判定时回落。
+3. **`agent` 收到空文本时写 `finalContent: ''`。** 这会让 `respond` 走「已有内容」
+   分支并因空串抛错，而实际情况是模型停下来了、`respond` 本可以作答。
+   修法：空文本视为未作答（`finalContent: null`），交给 `validate` 解释原因。
+
+另有一处 HITL 语义收窄：`validate` 只在**有 checkpointer** 时写 `pendingReview`。
+无 checkpointer 时没有任何东西会挂起，写它等于告诉调用方「有待确认的提案」，
+而实际上没人会暂停。
+
+### 4.4 系统提示词收敛
+
+4 个提示词收敛为一份（`buildAssistantSystemPrompt`），工具清单由
+`buildToolDefinitions` 动态拼入。`selectSystemPrompt` 删除。
 
 按 DSH `tool-design.md` 重写：删掉模型能从结果学到的约束、描述行为不描述实现、
-**每条事实只说一次**、参数规则下沉到参数描述。
+**每条事实只说一次**、参数规则下沉到参数描述。`prompts.spec.ts` 相应重写，
+原来四份各自的断言合并为对唯一提示词的断言（安全属性一条不减）。
 
-### 4.4 循环上限
+### 4.5 循环上限
 
-`MAX_TOOL_LOOPS = 3` 改为运行时可配 `ASSISTANT_MAX_TOOL_LOOPS`，基线 3 → 8。
-上限必须可见（`stopReason: 'tool_cap_reached'` 已有）。
+`MAX_TOOL_LOOPS` 3 → 8，改为运行时可配 `ASSISTANT_MAX_TOOL_LOOPS`
+（`retrieval.schema.ts` 的 `numberField`，min 1 / max 32 / 默认 8）。
+上限可见：`stopReason: 'tool_cap_reached'`。
 
-### 4.5 验收
+### 4.6 验收结果
 
-- 跨领域单轮：「查我上周的饮食 → 再查这几个药的相互作用 → 给结论」
-  在一个 turn 内完成。
-- 原有 e2e 全绿；`arch:check` 不新增条目。
+- `typecheck` 0 error；`lint:check` 0 error（2 个既有 warning）。
+- assistant 模块 **44 files / 552 tests 全过**（原 580，减少的是路由层与子图测试）。
+- `arch:check` 不新增条目；基线里指向已删文件的那条已收缩。
+- 跨域单轮由 `graph.spec.ts` 的 "keeps calling tools across several rounds in one turn"
+  钉住：一次 turn 内先读记录再查药品。
 
 ## 5. Phase 3：MCP —— **只包一部分工具**（范围收窄）
 
@@ -434,7 +459,7 @@ WeKnora 的 `ExtractDelaySeconds` + `ExtractMinIntervalSeconds` +
 | 0   | —      | **依赖升级（已完成）**                                  | —      |
 | 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证          | 0.5 天 |
 | 1   | 1      | **修路由缺陷（已实施，见 §3）**                         | 0.5 天 |
-| 2   | 2      | 删路由层、单循环、提示词收敛                            | 1–2 天 |
+| 2   | 2      | **删路由层、单循环、提示词收敛（已实施，见 §4）**       | 1–2 天 |
 | 3   | 4      | **deepagents 接入（提前）**：子智能体 + 文件系统 + 沙箱 | 4–6 天 |
 | 4   | 3      | MCP：知识检索组做 server + 地图天气做 client            | 2–3 天 |
 | 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐               | 3–5 天 |
