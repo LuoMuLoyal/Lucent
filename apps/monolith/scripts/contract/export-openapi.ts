@@ -125,8 +125,8 @@ function renderRegionEntries(document, prefix) {
  * `src/modules/<name>/README.md` from the generated document. Idempotent: a
  * clean re-export produces zero diff.
  */
-function fillGeneratedRegions(repoRoot, document) {
-  const modulesDir = path.resolve(repoRoot, 'src', 'modules');
+function fillGeneratedRegions(appRoot, document) {
+  const modulesDir = path.resolve(appRoot, 'src', 'modules');
   if (!fs.existsSync(modulesDir)) return;
   let filled = 0;
   for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true })) {
@@ -153,9 +153,9 @@ function fillGeneratedRegions(repoRoot, document) {
  * committed artifact, so re-running the export produces zero diff on a clean
  * tree.
  */
-async function formatJsonWithRepoPrettier(content, outputPath, repoRoot) {
+async function formatJsonWithRepoPrettier(content, outputPath, appRoot) {
   const prettier = await import('prettier');
-  const prettierConfig = await prettier.resolveConfig(repoRoot);
+  const prettierConfig = await prettier.resolveConfig(appRoot);
   return prettier.format(content, {
     ...prettierConfig,
     filepath: outputPath,
@@ -170,11 +170,11 @@ async function formatJsonWithRepoPrettier(content, outputPath, repoRoot) {
  * and never convert content that is already CRLF (e.g. a prettier config with
  * `endOfLine: crlf`), which would corrupt it with `\r\r\n` sequences.
  */
-function toWorktreeEol(content, repoRoot) {
+function toWorktreeEol(content, appRoot) {
   if (content.includes('\r\n')) return content;
   try {
     const autocrlf = execSync('git config --get core.autocrlf', {
-      cwd: repoRoot,
+      cwd: appRoot,
       encoding: 'utf-8',
     })
       .trim()
@@ -207,7 +207,7 @@ function setIfMissing(key: string, value: string) {
  * guard below sees what is *actually* annotated, including duplicates that
  * would otherwise collapse into whichever handler Swagger reached last.
  */
-function collectAnnotatedOperationIds(repoRoot: string): Set<string> {
+function collectAnnotatedOperationIds(appRoot: string): Set<string> {
   const ids = new Set<string>();
   const duplicates: string[] = [];
   const files: string[] = [];
@@ -219,7 +219,7 @@ function collectAnnotatedOperationIds(repoRoot: string): Set<string> {
         files.push(full);
     }
   };
-  const srcRoot = path.resolve(repoRoot, 'src');
+  const srcRoot = path.resolve(appRoot, 'src');
   if (!fs.existsSync(srcRoot)) return ids;
   visit(srcRoot);
   for (const file of files) {
@@ -227,7 +227,7 @@ function collectAnnotatedOperationIds(repoRoot: string): Set<string> {
     for (const match of source.matchAll(/operationId:\s*'([^']+)'/g)) {
       const id = match[1]!;
       if (ids.has(id))
-        duplicates.push(`${id} (${path.relative(repoRoot, file)})`);
+        duplicates.push(`${id} (${path.relative(appRoot, file)})`);
       ids.add(id);
     }
   }
@@ -526,13 +526,18 @@ async function main() {
   setIfMissing('JWT_ACCESS_SECRET', 'jwt-access-export-only-placeholder-000');
   setIfMissing('JWT_REFRESH_SECRET', 'jwt-refresh-export-only-placeholder-00');
 
-  const repoRoot = path.resolve(thisDir, '..', '..');
+  const appRoot = path.resolve(thisDir, '..', '..');
+  // The published contract belongs to the repository, not to this app: it is the
+  // artifact Luminous and Lumine generate their clients from, so it lives at
+  // `docs/reference/generated/` two levels above the app. Sources and build
+  // output stay under `appRoot`.
+  const workspaceRoot = path.resolve(appRoot, '..', '..');
 
   const appModulePath = pathToFileURL(
-    path.resolve(repoRoot, 'dist', 'app.module.js'),
+    path.resolve(appRoot, 'dist', 'app.module.js'),
   ).href;
   const setupAppPath = pathToFileURL(
-    path.resolve(repoRoot, 'dist', 'setup-app.js'),
+    path.resolve(appRoot, 'dist', 'setup-app.js'),
   ).href;
 
   const appModuleImport = await import(appModulePath);
@@ -542,7 +547,7 @@ async function main() {
   const setupApp = setupAppImport.setupApp ?? setupAppImport.default?.setupApp;
   const problemDetailsModule = await import(
     pathToFileURL(
-      path.resolve(repoRoot, 'dist', 'common', 'api', 'problem-details.dto.js'),
+      path.resolve(appRoot, 'dist', 'common', 'api', 'problem-details.dto.js'),
     ).href
   );
   const problemDetails = problemDetailsModule.default ?? problemDetailsModule;
@@ -552,7 +557,7 @@ async function main() {
   });
   await setupApp(app, app.get(ConfigService));
 
-  const annotatedOperationIds = collectAnnotatedOperationIds(repoRoot);
+  const annotatedOperationIds = collectAnnotatedOperationIds(appRoot);
 
   // operationId comes from the handler's `@ApiOperation({ operationId })` when
   // it has one — Swagger passes an explicit `operationId` straight through and
@@ -648,7 +653,7 @@ async function main() {
   const { responseSchemaRegistrations } = await import(
     pathToFileURL(
       path.resolve(
-        repoRoot,
+        appRoot,
         'dist',
         'common',
         'api',
@@ -784,23 +789,19 @@ async function main() {
   }
 
   const outputPath = path.resolve(
-    repoRoot,
+    workspaceRoot,
     'docs',
     'reference',
     'generated',
     'openapi.json',
   );
   const json = `${JSON.stringify(document, null, 2)}\n`;
-  const formatted = await formatJsonWithRepoPrettier(
-    json,
-    outputPath,
-    repoRoot,
-  );
+  const formatted = await formatJsonWithRepoPrettier(json, outputPath, appRoot);
   // Write via temp file + rename so the committed artifact is replaced
   // atomically (no partial file if the export fails midway).
   const tmpPath = `${outputPath}.tmp`;
   try {
-    fs.writeFileSync(tmpPath, toWorktreeEol(formatted, repoRoot), 'utf-8');
+    fs.writeFileSync(tmpPath, toWorktreeEol(formatted, appRoot), 'utf-8');
     fs.renameSync(tmpPath, outputPath);
   } catch (error) {
     fs.rmSync(tmpPath, { force: true });
@@ -812,7 +813,7 @@ async function main() {
   console.log(
     `Schemas: ${Object.keys(document.components?.schemas ?? {}).length}`,
   );
-  fillGeneratedRegions(repoRoot, document);
+  fillGeneratedRegions(appRoot, document);
 
   await app.close();
 }

@@ -52,7 +52,7 @@ RUN pnpm prune --prod --ignore-scripts
 # /scalar/standalone.js，二者已随 Scalar 退役移除）。
 RUN set -eux; \
     # 1) source map：仅调试器 / --enable-source-maps 会读，生产运行不加载
-    find node_modules dist -name '*.map' -type f -delete; \
+    find node_modules apps/monolith/dist -name '*.map' -type f -delete; \
     # 2) 包内文档：保留 LICENSE/NOTICE/COPYING 以合规
     find node_modules -name '*.md' -type f \
       ! -iname 'LICENSE*' ! -iname 'NOTICE*' ! -iname 'COPYING*' -delete; \

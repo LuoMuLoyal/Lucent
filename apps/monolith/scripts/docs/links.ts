@@ -89,10 +89,7 @@ function collectMarkdownFiles(repoRoot: string): string[] {
  * Returns the path as it should be recorded (relative to the workspace root), or
  * `null` when it exists nowhere.
  */
-function resolveWithAppPrefixes(
-  repoRoot: string,
-  rel: string,
-): string | null {
+function resolveWithAppPrefixes(repoRoot: string, rel: string): string | null {
   const normalized = rel.replace(/\\/g, '/');
   if (existsSync(resolve(repoRoot, normalized))) return normalized;
 
@@ -206,7 +203,9 @@ function targetExists(
 
   // Markdown links resolve relative to the file's own directory.
   const base = dirname(file);
-  const raw = /\.md$/i.test(target) ? `${base}/${target}` : `${base}/${target}.md`;
+  const raw = /\.md$/i.test(target)
+    ? `${base}/${target}`
+    : `${base}/${target}.md`;
   // Lexically normalise (`docs/../src/...` → `src/...`) so the app-prefix
   // fallback sees a clean workspace-relative path instead of `..` segments.
   const path = relative(repoRoot, resolve(repoRoot, raw)).replace(/\\/g, '/');
