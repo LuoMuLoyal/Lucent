@@ -124,3 +124,8 @@ packages/contracts/go/openapi.gen.go
 # Local Python virtualenv. uv creates one at the workspace root when run from
 # there; nothing in the TS workspace uses it.
 .venv/
+
+# Python tool caches (uv/ruff/mypy/pytest create these wherever they run).
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
