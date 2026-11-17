@@ -316,6 +316,55 @@ services:
         max-size: '50m'
         max-file: '5'
 
+  # ── Mem0 self-hosted server（长期记忆）──────────────────────────
+  # 与 lightrag 同一处置：**不**自带 Postgres，复用同 compose 的 `postgres`
+  # （走服务名），但落在独立 database（`mem0` 记忆表 + `mem0_app` 元数据）。
+  # 它自己的 `users` 表与 Prisma 的 `User` 同名，同库必然撞名。
+  #
+  # 配置只来自 infra/mem0/.env（模板见该目录 .env.example），不含 Lucent 的
+  # JWT_* / DATABASE_URL / 微信密钥。
+  #
+  # 不发布端口到宿主：只有 app 需要调它，走 compose 内部网络即可。
+  # dashboard 不在此文件——生产不需要一个能浏览用户记忆的 Web 面，
+  # 需要时走 SSH 隧道临时起，别把它常驻在公网机器的 compose 里。
+  mem0:
+    image: ${MEM0_IMAGE:-mem0/mem0-api-server:latest}
+    restart: unless-stopped
+    env_file:
+      - infra/mem0/.env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: '5432'
+      # 遥测默认关闭：它会向 Mem0 上报 install UUID 与邮件域。
+      MEM0_TELEMETRY: 'false'
+      DASHBOARD_URL: ${MEM0_DASHBOARD_URL:-http://127.0.0.1:3080}
+    expose:
+      - '8000'
+    ports:
+      # 发布到宿主，与 lightrag / rnacos 同一处置：可达范围由安全组按来源收口
+      # （见 docs/TODO.md「端口暴露面」）。app 走 compose 服务名 `mem0:8000`，
+      # 这条发布只给运维直连排障用。⚠️ 无内建 TLS，别跨公网调用。
+      - '8888:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8000/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      # Alembic 首启要建表，慢机器上给足启动窗口。
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
   # ── rnacos(运行时配置中心)──────────────────────────────────────
   # 环境变量仍是唯一基线,rnacos 只是叠在它之上的可热更新层:这里发布的文档只能是
   # 非密钥热键(白名单见 docs/reference/runtime-config.example.txt),密钥与连接串

@@ -238,6 +238,67 @@ services:
       retries: 5
       start_period: 20s
 
+  # ── Mem0 self-hosted server（长期记忆；profile 内，默认不启动）──────
+  # 与 lightrag / semantica 同一处置：**不**自带 Postgres，复用既有
+  # `postgres-dev`，但落在独立 database（`mem0` 记忆表 + `mem0_app` 元数据）。
+  # 它自己的 `users` 表与 Prisma 的 `User` 同名，同库必然撞名。
+  #
+  # 配置只来自 infra/mem0/.env（模板见该目录 .env.example），不含 Lucent 的
+  # JWT_* / DATABASE_URL / 微信密钥。容器内访问宿主 Postgres 走 host-gateway。
+  #
+  # 为什么不把它的 compose 整段搬过来：它自带 `pgvector/pgvector:pg17` +
+  # init-db.sh + 卷，那是「独立部署」的形状；并进 dev stack 时这些都要去掉，
+  # 否则同一台机器上会有两份 Postgres 和两份 pgvector 扩展。
+  mem0:
+    image: ${MEM0_IMAGE:-mem0/mem0-api-server:latest}
+    container_name: lucent-mem0
+    profiles: ['mem0']
+    restart: unless-stopped
+    env_file:
+      - infra/mem0/.env
+    environment:
+      # 同一 compose 网络 → 走服务名 `postgres-dev`，容器到容器直连。
+      # 不要用 host.docker.internal：那会绕出宿主再回来，多一跳且依赖
+      # 宿主端口映射，容器之间没必要。
+      POSTGRES_HOST: postgres-dev
+      POSTGRES_PORT: '5432'
+      # 遥测默认关闭：它会向 Mem0 上报 install UUID 与邮件域。
+      MEM0_TELEMETRY: 'false'
+      DASHBOARD_URL: http://localhost:3080
+    ports:
+      # 只绑回环：管理面不出宿主。
+      - '127.0.0.1:8888:8000'
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request;urllib.request.urlopen(\"http://127.0.0.1:8000/health\").read()" || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # Dashboard 是可选件：没有它 Mem0 作为一个 API 照常工作。
+  # 它唯一无可替代的价值是审计与实体管理（按 user_id 看谁记了什么、可级联删）。
+  mem0-dashboard:
+    image: ${MEM0_DASHBOARD_IMAGE:-mem0/mem0-dashboard:latest}
+    container_name: lucent-mem0-dashboard
+    profiles: ['mem0']
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8888
+      API_INTERNAL_URL: http://mem0:8000
+      NEXT_PUBLIC_INSTANCE_NAME: Mem0
+    ports:
+      - '127.0.0.1:3080:3000'
+    depends_on:
+      mem0:
+        condition: service_started
+
   # ── RabbitMQ (dev 跨服务领域事件) ──────────────────────────
   # 与 redis 的分工见 .env.development.example:RabbitMQ 承担「事实/事件」的跨服务
   # 扇出，BullMQ 仍负责「命令/任务」。dev 只需要一个 broker，不配集群。
