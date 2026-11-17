@@ -48,7 +48,7 @@ function cruisDomain(): DepcruiseViolation[] {
       'depcruise',
       join('src', 'modules', 'user-settings', 'domain'),
       '--config',
-      '.dependency-cruiser.cjs',
+      '.dependency-cruiser.json',
       '--output-type',
       'json',
     ],

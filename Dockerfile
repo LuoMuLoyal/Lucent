@@ -20,11 +20,15 @@ FROM node:26.13-alpine AS builder
 RUN npm install --global pnpm@12.0.0
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+# The app is a workspace member, so the builder needs the workspace manifest
+# alongside the app's own files: pnpm resolves `monolith`'s dependencies through
+# the root lockfile and node_modules layout.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY prisma ./prisma
-COPY prisma.config.ts ./prisma.config.ts
-COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
-COPY src ./src
+COPY apps/monolith/package.json ./apps/monolith/package.json
+COPY apps/monolith/prisma ./apps/monolith/prisma
+COPY apps/monolith/prisma.config.ts ./apps/monolith/prisma.config.ts
+COPY apps/monolith/tsconfig.json apps/monolith/tsconfig.build.json apps/monolith/.swcrc apps/monolith/nest-cli.json ./apps/monolith/
+COPY apps/monolith/src ./apps/monolith/src
 # 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
 # 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
 # provider 只生成 .ts 文件，prisma:generate 脚本会额外运行
@@ -33,11 +37,13 @@ COPY src ./src
 # prisma.config.ts requires DATABASE_URL to load; the build stage doesn't
 # connect to a database, but prisma generate needs it for config validation.
 ENV DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder?schema=public
-RUN pnpm prisma:generate
+RUN pnpm --filter monolith prisma:generate
 # 编译 TypeScript（nest build 会根据 assets 配置复制 i18n JSON 到 dist/）
 RUN --mount=type=cache,id=swc,target=/root/.swc \
-    pnpm run build
-# 剪出生产依赖
+    pnpm --filter monolith build
+# 剪出生产依赖。`pnpm prune` is workspace-level and takes no `--filter`: it prunes
+# the root node_modules against the workspace manifests, which is the tree the
+# production stage copies.
 RUN pnpm prune --prod --ignore-scripts
 # ── 运行时瘦身 ─────────────────────────────────────────────────
 # 只删除运行时不会读取的文件与包；每一项都在容器内用真实请求验证过
@@ -104,20 +110,21 @@ RUN mkdir -p /home/lucent/logs/nacos /home/lucent/nacos \
 # 全部用 COPY --chown 落地：此前在末尾 `RUN chown -R /app` 会把整份 /app
 # （含 1.4 GB node_modules）复制成一个新层，未压缩镜像因此翻倍。
 COPY --chown=lucent:lucent --from=builder /app/node_modules ./node_modules
-# 编译产物（含 dist/i18n/ 翻译文件）
-COPY --chown=lucent:lucent --from=builder /app/dist ./dist
+# 编译产物（含 dist/i18n/ 翻译文件）。生成物落在 workspace 成员目录下。
+COPY --chown=lucent:lucent --from=builder /app/apps/monolith/dist ./apps/monolith/dist
 # 管理控制台 SPA（后端在 /admin 同源挂载;默认目录即 /app/admin/dist）
 COPY --chown=lucent:lucent --from=admin-console /app/admin/dist ./admin/dist
-# Prisma 生成的客户端（schema.prisma output = ../generated/prisma，即仓库根 generated/）
+# Prisma 生成的客户端（schema.prisma output = ../generated/prisma，即 apps/monolith/generated/）
 # package.json imports 字段 "#generated/*": "./generated/*" 依赖此路径
-COPY --chown=lucent:lucent --from=builder /app/generated/prisma ./generated/prisma
+COPY --chown=lucent:lucent --from=builder /app/apps/monolith/generated/prisma ./apps/monolith/generated/prisma
 # Prisma schema + config（migrate 独立步骤用，见 Phase 3）
-COPY --chown=lucent:lucent prisma ./prisma
-COPY --chown=lucent:lucent prisma.config.ts ./prisma.config.ts
+COPY --chown=lucent:lucent apps/monolith/prisma ./apps/monolith/prisma
+COPY --chown=lucent:lucent apps/monolith/prisma.config.ts ./apps/monolith/prisma.config.ts
 # src/config/env/env-file-paths.ts — prisma.config.ts 的导入依赖
-COPY --chown=lucent:lucent --from=builder /app/src/config/env/env-file-paths.ts ./src/config/env/env-file-paths.ts
-# package.json（Winston 等需要读取 version）
-COPY --chown=lucent:lucent package.json ./
+COPY --chown=lucent:lucent --from=builder /app/apps/monolith/src/config/env/env-file-paths.ts ./apps/monolith/src/config/env/env-file-paths.ts
+# 工作区清单与成员清单（启动时 `node apps/monolith/dist/main` 依赖 workspace 结构）
+COPY --chown=lucent:lucent package.json pnpm-workspace.yaml ./
+COPY --chown=lucent:lucent apps/monolith/package.json ./apps/monolith/package.json
 # 启动入口:先 prisma migrate deploy 再启动应用(见脚本头注释)
 COPY --chown=lucent:lucent --chmod=755 entrypoint.sh ./entrypoint.sh
 # 运行时只写 stdout(容器收集)+ VictoriaLogs(见 compose.yaml),

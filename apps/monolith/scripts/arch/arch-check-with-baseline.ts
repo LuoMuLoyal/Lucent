@@ -58,7 +58,7 @@ function run(command: string, opts: { shell?: boolean } = {}): string {
 /** dependency-cruiser JSON 输出 → 条目。 */
 function collectDepcruise(): Violation[] {
   const raw = run(
-    'pnpm exec depcruise src --config .dependency-cruiser.cjs --output-type json',
+    'pnpm exec depcruise src --config .dependency-cruiser.json --output-type json',
   );
   const parsed = JSON.parse(raw) as {
     violations?: { rule?: { name?: string }; from?: string }[];

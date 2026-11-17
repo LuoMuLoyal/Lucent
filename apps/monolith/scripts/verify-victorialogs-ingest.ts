@@ -18,9 +18,10 @@ const BASE_URL = process.env.VICTORIA_LOGS_URL ?? 'http://127.0.0.1:19428';
 const INGEST_URL = `${BASE_URL}/insert/jsonline`;
 const MARKER = `verify-${Date.now()}`;
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
-async function query() {
+async function query(): Promise<Record<string, unknown>[]> {
   const expression = `_msg:${MARKER} | sort by (_time) | limit 10`;
   const url = `${BASE_URL}/select/logsql/query?query=${encodeURIComponent(expression)}`;
   const response = await fetch(url);
@@ -36,7 +37,7 @@ async function query() {
     .map((line) => JSON.parse(line));
 }
 
-function check(condition, message) {
+function check(condition: boolean, message: string): void {
   if (!condition) {
     console.error(`FAIL: ${message}`);
     process.exitCode = 1;
@@ -49,7 +50,7 @@ async function main() {
   const stream = new VictoriaLogsStream({
     url: INGEST_URL,
     batchCount: 1,
-    onWarn: (message) => console.error(`ingest warning: ${message}`),
+    onWarn: (message: string) => console.error(`ingest warning: ${message}`),
   });
   const logger = pino(buildPinoOptions('info'), stream);
 

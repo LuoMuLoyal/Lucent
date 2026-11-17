@@ -47,28 +47,28 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm prisma:generate
+        run: pnpm --filter monolith prisma:generate
 
       - name: Cache SWC
         uses: actions/cache@v6
         with:
-          path: .swc
-          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
+          path: apps/monolith/.swc
+          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/monolith/src/**/*.ts') }}
           restore-keys: |
             swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             swc-${{ runner.os }}-
 
       - name: Format check
-        run: pnpm format:check
+        run: pnpm --filter monolith format:check
 
       - name: Lint
-        run: pnpm lint:check
+        run: pnpm --filter monolith lint:check
 
       - name: Type check
-        run: pnpm typecheck
+        run: pnpm --filter monolith typecheck
 
       - name: Type check tools
-        run: pnpm typecheck:tools
+        run: pnpm --filter monolith typecheck:tools
 
   unit:
     name: Unit Tests
@@ -100,19 +100,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm prisma:generate
+        run: pnpm --filter monolith prisma:generate
 
       - name: Cache SWC
         uses: actions/cache@v6
         with:
-          path: .swc
-          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
+          path: apps/monolith/.swc
+          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/monolith/src/**/*.ts') }}
           restore-keys: |
             swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             swc-${{ runner.os }}-
 
       - name: Unit tests
-        run: pnpm test:ci
+        run: pnpm --filter monolith test:ci
 
   e2e:
     name: E2E Tests + Build + OpenAPI
@@ -193,22 +193,22 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm prisma:generate
+        run: pnpm --filter monolith prisma:generate
 
       - name: Apply test migrations
-        run: pnpm exec prisma migrate deploy
+        run: pnpm --filter monolith exec prisma migrate deploy
 
       - name: Cache SWC
         uses: actions/cache@v6
         with:
-          path: .swc
-          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
+          path: apps/monolith/.swc
+          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/monolith/src/**/*.ts') }}
           restore-keys: |
             swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             swc-${{ runner.os }}-
 
       - name: Build
-        run: pnpm build
+        run: pnpm --filter monolith build
 
       # OpenAPI spec must be generated before E2E tests — the contract test
       # suite (test/contract/) loads docs/reference/generated/openapi.json at
@@ -216,7 +216,7 @@ jobs:
       # matches the current code. Reuses the dist/ from the previous Build
       # step — no redundant recompilation.
       - name: Export OpenAPI spec
-        run: pnpm openapi:export
+        run: pnpm --filter monolith openapi:export
 
       # G3: fail when the code changed but the regenerated spec was not
       # committed. Without this, a stale openapi.json passes CI as long as the
@@ -230,7 +230,7 @@ jobs:
           fi
 
       - name: E2E tests
-        run: pnpm test:e2e:ci
+        run: pnpm --filter monolith test:e2e:ci
 
   # Go contract bindings. Separate job on purpose: it needs the Go toolchain, and
   # its only concern is that `packages/contracts/go` still matches the published

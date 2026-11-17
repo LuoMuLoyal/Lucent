@@ -1,8 +1,8 @@
 {
-  "name": "lucent-workspace",
+  "name": "lucent",
   "version": "0.0.0",
   "private": true,
-  "description": "Lucent monorepo — workspace orchestration only. No application code lives here.",
+  "description": "Lucent monorepo — workspace orchestration. Application code lives in apps/*.",
   "type": "module",
   "packageManager": "pnpm@12.0.0",
   "engines": {
@@ -10,16 +10,36 @@
     "pnpm": ">=11 <13"
   },
   "scripts": {
+    "dev": "pnpm --filter monolith start:dev",
+    "start": "pnpm --filter monolith start",
+    "start:dev": "pnpm --filter monolith start:dev",
+    "start:test:dev": "pnpm --filter monolith start:test:dev",
+    "start:prod": "pnpm --filter monolith start:prod",
     "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "lint:check": "turbo run lint:check",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
     "format:check": "turbo run format:check",
+    "test": "turbo run test",
+    "test:ci": "pnpm --filter monolith test:ci",
+    "test:e2e": "pnpm --filter monolith test:e2e",
+    "test:e2e:ci": "pnpm --filter monolith test:e2e:ci",
     "check": "turbo run check",
-    "dev": "turbo run dev --filter=lucent",
-    "monolith": "pnpm --filter lucent",
+    "prisma:generate": "pnpm --filter monolith prisma:generate",
+    "db:migrate": "pnpm --filter monolith db:migrate",
+    "db:migrate:all": "pnpm --filter monolith db:migrate:all",
+    "db:reset:dev": "pnpm --filter monolith db:reset:dev",
+    "db:reset:test": "pnpm --filter monolith db:reset:test",
+    "openapi:export": "pnpm --filter monolith openapi:export",
+    "export:openapi": "pnpm --filter monolith export:openapi",
     "contract:go": "turbo run contracts#generate",
+    "docs:verify": "pnpm --filter monolith docs:verify",
+    "docs:links": "pnpm --filter monolith docs:links",
+    "docs:compodoc": "pnpm --filter monolith docs:compodoc",
+    "dev:stack": "pnpm --filter monolith dev:stack",
+    "dev:stack:up": "pnpm --filter monolith dev:stack:up",
+    "dev:stack:down": "pnpm --filter monolith dev:stack:down",
+    "dev:stack:reset": "pnpm --filter monolith dev:stack:reset",
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {
@@ -33,14 +53,20 @@
     "turbo": "2.11.11"
   },
   "simple-git-hooks": {
-    "pre-commit": "npx --no-install lint-staged",
+    "pre-commit": "node infra/ci/check-no-js.ts --staged && npx --no-install lint-staged",
     "commit-msg": "npx --no-install commitlint --edit $1",
-    "pre-push": "pnpm --filter lucent lint:check && pnpm --filter lucent docs:verify && pnpm --filter lucent docs:links"
+    "pre-push": "pnpm lint:check && pnpm docs:verify && pnpm docs:links"
   },
   "lint-staged": {
-    "*.ts": [
+    "apps/monolith/{src,test}/**/*.ts": [
       "oxlint --config apps/monolith/.oxlintrc.json --fix --no-error-on-unmatched-pattern",
       "eslint --config apps/monolith/eslint.config.ts --fix --no-warn-ignored",
+      "prettier --config apps/monolith/.prettierrc --ignore-path apps/monolith/.prettierignore --write"
+    ],
+    "apps/monolith/{scripts,prisma}/**/*.ts": [
+      "prettier --config apps/monolith/.prettierrc --ignore-path apps/monolith/.prettierignore --write"
+    ],
+    "infra/**/*.ts": [
       "prettier --config apps/monolith/.prettierrc --ignore-path apps/monolith/.prettierignore --write"
     ],
     "*.{json,md,yml,yaml}": [

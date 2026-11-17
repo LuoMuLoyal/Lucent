@@ -1,0 +1,149 @@
+{
+  "forbidden": [
+    {
+      "name": "modules-cross-boundary-must-use-barrel",
+      "severity": "warn",
+      "comment": "Cross-module imports (A != B) may only target src/modules/<B>/index.ts. Same-module deep imports and target *.module.ts files are exempt.",
+      "from": {
+        "path": "^src/modules/([^/]+)/"
+      },
+      "to": {
+        "path": "^src/modules/(?!$1/)[^/]+/",
+        "pathNot": [
+          "^src/modules/[^/]+/index\\.ts$",
+          "^src/modules/[^/]+/[^/]+\\.module\\.ts$"
+        ]
+      }
+    },
+    {
+      "name": "modules-cross-boundary-repositories-dto-forbidden",
+      "severity": "warn",
+      "comment": "Cross-module imports (A != B) may never target src/modules/<B>/(repositories|dto)/**.",
+      "from": {
+        "path": "^src/modules/([^/]+)/"
+      },
+      "to": {
+        "path": "^src/modules/(?!$1/)[^/]+/(?:repositories|dto)/"
+      }
+    },
+    {
+      "name": "common-no-module-imports",
+      "severity": "warn",
+      "comment": "src/common/** must not import from src/modules/**.",
+      "from": {
+        "path": "^src/common/"
+      },
+      "to": {
+        "path": "^src/modules/"
+      }
+    },
+    {
+      "name": "modules-no-direct-redis-clients",
+      "severity": "warn",
+      "comment": "src/modules/** must not import ioredis or keyv directly (use the src/common redis/cache/queue wrappers).",
+      "from": {
+        "path": "^src/modules/"
+      },
+      "to": {
+        "path": "^node_modules/(?:ioredis|keyv)/|^node_modules/\\.pnpm/[^/]+/node_modules/(?:ioredis|keyv)/"
+      }
+    },
+    {
+      "name": "controllers-no-direct-prisma",
+      "severity": "warn",
+      "comment": "**/*.controller.ts must not import @prisma/client or src/prisma/**.",
+      "from": {
+        "path": "\\.controller\\.ts$"
+      },
+      "to": {
+        "path": "^node_modules/@prisma/client/|^node_modules/\\.pnpm/[^/]+/node_modules/@prisma/client/|^src/prisma/"
+      }
+    },
+    {
+      "name": "ddd-domain-purity",
+      "severity": "warn",
+      "comment": "src/modules/**/domain/** may only import from other files inside the same domain/ tree (pure domain: no framework, no I/O). Type-only imports are exempt.",
+      "from": {
+        "path": "^src/modules/[^/]+/domain/"
+      },
+      "to": {
+        "path": "^src/",
+        "pathNot": ["^src/modules/[^/]+/domain/"],
+        "dependencyTypesNot": ["type-only"]
+      }
+    },
+    {
+      "name": "ddd-application-no-infra-or-adapters",
+      "severity": "warn",
+      "comment": "src/modules/**/application/** must not import from any module's infrastructure/ or adapters/ trees.",
+      "from": {
+        "path": "^src/modules/[^/]+/application/"
+      },
+      "to": {
+        "path": "^src/modules/[^/]+/(?:infrastructure|adapters)/"
+      }
+    },
+    {
+      "name": "ddd-adapters-no-infrastructure",
+      "severity": "warn",
+      "comment": "src/modules/**/adapters/** must not import from any module's infrastructure/ tree.",
+      "from": {
+        "path": "^src/modules/[^/]+/adapters/"
+      },
+      "to": {
+        "path": "^src/modules/[^/]+/infrastructure/"
+      }
+    },
+    {
+      "name": "ddd-infrastructure-no-adapters",
+      "severity": "warn",
+      "comment": "src/modules/**/infrastructure/** must not import from any module's adapters/ tree.",
+      "from": {
+        "path": "^src/modules/[^/]+/infrastructure/"
+      },
+      "to": {
+        "path": "^src/modules/[^/]+/adapters/"
+      }
+    },
+    {
+      "name": "ddd-application-no-direct-prisma",
+      "severity": "warn",
+      "comment": "src/modules/**/application/** must not import @prisma/client or src/prisma/** (use repository implementations).",
+      "from": {
+        "path": "^src/modules/[^/]+/application/"
+      },
+      "to": {
+        "path": "^node_modules/@prisma/client/|^node_modules/\\.pnpm/[^/]+/node_modules/@prisma/client/|^src/prisma/"
+      }
+    },
+    {
+      "name": "modules-cross-boundary-ddd-internals-forbidden",
+      "severity": "warn",
+      "comment": "Cross-module imports (A != B) may never target src/modules/<B>/(domain|application|adapters|infrastructure)/** even when inside the same repo — go through the owning module barrel or its ports.",
+      "from": {
+        "path": "^src/modules/([^/]+)/"
+      },
+      "to": {
+        "path": "^src/modules/(?!$1/)[^/]+/(?:domain|application|adapters|infrastructure)/"
+      }
+    },
+    {
+      "name": "no-circular",
+      "severity": "warn",
+      "comment": "Default dependency-cruiser circular dependency check.",
+      "from": {},
+      "to": {
+        "circular": true
+      }
+    }
+  ],
+  "options": {
+    "doNotFollow": {
+      "path": "node_modules"
+    },
+    "tsConfig": {
+      "fileName": "tsconfig.json"
+    },
+    "tsPreCompilationDeps": true
+  }
+}
