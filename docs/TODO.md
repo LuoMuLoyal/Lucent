@@ -468,15 +468,28 @@ payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `
 ## deepagents 灰度收尾（2026-11-18，已接线、默认关闭）
 
 `ASSISTANT_AGENT_RUNTIME`（默认 `graph`）已接通：`runtime.ts` 按轮分流，deepagents
-路径失败自动回落 graph，含 `*_draft` 工具的轮次无条件走 graph（interrupt 归属）。
-遗留收尾项：
+路径失败自动回落 graph。首轮接线偷懒砍掉的能力与遗留收尾项（都不是框架限制，
+是本轮没做）：
 
+- **deepagents 路径没挂 checkpointer——偷懒，非框架限制。** `createDeepAgent`
+  接受 `checkpointer`（源码类型确认）。真正的问题是两个底座的状态形状不同，往
+  同一个 thread_id 写会混 schema。解法：给 deepagents 挂独立线程空间
+  （`deep-{conversationId}`），两底座各写各的线程，regeneration 与 confirm 读
+  `getState` 互不污染。
+- **含 `*_draft` 工具的轮次强制走 graph——偷懒，非永久禁令。** 约束的真实来源是
+  提案确认回路（interrupt → confirm 端点读 `pendingReview` → resume）目前只实现
+  在 graph 上。deepagents 自带 `interruptOn`（官方文档确认可用），对接其
+  interrupt-resume 后放开此闸；届时 confirm 端点需支持两种挂起格式的 resume。
+- **用户级开关没做——偷懒。** 已有同形先例（`assistantMemoryEnabled`）。应加
+  `settings.assistantAgentMode: 'default' | 'graph' | 'deepagents'`（default 跟随
+  运维值）+ 前端 assistant 设置开关；运维键降级为总闸。工具已全量绑定，两路径
+  能力面相同，用户选的是能力形态不是权限。
 - runner spec 的 tool-call 收集用例仍触发 deepagents 内部循环的
   `GraphRecursionError`——对照官方 test fixture 修伪造模型的形态，不要逆向源码猜。
 - 真实模型端到端（子智能体实际被委派并返回）未验证：需要模型凭据。
 - 灰度放量后观察 tool 轮数与 token 变化，再考虑把默认值切到 `deepagents`。
 
-历史约束（接线时已按此落地，留作背景）：
+背景事实（接线时已按此落地）：
 
 - **流式形状不同**：`graph.ts` 通过 `onText` 逐块推送；deepagents 拥有自己的 run
   loop 与 `messages`/`files` 状态。SSE 契约（`chunk`→`result`→`done`）必须保持不变。

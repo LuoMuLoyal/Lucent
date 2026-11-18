@@ -87,10 +87,10 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 `ASSISTANT_AGENT_RUNTIME`（默认 `graph`）：`runtime.ts` 按轮读取，`deepagents` 值经
 `deep-agent-runner.ts` 把运行输出映射为与 graph 相同的 `AssistantConversationResult`
 （`streamedContent` 恒为 `false`，最终文本由 `streamPreGeneratedContent` 切块下发，
-SSE 契约不变）。两条语义边界：含 `*_draft` 工具的轮次**无条件走 graph**（deepagents
-路径不挂 checkpointer，其 `interruptOn` 不可用，提案必须留给 graph 的 interrupt）；
-deepagents 运行失败该轮自动回落 graph。`general-purpose` 兜底子智能体由 deepagents
-自动注入；agent 内的委派由模型读 subagent description 自行决定，不加外部路由。
+SSE 契约不变）。含 `*_draft` 工具的轮次走 graph：提案确认回路（interrupt →
+confirm → resume）实现在 graph 上，deepagents 侧的对接未做。deepagents 运行失败
+该轮自动回落 graph。`general-purpose` 兜底子智能体由 deepagents 自动注入；agent 内
+的委派由模型读 subagent description 自行决定，不加外部路由。
 
 三个组成部分：
 
