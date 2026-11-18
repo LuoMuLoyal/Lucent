@@ -422,6 +422,13 @@ AI 家族的运行时覆盖（配置中心，见下文 rnacos 小节）：
   工具集，模型可以连续调工具直到自己停下。触顶不静默截断——`stopReason` 为
   `tool_cap_reached`，回复会说明工具轮次已用尽。它与 `ASSISTANT_NODE_TIMEOUT_MS`
   是两个独立约束：轮数够但每轮都慢，仍会先撞节点超时。
+- `ASSISTANT_AGENT_RUNTIME`（默认 `graph`）选择本轮的 agent 运行时底座：
+  `graph` 为手写 ReAct 循环，`deepagents` 为 createDeepAgent 装配（write_todos
+  规划 / 文件系统 / `task` 子智能体委派）。按轮读取、rnacos 发布即生效。两条语义边界：
+  未知值一律当 `graph`（笔误必须落在已验证路径上）；候选集含 `*_draft` 工具的轮次
+  **无条件走 `graph`**——deepagents 路径不挂 checkpointer，其 `interruptOn` 因此
+  不可用，而提案必须挂起等 confirm 端点 resume。`deepagents` 路径运行失败时该轮
+  自动回落 `graph`（打 warn 日志），不会变成用户可见错误。
 
 队列与餐食清扫家族的运行时覆盖：
 

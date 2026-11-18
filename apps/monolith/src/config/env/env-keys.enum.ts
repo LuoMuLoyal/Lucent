@@ -254,6 +254,10 @@ export enum EnvKey {
   ASSISTANT_NODE_TIMEOUT_MS = 'ASSISTANT_NODE_TIMEOUT_MS',
   ASSISTANT_MAX_TOOL_LOOPS = 'ASSISTANT_MAX_TOOL_LOOPS',
   ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS = 'ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS',
+  // Assistant agent runtime backend: 'graph' (hand-written ReAct loop, default)
+  // or 'deepagents' (createDeepAgent assembly). Hot-switchable via runtime
+  // snapshot; per-turn fallback semantics are documented at the read site.
+  ASSISTANT_AGENT_RUNTIME = 'ASSISTANT_AGENT_RUNTIME',
   MCP_ENABLED = 'MCP_ENABLED',
   MCP_API_KEY = 'MCP_API_KEY',
   MCP_ALLOWED_ORIGINS = 'MCP_ALLOWED_ORIGINS',

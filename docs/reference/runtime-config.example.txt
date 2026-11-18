@@ -295,6 +295,13 @@ ASSISTANT_MAX_TOOL_LOOPS=8
 # 默认比普通模型调用多 1 秒。
 ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS=11000
 
+# assistant 一轮对话由哪个运行时驱动：graph（手写 ReAct 循环，默认）或
+# deepagents（createDeepAgent 装配：write_todos / 文件系统 / task 子智能体）。
+# 按轮热切换。未知值一律当 graph。候选集含 *_draft 工具的轮次无条件走 graph
+# （deepagents 路径无 interrupt，提案无法挂起等 confirm）；deepagents 运行
+# 失败时该轮自动回落 graph。
+ASSISTANT_AGENT_RUNTIME=graph
+
 # MCP 端点（/api/v1/mcp）。把知识检索组暴露为 MCP server，给外部 MCP client 用。
 # 关闭时整个路由不注册——是「不存在」，不是「存在但返回 404」。
 # ⚠️ 开关在 onModuleInit 读取，发布 false 只阻止新会话，已注册的路由要到重启才消失

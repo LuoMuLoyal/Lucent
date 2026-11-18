@@ -151,6 +151,16 @@ export const retrievalRuntimeFields = {
     defaultValue: 8,
   }),
 
+  // ── Agent runtime backend ─────────────────────────────────────────
+  // 'graph' = hand-written ReAct loop (production default); 'deepagents' =
+  // createDeepAgent assembly. Hot-switchable per turn; an unknown value or a
+  // deepagents construction failure falls back to 'graph' for that turn — a
+  // runtime swap must degrade to the proven path, never to an error page.
+  [EnvKey.ASSISTANT_AGENT_RUNTIME]: stringField({
+    family: 'retrieval',
+    defaultValue: 'graph',
+  }),
+
   // ── MCP endpoint ──────────────────────────────────────────────────
   // Hot-switchable like the sidecar flags: turning the endpoint off must not
   // require a restart. Registration happens in `onModuleInit`, so a published
