@@ -150,4 +150,25 @@ export const retrievalRuntimeFields = {
     max: 32,
     defaultValue: 8,
   }),
+
+  // ── MCP endpoint ──────────────────────────────────────────────────
+  // Hot-switchable like the sidecar flags: turning the endpoint off must not
+  // require a restart. Registration happens in `onModuleInit`, so a published
+  // `false` stops new sessions from being created but does not tear down an
+  // already-registered route — closing a route mid-flight would drop
+  // in-progress SSE streams. Operationally: flip it off, drain, then restart.
+  [EnvKey.MCP_ENABLED]: booleanField({
+    family: 'retrieval',
+    defaultValue: false,
+  }),
+  [EnvKey.MCP_API_KEY]: stringField({
+    family: 'retrieval',
+    defaultValue: '',
+  }),
+  // Comma-separated origins. Empty means "no browser may call it", which is the
+  // safe default: non-browser clients send no Origin and are still allowed.
+  [EnvKey.MCP_ALLOWED_ORIGINS]: stringField({
+    family: 'retrieval',
+    defaultValue: '',
+  }),
 } satisfies Record<string, RuntimeFieldSpec<unknown>>;

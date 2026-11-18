@@ -36,16 +36,13 @@ import { AssistantModule } from '../../assistant.module.js';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import type { ToolLimitBudgets } from '../acl/tools/shared/tool-definitions.js';
 import { CODE_TOOL_LIMIT_BUDGETS } from '../acl/tools/shared/tool-definitions.js';
-import { createMcpAuthenticator, MCP_API_KEY_ENV } from './auth.js';
+import { createMcpAuthenticator } from './auth.js';
+import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
+import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
+import type { RuntimeConfigKey } from '../../../../config/runtime/runtime-config.schema.js';
 import { McpToolExecutionAdapter } from './execution.js';
 import { MCP_ROUTE_PATH, registerMcpRoute } from './routes.js';
 import { McpSessionRegistry, type McpServerFactoryOptions } from './server.js';
-
-/** Environment key gating the whole endpoint. */
-export const MCP_ENABLED_ENV = EnvKey.MCP_ENABLED;
-
-/** Environment key listing permitted origins (comma separated). */
-export const MCP_ALLOWED_ORIGINS_ENV = EnvKey.MCP_ALLOWED_ORIGINS;
 
 /**
  * Builds the session registry with its dependencies resolved.
@@ -79,30 +76,32 @@ export class McpRegistrationService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly adapterHost: HttpAdapterHost,
     private readonly executionAdapter: McpToolExecutionAdapter,
+    private readonly configService: ConfigService,
     @Optional()
-    @Inject(ConfigService)
-    private readonly configService?: ConfigService,
+    @Inject(RuntimeConfigService)
+    private readonly runtimeConfigService?: RuntimeConfigPort,
   ) {}
 
   onModuleInit(): void {
-    const enabled = this.readEnv(MCP_ENABLED_ENV)?.toLowerCase() === 'true';
+    const enabled =
+      this.readSetting(EnvKey.MCP_ENABLED, 'false').toLowerCase() === 'true';
     if (!enabled) {
       this.logger.log(
-        `MCP endpoint disabled (${MCP_ENABLED_ENV} is not "true").`,
+        `MCP endpoint disabled (${EnvKey.MCP_ENABLED} is not "true").`,
       );
       return;
     }
 
-    const apiKey = this.readEnv(MCP_API_KEY_ENV);
-    if (apiKey == null || apiKey.length === 0) {
+    const apiKey = this.readSetting(EnvKey.MCP_API_KEY, '');
+    if (apiKey.length === 0) {
       // Loud on purpose: an endpoint that answers JSON-RPC without auth is one
       // nginx location away from being public, and silence is how that happens.
       this.logger.warn(
-        `${MCP_API_KEY_ENV} is unset — the MCP endpoint is running WITHOUT authentication.`,
+        `${EnvKey.MCP_API_KEY} is unset — the MCP endpoint is running WITHOUT authentication.`,
       );
     }
 
-    const allowedOrigins = (this.readEnv(MCP_ALLOWED_ORIGINS_ENV) ?? '')
+    const allowedOrigins = this.readSetting(EnvKey.MCP_ALLOWED_ORIGINS, '')
       .split(',')
       .map((origin) => origin.trim())
       .filter((origin) => origin.length > 0);
@@ -138,18 +137,22 @@ export class McpRegistrationService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Reads a setting from `ConfigService` when present, else `process.env`.
+   * Reads a setting the way every other sidecar in this repo does:
+   * **runtime snapshot → env baseline → caller-supplied default**.
    *
-   * Both paths exist because the contract-export process builds the app without
-   * a full config module; reading only `ConfigService` would make the endpoint
-   * silently skip registration there.
+   * The snapshot layer is what makes `MCP_ENABLED` hot-switchable; skipping it
+   * would have made the endpoint the only sidecar whose switch needs a restart.
+   * `ConfigService` is always present (`ConfigModule.forRoot({ isGlobal: true })`),
+   * so there is no third fallback to `process.env` — that would be a second
+   * source of truth that silently wins when the config layer is misconfigured.
    */
-  private readEnv(key: string): string | undefined {
-    const fromConfig = this.configService?.get<string>(key);
-    if (fromConfig != null) {
-      return fromConfig;
+  private readSetting(key: RuntimeConfigKey, fallback: string): string {
+    const fromSnapshot = this.runtimeConfigService?.getSnapshot().values[key];
+    if (fromSnapshot != null) {
+      return String(fromSnapshot);
     }
-    return process.env[key];
+    const fromEnv = this.configService.get<string>(key);
+    return fromEnv ?? fallback;
   }
 }
 
