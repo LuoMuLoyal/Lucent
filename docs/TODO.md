@@ -465,10 +465,18 @@ payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `
 （`RABBITMQ_URL` 的校验已接受 `amqps`），或经 stunnel/反代终结 TLS。
 15672 管理台只靠安全组收口来源 IP，接入 TLS 时一并处理。
 
-## deepagents 接入请求路径（2026-11-17，装配已完成、未接线）
+## deepagents 灰度收尾（2026-11-18，已接线、默认关闭）
 
-`adapters/agent/deep-agent.ts` 已能装配（工具桥 + 三个子智能体 + 每会话 workspace），
-但 `runtime.ts` 不调用它，生产路径仍是手写的 `graph.ts`。接线时的约束：
+`ASSISTANT_AGENT_RUNTIME`（默认 `graph`）已接通：`runtime.ts` 按轮分流，deepagents
+路径失败自动回落 graph，含 `*_draft` 工具的轮次无条件走 graph（interrupt 归属）。
+遗留收尾项：
+
+- runner spec 的 tool-call 收集用例仍触发 deepagents 内部循环的
+  `GraphRecursionError`——对照官方 test fixture 修伪造模型的形态，不要逆向源码猜。
+- 真实模型端到端（子智能体实际被委派并返回）未验证：需要模型凭据。
+- 灰度放量后观察 tool 轮数与 token 变化，再考虑把默认值切到 `deepagents`。
+
+历史约束（接线时已按此落地，留作背景）：
 
 - **流式形状不同**：`graph.ts` 通过 `onText` 逐块推送；deepagents 拥有自己的 run
   loop 与 `messages`/`files` 状态。SSE 契约（`chunk`→`result`→`done`）必须保持不变。

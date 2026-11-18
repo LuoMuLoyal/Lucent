@@ -80,12 +80,17 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 - **响应缓存**覆盖「本轮无工具、无记忆注入」的回复，命中点在 `respond`（agent 直答
   与 respond 自答两条路径都会写）。
 
-### deepagents 装配（`deep-agent.ts`，未接入请求路径）
+### deepagents 运行时（灰度开关，默认仍走 graph）
 
 `buildAssistantDeepAgent` 用 `createDeepAgent` 装配同一拓扑，额外拿到规划
-（`write_todos`）、文件系统、shell 与 `task` 子智能体委派。**它当前不被
-`runtime.ts` 调用**：`graph.ts` 仍是生产路径，因为两者在流式与返回形状上不同
-（deepagents 拥有自己的 run loop 与 `messages`/`files` 状态），换底座要单独验证。
+（`write_todos`）、文件系统、shell 与 `task` 子智能体委派。**接线方式是灰度开关**
+`ASSISTANT_AGENT_RUNTIME`（默认 `graph`）：`runtime.ts` 按轮读取，`deepagents` 值经
+`deep-agent-runner.ts` 把运行输出映射为与 graph 相同的 `AssistantConversationResult`
+（`streamedContent` 恒为 `false`，最终文本由 `streamPreGeneratedContent` 切块下发，
+SSE 契约不变）。两条语义边界：含 `*_draft` 工具的轮次**无条件走 graph**（deepagents
+路径不挂 checkpointer，其 `interruptOn` 不可用，提案必须留给 graph 的 interrupt）；
+deepagents 运行失败该轮自动回落 graph。`general-purpose` 兜底子智能体由 deepagents
+自动注入；agent 内的委派由模型读 subagent description 自行决定，不加外部路由。
 
 三个组成部分：
 
