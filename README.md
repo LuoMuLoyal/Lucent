@@ -26,7 +26,7 @@ remaining-work ledger in [docs/TODO.md](docs/TODO.md) plus [plans/](plans/).
   Three retrieval sources are kept strictly separate: Chinese prose via LightRAG,
   DrugBank passages via Lucent's own pgvector tables, CN product lookups via SQL
 - **Ontology-Augmented Generation (English side)** — DrugBank structured facts are mapped
-  deterministically into a Neo4j graph (no LLM extraction); `reason_over_ontology` performs
+  deterministically into a Neo4j graph (no LLM extraction); `reason_ontology` performs
   typed multi-hop queries where each conclusion carries a PROV-O citation back to its source row
 - **Data Export** — BullMQ async PDF export with inline fallback
 - **Admin Console** — React SPA at `/admin` (independent `admin/` project), backed by

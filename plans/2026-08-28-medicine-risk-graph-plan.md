@@ -14,8 +14,8 @@ Revised: 2026-10-16（按三份独立计划的落地结果收窄本计划范围�
 | ----------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Phase 1** 关系表 + ETL      | 四张边表、`RiskDetectionService` 改 SQL JOIN | **未开工**（`prisma/` 无 `drug_interaction_edges` 等表，`risk-detection.service.ts` 仍内存配对）。本计划的主体。                                                                             |
 | **Phase 2** 风险图查询        | 关系表 + 递归 CTE                            | **未开工**，依赖 Phase 1。                                                                                                                                                                   |
-| ~~Phase 3~~ LightRAG 开放检索 | 中文散文检索层                               | **已由 `2026-09-16-lightrag-introduction-plan.md` 独立落地**（P1/P3 完成，2026-09-18），工具为 `search_cn_medicine_knowledge`。本计划 §5 整章作废，不再作为 LightRAG 的执行源。              |
-| ~~Phase 4~~ OAG 本体增强生成  | 本体建模 + 推理 + Skill/Action               | **已收敛为 Semantica sidecar 并落地**（ADR-0021 英文侧 OAG + ADR-0022 图后端 Neo4j；`reason_over_ontology` / `reason_over_rules` 两个工具在线）。本计划 §6 整章作废，不再作为 OAG 的执行源。 |
+| ~~Phase 3~~ LightRAG 开放检索 | 中文散文检索层                               | **已由 `2026-09-16-lightrag-introduction-plan.md` 独立落地**（P1/P3 完成，2026-09-18），工具为 `search_cn_knowledge`。本计划 §5 整章作废，不再作为 LightRAG 的执行源。              |
+| ~~Phase 4~~ OAG 本体增强生成  | 本体建模 + 推理 + Skill/Action               | **已收敛为 Semantica sidecar 并落地**（ADR-0021 英文侧 OAG + ADR-0022 图后端 Neo4j；`reason_ontology` / `reason_rules` 两个工具在线）。本计划 §6 整章作废，不再作为 OAG 的执行源。 |
 
 同时删除的过时表述：AGE 已整体退役（ADR-0022 决定 AGE → Neo4j，2026-10-01 清理镜像与元数据），本文所有「可选 AGE」「PGGraphStorage」表述一律不再有效；`PGTableGraphStorage` 随 Phase 3 一并作废。
 
@@ -81,7 +81,7 @@ Revised: 2026-10-16（按三份独立计划的落地结果收窄本计划范围�
 | 能力                                         | 归属                                                          | 落地状态                                                    |
 | -------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
 | 中文散文检索（说明书 / QA）                  | `2026-09-16-lightrag-introduction-plan.md` + LightRAG sidecar | P1/P3 已落地（2026-09-18）                                  |
-| 英文关系推理（DrugBank 相互作用 / 本体推导） | ADR-0021（英文侧 OAG）+ ADR-0022（Neo4j）+ Semantica sidecar  | 已落地（`reason_over_ontology` / `reason_over_rules` 在线） |
+| 英文关系推理（DrugBank 相互作用 / 本体推导） | ADR-0021（英文侧 OAG）+ ADR-0022（Neo4j）+ Semantica sidecar  | 已落地（`reason_ontology` / `reason_rules` 在线） |
 | **风险检查的确定性关系查询（本计划）**       | Phase 1 边表 + Phase 2 CTE                                    | **未开工**                                                  |
 
 三者语料与职责不重叠：LightRAG 管中文散文、Semantica 管英文本体推理、本计划管「用户药箱的风险检查」这条确定性链路。原 §5、§6 两章随 Phase 3/4 作废删除（见 §0）。
@@ -345,11 +345,11 @@ context.allergyChains = allergyChains;
 
 原 §5「Phase 3：LightRAG 图增强检索（开放检索层）」整章作废——中文散文检索层已由
 `plans/2026-09-16-lightrag-introduction-plan.md` 独立立项并落地（P1/P3 完成于 2026-09-18），
-工具为 `search_cn_medicine_knowledge`，检索层单点与 `retrieval_unavailable` 语义均已闭环。
+工具为 `search_cn_knowledge`，检索层单点与 `retrieval_unavailable` 语义均已闭环。
 
 原 §6「Phase 4：OAG 本体增强生成」整章作废——英文侧本体推理已收敛为 Semantica sidecar + Neo4j，
 决策见 `docs/reference/adr/0021-semantica-english-side-oag.md` 与
-`docs/reference/adr/0022-graph-backend-neo4j.md`；`reason_over_ontology` / `reason_over_rules`
+`docs/reference/adr/0022-graph-backend-neo4j.md`；`reason_ontology` / `reason_rules`
 两个工具在线，剩余运维项登记在 `docs/TODO.md`「2026-09-19 英文侧 OAG（Semantica）剩余项」。
 
 AGE 相关表述（§4.5 与上述两章内的 `PGGraphStorage` / 钉 1.7 / LightRAG 图存储后端对比）

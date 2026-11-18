@@ -64,7 +64,7 @@ updated: 2026-10-16
    docker compose exec postgres psql -U lucent -d lightrag -c 'CREATE EXTENSION IF NOT EXISTS vector;'
    ```
 
-   > 漏掉 `lucent` 库这一步的后果:向量表建不出来,英文侧 `search_drugbank_passages`
+   > 漏掉 `lucent` 库这一步的后果:向量表建不出来,英文侧 `search_drugbank`
    > 静默返回空。`lightrag` 库通常由 LightRAG 自己建,但显式建一次无害。
 
 5. **起全部服务**:

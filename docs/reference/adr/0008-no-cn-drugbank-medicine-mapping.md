@@ -3,6 +3,7 @@
 - **Status**: accepted
 - **Date**: 2026-07-15
 - **Deciders**: LuoMuLoyal
+- **2026-11-18 修订**：Context 段提到的工具名与实作对齐——`search_cn_medicine_products`→`search_cn_products`、`get_cn_medicine_detail`→`get_cn_product_detail`、`resolve_drugbank_entity`→`resolve_drugbank`；决策本体不变。
 
 ## Context
 
@@ -18,7 +19,7 @@ Lucent 药品知识库有两个独立数据源：
 - **准确性要求极高**：医药领域映射错误可能导致用药安全事故，容错率为零
 - **维护成本不可控**：两个数据源独立更新，映射关系需要持续人工维护
 - **没有专业药学人力**：团队没有药师/药学专家审核映射准确性
-- **LLM 已能自主跨源检索**：assistant 工具链已提供 `search_cn_medicine_products`、`get_cn_medicine_detail`、`resolve_drugbank_entity`、`get_drugbank_detail` 等工具，LLM 可自主决定是否需要跨源查询
+- **LLM 已能自主跨源检索**：assistant 工具链已提供 `search_cn_products`、`get_cn_product_detail`、`resolve_drugbank`、`get_drugbank_detail` 等工具，LLM 可自主决定是否需要跨源查询
 
 ## Decision
 

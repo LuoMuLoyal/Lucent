@@ -117,7 +117,7 @@ A 路径下 Lucent 端的工作量极小，因为基础已经打好。**核心�
 
 - 药品搜索 / 详情 API 响应 DTO 是否已经把 F-15 字段（`verifiability`、`sourceNote`）外露
   - 位置：`Lucent/src/modules/medicines/dto/`
-- 助手工具（`search_medicine_leaflets`、`search_drugbank_passages`、`search_medical_qa_corpus`）的响应是否带 `verifiability` 标签
+- 助手工具（`search_medicine_leaflets`、`search_drugbank`、`search_medical_qa_corpus`）的响应是否带 `verifiability` 标签
   - 位置：`Lucent/src/modules/assistant/dto/` 与 `src/modules/assistant/services/`
 - 说明书 / DrugBank 检索是否标注 `verifiability: 'curated'`（说明书 / DrugBank 优先档）
 

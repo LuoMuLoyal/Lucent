@@ -55,7 +55,7 @@ Rules:
 
 - Source selection is a server-side decision. Callers may name a source, but the workspace mapping
   and the `verifiability` value are assigned by the server, never by the model.
-- Retrieval sources are never merged. `search_cn_medicine_products` / `get_cn_medicine_detail` use
+- Retrieval sources are never merged. `search_cn_products` / `get_cn_product_detail` use
   SQL, Chinese prose uses LightRAG, and DrugBank passages use Lucent's own pgvector tables.
 - Every ontology-grounded conclusion must carry citations resolvable to a source table and row; a
   result with rows but no citations is reported as `uncited`, not `citable`.

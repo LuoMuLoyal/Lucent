@@ -529,7 +529,7 @@ base URL / key 不阻断启动。**这几个变量与上面的 `AI_*` 完全独�
 >
 > 依据见 `lightrag-eval/results/mode-comparison.md`（line 132-134 与结论 5）。
 
-关闭时 `search_cn_medicine_knowledge` 在 `GET /assistant/capabilities` 上报
+关闭时 `search_cn_knowledge` 在 `GET /assistant/capabilities` 上报
 `disabledReason: 'retrieval_unavailable'`——中文散文检索没有降级路径，必须让客户端
 看见"检索暂不可用"而不是"确实没有证据"。
 
@@ -603,7 +603,7 @@ docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
 ### Semantica sidecar — 英文侧 OAG（本体推理）
 
 ```text
-SEMANTICA_ENABLED    # 默认 false；关闭时 reason_over_ontology 返回"未配置"信封，不抛错
+SEMANTICA_ENABLED    # 默认 false；关闭时 reason_ontology 返回"未配置"信封，不抛错
 SEMANTICA_BASE_URL   # 默认 http://semantica:8099
 SEMANTICA_TIMEOUT_MS # 默认 20000；须大于 sidecar 的查询超时（默认 15s）
 SEMANTICA_API_KEY    # 与 sidecar 的 API_TOKEN 必须一致；仅 ENABLED=true 时强制
@@ -756,7 +756,7 @@ NEO4J_TX_TIMEOUT_MS # 默认 8000；同时用作 driver 的 connectionTimeout
 否则"查询太慢"会先被客户端掐断，拿不到 sidecar 的结构化超时报错，重试回路也就收不到
 "收窄查询"这个可执行的提示。
 
-可用性判定：`reason_over_ontology` 在 sidecar 关闭时上报
+可用性判定：`reason_ontology` 在 sidecar 关闭时上报
 `disabledReason: 'retrieval_unavailable'`——与 LightRAG 那条线同一条纪律（没有降级路径，
 必须让客户端看见"暂不可用"而不是"确实没有证据"）。两条线**各自独立判定**：一个 sidecar
 挂掉不会把另一个的工具也标成不可用。

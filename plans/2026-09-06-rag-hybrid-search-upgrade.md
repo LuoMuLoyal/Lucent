@@ -9,13 +9,13 @@ Revised: 2026-10-16（按 2026-09-18 LightRAG 落地后的现状收窄范围：�
 
 | 原工具                                                                                                                                           | 现状                                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `search_medicine_leaflets`（中文说明书）                                                                                                         | **已删除**。中文散文检索整体交给 LightRAG sidecar，工具名改为 `search_cn_medicine_knowledge`（见 `src/modules/assistant/tools/retrieval/knowledge.service.ts`）。 |
+| `search_medicine_leaflets`（中文说明书）                                                                                                         | **已删除**。中文散文检索整体交给 LightRAG sidecar，工具名改为 `search_cn_knowledge`（见 `src/modules/assistant/tools/retrieval/knowledge.service.ts`）。 |
 | `search_medical_qa_corpus`（医疗 QA）                                                                                                            | **已删除**。`qa` workspace 由 LightRAG 承载，P4 灌库尚未执行（见 `docs/TODO.md`「2026-09-18 LightRAG 中文散文检索」）。                                           |
-| `search_drugbank_passages`（DrugBank 英文段落） **仍在**，走 Lucent 自有 pgvector 表（`drugbank_passage_embeddings`，768 维，48,475 行已灌入）。 |
+| `search_drugbank`（DrugBank 英文段落） **仍在**，走 Lucent 自有 pgvector 表（`drugbank_passage_embeddings`，768 维，48,475 行已灌入）。 |
 
 因此本计划的实际剩余范围只有 §2.2 的英文侧 FTS（DrugBank 通道）与 §3.2 的 `HybridRetrievalService` 骨架。中文侧是否需要 FTS 已不是本计划的问题——它由 LightRAG 侧自行决定，与本计划的 pg_jieba 路线无关。
 
-**未决（开工前先裁决）**：是否还值得为单条英文通道引入 pg_jieba/应用层分词 + RRF。§3.3 原文已论证「英文侧主升力在向量」，且英文语料是叙事字段（mechanism/indication/toxicity…）而非专名密集字段，专名查询（CAS 号、批准文号、ATC 码）的缺口可用 §3.1 的 `search_cn_medicine_products` 键查与 DrugBank 实体解析补。若裁决为不做，本计划整体删除。
+**未决（开工前先裁决）**：是否还值得为单条英文通道引入 pg_jieba/应用层分词 + RRF。§3.3 原文已论证「英文侧主升力在向量」，且英文语料是叙事字段（mechanism/indication/toxicity…）而非专名密集字段，专名查询（CAS 号、批准文号、ATC 码）的缺口可用 §3.1 的 `search_cn_products` 键查与 DrugBank 实体解析补。若裁决为不做，本计划整体删除。
 
 ## 一、背景与动机
 
@@ -25,7 +25,7 @@ Lucent 的「普通 RAG」当前只剩一个工具：
 
 | 工具                                            | chunk 表                  | embedding 表                  | 检索形态                                       |
 | ----------------------------------------------- | ------------------------- | ----------------------------- | ---------------------------------------------- |
-| `search_drugbank_passages`（DrugBank 科学段落） | `drugbank_passage_chunks` | `drugbank_passage_embeddings` | entity-scoped（先解析 drugbankId），再向量检索 |
+| `search_drugbank`（DrugBank 科学段落） | `drugbank_passage_chunks` | `drugbank_passage_embeddings` | entity-scoped（先解析 drugbankId），再向量检索 |
 
 中文散文检索（原说明书 + QA 两源）已迁至 LightRAG sidecar，见 §0。DrugBank 通道与 LightRAG 互不合并（`docs/archive/01-reference/contracts/data-sources.md` 合同明文），`verifiability` 标注在服务端 chunk 映射处生成，不落库。该通道当前是纯向量余弦检索，没有 FTS/BM25。
 
@@ -157,7 +157,7 @@ HybridRetrievalService.query({ query, table, ftsConfig, vectorFilters, topK })
 ## 五、执行顺序
 
 1. **P0-A**:确认 `to_tsvector('english', …)` 生成列 + GIN 在 `pgvector/pgvector:pg18` 上的构建耗时与 `rebuild-drugbank-rag-index.ts` 的 upsert 路径无冲突。
-2. **P0-B**:DrugBank 通道 FTS(`english`)+ `HybridRetrievalService` 骨架 + RRF → `search_drugbank_passages` 接入,spec + 性能基准。
+2. **P0-B**:DrugBank 通道 FTS(`english`)+ `HybridRetrievalService` 骨架 + RRF → `search_drugbank` 接入,spec + 性能基准。
 3. **P0-C**:更新测试 + 文档 + 迁移日志;与 `agentic-proactive-evolution.md` P0-1 的独立搜索 API 对齐(把 `HybridRetrievalService` 作为其底层)。
 
 ## 六、风险与缓解

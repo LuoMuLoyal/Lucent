@@ -120,9 +120,8 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
   workspace，实测 `LIGHTRAG-WORKSPACE` 头不改变实际读写位置。因此同实例上
   `leaflet` 与 `qa` 共享一个命名空间，靠 doc id 前缀区分；需要物理隔离要另起
   实例。已在 assistant README / env 文档 / deployment 记录。
-- **待定**：工具名 `search_cn_medicine_knowledge` 如需改名，在评测前定。
 
-`VectorStoreFactory` 与 `ASSISTANT_VECTOR_*` **不删**：`search_drugbank_passages`（英文侧）
+`VectorStoreFactory` 与 `ASSISTANT_VECTOR_*` **不删**：`search_drugbank`（英文侧）
 走 Lucent 自己的 pgvector 表，与 LightRAG 无关。
 
 ## 2026-09-11 文件上传链路遗留（上传链路收敛时发现）

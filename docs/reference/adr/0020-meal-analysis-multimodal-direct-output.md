@@ -3,6 +3,7 @@
 - **Status**: accepted
 - **Date**: 2026-09-15
 - **Deciders**: LuoMuLoyal
+- **2026-11-18 修订**：Decision 段第 8 项提到的工具名与实作对齐——`get_meal_analysis_digest`→`get_meal_digest`；决策本体不变。
 
 ## Context
 
@@ -43,7 +44,7 @@ headline(≤18 字，列表条目那一行), detail(一句话，详情/助手用
 7. **删除对照成分表那条链**：`meal-dish/decomposition`、`meal-ingredient/grounding`、
    `meal-analysis/matcher`、`template-learning` 与食物成分表在餐食链路上的使用一并去掉
    （重复餐食的成本由「每餐一次多模态调用」本身承担）。产品未上线：不做数据迁移、不留兼容读取。
-8. **助手不重复识图**：`get_meal_analysis_digest` 返回已算好的 `{date, title, calorieRange, items, dishes}`
+8. **助手不重复识图**：`get_meal_digest` 返回已算好的 `{date, title, calorieRange, items, dishes}`
    窗口读，`days`/`limit` 由模型通过工具参数给出，服务端封顶最近 15 天、最多 20 餐。
 
 ### 读侧约定 v2（Today / Report / Assistant / 建议规则）

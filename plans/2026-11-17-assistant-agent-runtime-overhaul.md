@@ -232,11 +232,11 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 | ---------------------------------------------------------------------------------------- | ---- | ------------------ | ------------------------------------------------------------------- |
 | **知识检索**（`search_cn_*`、`get_drugbank_detail`、`reason_over_*` 等）                 | 8 个 | **是**             | 无用户数据、与其他系统/agent 天然可复用；且这是「知识库」能力的出口 |
 | **常青事实**（`get_*_summary`、`get_user_profile` 等只读）                               | 部分 | **是**（只读子集） | 只读、幂等，适合被外部 agent 复用                                   |
-| **用户私有数据**（`get_records_*`、`get_current_medicines`、`get_meal_analysis_digest`） | —    | **否**             | 与 `userId` 强绑定，跨进程暴露只会放大越权面                        |
+| **用户私有数据**（`get_records_*`、`get_medicines`、`get_meal_digest`） | —    | **否**             | 与 `userId` 强绑定，跨进程暴露只会放大越权面                        |
 | **写入提案**（`propose_*`）                                                              | 4 个 | **否**             | HITL 门控依赖会话与确认状态，跨进程无意义                           |
 
 **判断标准是「这个工具被 Lucent 之外的调用方调用时，语义是否还成立」。**
-`propose_create_daily_record` 离开会话与 confirm 端点就没有意义，包成 MCP
+`create_record_draft` 离开会话与 confirm 端点就没有意义，包成 MCP
 只是把一套状态机切成两半。
 
 ### 5.2 传输：只做 Streamable HTTP，不提供 stdio
@@ -571,8 +571,8 @@ pnpm docs:verify && pnpm docs:links
   `stream-message.ts:131` 的 `policy.enabledToolNames` 与
   `adapters/agent/runtime.ts:294,547` 两处 `selectTools`。
   按「先加新路径 → 灰度切 → 再删旧路径」三步走。
-- **全量绑定工具后 prompt token 上升**。`reason_over_ontology` 与
-  `reason_over_rules` 的描述已接近 DSH 判定「该拆进参数」的长度，
+- **全量绑定工具后 prompt token 上升**。`reason_ontology` 与
+  `reason_rules` 的描述已接近 DSH 判定「该拆进参数」的长度，
   §4.3 重写时压缩这两条。
 - **deepagents 的 `LocalShellBackend` 不可直接用于生产**（官方明确列为不适用）。
   §6.3 的自包装层是本 Phase 的主要工作量，不是 deepagents 本身。
