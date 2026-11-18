@@ -60,6 +60,7 @@ import { LlmRuntimeModule } from './llm-runtime/llm-runtime.module.js';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module.js';
 import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module.js';
 import { AssistantModule } from './modules/assistant/assistant.module.js';
+import { McpModule } from './modules/assistant/adapters/mcp/mcp.module.js';
 import { AuditLogModule } from './modules/audit-log/audit-log.module.js';
 import { DataRetentionModule } from './modules/data-retention/data-retention.module.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
@@ -152,6 +153,9 @@ const isTestRuntime =
     ReportsModule,
     LlmRuntimeModule,
     AssistantModule,
+    // MCP 是对外协议出口（`/api/v1/mcp`），与 assistant 的会话流程分开：
+    // 由 MCP_ENABLED 独立开关，路由在它自己的 onModuleInit 里注册。
+    McpModule,
     TodayAnalysisModule,
     TodaySuggestionModule,
     UserSettingsModule,
