@@ -13,6 +13,8 @@ import {
   LIGHTRAG_DEFAULT_GRAPH_SOURCES,
   LIGHTRAG_DEFAULT_TIMEOUT_MS,
   LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS,
+  MEM0_DEFAULT_BASE_URL,
+  MEM0_DEFAULT_TIMEOUT_MS,
   SEMANTICA_DEFAULT_BASE_URL,
   SEMANTICA_DEFAULT_TIMEOUT_MS,
 } from '../../env/sidecar-defaults.js';
@@ -180,5 +182,24 @@ export const retrievalRuntimeFields = {
   [EnvKey.MCP_ALLOWED_ORIGINS]: stringField({
     family: 'retrieval',
     defaultValue: '',
+  }),
+
+  // ── Mem0 sidecar (long-term memory) ───────────────────────────────
+  // Same shape as the LightRAG sidecar keys: hot-switchable, degraded reads
+  // return "not configured" envelopes instead of throwing. MEM0_API_KEY is a
+  // secret and deliberately absent — it never enters the snapshot.
+  [EnvKey.MEM0_ENABLED]: booleanField({
+    family: 'retrieval',
+    defaultValue: false,
+  }),
+  [EnvKey.MEM0_BASE_URL]: stringField({
+    family: 'retrieval',
+    defaultValue: MEM0_DEFAULT_BASE_URL,
+  }),
+  [EnvKey.MEM0_TIMEOUT_MS]: numberField({
+    family: 'retrieval',
+    min: 1_000,
+    max: 60_000,
+    defaultValue: MEM0_DEFAULT_TIMEOUT_MS,
   }),
 } satisfies Record<string, RuntimeFieldSpec<unknown>>;

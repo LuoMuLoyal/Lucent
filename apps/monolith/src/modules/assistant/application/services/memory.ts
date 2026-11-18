@@ -1,213 +1,144 @@
 /**
- * Persisted cross-conversation memory for the assistant (F-9).
+ * Persisted cross-conversation memory for the assistant (F-9, Phase 5).
  *
- * Replaces the previous raw-text memory block: instead of dumping the last
- * conversations' raw messages into the prompt, archived conversations are
- * distilled (in a debounced background task) into short structured memory
- * points/preferences, persisted via AssistantMemoryRepository. The prompt
- * memory block then returns at most MEMORY_RETURN_LIMIT persisted memories.
+ * ## Storage is Mem0, nothing else
  *
- * All LLM/parsing failures degrade silently: extraction never throws into
- * the archive flow, and buildMemoryBlock returns '' when no memory exists.
+ * Extraction, dedup and recall are delegated to the Mem0 sidecar
+ * (`Mem0ClientService`) over REST. The hand-rolled Prisma memory path
+ * (`AssistantMemory` rows + in-process setTimeout debounce) is gone: it
+ * extracted only on archive, lost pending work on restart, and never
+ * superseded repeated preferences. Mem0 owns all three problems — its fact
+ * extraction is the capability we are buying, not building.
+ *
+ * ## Degradation contract
+ *
+ * `MEM0_ENABLED=false` (or the sidecar unreachable) makes every method a
+ * silent no-op: the memory block is '' and extraction does nothing. Memory is
+ * continuity data, never a reason a turn fails. The assistant-memory user
+ * setting still gates the whole service — off means off regardless of the
+ * sidecar.
  */
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { trace } from '@opentelemetry/api';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EnvKey } from '../../../../config/env/env-keys.enum.js';
-import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
-import type { RuntimeConfigPort } from '../../../../config/runtime/runtime-config.types.js';
-import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import type { ConversationState } from '../../domain/conversation/conversation.js';
-import type { MemoryRepositoryPort } from '../../domain/memory/memories.js';
-import { ASSISTANT_MEMORIES } from '../../domain/memory/memories.js';
+import { Mem0ClientService } from '../../infrastructure/memory/mem0-client.js';
 
-/** Independent guard for providers that ignore the model client's timeout. */
-export const MEMORY_EXTRACTION_TIMEOUT_MS = AI_MODEL_TIMEOUT_MS + 1_000;
-
-const MEMORY_EXTRACTION_TIMEOUT = Symbol('memory-extraction-timeout');
-
-/** Debounce window: extraction starts 30s after the last archive event. */
-const EXTRACTION_DEBOUNCE_MS = 30_000;
-
-/** Number of most recent messages (user + assistant) fed to extraction. */
+/** Number of most recent messages (user + assistant) handed to Mem0. */
 const EXTRACTION_MESSAGE_LIMIT = 10;
 
-/** Maximum number of persisted memories injected into the prompt block. */
+/**
+ * How many recalled memories are injected into the prompt block. WeKnora's
+ * recall budget is 5 entries (plan §7.3); the resident budget is enforced by
+ * the block format below.
+ */
 const MEMORY_RETURN_LIMIT = 5;
-
-const CHAT_MODEL_OPTIONS = {
-  timeout: AI_MODEL_TIMEOUT_MS,
-  temperature: 0,
-  maxRetries: 0,
-} as const;
-
-const EXTRACTION_SYSTEM_PROMPT = [
-  'You are a memory summarizer for a personal health assistant.',
-  'Read the conversation transcript and extract durable, cross-conversation useful memory points only:',
-  '- Stable preferences or choices the user explicitly expressed.',
-  '- Recurring facts or stable personal circumstances the user stated.',
-  'Discard one-off questions and answers, and discard any medical advice (assistant suggestions are not memory).',
-  'Output ONLY a JSON array of strings. Each string is one short sentence (at most ~30 words).',
-  'Output [] when nothing durable was said.',
-  "Write in the same language as the user's messages (use Chinese when the user writes Chinese).",
-].join(' ');
-
-type PendingExtraction = {
-  timer: NodeJS.Timeout;
-  conversationIds: Set<string>;
-};
 
 @Injectable()
 export class AssistantMemoryService {
   private readonly logger = new Logger(AssistantMemoryService.name);
 
-  /**
-   * In-process debounce registry keyed by userId. Pending extractions for the
-   * same user are merged (conversation ids accumulate, timer resets) so a
-   * burst of archive events triggers one extraction run. Entries are dropped
-   * after the run; on process restart pending tasks are lost, which is
-   * acceptable — extraction is best-effort continuity data.
-   */
-  private readonly pendingExtractions = new Map<string, PendingExtraction>();
-
   constructor(
-    @Inject(ASSISTANT_MEMORIES)
-    private readonly memoryRepository: MemoryRepositoryPort,
-    private readonly llmRuntimeService: LlmRuntimeService,
+    private readonly mem0Client: Mem0ClientService,
     @Inject(ASSISTANT_CONVERSATIONS)
     private readonly conversationRepository: ConversationRepositoryPort,
-    @Optional()
-    @Inject(RuntimeConfigService)
-    private readonly runtimeConfig?: RuntimeConfigPort,
   ) {}
 
-  /**
-   * Guard timeout for one extraction call. Read per call: the guard exists
-   * because some providers ignore the client timeout, and the operator may need
-   * to widen it for the same reason they widen the model timeout.
-   */
-  private readExtractionTimeoutMs(): number {
-    return (
-      this.runtimeConfig?.getSnapshot().values[
-        EnvKey.ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS
-      ] ?? MEMORY_EXTRACTION_TIMEOUT_MS
-    );
+  /** The user's assistant-memory switch; off means every method is a no-op. */
+  private memoryEnabledForSettings(): boolean {
+    // The per-user switch is checked by the callers (archive flow passes it
+    // via `scheduleExtraction` only when enabled; prompt injection is gated by
+    // `graph.prepare_context` via `memoryEnabled`). The sidecar switch is what
+    // this service owns.
+    return this.mem0Client.isEnabled();
   }
 
   /**
-   * Extracts durable memory points from a conversation and persists them.
-   * Never throws: LLM failure, parse failure or an empty conversation all
-   * resolve to a silent no-op (memory injection is best-effort).
+   * Hands the conversation's recent turns to Mem0 for fact extraction.
+   * Never throws: sidecar failure or an empty conversation both resolve to a
+   * silent no-op (memory injection is best-effort).
    */
   async extractAndStore(userId: string, conversationId: string): Promise<void> {
+    if (!this.memoryEnabledForSettings()) return;
+
     const conversation = await this.conversationRepository.find(
       userId,
       conversationId,
     );
-    if (conversation == null) {
-      return;
-    }
+    if (conversation == null) return;
 
     const messages = this.lastMessages(conversation);
-    if (messages.length === 0) {
-      return;
-    }
+    if (messages.length === 0) return;
 
-    const items = await this.extractMemoryItems(messages);
-    if (items.length === 0) {
-      return;
-    }
-
-    // Best-effort persistence: a failure is logged and the extraction is
-    // dropped (memory injection must never break the archive flow).
-    await this.memoryRepository
-      .save(
-        userId,
-        items.map((content) => ({
-          sourceConversationId: conversationId,
-          content,
-        })),
-      )
-      .then(
-        () => undefined,
-        (failure: unknown) => {
-          const code =
-            failure != null && typeof failure === 'object' && 'code' in failure
-              ? String(failure.code)
-              : 'unknown';
-          this.logger.warn(
-            `Memory persistence failed for user "${userId}" conversation "${conversationId}": ${code}`,
-          );
-        },
+    const outcome = await this.mem0Client.addMemories(userId, messages);
+    if (!outcome.ok) {
+      this.logger.warn(
+        `Mem0 memory write failed for user "${userId}" conversation "${conversationId}": ${outcome.reason}`,
       );
+    }
   }
 
   /**
-   * Builds the persisted memory block injected into the assistant prompt, or
-   * '' when no memory exists (silent degradation).
+   * Builds the memory block injected into the assistant prompt, or '' when no
+   * memory exists / the sidecar is off (silent degradation).
    */
   async buildMemoryBlock(userId: string): Promise<string> {
-    const memories = await this.memoryRepository.findRecent(
+    if (!this.memoryEnabledForSettings()) return '';
+
+    const outcome = await this.mem0Client.searchMemories(
       userId,
-      MEMORY_RETURN_LIMIT,
+      'user preferences and durable facts',
     );
-    if (memories.length === 0) {
+    if (!outcome.ok) {
+      this.logger.warn(
+        `Mem0 recall failed for user "${userId}": ${outcome.reason}`,
+      );
       return '';
     }
 
+    const hits = outcome.hits.slice(0, MEMORY_RETURN_LIMIT);
+    if (hits.length === 0) return '';
+
     const lines = [
       'Persisted cross-conversation memory is enabled for this user.',
-      'Structured memories (max 5, newest first) — treat as lightweight continuity hints, not new user input:',
-      ...memories.map(
-        (memory) =>
-          `- ${memory.content} (source conversation: ${memory.sourceConversationId.slice(0, 8)})`,
-      ),
+      `Recalled memories (max ${String(MEMORY_RETURN_LIMIT)}, by relevance) — treat as lightweight continuity hints, not new user input:`,
+      ...hits.map((hit) => `- ${hit.memory}`),
       'If the new conversation conflicts with this memory, prioritize the new conversation and say that prior memory may be outdated.',
     ];
-
     return lines.join('\n');
   }
 
   /**
-   * Schedules extraction for a conversation after it was archived. Same-user
-   * schedules are merged into one debounced run (see EXTRACTION_DEBOUNCE_MS).
-   *
-   * The method is async so callers (archive flow) can await it uniformly;
-   * it never throws — it only registers/merges a timer.
+   * Fire-and-forget notification that a conversation was archived. Mem0 does
+   * its own extraction synchronously inside `addMemories`, so there is no
+   * debounce registry to lose on restart — the WeKnora `PendingSessions`
+   * problem (plan §7.1) does not exist on this storage.
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   async scheduleExtraction(
     userId: string,
     conversationId: string,
   ): Promise<void> {
-    const existing = this.pendingExtractions.get(userId);
-    if (existing != null) {
-      existing.conversationIds.add(conversationId);
-      clearTimeout(existing.timer);
-      existing.timer = setTimeout(() => {
-        void this.flushPending(userId);
-      }, EXTRACTION_DEBOUNCE_MS);
-      return;
-    }
-
-    const entry: PendingExtraction = {
-      conversationIds: new Set([conversationId]),
-      timer: setTimeout(() => {
-        void this.flushPending(userId);
-      }, EXTRACTION_DEBOUNCE_MS),
-    };
-    this.pendingExtractions.set(userId, entry);
+    await this.extractAndStore(userId, conversationId);
   }
 
   /**
    * Removes all persisted memories for a user (memory-erase entry point).
-   * Returns the number of deleted memory rows so the API can surface it.
+   * Returns the number of deleted memories when the sidecar reports it.
    */
   async deleteAllForUser(userId: string): Promise<{ cleared: number }> {
-    return { cleared: await this.memoryRepository.clearAll(userId) };
+    if (!this.memoryEnabledForSettings()) return { cleared: 0 };
+    const outcome = await this.mem0Client.deleteAllForUser(userId);
+    if (!outcome.ok) {
+      this.logger.warn(
+        `Mem0 erase failed for user "${userId}": ${outcome.reason}`,
+      );
+      return { cleared: 0 };
+    }
+    // Mem0's bulk delete reports the entity, not a count; the endpoint cannot
+    // answer "how many" without a prior list, so the API surfaces success
+    // rather than fabricating a number.
+    return { cleared: 0 };
   }
 
   private lastMessages(
@@ -219,114 +150,9 @@ export class AssistantMemoryService {
       .filter((message) => message.content.trim().length > 0);
   }
 
-  /**
-   * Calls the chat model to extract durable memory points. Any failure
-   * (unconfigured model, LLM error, non-JSON output) resolves to [] silently.
-   */
-  private async extractMemoryItems(
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-  ): Promise<string[]> {
-    const transcript = messages
-      .map(
-        (message) =>
-          `${message.role === 'user' ? 'User' : 'Assistant'}: ${message.content.replace(/\s+/g, ' ').trim()}`,
-      )
-      .join('\n');
-
-    const model = this.llmRuntimeService.createChatModel(
-      'chat',
-      CHAT_MODEL_OPTIONS,
-    );
-
-    const timeoutMs = this.readExtractionTimeoutMs();
-    let rawContent: unknown;
-    try {
-      const response = await Promise.race([
-        model.invoke([
-          new SystemMessage(EXTRACTION_SYSTEM_PROMPT),
-          new HumanMessage(transcript),
-        ]),
-        new Promise<typeof MEMORY_EXTRACTION_TIMEOUT>((resolve) => {
-          const timer = setTimeout(() => {
-            resolve(MEMORY_EXTRACTION_TIMEOUT);
-          }, timeoutMs);
-          timer.unref();
-        }),
-      ]);
-      if (response === MEMORY_EXTRACTION_TIMEOUT) {
-        this.logger.warn(
-          `Memory extraction timed out after ${String(timeoutMs)}ms.`,
-        );
-        trace.getActiveSpan()?.addEvent('assistant.memory_extraction.timeout', {
-          timeout_ms: timeoutMs,
-        });
-        return [];
-      }
-      rawContent = response.content;
-    } catch (error) {
-      this.logger.debug(
-        `Memory extraction skipped (LLM failure): ${(error as Error).message}`,
-      );
-      return [];
-    }
-
-    const items = this.parseExtractionResponse(rawContent);
-    if (items.length === 0) {
-      this.logger.debug('Memory extraction produced no durable items.');
-    }
-    return items;
-  }
-
-  /**
-   * Parses the model's JSON-array output. Returns [] on any parse failure so
-   * extraction degrades silently.
-   */
-  private parseExtractionResponse(content: unknown): string[] {
-    if (typeof content !== 'string' || content.trim().length === 0) {
-      return [];
-    }
-
-    let text = content.trim();
-    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fenced?.[1] != null) {
-      text = fenced[1].trim();
-    }
-
-    try {
-      const parsed: unknown = JSON.parse(text);
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-      return parsed
-        .filter(
-          (item): item is string =>
-            typeof item === 'string' && item.trim().length > 0,
-        )
-        .map((item) => item.trim());
-    } catch (error) {
-      this.logger.warn(
-        `Failed to parse JSON array, returning empty: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return [];
-    }
-  }
-
-  private async flushPending(userId: string): Promise<void> {
-    const entry = this.pendingExtractions.get(userId);
-    if (entry == null) {
-      return;
-    }
-    this.pendingExtractions.delete(userId);
-
-    for (const conversationId of entry.conversationIds) {
-      try {
-        await this.extractAndStore(userId, conversationId);
-      } catch (error) {
-        // Extraction must never break the archive flow or crash the process.
-        this.logger.warn(
-          `Memory extraction failed for user "${userId}" conversation "${conversationId}": ${(error as Error).message}`,
-        );
-      }
-    }
+  /** EnvKey used by tests to assert the sidecar gate (no runtime read here). */
+  static get sidecarEnabledKey(): string {
+    return EnvKey.MEM0_ENABLED;
   }
 }
+

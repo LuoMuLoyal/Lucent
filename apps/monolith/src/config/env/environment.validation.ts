@@ -11,6 +11,8 @@ import {
   LIGHTRAG_DEFAULT_GRAPH_SOURCES,
   LIGHTRAG_DEFAULT_TIMEOUT_MS,
   LIGHTRAG_GRAPH_DEFAULT_TIMEOUT_MS,
+  MEM0_DEFAULT_BASE_URL,
+  MEM0_DEFAULT_TIMEOUT_MS,
   SEMANTICA_DEFAULT_BASE_URL,
   SEMANTICA_DEFAULT_TIMEOUT_MS,
 } from './sidecar-defaults.js';
@@ -461,6 +463,19 @@ const envSchema = z.object({
   // 没有默认密钥,所以只在 SEMANTICA_ENABLED=true 时强制(见下方 superRefine)。
   [EnvKey.SEMANTICA_API_KEY]: optionalString,
 
+  // ── Mem0 sidecar client (long-term memory) ──────────────────────
+  // 默认关闭:未开启时记忆块为空、检索工具返回"未配置"信封而不报错。
+  // API_KEY 是 Mem0 setup wizard 首启生成的 m0sk_...,只在启用时强制。
+  [EnvKey.MEM0_ENABLED]: z.enum(['true', 'false']).default('false'),
+  [EnvKey.MEM0_BASE_URL]: z.string().default(MEM0_DEFAULT_BASE_URL),
+  [EnvKey.MEM0_TIMEOUT_MS]: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(60000)
+    .default(MEM0_DEFAULT_TIMEOUT_MS),
+  [EnvKey.MEM0_API_KEY]: optionalString,
+
   // ── Neo4j 直连(业务只读图查询)────────────────────────────────
   // 全部可选:缺失即「未启用」,端点回 notConfigured 而不是启动失败。
   // CI 与本地大多没有图库,不能因为图不可达就起不来服务。
@@ -569,6 +584,7 @@ export const validatedEnvSchema = envSchema.check((ctx) => {
   assertJpushEnvironment(config, report);
   assertLightragEnvironment(config, report);
   assertSemanticaEnvironment(config, report);
+  assertMem0Environment(config, report);
   assertAiEnvironment(config, report);
   assertRnacosEnvironment(config, report);
   assertRuntimeTunableEnvironment(report);
@@ -784,6 +800,25 @@ function assertSemanticaEnvironment(
     report(
       `SEMANTICA_ENABLED is true but ${EnvKey.SEMANTICA_API_KEY} is missing`,
     );
+  }
+}
+
+/**
+ * Mem0 与 LightRAG / Semantica 同属"启用即必须能鉴权"的 sidecar。它的
+ * `ADMIN_API_KEY` 是 setup wizard 首启生成的(`m0sk_...`,只在生成时显示一次),
+ * 不可能有默认值,所以只在 `MEM0_ENABLED=true` 时要求 `MEM0_API_KEY`。
+ * 关闭状态下残留配置不报错——记忆在关闭时退化为空块,不阻断启动。
+ */
+function assertMem0Environment(
+  config: EnvironmentVariables,
+  report: (message: string) => void,
+): void {
+  if (config[EnvKey.MEM0_ENABLED] !== 'true') {
+    return;
+  }
+
+  if (!(config[EnvKey.MEM0_API_KEY] ?? '').trim()) {
+    report(`MEM0_ENABLED is true but ${EnvKey.MEM0_API_KEY} is missing`);
   }
 }
 

@@ -37,6 +37,7 @@ import {
 } from './application/ports/agent-runtime.js';
 import { PrismaConversations } from './infrastructure/persistence/conversations.js';
 import { PrismaMemories } from './infrastructure/persistence/memories.js';
+import { Mem0ClientService } from './infrastructure/memory/mem0-client.js';
 import { PrismaSummaries } from './infrastructure/persistence/summaries.js';
 import { AssistantContextService } from './application/services/tool-context.js';
 
@@ -97,6 +98,7 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     { provide: ASSISTANT_CONVERSATIONS, useExisting: PrismaConversations },
     PrismaMemories,
     { provide: ASSISTANT_MEMORIES, useExisting: PrismaMemories },
+    Mem0ClientService,
     PrismaSummaries,
     { provide: ASSISTANT_SUMMARIES, useExisting: PrismaSummaries },
     Conversations,

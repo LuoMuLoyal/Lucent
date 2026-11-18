@@ -27,7 +27,7 @@
  *   unchanged.
  */
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { AIMessage } from '@langchain/core/messages';
+import { AIMessage } from '@langchain/core/messages';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import type {
   AssistantToolCall,

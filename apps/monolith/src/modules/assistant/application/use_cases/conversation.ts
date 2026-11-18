@@ -40,12 +40,7 @@ import {
   type ConversationRepositoryPort,
   type ConversationSummary,
 } from '../../domain/conversation/conversations.js';
-import { ASSISTANT_MEMORIES } from '../../domain/memory/memories.js';
-import type { MemoryRepositoryPort } from '../../domain/memory/memories.js';
-import {
-  MAX_MEMORY_ITEMS,
-  buildMemoryBlock,
-} from '../../domain/memory/memory.js';
+import { AssistantMemoryService } from '../services/memory.js';
 
 /** How many conversations the list endpoint returns. */
 export const RECENT_CONVERSATION_LIMIT = 20;
@@ -92,8 +87,7 @@ export class Conversations {
   constructor(
     @Inject(ASSISTANT_CONVERSATIONS)
     private readonly repository: ConversationRepositoryPort,
-    @Inject(ASSISTANT_MEMORIES)
-    private readonly memories: MemoryRepositoryPort,
+    private readonly memoryService: AssistantMemoryService,
     private readonly llmRuntimeService: LlmRuntimeService,
   ) {}
 
@@ -272,15 +266,18 @@ export class Conversations {
 
   // ── memory ───────────────────────────────────────────────────────────
 
-  /** The persisted memory block injected into the system prompt. */
+  /**
+   * The memory block injected into the system prompt. Storage is Mem0
+   * (Phase 5); the Prisma memory path is gone. `AssistantMemoryService`
+   * handles the sidecar gate and silent degradation.
+   */
   async buildMemoryBlock(userId: string): Promise<string> {
-    const items = await this.memories.findRecent(userId, MAX_MEMORY_ITEMS);
-    return buildMemoryBlock(items);
+    return this.memoryService.buildMemoryBlock(userId);
   }
 
   /** Privacy entry point: erases every memory of the user (idempotent). */
   async clearMemory(userId: string): Promise<{ cleared: number }> {
-    return { cleared: await this.memories.clearAll(userId) };
+    return this.memoryService.deleteAllForUser(userId);
   }
 
   // ── internals ────────────────────────────────────────────────────────

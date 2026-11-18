@@ -53,3 +53,22 @@ export const SEMANTICA_DEFAULT_BASE_URL = 'http://semantica:8099';
  * up first would turn a structured `timeout` refusal into an opaque disconnect.
  */
 export const SEMANTICA_DEFAULT_TIMEOUT_MS = 20000;
+
+/**
+ * Default Mem0 server base URL.
+ *
+ * Production/compose resolves the sidecar by service name (`mem0`); the
+ * `.env.*.example` files document the dev-machine value
+ * (`http://127.0.0.1:8888` — the compose file publishes the container on 8888
+ * for host-side callers).
+ */
+export const MEM0_DEFAULT_BASE_URL = 'http://mem0:8000';
+
+/**
+ * Default Mem0 request timeout.
+ *
+ * Memory writes happen on the archive path (never in the request path) and the
+ * injection read is a single scoped search, so 5s keeps even a degraded sidecar
+ * from holding a turn; the retrieval tools treat "unconfigured" the same way.
+ */
+export const MEM0_DEFAULT_TIMEOUT_MS = 5000;

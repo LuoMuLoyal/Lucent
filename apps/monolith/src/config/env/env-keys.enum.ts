@@ -261,6 +261,13 @@ export enum EnvKey {
   MCP_ENABLED = 'MCP_ENABLED',
   MCP_API_KEY = 'MCP_API_KEY',
   MCP_ALLOWED_ORIGINS = 'MCP_ALLOWED_ORIGINS',
+  // ── Mem0 sidecar (long-term memory) ───────────────────────────────
+  // ENABLED / BASE_URL / TIMEOUT_MS are hot keys (runtime schema); API_KEY is a
+  // secret and stays in .env only, matching the LightRAG pattern.
+  MEM0_ENABLED = 'MEM0_ENABLED',
+  MEM0_BASE_URL = 'MEM0_BASE_URL',
+  MEM0_API_KEY = 'MEM0_API_KEY',
+  MEM0_TIMEOUT_MS = 'MEM0_TIMEOUT_MS',
   MEAL_ANALYSIS_STALE_AFTER_MS = 'MEAL_ANALYSIS_STALE_AFTER_MS',
   MEAL_ANALYSIS_REAP_BATCH_SIZE = 'MEAL_ANALYSIS_REAP_BATCH_SIZE',
   MEAL_ANALYSIS_REAP_CRON = 'MEAL_ANALYSIS_REAP_CRON',
