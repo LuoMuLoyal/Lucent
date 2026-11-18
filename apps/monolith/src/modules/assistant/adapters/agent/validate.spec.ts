@@ -11,7 +11,7 @@ describe('validateReadResults', () => {
     });
     expect(
       validateReadResults([
-        { name: 'propose_create_daily_record', data: { draft: {} } },
+        { name: 'create_record_draft', data: { draft: {} } },
       ]),
     ).toEqual({
       hasEmptyResults: false,

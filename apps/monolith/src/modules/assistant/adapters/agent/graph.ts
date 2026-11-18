@@ -28,7 +28,7 @@ export { buildRespondNode } from './respond.js';
  *
  * A node is not one model call. `agent` streams a model response and `tools`
  * may run a tool whose own budget is far larger than the model timeout —
- * `reason_over_ontology` alone allows 45s for generation plus the sidecar round
+ * `reason_ontology` alone allows 45s for generation plus the sidecar round
  * trip.
  *
  * Bounding nodes by the *model* timeout put the ceiling below the tools' own

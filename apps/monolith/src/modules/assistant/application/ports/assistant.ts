@@ -20,7 +20,7 @@ export interface AssistantRuntimeCapabilities {
   /**
    * Whether the Semantica sidecar (English-side OAG) is enabled. Same rule as
    * `retrievalAvailable`: ontology reasoning has no degradation path, so
-   * `reason_over_ontology` reports `retrieval_unavailable` when this is false.
+   * `reason_ontology` reports `retrieval_unavailable` when this is false.
    */
   oagAvailable: boolean;
   graphNodeNames: readonly string[];

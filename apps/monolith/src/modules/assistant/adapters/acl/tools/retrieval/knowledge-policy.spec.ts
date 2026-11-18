@@ -11,7 +11,7 @@ import type {
 import { AssistantToolKnowledgeRetrievalService } from './knowledge.service.js';
 
 /**
- * Tool-layer semantics of `search_cn_medicine_knowledge`.
+ * Tool-layer semantics of `search_cn_knowledge`.
  *
  * ## What this spec owns, and what it deliberately does not
  *

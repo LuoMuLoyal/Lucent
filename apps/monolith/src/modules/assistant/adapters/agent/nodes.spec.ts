@@ -53,7 +53,7 @@ describe('assistant agent node', () => {
     // Now the whole permission-filtered set is bound and the model decides.
     const allowed = [
       'get_user_profile',
-      'search_cn_medicine_knowledge',
+      'search_cn_knowledge',
     ] as const;
     const stream = vi.fn().mockResolvedValue(
       (async function* () {

@@ -15,7 +15,7 @@ const mockContext: AssistantToolExecutionContext = {
 };
 
 const defaultCreateResult: AssistantToolExecutionResult = {
-  name: 'propose_create_daily_record',
+  name: 'create_record_draft',
   data: {
     candidates: [
       {
@@ -66,7 +66,7 @@ const defaultCreateResult: AssistantToolExecutionResult = {
 };
 
 const defaultUpdateResult: AssistantToolExecutionResult = {
-  name: 'propose_update_daily_record',
+  name: 'update_record_draft',
   data: {},
   proposedActions: [
     {
@@ -98,7 +98,7 @@ const defaultUpdateResult: AssistantToolExecutionResult = {
 };
 
 const defaultDeleteResult: AssistantToolExecutionResult = {
-  name: 'propose_delete_daily_record',
+  name: 'delete_record_draft',
   data: {},
   proposedActions: [
     {
@@ -126,7 +126,7 @@ const defaultDeleteResult: AssistantToolExecutionResult = {
 };
 
 const defaultSettingsResult: AssistantToolExecutionResult = {
-  name: 'propose_update_user_settings',
+  name: 'update_settings_draft',
   data: { matchedSettingKeys: ['assistantEnabled'] },
   proposedActions: [
     {
@@ -156,7 +156,7 @@ const defaultSettingsResult: AssistantToolExecutionResult = {
 };
 
 const emptyCandidatesResult: AssistantToolExecutionResult = {
-  name: 'propose_create_daily_record',
+  name: 'create_record_draft',
   data: { candidates: [] },
 };
 
@@ -190,12 +190,12 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildCreateDailyRecordProposal(
         mockContext,
-        'propose_create_daily_record',
+        'create_record_draft',
       );
 
       expect(
         dailyRecordProposalService.buildCreateDailyRecordProposal,
-      ).toHaveBeenCalledWith(mockContext, 'propose_create_daily_record');
+      ).toHaveBeenCalledWith(mockContext, 'create_record_draft');
       expect(result).toBe(defaultCreateResult);
       expect(result.proposedActions).toHaveLength(1);
       expect(result.proposedActions![0]!.type).toBe('create_daily_record');
@@ -208,7 +208,7 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildCreateDailyRecordProposal(
         mockContext,
-        'propose_create_daily_record',
+        'create_record_draft',
       );
 
       expect(result).toBe(emptyCandidatesResult);
@@ -218,7 +218,7 @@ describe('AssistantToolProposalService', () => {
 
     it('returns unsupported kind result when sub-service provides one', async () => {
       const unsupportedResult: AssistantToolExecutionResult = {
-        name: 'propose_create_daily_record',
+        name: 'create_record_draft',
         data: {
           unsupportedKind: 'mood',
           reason: 'Unsupported kind',
@@ -231,7 +231,7 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildCreateDailyRecordProposal(
         mockContext,
-        'propose_create_daily_record',
+        'create_record_draft',
       );
 
       expect(result).toBe(unsupportedResult);
@@ -248,12 +248,12 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildUpdateDailyRecordProposal(
         mockContext,
-        'propose_update_daily_record',
+        'update_record_draft',
       );
 
       expect(
         dailyRecordProposalService.buildUpdateDailyRecordProposal,
-      ).toHaveBeenCalledWith(mockContext, 'propose_update_daily_record');
+      ).toHaveBeenCalledWith(mockContext, 'update_record_draft');
       expect(result).toBe(defaultUpdateResult);
       expect(result.proposedActions).toHaveLength(1);
       expect(result.proposedActions![0]!.type).toBe('update_daily_record');
@@ -261,7 +261,7 @@ describe('AssistantToolProposalService', () => {
 
     it('returns no proposedActions when sub-service returns no match', async () => {
       const noMatchResult: AssistantToolExecutionResult = {
-        name: 'propose_update_daily_record',
+        name: 'update_record_draft',
         data: {},
       };
       dailyRecordProposalService.buildUpdateDailyRecordProposal.mockResolvedValue(
@@ -270,7 +270,7 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildUpdateDailyRecordProposal(
         mockContext,
-        'propose_update_daily_record',
+        'update_record_draft',
       );
 
       expect(result).toBe(noMatchResult);
@@ -286,12 +286,12 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildDeleteDailyRecordProposal(
         mockContext,
-        'propose_delete_daily_record',
+        'delete_record_draft',
       );
 
       expect(
         dailyRecordProposalService.buildDeleteDailyRecordProposal,
-      ).toHaveBeenCalledWith(mockContext, 'propose_delete_daily_record');
+      ).toHaveBeenCalledWith(mockContext, 'delete_record_draft');
       expect(result).toBe(defaultDeleteResult);
       expect(result.proposedActions).toHaveLength(1);
       expect(result.proposedActions![0]!.type).toBe('delete_daily_record');
@@ -299,7 +299,7 @@ describe('AssistantToolProposalService', () => {
 
     it('returns no proposedActions when sub-service returns no match', async () => {
       const noMatchResult: AssistantToolExecutionResult = {
-        name: 'propose_delete_daily_record',
+        name: 'delete_record_draft',
         data: {},
       };
       dailyRecordProposalService.buildDeleteDailyRecordProposal.mockResolvedValue(
@@ -308,7 +308,7 @@ describe('AssistantToolProposalService', () => {
 
       const result = await service.buildDeleteDailyRecordProposal(
         mockContext,
-        'propose_delete_daily_record',
+        'delete_record_draft',
       );
 
       expect(result).toBe(noMatchResult);
@@ -324,12 +324,12 @@ describe('AssistantToolProposalService', () => {
 
       const result = service.buildUpdateUserSettingsProposal(
         mockContext,
-        'propose_update_user_settings',
+        'update_settings_draft',
       );
 
       expect(
         settingsProposalService.buildUpdateUserSettingsProposal,
-      ).toHaveBeenCalledWith(mockContext, 'propose_update_user_settings');
+      ).toHaveBeenCalledWith(mockContext, 'update_settings_draft');
       expect(result).toBe(defaultSettingsResult);
       expect(result.proposedActions).toHaveLength(1);
       expect(result.proposedActions![0]!.type).toBe('update_user_settings');
@@ -337,7 +337,7 @@ describe('AssistantToolProposalService', () => {
 
     it('returns no proposedActions when sub-service detects no setting changes', () => {
       const noChangeResult: AssistantToolExecutionResult = {
-        name: 'propose_update_user_settings',
+        name: 'update_settings_draft',
         data: { matchedSettingKeys: [] },
       };
       settingsProposalService.buildUpdateUserSettingsProposal.mockReturnValue(
@@ -346,7 +346,7 @@ describe('AssistantToolProposalService', () => {
 
       const result = service.buildUpdateUserSettingsProposal(
         { ...mockContext, userMessage: 'hello world' },
-        'propose_update_user_settings',
+        'update_settings_draft',
       );
 
       expect(result).toBe(noChangeResult);
@@ -364,12 +364,12 @@ describe('AssistantToolProposalService', () => {
       };
       service.buildUpdateUserSettingsProposal(
         contextWithToggle,
-        'propose_update_user_settings',
+        'update_settings_draft',
       );
 
       expect(
         settingsProposalService.buildUpdateUserSettingsProposal,
-      ).toHaveBeenCalledWith(contextWithToggle, 'propose_update_user_settings');
+      ).toHaveBeenCalledWith(contextWithToggle, 'update_settings_draft');
     });
   });
 });

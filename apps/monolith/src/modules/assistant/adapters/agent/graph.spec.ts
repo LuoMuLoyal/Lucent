@@ -73,8 +73,8 @@ describe('AssistantRuntimeGraph', () => {
 
     const candidates: ToolName[] = [
       'get_today_records',
-      'search_cn_medicine_knowledge',
-      'propose_create_daily_record',
+      'search_cn_knowledge',
+      'create_record_draft',
     ];
     await graph.invoke({
       userId: 'user-1',
@@ -122,23 +122,23 @@ describe('AssistantRuntimeGraph', () => {
 
   it('derives allowed tools from enabled context sources', () => {
     expect(selectPermittedTools(['health_profile', 'sleep_records'])).toEqual([
-      'get_today_summary_by_date',
-      'get_report_summary_by_range',
-      'get_recent_today_summaries',
-      'get_recent_report_summaries',
+      'get_today_summary',
+      'get_report_summary',
+      'get_today_summaries',
+      'get_report_summaries',
       'get_user_profile',
       'get_user_settings',
-      'get_sleep_summary_by_range',
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
-      'search_cn_medicine_knowledge',
-      'resolve_drugbank_entity',
+      'get_sleep_summary',
+      'search_cn_products',
+      'get_cn_product_detail',
+      'search_cn_knowledge',
+      'resolve_drugbank',
       'get_drugbank_detail',
-      'search_drugbank_passages',
-      'reason_over_ontology',
-      'reason_over_rules',
-      'propose_create_daily_record',
-      'propose_update_user_settings',
+      'search_drugbank',
+      'reason_ontology',
+      'reason_rules',
+      'create_record_draft',
+      'update_settings_draft',
     ]);
   });
 
@@ -225,7 +225,7 @@ describe('AssistantRuntimeGraph', () => {
       if (call === 2) {
         return new AIMessage({
           content: '',
-          tool_calls: [toolCall('search_cn_medicine_knowledge')],
+          tool_calls: [toolCall('search_cn_knowledge')],
         });
       }
       return new AIMessage({ content: '综合来看……' });
@@ -242,7 +242,7 @@ describe('AssistantRuntimeGraph', () => {
       ])
       .mockResolvedValueOnce([
         {
-          name: 'search_cn_medicine_knowledge',
+          name: 'search_cn_knowledge',
           data: { coverage: { status: 'complete' } },
         },
       ]);
@@ -265,7 +265,7 @@ describe('AssistantRuntimeGraph', () => {
     expect(result.selectedTools).toEqual(
       expect.arrayContaining([
         'get_today_records',
-        'search_cn_medicine_knowledge',
+        'search_cn_knowledge',
       ]),
     );
     expect(result.finalContent).toBe('综合来看……');
@@ -614,13 +614,13 @@ describe('AssistantRuntimeGraph', () => {
         return call === 1
           ? new AIMessage({
               content: '',
-              tool_calls: [toolCall('propose_update_daily_record')],
+              tool_calls: [toolCall('update_record_draft')],
             })
           : new AIMessage({ content: '没能定位到要修改的记录。' });
       });
       const executeTools = vi
         .fn()
-        .mockResolvedValue([{ name: 'propose_update_daily_record', data: {} }]);
+        .mockResolvedValue([{ name: 'update_record_draft', data: {} }]);
 
       const graph = buildAssistantRuntimeGraph({
         createModel: () => buildModel(mockInvoke) as never,
@@ -647,13 +647,13 @@ describe('AssistantRuntimeGraph', () => {
         return call === 1
           ? new AIMessage({
               content: '',
-              tool_calls: [toolCall('propose_create_daily_record')],
+              tool_calls: [toolCall('create_record_draft')],
             })
           : new AIMessage({ content: '这是一份待确认的草稿。' });
       });
       const executeTools = vi.fn().mockResolvedValue([
         {
-          name: 'propose_create_daily_record',
+          name: 'create_record_draft',
           data: {},
           proposedActions: [
             {

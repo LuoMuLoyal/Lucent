@@ -13,7 +13,7 @@ const BASE_INPUT = {
   // it, so the model's tool calls are what decide the turn's shape.
   allowedTools: [
     'get_today_records' as const,
-    'propose_create_daily_record' as const,
+    'create_record_draft' as const,
   ],
   enabledContextSources: ['health_profile' as const],
 };
@@ -39,7 +39,7 @@ function buildGraph() {
       new AIMessage({
         content: '',
         tool_calls: [
-          { name: 'propose_create_daily_record', id: 'call_0', args: {} },
+          { name: 'create_record_draft', id: 'call_0', args: {} },
         ],
       }),
     )
@@ -52,7 +52,7 @@ function buildGraph() {
   };
   const executeTools = vi.fn().mockResolvedValue([
     {
-      name: 'propose_create_daily_record',
+      name: 'create_record_draft',
       data: { draft: {} },
       proposedActions: [
         {
@@ -115,7 +115,7 @@ describe('in-graph proposal review (HITL)', () => {
     // confirm time instead.
     const review = collectProposalReview([
       {
-        name: 'propose_create_daily_record',
+        name: 'create_record_draft',
         data: { draft: {} },
         proposedActions: [
           {
@@ -125,7 +125,7 @@ describe('in-graph proposal review (HITL)', () => {
         ],
       },
       {
-        name: 'propose_create_daily_record',
+        name: 'create_record_draft',
         data: { draft: {} },
         proposedActions: [
           {

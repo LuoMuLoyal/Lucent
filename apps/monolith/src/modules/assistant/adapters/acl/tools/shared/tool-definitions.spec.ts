@@ -38,14 +38,14 @@ describe('buildToolDefinitions', () => {
     const subset = [
       'get_today_records',
       'get_user_profile',
-      'search_cn_medicine_products',
+      'search_cn_products',
     ] as const;
     const defs = buildToolDefinitions(subset);
 
     expect(defs.map((d) => d.function.name)).toEqual([
       'get_today_records',
       'get_user_profile',
-      'search_cn_medicine_products',
+      'search_cn_products',
     ]);
   });
 
@@ -65,7 +65,7 @@ describe('buildToolDefinitions', () => {
   });
 
   it('declares the model-chosen window for the meal digest tool', () => {
-    const [def] = buildToolDefinitions(['get_meal_analysis_digest']);
+    const [def] = buildToolDefinitions(['get_meal_digest']);
 
     const parameters = def!.function.parameters as {
       type: string;
@@ -88,7 +88,7 @@ describe('buildToolDefinitions', () => {
 
   it('keeps argument-driven and no-argument tools in one definition list', () => {
     const defs = buildToolDefinitions([
-      'get_meal_analysis_digest',
+      'get_meal_digest',
       'get_today_records',
     ]);
 
@@ -112,9 +112,9 @@ describe('buildToolDefinitions', () => {
 
     const [knowledge, ontology, rules] = buildToolDefinitions(
       [
-        'search_cn_medicine_knowledge',
-        'reason_over_ontology',
-        'reason_over_rules',
+        'search_cn_knowledge',
+        'reason_ontology',
+        'reason_rules',
       ],
       budgets,
     );
@@ -135,7 +135,7 @@ describe('buildToolDefinitions', () => {
   });
 
   it('keeps the code baselines when no budgets are passed', () => {
-    const [def] = buildToolDefinitions(['search_cn_medicine_knowledge']);
+    const [def] = buildToolDefinitions(['search_cn_knowledge']);
 
     const parameters = def!.function.parameters as {
       properties: Record<string, { maximum: number }>;

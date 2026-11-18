@@ -20,8 +20,8 @@ describe('tool permission gate', () => {
   it('permits no data tool when no source is on, but keeps source-free tools', () => {
     const permitted = selectPermittedTools([]);
     expect(permitted).not.toContain('get_today_records');
-    expect(permitted).toContain('search_cn_medicine_knowledge');
-    expect(permitted).toContain('propose_create_daily_record');
+    expect(permitted).toContain('search_cn_knowledge');
+    expect(permitted).toContain('create_record_draft');
   });
 
   it('requires every declared source, not just one', () => {

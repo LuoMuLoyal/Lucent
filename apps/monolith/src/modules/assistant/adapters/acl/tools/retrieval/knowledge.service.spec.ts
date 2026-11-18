@@ -165,7 +165,7 @@ describe('AssistantToolKnowledgeRetrievalService', () => {
       buildContext({ query: '阿司匹林的禁忌', source: 'leaflet' }),
     );
 
-    expect(envelope.source.tool).toBe('search_cn_medicine_knowledge');
+    expect(envelope.source.tool).toBe('search_cn_knowledge');
     expect(envelope.coverage).toEqual({ status: 'complete', reason: null });
     const result = envelope.result as {
       chunks: Record<string, unknown>[];

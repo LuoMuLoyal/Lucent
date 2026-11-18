@@ -103,9 +103,12 @@ export function createValidateNode(options: {
     }
 
     // A write tool ran but produced no draft: the target could not be located.
+    // Write tools are the `*_draft` group — the executor's ToolName union is the
+    // exhaustive source, so this checks the suffix rather than a hardcoded list
+    // that would drift on the next rename.
     const wroteButNothingProposed =
       proposalIds.length === 0 && state.selectedTools.length > 0
-        ? state.selectedTools.some((tool) => tool.startsWith('propose_'))
+        ? state.selectedTools.some((tool) => tool.endsWith('_draft'))
         : false;
     if (wroteButNothingProposed) {
       messages.push(

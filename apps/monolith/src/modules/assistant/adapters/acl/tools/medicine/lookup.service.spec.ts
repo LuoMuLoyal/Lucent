@@ -89,7 +89,7 @@ describe('AssistantToolMedicineLookupService', () => {
         status: 'complete',
       },
       source: {
-        tool: 'search_cn_medicine_products',
+        tool: 'search_cn_products',
       },
     });
   });
@@ -141,7 +141,7 @@ describe('AssistantToolMedicineLookupService', () => {
         status: 'partial',
       },
       source: {
-        tool: 'get_cn_medicine_detail',
+        tool: 'get_cn_product_detail',
       },
     });
   });

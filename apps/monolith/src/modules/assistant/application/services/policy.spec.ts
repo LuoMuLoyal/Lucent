@@ -19,53 +19,53 @@ describe('AssistantPolicyService', () => {
           'get_today_records',
           'get_records_by_date',
           'get_records_by_range',
-          'get_today_summary_by_date',
-          'get_report_summary_by_range',
-          'get_recent_today_summaries',
-          'get_recent_report_summaries',
+          'get_today_summary',
+          'get_report_summary',
+          'get_today_summaries',
+          'get_report_summaries',
           'get_user_profile',
           'get_user_settings',
-          'get_current_medicines',
-          'get_sleep_summary_by_range',
-          'get_meal_analysis_digest',
-          'search_cn_medicine_products',
-          'get_cn_medicine_detail',
-          'search_cn_medicine_knowledge',
-          'resolve_drugbank_entity',
+          'get_medicines',
+          'get_sleep_summary',
+          'get_meal_digest',
+          'search_cn_products',
+          'get_cn_product_detail',
+          'search_cn_knowledge',
+          'resolve_drugbank',
           'get_drugbank_detail',
-          'search_drugbank_passages',
-          'reason_over_ontology',
-          'reason_over_rules',
-          'propose_create_daily_record',
-          'propose_update_daily_record',
-          'propose_delete_daily_record',
-          'propose_update_user_settings',
+          'search_drugbank',
+          'reason_ontology',
+          'reason_rules',
+          'create_record_draft',
+          'update_record_draft',
+          'delete_record_draft',
+          'update_settings_draft',
         ],
         implementedToolNames: [
           'get_today_records',
           'get_records_by_date',
           'get_records_by_range',
-          'get_today_summary_by_date',
-          'get_report_summary_by_range',
-          'get_recent_today_summaries',
-          'get_recent_report_summaries',
+          'get_today_summary',
+          'get_report_summary',
+          'get_today_summaries',
+          'get_report_summaries',
           'get_user_profile',
           'get_user_settings',
-          'get_current_medicines',
-          'get_sleep_summary_by_range',
-          'get_meal_analysis_digest',
-          'search_cn_medicine_products',
-          'get_cn_medicine_detail',
-          'search_cn_medicine_knowledge',
-          'resolve_drugbank_entity',
+          'get_medicines',
+          'get_sleep_summary',
+          'get_meal_digest',
+          'search_cn_products',
+          'get_cn_product_detail',
+          'search_cn_knowledge',
+          'resolve_drugbank',
           'get_drugbank_detail',
-          'search_drugbank_passages',
-          'reason_over_ontology',
-          'reason_over_rules',
-          'propose_create_daily_record',
-          'propose_update_daily_record',
-          'propose_delete_daily_record',
-          'propose_update_user_settings',
+          'search_drugbank',
+          'reason_ontology',
+          'reason_rules',
+          'create_record_draft',
+          'update_record_draft',
+          'delete_record_draft',
+          'update_settings_draft',
         ],
         contextSources: [
           'health_profile',
@@ -97,44 +97,44 @@ describe('AssistantPolicyService', () => {
       'current_medicines',
     ]);
     expect(policy.contextPermittedToolNames).toEqual([
-      'get_today_summary_by_date',
-      'get_report_summary_by_range',
-      'get_recent_today_summaries',
-      'get_recent_report_summaries',
+      'get_today_summary',
+      'get_report_summary',
+      'get_today_summaries',
+      'get_report_summaries',
       'get_user_profile',
       'get_user_settings',
-      'get_current_medicines',
-      'get_sleep_summary_by_range',
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
-      'search_cn_medicine_knowledge',
-      'resolve_drugbank_entity',
+      'get_medicines',
+      'get_sleep_summary',
+      'search_cn_products',
+      'get_cn_product_detail',
+      'search_cn_knowledge',
+      'resolve_drugbank',
       'get_drugbank_detail',
-      'search_drugbank_passages',
-      'reason_over_ontology',
-      'reason_over_rules',
-      'propose_create_daily_record',
-      'propose_update_user_settings',
+      'search_drugbank',
+      'reason_ontology',
+      'reason_rules',
+      'create_record_draft',
+      'update_settings_draft',
     ]);
     expect(policy.executableToolNames).toEqual([
-      'get_today_summary_by_date',
-      'get_report_summary_by_range',
-      'get_recent_today_summaries',
-      'get_recent_report_summaries',
+      'get_today_summary',
+      'get_report_summary',
+      'get_today_summaries',
+      'get_report_summaries',
       'get_user_profile',
       'get_user_settings',
-      'get_current_medicines',
-      'get_sleep_summary_by_range',
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
-      'search_cn_medicine_knowledge',
-      'resolve_drugbank_entity',
+      'get_medicines',
+      'get_sleep_summary',
+      'search_cn_products',
+      'get_cn_product_detail',
+      'search_cn_knowledge',
+      'resolve_drugbank',
       'get_drugbank_detail',
-      'search_drugbank_passages',
-      'reason_over_ontology',
-      'reason_over_rules',
-      'propose_create_daily_record',
-      'propose_update_user_settings',
+      'search_drugbank',
+      'reason_ontology',
+      'reason_rules',
+      'create_record_draft',
+      'update_settings_draft',
     ]);
     expect(policy.toolCapabilities).toEqual([
       {
@@ -162,7 +162,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: 'context_disabled',
       },
       {
-        name: 'get_today_summary_by_date',
+        name: 'get_today_summary',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -170,7 +170,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_report_summary_by_range',
+        name: 'get_report_summary',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -178,7 +178,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_recent_today_summaries',
+        name: 'get_today_summaries',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -186,7 +186,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_recent_report_summaries',
+        name: 'get_report_summaries',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -210,7 +210,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_current_medicines',
+        name: 'get_medicines',
         requiredContextSources: ['current_medicines'],
         permittedByUser: true,
         implemented: true,
@@ -218,7 +218,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_sleep_summary_by_range',
+        name: 'get_sleep_summary',
         requiredContextSources: ['sleep_records'],
         permittedByUser: true,
         implemented: true,
@@ -226,7 +226,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_meal_analysis_digest',
+        name: 'get_meal_digest',
         requiredContextSources: ['daily_records'],
         permittedByUser: false,
         implemented: true,
@@ -234,7 +234,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: 'context_disabled',
       },
       {
-        name: 'search_cn_medicine_products',
+        name: 'search_cn_products',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -242,7 +242,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'get_cn_medicine_detail',
+        name: 'get_cn_product_detail',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -250,7 +250,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'search_cn_medicine_knowledge',
+        name: 'search_cn_knowledge',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -258,7 +258,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'resolve_drugbank_entity',
+        name: 'resolve_drugbank',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -274,7 +274,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'search_drugbank_passages',
+        name: 'search_drugbank',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -282,7 +282,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'reason_over_ontology',
+        name: 'reason_ontology',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -290,7 +290,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'reason_over_rules',
+        name: 'reason_rules',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -298,7 +298,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'propose_create_daily_record',
+        name: 'create_record_draft',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -306,7 +306,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
-        name: 'propose_update_daily_record',
+        name: 'update_record_draft',
         requiredContextSources: ['daily_records'],
         permittedByUser: false,
         implemented: true,
@@ -314,7 +314,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: 'context_disabled',
       },
       {
-        name: 'propose_delete_daily_record',
+        name: 'delete_record_draft',
         requiredContextSources: ['daily_records'],
         permittedByUser: false,
         implemented: true,
@@ -322,7 +322,7 @@ describe('AssistantPolicyService', () => {
         disabledReason: 'context_disabled',
       },
       {
-        name: 'propose_update_user_settings',
+        name: 'update_settings_draft',
         requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
@@ -338,27 +338,27 @@ describe('AssistantPolicyService', () => {
     'get_today_records',
     'get_records_by_date',
     'get_records_by_range',
-    'get_today_summary_by_date',
-    'get_report_summary_by_range',
-    'get_recent_today_summaries',
-    'get_recent_report_summaries',
+    'get_today_summary',
+    'get_report_summary',
+    'get_today_summaries',
+    'get_report_summaries',
     'get_user_profile',
     'get_user_settings',
-    'get_current_medicines',
-    'get_sleep_summary_by_range',
-    'get_meal_analysis_digest',
-    'search_cn_medicine_products',
-    'get_cn_medicine_detail',
-    'search_cn_medicine_knowledge',
-    'resolve_drugbank_entity',
+    'get_medicines',
+    'get_sleep_summary',
+    'get_meal_digest',
+    'search_cn_products',
+    'get_cn_product_detail',
+    'search_cn_knowledge',
+    'resolve_drugbank',
     'get_drugbank_detail',
-    'search_drugbank_passages',
-    'reason_over_ontology',
-    'reason_over_rules',
-    'propose_create_daily_record',
-    'propose_update_daily_record',
-    'propose_delete_daily_record',
-    'propose_update_user_settings',
+    'search_drugbank',
+    'reason_ontology',
+    'reason_rules',
+    'create_record_draft',
+    'update_record_draft',
+    'delete_record_draft',
+    'update_settings_draft',
   ] as const;
 
   function buildFoundation(
@@ -503,14 +503,14 @@ describe('AssistantPolicyService', () => {
     // Only the LightRAG-backed tool is gated: DrugBank passages read Lucent's
     // own pgvector table and must stay enabled.
     const retrievalCap = policy.toolCapabilities.find(
-      (tc) => tc.name === 'search_cn_medicine_knowledge',
+      (tc) => tc.name === 'search_cn_knowledge',
     );
     expect(retrievalCap?.implemented).toBe(true);
     expect(retrievalCap?.enabled).toBe(false);
     expect(retrievalCap?.disabledReason).toBe('retrieval_unavailable');
 
     const drugbankCap = policy.toolCapabilities.find(
-      (tc) => tc.name === 'search_drugbank_passages',
+      (tc) => tc.name === 'search_drugbank',
     );
     expect(drugbankCap?.enabled).toBe(true);
     expect(drugbankCap?.disabledReason).toBeNull();
@@ -526,7 +526,7 @@ describe('AssistantPolicyService', () => {
     );
 
     const retrievalCap = policy.toolCapabilities.find(
-      (tc) => tc.name === 'search_cn_medicine_knowledge',
+      (tc) => tc.name === 'search_cn_knowledge',
     );
     // The sidecar gap is the more specific and actionable cause.
     expect(retrievalCap?.disabledReason).toBe('retrieval_unavailable');
@@ -543,7 +543,7 @@ describe('AssistantPolicyService', () => {
         implementedToolNames: [
           'get_user_settings',
           'get_today_records',
-          'search_cn_medicine_products',
+          'search_cn_products',
         ],
       }),
       buildSettings({
@@ -553,9 +553,9 @@ describe('AssistantPolicyService', () => {
 
     // get_today_records requires daily_records context, which is disabled
     expect(policy.executableToolNames).not.toContain('get_today_records');
-    // get_user_settings and search_cn_medicine_products require no context
+    // get_user_settings and search_cn_products require no context
     expect(policy.executableToolNames).toContain('get_user_settings');
-    expect(policy.executableToolNames).toContain('search_cn_medicine_products');
+    expect(policy.executableToolNames).toContain('search_cn_products');
   });
 
   it('sets interactiveChatReady=false when foundation.interactiveChatReady is false', () => {
@@ -580,11 +580,11 @@ describe('AssistantPolicyService', () => {
 
     expect(policy.enabledContextSources).toEqual(['sleep_records']);
     expect(policy.contextPermittedToolNames).toContain(
-      'get_sleep_summary_by_range',
+      'get_sleep_summary',
     );
     expect(policy.contextPermittedToolNames).not.toContain('get_user_profile');
     expect(policy.contextPermittedToolNames).not.toContain(
-      'get_current_medicines',
+      'get_medicines',
     );
   });
 });

@@ -446,7 +446,7 @@ const envSchema = z.object({
   [EnvKey.LIGHTRAG_WORKSPACE_QA]: z.string().default('qa'),
 
   // ── Semantica sidecar client (English-side OAG) ─────────────────
-  // 默认关闭:未开启时 reason_over_ontology 返回"未配置"信封而不报错。
+  // 默认关闭:未开启时 reason_ontology 返回"未配置"信封而不报错。
   // 超时下限要大于 sidecar 自己的查询超时(默认 15s),否则
   // "查询太慢"会先被客户端掐断,拿不到 sidecar 的结构化超时报错。
   [EnvKey.SEMANTICA_ENABLED]: z.enum(['true', 'false']).default('false'),

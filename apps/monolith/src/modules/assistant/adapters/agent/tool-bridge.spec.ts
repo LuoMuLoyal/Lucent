@@ -18,7 +18,7 @@ describe('buildDeepAgentTools', () => {
   it('exposes one tool per allowed name, keeping the assistant’s names', () => {
     const names: ToolName[] = [
       'get_today_records',
-      'search_cn_medicine_knowledge',
+      'search_cn_knowledge',
     ];
     const tools = buildDeepAgentTools({
       toolNames: names,
@@ -33,11 +33,11 @@ describe('buildDeepAgentTools', () => {
     const execute = vi
       .fn()
       .mockResolvedValue([
-        { name: 'get_meal_analysis_digest', data: { meals: [] } },
+        { name: 'get_meal_digest', data: { meals: [] } },
       ]);
 
     const [digest] = buildDeepAgentTools({
-      toolNames: ['get_meal_analysis_digest'],
+      toolNames: ['get_meal_digest'],
       budgets,
       execute,
     });
@@ -47,7 +47,7 @@ describe('buildDeepAgentTools', () => {
     // Arguments are passed through as `args`, which is where the existing tools
     // read them from — never parsed out of the user message.
     expect(execute).toHaveBeenCalledWith([
-      { name: 'get_meal_analysis_digest', args: { days: 3, limit: 5 } },
+      { name: 'get_meal_digest', args: { days: 3, limit: 5 } },
     ]);
   });
 
@@ -74,14 +74,14 @@ describe('buildDeepAgentTools', () => {
     // ran out so it reports the gap instead of inventing a result.
     const execute = vi.fn().mockResolvedValue([
       {
-        name: 'reason_over_ontology',
+        name: 'reason_ontology',
         data: { timeout: true },
         timeout: true,
       } satisfies AssistantToolExecutionResult,
     ]);
 
     const [ontology] = buildDeepAgentTools({
-      toolNames: ['reason_over_ontology'],
+      toolNames: ['reason_ontology'],
       budgets,
       execute,
     });

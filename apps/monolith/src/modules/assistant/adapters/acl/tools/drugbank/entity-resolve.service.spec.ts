@@ -81,7 +81,7 @@ describe('AssistantToolDrugbankEntityResolveService', () => {
     } as never);
 
     // `contains` 会把原药与酯/盐一起带回来；旧实现一律判 partial，于是调用方
-    // （search_drugbank_passages）永远拿不到作用域。精确同名是确定性判据。
+    // （search_drugbank）永远拿不到作用域。精确同名是确定性判据。
     const result = await service.resolve({
       userId: 'user-1',
       locale: 'en',

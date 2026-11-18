@@ -140,12 +140,13 @@ stdio 由客户端拉起子进程，而工具执行需要 Nest DI（Prisma、Red
 ### 关键契约
 
 - **暴露范围是领域决策，不是过滤器**。手写 8 个知识检索工具，**不**导出用户私有
-  数据（`get_records_*` 等）与写入提案（`propose_*`，离开 confirm 端点会把状态机劈成
+  数据（`get_records_*` 等）与写入提案（`*_draft`，离开 confirm 端点会把状态机劈成
   两半）。`exposure.spec.ts` 断言这些工具的 `requiredSources` 全为空——这是「MCP 只
   认证服务、不认证带数据的用户」成立的前提。
-- **工具名是 `lucent__<rawName>`**，纯函数：会话历史、权限规则、客户端缓存都挂在
-  这个字符串上。入站调用经 `parseMcpToolName` 反解，前缀存在但工具未导出**仍然拒绝**
-  （否则调用方可以自己拼前缀绕过名单）。
+- **工具名即线上名，无前缀**：`TOOL_NAMES` 怎么拼就怎么上线。命名空间冲突由**客户端**
+  解决——挂多个 server 的代理才加前缀，是为了让任何 server 都无法抢占别的 server 的
+  名字；server 自己加前缀只会在已经加前缀的客户端上变成双重前缀。名字的稳定性由服务端
+  负责：只有工具真正增删时才变，永不随配置变。
 - **执行必须走既有 `executeMany`**：提案信封、单工具超时、缓存、指标都在里面。
   第二份执行器必然漂移，漂移的表现是「提案被描述成已执行的写入」。
 - **工具失败回 `isError: true` 的结果**，不是协议错误：规范区分「调用完成且答案是
@@ -165,16 +166,16 @@ stdio 由客户端拉起子进程，而工具执行需要 Nest DI（Prisma、Red
 `read`（日报记录查询 + today/report/sleep 摘要读取，范围上限 14 天，统一 envelope：
 query/coverage/confidence/ambiguities）、`medicine`+`drugbank`（结构化查询，
 单一安全候选才返回详情，歧义返回 candidates）、`retrieval`（**中文散文检索**，见下节；
-含 `LightragClientService` 与 `search_cn_medicine_knowledge`）、`records`
-（档案/在服药品 + **餐食分析 digest `get_meal_analysis_digest`**）、`ontology`
+含 `LightragClientService` 与 `search_cn_knowledge`）、`records`
+（档案/在服药品 + **餐食分析 digest `get_meal_digest`**）、`ontology`
 （**英文侧 OAG 本体推理**，见下节；含 `SemanticaClientService`、
-`OntologyCypherGeneratorService` 与 `reason_over_ontology` / `reason_over_rules`）、`proposal`
-（`propose_create/update/delete_daily_record`、`propose_update_user_settings`，
+`OntologyCypherGeneratorService` 与 `reason_ontology` / `reason_rules`）、`proposal`
+（`create/update/delete_record_draft`、`update_settings_draft`，
 只产出带 `expiresAt` 的提案，绝不直接写 DB）。
 检索源强制分离：中文散文（说明书字段 / 医学问答）走 LightRAG；DrugBank
-passage 走 Lucent 自己的 pgvector 表；`search_cn_medicine_products` /
-`get_cn_medicine_detail` 走 SQL 键查——三者互不合并。DrugBank passage 检索
-必须先 `resolve_drugbank_entity` 圈定实体范围。AI 分层（assistant=Agent，
+passage 走 Lucent 自己的 pgvector 表；`search_cn_products` /
+`get_cn_product_detail` 走 SQL 键查——三者互不合并。DrugBank passage 检索
+必须先 `resolve_drugbank` 圈定实体范围。AI 分层（assistant=Agent，
 其余默认 bounded-linear、复用 `common/llm`、copy 本地化）详见
 `docs/explanation/architecture.md`。
 
@@ -190,7 +191,7 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   客户端超时按模式分两档（`resolveTimeoutMs`）：`naive` 用
   `LIGHTRAG_TIMEOUT_MS`(8s)，图模式用 `LIGHTRAG_GRAPH_TIMEOUT_MS`(60s)——图模式实测
   16–29 秒，共用一个 8 秒预算会把它们全部打成超时。
-- `AssistantToolKnowledgeRetrievalService` —— `search_cn_medicine_knowledge`
+- `AssistantToolKnowledgeRetrievalService` —— `search_cn_knowledge`
   （参数 `query` / `source` / `mode` / `limit`）。它是**唯一**知道哪些参数组合
   合法的地方：`source` 由模型给出但 **workspace 由服务端映射**；图模式
   （`local`/`global`/`hybrid`/`mix`）**只对已建图的来源开放**，白名单来自
@@ -210,7 +211,7 @@ sidecar**，Lucent 只做参数校验与 envelope 归一：
   `coverage.reason: '... retrieval is unavailable: ...'`，绝不静默降级成空结果。
   该状态同时经 `GET /capabilities` 暴露为
   `disabledReason: 'retrieval_unavailable'`（sidecar 未启用/不可达时
-  `search_cn_medicine_knowledge` 报此原因；`search_drugbank_passages` 不受影响，
+  `search_cn_knowledge` 报此原因；`search_drugbank` 不受影响，
   它读的是 Lucent 自己的库）。
 - **溯源**：命中带 `leafletId` / `sourceField`（`source=leaflet`）或 `qaId`
   （`source=qa`）；doc id 既非 `leaflet:` 也非 `qa:` 形态的命中标
@@ -239,7 +240,7 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 ### 英文侧 OAG 本体推理（Semantica，`adapters/acl/tools/ontology/`）
 
 英文 DrugBank 的结构化事实（药 → 靶点 / 酶 / 转运体、相互作用、ATC）以**确定性灌入**
-建成 Neo4j 图（零 LLM 抽取），`reason_over_ontology` 在这张图上做类型化多跳推理：
+建成 Neo4j 图（零 LLM 抽取），`reason_ontology` 在这张图上做类型化多跳推理：
 
 - **分工**：**NL→Cypher 的生成在 Lucent**（`OntologyCypherGeneratorService`，复用
   `AI_LANGUAGE_*` 角色），sidecar（`semantica-service`）只做**只读校验 + 执行**。因此
@@ -252,14 +253,14 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   `GET /rules`、`POST /reason`、`GET /health`）；把 sidecar 的结构化 `detail.kind`
   （`not_read_only` / `syntax_error` / `unsupported_feature` / `timeout` …）归一出来，
   作为重试回路的判据。
-- `AssistantToolOntologyReasoningService` —— `reason_over_ontology`（参数
+- `AssistantToolOntologyReasoningService` —— `reason_ontology`（参数
   `question` / `limit`）。流程：读 schema → 生成 → 执行；被拒则**把 sidecar 的报错
   回喂模型重生成**（`SEMANTICA_MAX_GENERATION_ATTEMPTS` 3 次，
   `SEMANTICA_REASONING_BUDGET_MS` 30s 总预算）。重试回路是生产必需：实测模型会产出
   `OPTIONAL MATCH ... AS x` 这类非法语法，回喂报错即可自纠。
-- `AssistantToolRuleReasoningService` —— `reason_over_rules`（参数
+- `AssistantToolRuleReasoningService` —— `reason_rules`（参数
   `intent` / `query` / `drug_names` / `atc_prefixes` / `limit`），走 sidecar 的
-  `POST /reason`。它与直读的分别不是"另一个端点"而是**另一种断言**：`reason_over_ontology`
+  `POST /reason`。它与直读的分别不是"另一个端点"而是**另一种断言**：`reason_ontology`
   读图上写了的边，它按规则推出图上没写的边（"A 抑制的酶恰好是 B 的代谢酶"）。
   因此硬约束更严：**范围必填**（`drug_names` 或 `atc_prefixes` 至少一个，全图不动点
   是分钟级计算，超时又会被读成"图上没有"）、规则 `intent` 取自 sidecar 的 `GET /rules`
@@ -273,13 +274,13 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   原文 / 哈希链位置；行回来了却一条引用都没有时 `verifiability` 是 `'uncited'`
   （而不是 `'citable'`），并由工具**强制重写一次**要求返回 `r.prov`。SSE 的
   `toolDetails` 投影 `citations` 与 `executedQuery`（取自 `result.cypher`，
-  `reason_over_rules` 无此字段故不下发），来源条可点击复制 id 去复核。生成侧与
+  `reason_rules` 无此字段故不下发），来源条可点击复制 id 去复核。生成侧与
   prompt 侧的细节见 §"生成侧的硬约束"。
 - **图节点超时必须高于工具预算**：`ASSISTANT_NODE_TIMEOUT_MS` = 模型超时（10s）+ 最大
   单次工具预算（默认 65s）+ 余量，当前默认 80s；工具超时与节点超时都从运行时快照按次
   读取（`readToolLimitBudgets()` / `readNodeTimeoutMs()`），调大工具预算要同步调大本键。
   原先节点默认取 `AI_MODEL_TIMEOUT_MS`（10s），比
-  `reason_over_ontology` 自己的 45s 预算还小——实测表现是慢查询被节点超时掐断、
+  `reason_ontology` 自己的 45s 预算还小——实测表现是慢查询被节点超时掐断、
   LangGraph 重试三次，客户端只拿到每次尝试的半截答案，最后以
   `Node "agent" exceeded its run timeout` 结束。
 - **与中文散文检索各自独立判定**：`ASSISTANT_OAG_TOOL_NAMES` 与
@@ -306,7 +307,7 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
   产品场景。
 - **不引入它的嵌入 / NER / 消解 / 文档解析链路**：英文侧走确定性灌入，用不到。
 - **不把推理结论写成诊断或用药建议**：结论只作为"待复核的潜在关系"呈现，
-  不进入任何自动建议（`reason_over_rules` 的每条结论带 `ruleId` 与前提引用，
+  不进入任何自动建议（`reason_rules` 的每条结论带 `ruleId` 与前提引用，
   `derivedNote` 明确要求按"推导"而非"断言"陈述）。
 
 ### 工具参数（模型定窗）
@@ -314,12 +315,12 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 工具调用参数经 `AssistantToolCall` 从 `agent` 节点一路带到执行层
 （`AssistantToolExecutionContext.toolArgs`），**不再**从 `userMessage` 文本猜
 参数。带参数的工具目前有六个（`adapters/acl/tools/shared/tool-definitions.ts` 的
-`TOOL_PARAMETERS`）：`get_meal_analysis_digest`（`days` / `limit`）、
-`search_cn_medicine_knowledge`（`query` / `source` / `mode` / `limit`）、
-`resolve_drugbank_entity`（`query`，只给药品名而非整句）、
-`search_drugbank_passages`（`query` + `drugbankId` / `drugName`）、
-`reason_over_ontology`（`question` / `limit`）与 `reason_over_rules`
-（`intent` / `query` / `drug_names` / `atc_prefixes` / `limit`）。以 `get_meal_analysis_digest` 为例：`days` / `limit`
+`TOOL_PARAMETERS`）：`get_meal_digest`（`days` / `limit`）、
+`search_cn_knowledge`（`query` / `source` / `mode` / `limit`）、
+`resolve_drugbank`（`query`，只给药品名而非整句）、
+`search_drugbank`（`query` + `drugbankId` / `drugName`）、
+`reason_ontology`（`question` / `limit`）与 `reason_rules`
+（`intent` / `query` / `drug_names` / `atc_prefixes` / `limit`）。以 `get_meal_digest` 为例：`days` / `limit`
 由模型给出，服务端封顶最近 `15` 天、最多 `20` 餐（封顶写进 envelope 的
 `ambiguities` + `coverage: partial`）；它读餐食投影列判定 `analyzed` 并取
 headline/区间，只为返回的 ≤`limit` 条回读 `payload.mealAnalysis` 取

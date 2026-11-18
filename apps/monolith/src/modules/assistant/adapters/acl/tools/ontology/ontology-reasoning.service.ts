@@ -26,7 +26,7 @@ import {
 } from '../../../../application/ports/semantica.types.js';
 
 /** 该工具在参数边界拒绝非法入参的统一前缀。 */
-const INVALID_ARGUMENT_PREFIX = 'Invalid reason_over_ontology arguments';
+const INVALID_ARGUMENT_PREFIX = 'Invalid reason_ontology arguments';
 
 /**
  * 客户端侧的纠正信号：查询跑通了、返回了行，但没有任何 `prov`。
@@ -87,7 +87,7 @@ function resolveVerifiability(rowCount: number, citationCount: number): string {
 }
 
 /**
- * 英文侧 OAG 工具：`reason_over_ontology`（计划 §3.6）。
+ * 英文侧 OAG 工具：`reason_ontology`（计划 §3.6）。
  *
  * 分工（§3.5 ②）：**Lucent 生成 Cypher，sidecar 校验 + 执行**。生成放在这里
  * 的理由是复用 `LlmRuntimeService` 的角色化配置（一套凭据 / 成本 / 限流），
@@ -502,7 +502,7 @@ export class AssistantToolOntologyReasoningService {
       : [];
 
     return buildReadEnvelope({
-      toolName: 'reason_over_ontology',
+      toolName: 'reason_ontology',
       query: {
         question: input.question,
         limit: input.limitInfo.limit,

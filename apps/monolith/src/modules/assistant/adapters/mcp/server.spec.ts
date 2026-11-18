@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { CODE_TOOL_LIMIT_BUDGETS } from '../acl/tools/shared/tool-definitions.js';
-import { MCP_TOOL_NAMES, mcpToolName } from '../../domain/mcp/exposure.js';
+import { MCP_TOOL_NAMES } from '../../domain/mcp/exposure.js';
 import type { McpToolExecutionPort } from '../../application/ports/mcp.js';
 import type { AssistantToolExecutionResult } from '../../application/ports/assistant.js';
 import { createMcpAuthenticator } from './auth.js';
@@ -71,7 +71,7 @@ describe('MCP server over Streamable HTTP', () => {
     const listed = await client.listTools();
 
     expect(listed.tools.map((tool) => tool.name).sort()).toEqual(
-      MCP_TOOL_NAMES.map((name) => mcpToolName(name)).sort(),
+      [...MCP_TOOL_NAMES].sort(),
     );
     await client.close();
   });
@@ -88,7 +88,7 @@ describe('MCP server over Streamable HTTP', () => {
     await client.connect(new StreamableHTTPClientTransport(url));
 
     const result = await client.callTool({
-      name: mcpToolName('get_drugbank_detail'),
+      name: 'get_drugbank_detail',
       arguments: {},
     });
 
@@ -113,7 +113,7 @@ describe('MCP server over Streamable HTTP', () => {
     await client.connect(new StreamableHTTPClientTransport(url));
 
     await client.callTool({
-      name: mcpToolName('resolve_drugbank_entity'),
+      name: 'resolve_drugbank',
       arguments: { query: 'ibuprofen' },
     });
 
@@ -135,7 +135,7 @@ describe('MCP server over Streamable HTTP', () => {
     await client.connect(new StreamableHTTPClientTransport(url));
 
     const result = await client.callTool({
-      name: mcpToolName('reason_over_ontology'),
+      name: 'reason_ontology',
       arguments: { question: 'does A inhibit B' },
     });
 

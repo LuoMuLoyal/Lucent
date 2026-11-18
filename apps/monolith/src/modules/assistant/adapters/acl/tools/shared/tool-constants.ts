@@ -74,7 +74,7 @@ export const ASSISTANT_CREATE_RECORD_KINDS = [
 export const TOOL_EXECUTION_TIMEOUT_MS = 20_000;
 
 /**
- * `reason_over_ontology` 的执行超时。
+ * `reason_ontology` 的执行超时。
  *
  * 20s 的通用预算不够：这条链路里有一轮 LLM 生成（模型超时本身就有 10s）加最多
  * 两次纠错重试，每次重试又是一轮生成 + 一次 sidecar 往返。超时预算必须大于
@@ -84,7 +84,7 @@ export const TOOL_EXECUTION_TIMEOUT_MS = 20_000;
 export const ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS = 45_000;
 
 /**
- * `search_cn_medicine_knowledge` 的执行超时。
+ * `search_cn_knowledge` 的执行超时。
  *
  * 通用 20s 预算按 `naive`（纯向量检索，实测 352ms）定的；图模式
  * （`local`/`global`/`hybrid`/`mix`）每次查询都要现调 LLM 做关键词抽取再遍历图，
@@ -156,7 +156,7 @@ export const MEAL_DIGEST_LIMIT_CAP_MESSAGE = (
     : `Requested ${String(requestedLimit)} meals, but the digest returns at most ${String(maxLimit)} analyzed meals.`;
 
 /**
- * `reason_over_ontology` 的行数上限被服务端夹紧时的说明。
+ * `reason_ontology` 的行数上限被服务端夹紧时的说明。
  *
  * 与 [MEAL_DIGEST_LIMIT_CAP_MESSAGE] 同构：`requestedLimit` 为 null 表示模型没有传
  * `limit`（或传了不可用的值），此时只是按默认值读取，不能说成「你请求了 N 行」。

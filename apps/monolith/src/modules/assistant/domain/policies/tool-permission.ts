@@ -52,32 +52,39 @@ export const TOOL_DISABLED_REASONS = [
 
 export type ToolDisabledReason = (typeof TOOL_DISABLED_REASONS)[number];
 
-/** Every tool the assistant knows about. */
+/**
+ * Every tool the assistant knows about.
+ *
+ * Names follow `verb_noun` and are kept short on purpose: they travel through
+ * `capabilities` into the OpenAPI contract and into every MCP tool list, and a
+ * name is read by a model on every turn. See `TOOL_DESCRIPTIONS` for the
+ * conventions that govern the prose half of each definition.
+ */
 export const TOOL_NAMES = [
   'get_today_records',
   'get_records_by_date',
   'get_records_by_range',
-  'get_today_summary_by_date',
-  'get_report_summary_by_range',
-  'get_recent_today_summaries',
-  'get_recent_report_summaries',
+  'get_today_summary',
+  'get_report_summary',
+  'get_today_summaries',
+  'get_report_summaries',
   'get_user_profile',
   'get_user_settings',
-  'get_current_medicines',
-  'get_sleep_summary_by_range',
-  'get_meal_analysis_digest',
-  'search_cn_medicine_products',
-  'get_cn_medicine_detail',
-  'search_cn_medicine_knowledge',
-  'resolve_drugbank_entity',
+  'get_medicines',
+  'get_sleep_summary',
+  'get_meal_digest',
+  'search_cn_products',
+  'get_cn_product_detail',
+  'search_cn_knowledge',
+  'resolve_drugbank',
   'get_drugbank_detail',
-  'search_drugbank_passages',
-  'reason_over_ontology',
-  'reason_over_rules',
-  'propose_create_daily_record',
-  'propose_update_daily_record',
-  'propose_delete_daily_record',
-  'propose_update_user_settings',
+  'search_drugbank',
+  'reason_ontology',
+  'reason_rules',
+  'create_record_draft',
+  'update_record_draft',
+  'delete_record_draft',
+  'update_settings_draft',
 ] as const;
 
 export type ToolName = (typeof TOOL_NAMES)[number];
@@ -87,28 +94,28 @@ export const READ_TOOL_NAMES = [
   'get_today_records',
   'get_records_by_date',
   'get_records_by_range',
-  'get_today_summary_by_date',
-  'get_report_summary_by_range',
-  'get_recent_today_summaries',
-  'get_recent_report_summaries',
+  'get_today_summary',
+  'get_report_summary',
+  'get_today_summaries',
+  'get_report_summaries',
   'get_user_profile',
   'get_user_settings',
-  'get_current_medicines',
-  'get_sleep_summary_by_range',
-  'get_meal_analysis_digest',
-  'search_cn_medicine_products',
-  'get_cn_medicine_detail',
-  'search_cn_medicine_knowledge',
-  'resolve_drugbank_entity',
+  'get_medicines',
+  'get_sleep_summary',
+  'get_meal_digest',
+  'search_cn_products',
+  'get_cn_product_detail',
+  'search_cn_knowledge',
+  'resolve_drugbank',
   'get_drugbank_detail',
-  'search_drugbank_passages',
-  'reason_over_ontology',
-  'reason_over_rules',
+  'search_drugbank',
+  'reason_ontology',
+  'reason_rules',
 ] as const satisfies readonly ToolName[];
 
 /** Tools whose execution depends on the LightRAG sidecar (Chinese prose). */
 export const RETRIEVAL_TOOL_NAMES = [
-  'search_cn_medicine_knowledge',
+  'search_cn_knowledge',
 ] as const satisfies readonly ToolName[];
 
 /**
@@ -120,8 +127,8 @@ export const RETRIEVAL_TOOL_NAMES = [
  * unavailable" state either way, and the tool's own envelope says which source.
  */
 export const OAG_TOOL_NAMES = [
-  'reason_over_ontology',
-  'reason_over_rules',
+  'reason_ontology',
+  'reason_rules',
 ] as const satisfies readonly ToolName[];
 
 /** Membership sets — the arrays above are the single source of truth. */
@@ -142,27 +149,27 @@ export const TOOL_REQUIRED_SOURCES = {
   get_today_records: ['daily_records'],
   get_records_by_date: ['daily_records'],
   get_records_by_range: ['daily_records'],
-  get_today_summary_by_date: [],
-  get_report_summary_by_range: [],
-  get_recent_today_summaries: [],
-  get_recent_report_summaries: [],
+  get_today_summary: [],
+  get_report_summary: [],
+  get_today_summaries: [],
+  get_report_summaries: [],
   get_user_profile: ['health_profile'],
   get_user_settings: [],
-  get_current_medicines: ['current_medicines'],
-  get_sleep_summary_by_range: ['sleep_records'],
-  get_meal_analysis_digest: ['daily_records'],
-  search_cn_medicine_products: [],
-  get_cn_medicine_detail: [],
-  search_cn_medicine_knowledge: [],
-  resolve_drugbank_entity: [],
+  get_medicines: ['current_medicines'],
+  get_sleep_summary: ['sleep_records'],
+  get_meal_digest: ['daily_records'],
+  search_cn_products: [],
+  get_cn_product_detail: [],
+  search_cn_knowledge: [],
+  resolve_drugbank: [],
   get_drugbank_detail: [],
-  search_drugbank_passages: [],
-  reason_over_ontology: [],
-  reason_over_rules: [],
-  propose_create_daily_record: [],
-  propose_update_daily_record: ['daily_records'],
-  propose_delete_daily_record: ['daily_records'],
-  propose_update_user_settings: [],
+  search_drugbank: [],
+  reason_ontology: [],
+  reason_rules: [],
+  create_record_draft: [],
+  update_record_draft: ['daily_records'],
+  delete_record_draft: ['daily_records'],
+  update_settings_draft: [],
 } as const satisfies Record<ToolName, readonly ContextSource[]>;
 
 /**
@@ -187,52 +194,88 @@ export function selectEnabledSources(
   return CONTEXT_SOURCES.filter(isEnabled);
 }
 
-/** One-line, model-facing description of each tool (domain vocabulary). */
+/**
+ * One-line, model-facing description of each tool.
+ *
+ * ## Shape
+ *
+ * `"[what it does]. [what it returns]. [what it does NOT do / when to use the
+ * sibling instead]."` — the same three-part form the Anthropic MCP review
+ * criteria describe. A description is the only thing a model reads before
+ * choosing a tool, so it is prompt text, not documentation.
+ *
+ * ## Rules this file follows
+ *
+ * - **No behavioural instructions.** Nothing here says "always", "you must", or
+ *   "cite X" — those belong in the system prompt, and in a tool description they
+ *   read as prompt injection at review.
+ * - **Output contracts stay out.** Citation ids, envelope fields and empty-result
+ *   semantics are properties of the returned `data`; restating them here would
+ *   duplicate `assistant-safety.md` and drift from it.
+ * - **Siblings are disambiguated.** When two tools are near-neighbours, each says
+ *   which one the other handles, so a wrong-tool call is preventable by reading
+ *   one line.
+ * - **Short.** Aim ≤200 characters; the two longest shapes below are the ones
+ *   where "returns" genuinely needs two clauses.
+ */
 export const TOOL_DESCRIPTIONS: Record<ToolName, string> = {
+  // ── User data ──────────────────────────────────────────────────────
   get_today_records:
-    "Retrieve the user's daily records for today, including meals, water, symptoms, and notes.",
+    "Read the user's daily records for today: meals, water, symptoms, notes. Returns the read envelope with coverage and ambiguities.",
   get_records_by_date:
-    "Retrieve the user's daily records for a specific date mentioned in the conversation.",
+    "Read the user's daily records for one named date. Use get_records_by_range when the user gives a span instead of a single day.",
   get_records_by_range:
-    "Retrieve the user's daily records for a date range (e.g. 'last 7 days').",
-  get_today_summary_by_date:
-    'Retrieve a persisted Today AI summary for a specific date.',
-  get_report_summary_by_range:
-    'Retrieve a persisted report (weekly/monthly) AI summary for a date range.',
-  get_recent_today_summaries: 'Retrieve recent historical Today AI summaries.',
-  get_recent_report_summaries:
-    'Retrieve recent historical report AI summaries.',
+    "Read the user's daily records across a date range (e.g. 'last 7 days'). Returns per-day records with the envelope.",
+  get_today_summary:
+    'Read the persisted Today AI summary for one date. Summaries are stored results, not live model calls.',
+  get_report_summary:
+    'Read the persisted weekly/monthly report summary for a date range. Use get_today_summary for a single day.',
+  get_today_summaries:
+    'List recent persisted Today summaries without a date filter. Use get_today_summary when the user names one date.',
+  get_report_summaries:
+    'List recent persisted report summaries without a date filter. Use get_report_summary when the user names a range.',
   get_user_profile:
-    "Retrieve the user's health profile: allergies, conditions, blood type, height, etc.",
-  get_user_settings: "Retrieve the user's assistant and privacy settings.",
-  get_current_medicines:
-    "Retrieve the user's current medicines and active dose reminders.",
-  get_sleep_summary_by_range:
-    "Retrieve the user's sleep summaries for a date range.",
-  get_meal_analysis_digest:
-    "Retrieve the user's already-computed meal analyses (energy interval + ranked findings per meal) for a lookback window. Use this instead of re-reading meal photos or re-deriving nutrition; pass `days` and `limit` to size the window.",
-  search_cn_medicine_products:
-    'Search Chinese medicine products by approval number, manufacturer, or product name.',
-  get_cn_medicine_detail:
-    'Get detailed information about a specific Chinese medicine product.',
-  search_cn_medicine_knowledge:
-    'Search Chinese prose medicine knowledge (package-insert fields such as dosage/contraindications/adverse reactions, or an open medical Q&A corpus) by meaning. Pick exactly one source per call; never mix them.',
-  resolve_drugbank_entity:
-    'Resolve a drug name to a DrugBank entity for scientific pharmacology data.',
+    "Read the user's health profile: allergies, conditions, blood type, height. Stable facts, not daily records.",
+  get_user_settings:
+    "Read the user's assistant settings: enabled state, memory, context permissions.",
+  get_medicines:
+    "Read the user's current medicines and active dose reminders. Use get_medicines for what they take now; search_cn_products for product facts.",
+  get_sleep_summary:
+    "Read the user's sleep summaries across a date range. Distinct from daily records, which carry sleep entries only as part of a day.",
+  get_meal_digest:
+    "Read already-computed meal analyses for a lookback window: energy interval plus ranked findings per meal. Pass days and limit to size it. Does not re-derive nutrition from record text.",
+
+  // ── Chinese product catalogue (SQL key lookup) ─────────────────────
+  search_cn_products:
+    'Search Chinese medicine products by approval number, manufacturer, or product name. Returns candidates only — call get_cn_product_detail for one result.',
+  get_cn_product_detail:
+    'Read one Chinese medicine product by id. Takes an id, not a name — use search_cn_products to find the id first.',
+
+  // ── Chinese prose (LightRAG) ───────────────────────────────────────
+  search_cn_knowledge:
+    'Search Chinese package-insert prose and the open medical QA corpus by meaning: dosage, contraindications, adverse reactions, interactions. Returns exactly one source per call; the two are separate evidence and are not merged. Use search_cn_products for structured product facts.',
+
+  // ── English DrugBank (SQL + pgvector + graph) ──────────────────────
+  resolve_drugbank:
+    'Resolve a drug name, CAS, UNII or DrugBank id to one DrugBank entity. Pass the identifier alone, not the whole question. Required before search_drugbank and get_drugbank_detail.',
   get_drugbank_detail:
-    'Get detailed DrugBank information: mechanism, pharmacokinetics, interactions.',
-  search_drugbank_passages:
-    'Search DrugBank passages for drug interaction and mechanism evidence.',
-  reason_over_ontology:
-    'Answer a pharmacology question by reasoning over the English DrugBank knowledge graph of typed drug–target–enzyme relationships. Use it for multi-hop questions ("which drugs share this target", "is X metabolized by the same enzyme as Y", "do A and B interact") instead of inferring them from prose. It returns the executed query with its rows so the answer stays auditable, plus one provenance citation per assertion the rows rest on (result.citations[].id — each resolves to the DrugBank source table and row it came from). Cite those ids when you state a relationship, and never cite one the result does not contain. Zero rows means this graph has no such edge — it is not proof that no such relationship exists, because the graph only mirrors what the source data asserts.',
-  reason_over_rules:
-    'Derive new facts from the DrugBank knowledge graph using a stated rule, for questions the graph cannot answer by reading edges alone ("do A and B interact through a shared enzyme", "what does this drug potentially interact with"). Unlike reason_over_ontology this returns *derived* conclusions, not asserted edges: each one names the rule that produced it and carries citations to the assertions it rests on. Present them as derived, never as things the data states. Requires an explicit scope (`drug_names` or `atc_prefixes`) — it reasons over that subgraph, and a conclusion is only as complete as the scope it came from. An empty result is a finding about the scope you gave, not about the graph.',
-  propose_create_daily_record:
-    'Propose creating a new daily record (water, meal, symptom, note, sleep). Does not write — returns a confirmation draft.',
-  propose_update_daily_record:
-    'Propose updating an existing daily record. Does not write — returns a confirmation draft.',
-  propose_delete_daily_record:
-    'Propose deleting a daily record. Does not write — returns a confirmation draft.',
-  propose_update_user_settings:
-    'Propose updating user settings (assistant enabled, memory, context permissions). Does not write — returns a confirmation draft.',
+    'Read structured DrugBank fields for one resolved entity: mechanism, pharmacokinetics, interactions. Requires a resolved entity — use resolve_drugbank first, and search_drugbank for narrative passages.',
+  search_drugbank:
+    'Search narrative DrugBank passages for interaction and mechanism evidence. Scope it with drugbankId or drugName from resolve_drugbank. Use get_drugbank_detail for structured fields and reason_ontology for typed edges.',
+
+  // ── Ontology reasoning (Semantica sidecar) ─────────────────────────
+  reason_ontology:
+    'Read typed drug–target–enzyme edges from the DrugBank graph for multi-hop questions: shared targets, same enzyme, whether two drugs interact. Returns the executed query with its rows. Use reason_rules when the answer must be derived rather than read; use search_drugbank for narrative evidence. Zero rows means the graph holds no such edge, not that none exists.',
+  reason_rules:
+    'Derive new facts from the DrugBank graph under a stated rule, for questions no single edge answers: indirect interaction through a shared enzyme, potential interactions. Returns derived conclusions, each naming its rule — not asserted edges. Requires an explicit scope (drug_names or atc_prefixes). Use reason_ontology to read direct edges instead.',
+
+  // ── Write proposals (HITL) ─────────────────────────────────────────
+  create_record_draft:
+    'Draft a new daily record (water, meal, symptom, note, sleep) for the user to confirm. Does not write — returns a confirmation draft with an expiry.',
+  update_record_draft:
+    'Draft an edit to an existing daily record for the user to confirm. Does not write — returns a confirmation draft with an expiry.',
+  delete_record_draft:
+    'Draft the deletion of a daily record for the user to confirm. Does not write — returns a confirmation draft with an expiry.',
+  update_settings_draft:
+    'Draft a change to assistant settings (enabled, memory, context permissions) for the user to confirm. Does not write — returns a confirmation draft.',
 };

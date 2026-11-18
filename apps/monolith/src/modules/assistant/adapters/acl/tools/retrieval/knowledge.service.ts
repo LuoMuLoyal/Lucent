@@ -29,7 +29,7 @@ import {
 
 /** 该工具在 `source` 判定前拒绝非法入参的统一前缀。 */
 const INVALID_ARGUMENT_PREFIX =
-  'Invalid search_cn_medicine_knowledge arguments';
+  'Invalid search_cn_knowledge arguments';
 
 /**
  * 中文散文检索工具：把说明书字段级检索与医学问答**都**交给 LightRAG（计划 §一）。
@@ -170,7 +170,7 @@ export class AssistantToolKnowledgeRetrievalService {
     const coveragePartial = outcome.value.hasUnmappedChunk;
 
     return buildReadEnvelope({
-      toolName: 'search_cn_medicine_knowledge',
+      toolName: 'search_cn_knowledge',
       query: { medicineQuery: query, source, mode },
       result: {
         chunks,
@@ -329,7 +329,7 @@ export class AssistantToolKnowledgeRetrievalService {
     confidenceReason: string;
   }): AssistantReadResultEnvelope {
     return buildReadEnvelope({
-      toolName: 'search_cn_medicine_knowledge',
+      toolName: 'search_cn_knowledge',
       query: {
         medicineQuery: input.query,
         source: input.source,

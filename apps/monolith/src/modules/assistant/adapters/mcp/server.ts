@@ -52,11 +52,7 @@ import type {
   McpCallerIdentity,
   McpToolCallRequest,
 } from '../../application/ports/mcp.js';
-import {
-  MCP_TOOL_NAMES,
-  mcpToolName,
-  parseMcpToolName,
-} from '../../domain/mcp/exposure.js';
+import { MCP_TOOL_NAMES } from '../../domain/mcp/exposure.js';
 import type { ToolLimitBudgets } from '../acl/tools/shared/tool-definitions.js';
 import { buildMcpToolDescriptors } from './tool-schema.js';
 
@@ -269,35 +265,29 @@ export class McpSessionRegistry {
     const server = new McpServer({ name: 'lucent', version: '1.0.0' });
 
     const descriptors = buildMcpToolDescriptors({
-      rawNames: MCP_TOOL_NAMES,
+      toolNames: MCP_TOOL_NAMES,
       budgets: this.options.budgets,
-      exportedNameOf: mcpToolName,
     });
 
     for (const descriptor of descriptors) {
-      // Resolved once, outside the callback: the name comes from the descriptor
-      // list, so parsing it per call and handling "unknown" inside the handler
-      // only exists because `parseMcpToolName` is total. A descriptor whose name
-      // does not round-trip is a bug in this file, not client input.
-      const rawName = parseMcpToolName(descriptor.exportedName);
-      if (rawName == null) {
-        // eslint-disable-next-line error-handling/no-bare-throw-error -- a descriptor that does not round-trip is a programming error, never client input
-        throw new Error(
-          `MCP tool "${descriptor.exportedName}" is not a known export.`,
-        );
-      }
-
       server.registerTool(
-        descriptor.exportedName,
+        descriptor.name,
         {
+          title: descriptor.annotations.title,
           description: descriptor.description,
           // The SDK wants a zod *raw shape* (`{ param: z.string() }`), which is
           // what `ZodObject.shape` exposes. The descriptors build a `ZodObject`
           // because the JSON Schema root is always `type: 'object'`.
           inputSchema: (descriptor.inputSchema as z.ZodObject<z.ZodRawShape>)
             .shape,
+          annotations: {
+            readOnlyHint: descriptor.annotations.readOnlyHint,
+            destructiveHint: descriptor.annotations.destructiveHint,
+            idempotentHint: descriptor.annotations.idempotentHint,
+            openWorldHint: descriptor.annotations.openWorldHint,
+          },
         },
-        async (args: unknown) => this.invokeTool(rawName, args, caller),
+        async (args: unknown) => this.invokeTool(descriptor.name, args, caller),
       );
     }
 

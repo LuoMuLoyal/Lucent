@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { CODE_TOOL_LIMIT_BUDGETS } from '../acl/tools/shared/tool-definitions.js';
-import { MCP_TOOL_NAMES, mcpToolName } from '../../domain/mcp/exposure.js';
+import { MCP_TOOL_NAMES } from '../../domain/mcp/exposure.js';
 import { buildMcpToolDescriptors } from './tool-schema.js';
 
 /**
@@ -13,13 +13,12 @@ import { buildMcpToolDescriptors } from './tool-schema.js';
  */
 describe('buildMcpToolDescriptors', () => {
   const descriptors = buildMcpToolDescriptors({
-    rawNames: MCP_TOOL_NAMES,
+    toolNames: MCP_TOOL_NAMES,
     budgets: CODE_TOOL_LIMIT_BUDGETS,
-    exportedNameOf: mcpToolName,
   });
 
   it('produces one descriptor per exposed tool, in a stable order', () => {
-    expect(descriptors.map((descriptor) => descriptor.rawName)).toEqual([
+    expect(descriptors.map((descriptor) => descriptor.name)).toEqual([
       ...MCP_TOOL_NAMES,
     ]);
   });
@@ -29,14 +28,49 @@ describe('buildMcpToolDescriptors', () => {
     // the tool; a second written-for-MCP copy would drift from the one the
     // in-process agent sees.
     const detail = descriptors.find(
-      (descriptor) => descriptor.rawName === 'get_drugbank_detail',
+      (descriptor) => descriptor.name === 'get_drugbank_detail',
     );
     expect(detail?.description.length).toBeGreaterThan(20);
   });
 
+  it('keeps every description short enough to be read as one line', () => {
+    // Anthropic's tool-design guidance: the description is a one-line manpage
+    // entry plus disambiguating hints. The two former giants (775 and 699 chars)
+    // carried the output contract, which belongs on the returned data.
+    for (const descriptor of descriptors) {
+      expect(descriptor.description.length).toBeLessThanOrEqual(400);
+    }
+  });
+
+  it('names a sibling tool, so a wrong-tool call is preventable by reading', () => {
+    // The third clause of the template: a description that only says what the
+    // tool does leaves near-neighbours indistinguishable. Every exposed tool
+    // here has at least one sibling it can be confused with, so each description
+    // names the one to reach for instead.
+    for (const descriptor of descriptors) {
+      const siblings = MCP_TOOL_NAMES.filter((name) => name !== descriptor.name);
+      const named = siblings.some((sibling) =>
+        descriptor.description.includes(sibling),
+      );
+      expect(named).toBe(true);
+    }
+  });
+
+  it('marks every exposed tool read-only and non-destructive', () => {
+    // These are the annotations a host uses to decide whether a call needs a
+    // confirmation prompt. Every exposed tool is a lookup over a catalogue, an
+    // index or a graph, so both hints are factual rather than optimistic.
+    for (const descriptor of descriptors) {
+      expect(descriptor.annotations.readOnlyHint).toBe(true);
+      expect(descriptor.annotations.destructiveHint).toBe(false);
+      expect(descriptor.annotations.idempotentHint).toBe(true);
+      expect(descriptor.annotations.title.length).toBeGreaterThan(0);
+    }
+  });
+
   it('enforces the declared range on a bounded parameter', () => {
     const search = descriptors.find(
-      (descriptor) => descriptor.rawName === 'search_cn_medicine_knowledge',
+      (descriptor) => descriptor.name === 'search_cn_knowledge',
     );
     const schema = search?.inputSchema as z.ZodObject<z.ZodRawShape>;
 
@@ -62,7 +96,7 @@ describe('buildMcpToolDescriptors', () => {
 
   it('requires the parameters the tool actually needs', () => {
     const resolve = descriptors.find(
-      (descriptor) => descriptor.rawName === 'resolve_drugbank_entity',
+      (descriptor) => descriptor.name === 'resolve_drugbank',
     );
     const schema = resolve?.inputSchema as z.ZodObject<z.ZodRawShape>;
 
@@ -72,19 +106,18 @@ describe('buildMcpToolDescriptors', () => {
 
   it('rejects an enum value the tool does not accept', () => {
     const search = descriptors.find(
-      (descriptor) => descriptor.rawName === 'search_cn_medicine_knowledge',
+      (descriptor) => descriptor.name === 'search_cn_knowledge',
     );
     const schema = search?.inputSchema as z.ZodObject<z.ZodRawShape>;
 
     expect(
-      schema.safeParse({ query: 'ibuprofen', source: 'invented-source' })
-        .success,
+      schema.safeParse({ query: 'ibuprofen', source: 'invented-source' }).success,
     ).toBe(false);
   });
 
   it('accepts an empty object for a no-argument tool', () => {
     const detail = descriptors.find(
-      (descriptor) => descriptor.rawName === 'get_drugbank_detail',
+      (descriptor) => descriptor.name === 'get_drugbank_detail',
     );
     const schema = detail?.inputSchema as z.ZodObject<z.ZodRawShape>;
     expect(schema.safeParse({}).success).toBe(true);

@@ -4,11 +4,11 @@ import {
   assistantSystemPromptVariables,
 } from './prompts.js';
 
-const READ_TOOLS = ['get_today_records', 'get_sleep_summary_by_range'] as const;
-const WRITE_TOOLS = ['propose_create_daily_record'] as const;
+const READ_TOOLS = ['get_today_records', 'get_sleep_summary'] as const;
+const WRITE_TOOLS = ['create_record_draft'] as const;
 const KNOWLEDGE_TOOLS = [
-  'search_cn_medicine_products',
-  'search_cn_medicine_knowledge',
+  'search_cn_products',
+  'search_cn_knowledge',
 ] as const;
 
 /**
@@ -86,7 +86,7 @@ describe('assistant system prompt', () => {
   });
 
   it('requires provenance ids from ontology reasoning without overstating them', () => {
-    const prompt = buildAssistantSystemPrompt(['reason_over_ontology']);
+    const prompt = buildAssistantSystemPrompt(['reason_ontology']);
     expect(prompt).toContain('[prov: <id>]');
     expect(prompt).toContain('never cite an id the result does not contain');
     expect(prompt).toContain('verifiability "uncited"');

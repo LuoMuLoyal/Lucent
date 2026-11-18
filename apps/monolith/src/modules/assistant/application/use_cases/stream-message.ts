@@ -428,14 +428,14 @@ export class AssistantStreamOrchestratorService {
     data: Record<string, unknown>,
   ): string | null {
     switch (name) {
-      case 'search_drugbank_passages':
+      case 'search_drugbank':
         return this.readNestedString(data, [
           'result',
           'passages',
           0,
           'drugName',
         ]);
-      case 'resolve_drugbank_entity':
+      case 'resolve_drugbank':
         return this.readNestedString(data, ['result', 'entities', 0, 'name']);
       default:
         return null;

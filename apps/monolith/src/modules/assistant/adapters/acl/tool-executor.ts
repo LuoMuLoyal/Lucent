@@ -36,14 +36,14 @@ import { makeShortHash } from '../../../../common/helpers/infra/hash.utils.js';
  * lookups skip the underlying vector search / DB reads.
  */
 const KNOWLEDGE_TOOL_NAMES = new Set<ToolName>([
-  'search_cn_medicine_products',
-  'get_cn_medicine_detail',
-  'search_cn_medicine_knowledge',
-  'resolve_drugbank_entity',
+  'search_cn_products',
+  'get_cn_product_detail',
+  'search_cn_knowledge',
+  'resolve_drugbank',
   'get_drugbank_detail',
-  'search_drugbank_passages',
-  'reason_over_ontology',
-  'reason_over_rules',
+  'search_drugbank',
+  'reason_ontology',
+  'reason_rules',
 ]);
 
 /** TTL for tool-level retrieval caches (ms). */
@@ -58,7 +58,7 @@ const READ_TOOL_NAME_SET = new Set<ToolName>(READ_TOOL_NAMES);
 
 /**
  * 单工具超时覆盖：默认 {@link TOOL_EXECUTION_TIMEOUT_MS}，只有需要在一次调用里
- * 跑多轮模型往返的工具才例外（`reason_over_ontology`，见该常量的说明）。
+ * 跑多轮模型往返的工具才例外（`reason_ontology`，见该常量的说明）。
  *
  * 每项同时给出快照键与代码基线：快照里没有覆盖时用基线，键只在白名单里出现
  * 一次，新增工具时不会漏接。
@@ -72,20 +72,20 @@ type ToolTimeoutKey =
 const TOOL_TIMEOUT_OVERRIDES: Partial<
   Record<ToolName, { key: ToolTimeoutKey; fallback: number }>
 > = {
-  reason_over_ontology: {
+  reason_ontology: {
     key: EnvKey.ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS,
     fallback: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
   },
   // 规则推理不走模型往返（规则与查询都是显式给的），但它在服务端要做一次不动点
   // ——比一次 Cypher 读图贵得多。用同一个覆盖值，是因为瓶颈从"生成"换成了"推导"，
   // 量级相同；默认的 15s 对两者都太短。
-  reason_over_rules: {
+  reason_rules: {
     key: EnvKey.ASSISTANT_ONTOLOGY_TOOL_TIMEOUT_MS,
     fallback: ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
   },
   // 中文散文检索：`naive` 只要 352ms，但图模式要现调 LLM 抽关键词再遍历图，
   // 实测 16–29 秒。工具级预算必须容得下最慢的那条路，否则"能用的模式"会被判死。
-  search_cn_medicine_knowledge: {
+  search_cn_knowledge: {
     key: EnvKey.ASSISTANT_RETRIEVAL_TOOL_TIMEOUT_MS,
     fallback: RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
   },
@@ -287,7 +287,7 @@ export class AssistantToolService {
     if (KNOWLEDGE_TOOL_NAMES.has(toolName)) {
       // Key on the parsed query (plus filters, e.g. a resolved productId for
       // leaflet lookups) so different lookups never share a cached result.
-      // 参数也进 key：`reason_over_ontology` 的问题、`search_cn_medicine_knowledge`
+      // 参数也进 key：`reason_ontology` 的问题、`search_cn_knowledge`
       // 的 source/mode 都在 toolArgs 里，只按 userMessage 建 key 会让同一条消息下
       // 两次参数不同的调用互相命中缓存，返回另一次的结果。
       const payload = parseSearchPayload(context.userMessage, this.logger);
@@ -378,22 +378,22 @@ export class AssistantToolService {
           name: toolName,
           data: await this.readService.getRecordsByRange(context),
         };
-      case 'get_today_summary_by_date':
+      case 'get_today_summary':
         return {
           name: toolName,
           data: await this.readService.getTodaySummaryByDate(context),
         };
-      case 'get_report_summary_by_range':
+      case 'get_report_summary':
         return {
           name: toolName,
           data: await this.readService.getReportSummaryByRange(context),
         };
-      case 'get_recent_today_summaries':
+      case 'get_today_summaries':
         return {
           name: toolName,
           data: await this.readService.getRecentTodaySummaries(context),
         };
-      case 'get_recent_report_summaries':
+      case 'get_report_summaries':
         return {
           name: toolName,
           data: await this.readService.getRecentReportSummaries(context),
@@ -408,41 +408,41 @@ export class AssistantToolService {
           name: toolName,
           data: await this.readService.getUserSettings(context),
         };
-      case 'get_current_medicines':
+      case 'get_medicines':
         return {
           name: toolName,
           data: await this.readService.getCurrentMedicines(context),
         };
-      case 'get_sleep_summary_by_range':
+      case 'get_sleep_summary':
         return {
           name: toolName,
           data: await this.readService.getSleepSummaryByRange(context),
         };
-      case 'get_meal_analysis_digest':
+      case 'get_meal_digest':
         return {
           name: toolName,
           data: await this.readService.getMealAnalysisDigest(context),
         };
-      case 'search_cn_medicine_products':
+      case 'search_cn_products':
         return {
           name: toolName,
           data: await this.medicineLookupService.searchCnMedicineProducts(
             context,
           ),
         };
-      case 'get_cn_medicine_detail':
+      case 'get_cn_product_detail':
         return {
           name: toolName,
           data: await this.medicineLookupService.getCnMedicineDetail(context),
         };
-      case 'search_cn_medicine_knowledge':
+      case 'search_cn_knowledge':
         return {
           name: toolName,
           data: await this.knowledgeRetrievalService.searchCnMedicineKnowledge(
             context,
           ),
         };
-      case 'resolve_drugbank_entity':
+      case 'resolve_drugbank':
         return {
           name: toolName,
           data: await this.drugbankEntityResolveService.resolve(context),
@@ -452,37 +452,37 @@ export class AssistantToolService {
           name: toolName,
           data: await this.medicineLookupService.getDrugbankDetail(context),
         };
-      case 'search_drugbank_passages':
+      case 'search_drugbank':
         return {
           name: toolName,
           data: await this.drugbankSearchService.search(context),
         };
-      case 'reason_over_ontology':
+      case 'reason_ontology':
         return {
           name: toolName,
           data: await this.ontologyReasoningService.reasonOverOntology(context),
         };
-      case 'reason_over_rules':
+      case 'reason_rules':
         return {
           name: toolName,
           data: await this.ruleReasoningService.reasonOverRules(context),
         };
-      case 'propose_create_daily_record':
+      case 'create_record_draft':
         return this.proposalService.buildCreateDailyRecordProposal(
           context,
           toolName,
         );
-      case 'propose_update_daily_record':
+      case 'update_record_draft':
         return this.proposalService.buildUpdateDailyRecordProposal(
           context,
           toolName,
         );
-      case 'propose_delete_daily_record':
+      case 'delete_record_draft':
         return this.proposalService.buildDeleteDailyRecordProposal(
           context,
           toolName,
         );
-      case 'propose_update_user_settings':
+      case 'update_settings_draft':
         return this.proposalService.buildUpdateUserSettingsProposal(
           context,
           toolName,

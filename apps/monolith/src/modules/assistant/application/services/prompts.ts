@@ -14,7 +14,7 @@ const BASE_SYSTEM_LINES = [
  * 工具清单是**本轮**的候选集，不是"本产品能做什么"的结论。
  *
  * 缺了这句，模型会把本轮工具缺失说成产品级能力缺失，用户读到的就是"这个助手做不到"。
- * 2026-10-07 生产实测两例：只绑定 `get_current_medicines` 的一轮里模型自称"这次运行里
+ * 2026-10-07 生产实测两例：只绑定 `get_medicines` 的一轮里模型自称"这次运行里
  * 我只有一个工具可用"；另一轮里把没被绑定的 LightRAG 工具说成"本次运行未开放中文说明书
  * 检索工具"——两者都只是那一轮的候选集结果，与产品能力无关。
  *
@@ -95,7 +95,7 @@ export function buildAssistantSystemPrompt(
     'Ontology reasoning returns provenance ids for the assertions behind each row. When you state such a relationship, cite the id it rests on as `[prov: <id>]`, and never cite an id the result does not contain. If the result reports verifiability "uncited", say the rows could not be traced back rather than presenting them as verified.',
 
     // Meal analysis is a projection, not a re-derivation.
-    'Meal energy is always an interval, never a precise value. Prefer `get_meal_analysis_digest` for meal and diet questions and choose its window from what the user asked; never re-derive nutrition from record title or note text, and never treat an `analyzing` record as a finished result.',
+    'Meal energy is always an interval, never a precise value. Prefer `get_meal_digest` for meal and diet questions and choose its window from what the user asked; never re-derive nutrition from record title or note text, and never treat an `analyzing` record as a finished result.',
 
     // Multi-domain turns are expected now that one loop serves all of them.
     'A single turn may need several unrelated tools. Call them in the order the question requires, and keep going until the question is actually answered rather than stopping after the first result.',

@@ -29,7 +29,7 @@ describe('AssistantContextService', () => {
         },
       },
       {
-        name: 'propose_update_daily_record',
+        name: 'update_record_draft',
         data: {
           matchedRecord: {
             id: 'record-1',
@@ -70,7 +70,7 @@ describe('AssistantContextService', () => {
     expect(block).toContain('Server-approved user context tool results:');
     expect(block).toContain('- tool: get_today_records');
     expect(block).toContain('"coverage":{"status":"complete","reason":null}');
-    expect(block).toContain('- tool: propose_update_daily_record');
+    expect(block).toContain('- tool: update_record_draft');
     expect(block).toContain('"target":{"kind":"daily_record"');
     expect(block).toContain(
       '"constraints":["Must be confirmed by you before any write happens."]',

@@ -26,7 +26,7 @@ export class AssistantToolDrugbankEntityResolveService {
 
     if (!query) {
       return buildReadEnvelope({
-        toolName: 'resolve_drugbank_entity',
+        toolName: 'resolve_drugbank',
         query: { query },
         result: { entities: [] },
         coverage: {
@@ -62,7 +62,7 @@ export class AssistantToolDrugbankEntityResolveService {
 
     if (entities.length === 0) {
       return buildReadEnvelope({
-        toolName: 'resolve_drugbank_entity',
+        toolName: 'resolve_drugbank',
         query: { query },
         result: { entities: [] },
         coverage: {
@@ -80,7 +80,7 @@ export class AssistantToolDrugbankEntityResolveService {
     //
     // `contains` 会把原药与它的酯/盐一起带回来：查 "dexamethasone" 得到
     // DB01234 / DB14649（乙酸酯）/ DB19168（棕榈酸酯）。旧实现在 `length > 1` 时直接判
-    // `partial`，于是 `search_drugbank_passages` 的 `resolveSingleDrugbankId` 永远拿不到
+    // `partial`，于是 `search_drugbank` 的 `resolveSingleDrugbankId` 永远拿不到
     // 作用域、段落检索永远返回空 —— 生产实测的"英文也返回零个"就有这一层。
     // 精确同名（或精确 drugbank id）是确定性判据，不算歧义；其余多命中仍然如实报 partial。
     const exact =
@@ -94,7 +94,7 @@ export class AssistantToolDrugbankEntityResolveService {
 
     if (entity == null) {
       return buildReadEnvelope({
-        toolName: 'resolve_drugbank_entity',
+        toolName: 'resolve_drugbank',
         query: { query, matchedBy: ['name', 'searchText'] },
         result: {
           entities: entities.map((candidate) => ({
@@ -119,7 +119,7 @@ export class AssistantToolDrugbankEntityResolveService {
     }
 
     return buildReadEnvelope({
-      toolName: 'resolve_drugbank_entity',
+      toolName: 'resolve_drugbank',
       query: {
         query,
         matchedBy: ['name', 'searchText'],

@@ -21,6 +21,7 @@
  */
 import { z } from 'zod';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
+import type { McpToolName } from '../../domain/mcp/exposure.js';
 import type { ToolLimitBudgets } from '../acl/tools/shared/tool-definitions.js';
 import { buildToolDefinitions } from '../acl/tools/shared/tool-definitions.js';
 
@@ -108,40 +109,88 @@ function toZod(schema: JsonSchemaNode): z.ZodType {
   }
 }
 
-/** An MCP-ready tool: exported name, internal name, description, zod schema. */
+/** An MCP-ready tool: name, description, zod schema, annotations. */
 export interface McpToolDescriptor {
-  /** The name exposed over the wire (`lucent__<raw>`). */
-  exportedName: string;
-  /** The internal name used with the executor. */
-  rawName: ToolName;
+  /** The tool name as it goes on the wire. */
+  name: ToolName;
   description: string;
   inputSchema: z.ZodType;
+  /**
+   * MCP annotations.
+   *
+   * `title` / `readOnlyHint` / `destructiveHint` are what a host uses to decide
+   * whether a call needs a confirmation prompt, so they are part of the
+   * definition rather than an optional nicety.
+   */
+  annotations: McpToolAnnotations;
+}
+
+/** The annotations this server sets. All exposed tools are read-only lookups. */
+export interface McpToolAnnotations {
+  /** Human-facing label for a host's tool list. */
+  title: string;
+  readOnlyHint: boolean;
+  destructiveHint: boolean;
+  idempotentHint: boolean;
+  openWorldHint: boolean;
 }
 
 /**
- * Builds the descriptors for the given internal tool names.
+ * Builds the descriptors for the given tool names.
  *
  * Callers pass `domain/mcp/exposure.ts`'s `MCP_TOOL_NAMES`, so the *set* of
  * exposed tools stays a domain decision while the *shapes* come from the single
  * existing definition source.
  */
 export function buildMcpToolDescriptors(options: {
-  rawNames: readonly ToolName[];
+  toolNames: readonly ToolName[];
   budgets: ToolLimitBudgets;
-  exportedNameOf: (rawName: string) => string;
 }): McpToolDescriptor[] {
-  const definitions = buildToolDefinitions(options.rawNames, options.budgets);
+  const definitions = buildToolDefinitions(options.toolNames, options.budgets);
 
   return definitions.map((definition) => {
-    const rawName = definition.function.name as ToolName;
+    const name = definition.function.name as ToolName;
     const parameters = definition.function.parameters as JsonSchemaNode;
     // Every tool declares an object schema, including the no-argument ones
     // (`{ type: 'object', properties: {} }`), so this cast is total.
     return {
-      exportedName: options.exportedNameOf(rawName),
-      rawName,
+      name,
       description: definition.function.description,
       inputSchema: toZod(parameters),
+      annotations: buildAnnotations(name as McpToolName),
     };
   });
+}
+
+/** Human-readable titles for the exposed tools. */
+const TOOL_TITLES: Record<McpToolName, string> = {
+  search_cn_products: 'Search Chinese medicine products',
+  get_cn_product_detail: 'Get Chinese medicine product detail',
+  search_cn_knowledge: 'Search Chinese medicine knowledge',
+  resolve_drugbank: 'Resolve DrugBank entity',
+  get_drugbank_detail: 'Get DrugBank drug detail',
+  search_drugbank: 'Search DrugBank passages',
+  reason_ontology: 'Reason over DrugBank graph',
+  reason_rules: 'Derive facts from DrugBank graph',
+};
+
+/**
+ * Annotations for one exposed tool.
+ *
+ * Every tool here is a read-only lookup: it reads a catalogue, a vector index or
+ * a graph and returns evidence. None of them writes, and all are safe to retry,
+ * which is what the hints say. The one nuance is `openWorldHint` —
+ * `reason_ontology` and `reason_rules` answer from a graph that only mirrors its
+ * upstream source, so a zero-row answer is a statement about coverage rather
+ * than about the world; that is still an open-world "we do not know" answer, so
+ * the hint stays true.
+ */
+function buildAnnotations(name: McpToolName): McpToolAnnotations {
+  return {
+    title: TOOL_TITLES[name],
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  };
 }

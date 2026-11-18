@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MCP_SERVER_NAME,
-  MCP_TOOL_NAMES,
-  mcpToolName,
-  parseMcpToolName,
-} from './exposure.js';
-import { TOOL_REQUIRED_SOURCES } from '../policies/tool-permission.js';
+import { MCP_TOOL_NAMES, isMcpToolName } from './exposure.js';
+import { TOOL_NAMES, TOOL_REQUIRED_SOURCES } from '../policies/tool-permission.js';
 
 describe('MCP exposure', () => {
   it('exposes only tools that read no user data', () => {
@@ -19,70 +14,58 @@ describe('MCP exposure', () => {
   });
 
   it('never exposes write proposals', () => {
-    // A proposal only means something inside a conversation with a confirm
-    // endpoint. Over MCP the draft would have nowhere to be confirmed, so
-    // exporting one splits a state machine in half.
+    // A draft only means something inside a conversation with a confirm
+    // endpoint. Over MCP it would have nowhere to be confirmed, so exporting one
+    // splits a state machine in half.
     for (const tool of MCP_TOOL_NAMES) {
-      expect(tool.startsWith('propose_')).toBe(false);
+      expect(tool).not.toMatch(/_draft$/);
     }
   });
 
   it('exposes the whole knowledge-retrieval group', () => {
     expect([...MCP_TOOL_NAMES].sort()).toEqual(
       [
-        'get_cn_medicine_detail',
+        'get_cn_product_detail',
         'get_drugbank_detail',
-        'reason_over_ontology',
-        'reason_over_rules',
-        'resolve_drugbank_entity',
-        'search_cn_medicine_knowledge',
-        'search_cn_medicine_products',
-        'search_drugbank_passages',
+        'reason_ontology',
+        'reason_rules',
+        'resolve_drugbank',
+        'search_cn_knowledge',
+        'search_cn_products',
+        'search_drugbank',
       ].sort(),
     );
   });
 
-  it('mints a name that only depends on the server and raw name', () => {
-    // Session history, client caches and permission rules key on this string, so
-    // it must be a pure function — no version, no counter, no remote-advertised
-    // name involved.
-    expect(mcpToolName('get_drugbank_detail')).toBe(
-      `${MCP_SERVER_NAME}__get_drugbank_detail`,
-    );
-    expect(mcpToolName('get_drugbank_detail')).toBe(
-      mcpToolName('get_drugbank_detail'),
-    );
-  });
-
-  it('uses only characters the spec allows in a tool name', () => {
+  it('uses the tool names verbatim, with no added namespace', () => {
+    // Conflict resolution between servers belongs to the *client*: a proxy that
+    // mounts several servers adds the namespace, precisely so that no server can
+    // claim one. A server that prefixes its own names ends up double-prefixed on
+    // any client that namespaces, and invents a scheme a reader could mistake
+    // for a protocol requirement.
     for (const tool of MCP_TOOL_NAMES) {
-      expect(mcpToolName(tool)).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(tool).not.toContain('__');
+      expect(TOOL_NAMES).toContain(tool);
     }
   });
 
-  it('round-trips every exposed name', () => {
+  it('keeps every name within the character set and length the spec allows', () => {
+    // `[A-Za-z0-9_-]`, and hosts commonly cap far below the protocol's own limit.
     for (const tool of MCP_TOOL_NAMES) {
-      expect(parseMcpToolName(mcpToolName(tool))).toBe(tool);
+      expect(tool).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(tool.length).toBeLessThanOrEqual(32);
     }
   });
 
-  it('rejects names it did not mint', () => {
-    expect(parseMcpToolName('other__search_cn_medicine_knowledge')).toBeNull();
-    expect(
-      parseMcpToolName('mcp__lucent__search_cn_medicine_knowledge'),
-    ).toBeNull();
-    expect(parseMcpToolName('get_today_records')).toBeNull();
-  });
+  it('narrows an arbitrary string to an exposed tool name', () => {
+    expect(isMcpToolName('search_cn_knowledge')).toBe(true);
 
-  it('rejects a prefixed name for a tool that is not exported', () => {
-    // The prefix alone must not grant access: `get_today_records` exists as a
-    // tool but is deliberately not exported, and a caller could try to smuggle
-    // it in by prefixing it themselves.
-    expect(
-      parseMcpToolName(`${MCP_SERVER_NAME}__get_today_records`),
-    ).toBeNull();
-    expect(
-      parseMcpToolName(`${MCP_SERVER_NAME}__propose_create_daily_record`),
-    ).toBeNull();
+    // A tool that exists but is not exported must not be reachable.
+    expect(isMcpToolName('get_today_records')).toBe(false);
+    expect(isMcpToolName('create_record_draft')).toBe(false);
+
+    // Nor may a caller smuggle one in by decorating the name.
+    expect(isMcpToolName('lucent__search_cn_knowledge')).toBe(false);
+    expect(isMcpToolName('search_cn_knowledge__lucent')).toBe(false);
   });
 });

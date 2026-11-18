@@ -23,12 +23,12 @@ import {
 } from '../../../../application/ports/semantica.types.js';
 
 /** 该工具在参数边界拒绝非法入参的统一前缀。 */
-const INVALID_ARGUMENT_PREFIX = 'Invalid reason_over_rules arguments';
+const INVALID_ARGUMENT_PREFIX = 'Invalid reason_rules arguments';
 
 /**
  * 进 envelope 的结论条数上限。
  *
- * 比 `reason_over_ontology` 的 25 行更小，理由不是"结论更贵"而是**结论更危险**：
+ * 比 `reason_ontology` 的 25 行更小，理由不是"结论更贵"而是**结论更危险**：
  * 一条推导结论看起来就像一条断言，20 条并列陈列时读者会把它当成 20 条事实。
  * 上限压小，配合每条都带 `ruleId` 与前提引用，让"这是推出来的"这件事在体量上
  * 就说得通。
@@ -76,11 +76,11 @@ const SCOPE_REJECTION_PREFIX =
   'The reasoning request was refused because of its scope, not because of a service failure: ';
 
 /**
- * 英文侧规则推理工具：`reason_over_rules`（计划 R3）。
+ * 英文侧规则推理工具：`reason_rules`（计划 R3）。
  *
- * 与 `reason_over_ontology` 的分工是**断言与推导的分别**，不是"另一个端点"：
- * - `reason_over_ontology` 读图上**写了**的边（"谁抑制了这个酶"）。
- * - `reason_over_rules` 按规则**推出**图上没写的边（"A 抑制的酶恰好是 B 的
+ * 与 `reason_ontology` 的分工是**断言与推导的分别**，不是"另一个端点"：
+ * - `reason_ontology` 读图上**写了**的边（"谁抑制了这个酶"）。
+ * - `reason_rules` 按规则**推出**图上没写的边（"A 抑制的酶恰好是 B 的
  *   代谢酶，所以 A 可能影响 B"）。后者的依据不在任何一个三元组里，而在两个
  *   三元组的**连接**上。
  *
@@ -358,7 +358,7 @@ export class AssistantToolRuleReasoningService {
     verifiability: string;
   }): AssistantReadResultEnvelope {
     return buildReadEnvelope({
-      toolName: 'reason_over_rules',
+      toolName: 'reason_rules',
       query: {
         intent: input.intent,
         query: input.query,
@@ -371,7 +371,7 @@ export class AssistantToolRuleReasoningService {
       },
       result: input.result,
       coverage: input.coverage,
-      // 推理没有时间轴，与 `reason_over_ontology` 一样显式给 null 而不是省略：
+      // 推理没有时间轴，与 `reason_ontology` 一样显式给 null 而不是省略：
       // 省略会让下游把"不适用"与"忘了填"混起来。
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
       confidence: input.confidence,

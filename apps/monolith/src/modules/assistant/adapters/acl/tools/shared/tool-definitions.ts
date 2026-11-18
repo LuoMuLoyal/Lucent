@@ -70,7 +70,7 @@ const noParams = {
  * Tool schemas for the rare tools that take real arguments.
  *
  * Most tools derive everything they need from the conversation context, so they
- * advertise an empty parameter object. `get_meal_analysis_digest` is the first
+ * advertise an empty parameter object. `get_meal_digest` is the first
  * tool whose window is a genuine model decision (`days` / `limit`): the model
  * translates "看看最近两周的饮食" into numbers instead of the server guessing at
  * `userMessage` text. The declared maxima are the same values the server
@@ -239,7 +239,7 @@ const DRUGBANK_PASSAGE_PARAMETERS = {
     drugbankId: {
       type: 'string',
       description:
-        'DrugBank id to scope the search to (e.g. "DB01050"). Prefer this after resolve_drugbank_entity returned exactly one entity, or to disambiguate several matches.',
+        'DrugBank id to scope the search to (e.g. "DB01050"). Prefer this after resolve_drugbank returned exactly one entity, or to disambiguate several matches.',
     },
     drugName: {
       type: 'string',
@@ -262,12 +262,12 @@ function buildToolParameters(
   budgets: ToolLimitBudgets,
 ): Partial<Record<ToolName, Record<string, unknown>>> {
   return {
-    get_meal_analysis_digest: MEAL_DIGEST_PARAMETERS,
-    search_cn_medicine_knowledge: buildCnMedicineKnowledgeParameters(budgets),
-    resolve_drugbank_entity: DRUGBANK_ENTITY_PARAMETERS,
-    search_drugbank_passages: DRUGBANK_PASSAGE_PARAMETERS,
-    reason_over_ontology: buildOntologyReasoningParameters(budgets),
-    reason_over_rules: buildRuleReasoningParameters(budgets),
+    get_meal_digest: MEAL_DIGEST_PARAMETERS,
+    search_cn_knowledge: buildCnMedicineKnowledgeParameters(budgets),
+    resolve_drugbank: DRUGBANK_ENTITY_PARAMETERS,
+    search_drugbank: DRUGBANK_PASSAGE_PARAMETERS,
+    reason_ontology: buildOntologyReasoningParameters(budgets),
+    reason_rules: buildRuleReasoningParameters(budgets),
   };
 }
 

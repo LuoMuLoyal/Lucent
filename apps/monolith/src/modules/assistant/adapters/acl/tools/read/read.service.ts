@@ -184,7 +184,7 @@ export class AssistantToolReadService {
         dateResolution.date,
       );
     return buildReadEnvelope({
-      toolName: 'get_today_summary_by_date',
+      toolName: 'get_today_summary',
       query: {
         date: dateResolution.date,
         matchedBy: dateResolution.matchedBy,
@@ -232,7 +232,7 @@ export class AssistantToolReadService {
       );
     const ambiguities = rangeKey != null ? [] : range.ambiguities;
     return buildReadEnvelope({
-      toolName: 'get_report_summary_by_range',
+      toolName: 'get_report_summary',
       query: {
         rangeKey,
         startDate: rangeKey == null ? range.startDate : null,
@@ -275,7 +275,7 @@ export class AssistantToolReadService {
         DEFAULT_HISTORY_LIMIT,
       );
     return buildReadEnvelope({
-      toolName: 'get_recent_today_summaries',
+      toolName: 'get_today_summaries',
       query: { limit: DEFAULT_HISTORY_LIMIT },
       result: { summaries, total: summaries.length },
       coverage:
@@ -304,7 +304,7 @@ export class AssistantToolReadService {
         DEFAULT_HISTORY_LIMIT,
       );
     return buildReadEnvelope({
-      toolName: 'get_recent_report_summaries',
+      toolName: 'get_report_summaries',
       query: { limit: DEFAULT_HISTORY_LIMIT },
       result: { summaries, total: summaries.length },
       coverage:
@@ -422,7 +422,7 @@ export class AssistantToolReadService {
         (value) => value,
         (failure) => {
           this.logger.warn(
-            `get_current_medicines health context read failed (${failure.code}); degrading to empty medicine list.`,
+            `get_medicines health context read failed (${failure.code}); degrading to empty medicine list.`,
           );
           return null;
         },
@@ -453,7 +453,7 @@ export class AssistantToolReadService {
         note: item.note,
       }));
     return buildReadEnvelope({
-      toolName: 'get_current_medicines',
+      toolName: 'get_medicines',
       query: { scope: 'current_only' },
       result: { medicines, total: medicines.length },
       coverage:
@@ -522,7 +522,7 @@ export class AssistantToolReadService {
       .map((entry) => mapSleepQuality(entry.quality))
       .filter((value): value is number => value != null);
     return buildReadEnvelope({
-      toolName: 'get_sleep_summary_by_range',
+      toolName: 'get_sleep_summary',
       query: {
         startDate: range.startDate,
         endDate: range.endDate,
@@ -610,7 +610,7 @@ export class AssistantToolReadService {
 
     const hasMeals = digest.meals.length > 0;
     return buildReadEnvelope({
-      toolName: 'get_meal_analysis_digest',
+      toolName: 'get_meal_digest',
       query: {
         days: digest.windowDays,
         limit: digest.limit,

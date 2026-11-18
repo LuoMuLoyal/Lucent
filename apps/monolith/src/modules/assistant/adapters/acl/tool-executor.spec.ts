@@ -131,7 +131,7 @@ describe('AssistantToolService', () => {
         coverage: { status: 'empty', reason: 'No query was provided.' },
         timeRange: { timezone: 'UTC', startDate: null, endDate: null },
         source: {
-          tool: 'search_cn_medicine_products',
+          tool: 'search_cn_products',
           generatedAt: new Date().toISOString(),
           tables: ['cn_medicine_products'],
         },
@@ -144,7 +144,7 @@ describe('AssistantToolService', () => {
         coverage: { status: 'empty', reason: 'No product query was provided.' },
         timeRange: { timezone: 'UTC', startDate: null, endDate: null },
         source: {
-          tool: 'get_cn_medicine_detail',
+          tool: 'get_cn_product_detail',
           generatedAt: new Date().toISOString(),
           tables: ['cn_medicine_products'],
         },
@@ -189,7 +189,7 @@ describe('AssistantToolService', () => {
         },
         timeRange: { timezone: 'UTC', startDate: null, endDate: null },
         source: {
-          tool: 'search_cn_medicine_knowledge',
+          tool: 'search_cn_knowledge',
           generatedAt: new Date().toISOString(),
           tables: [],
         },
@@ -242,12 +242,12 @@ describe('AssistantToolService', () => {
       service.executeMany(
         buildContext(),
         toolCalls(
-          'search_cn_medicine_products',
-          'get_cn_medicine_detail',
+          'search_cn_products',
+          'get_cn_product_detail',
           'get_drugbank_detail',
-          'search_cn_medicine_knowledge',
-          'resolve_drugbank_entity',
-          'search_drugbank_passages',
+          'search_cn_knowledge',
+          'resolve_drugbank',
+          'search_drugbank',
         ),
       ),
     ).resolves.toHaveLength(6);
@@ -287,7 +287,7 @@ describe('AssistantToolService', () => {
     ]);
 
     const results = await service.executeMany(buildContext(), [
-      { name: 'get_meal_analysis_digest', args: { days: 14, limit: 5 } },
+      { name: 'get_meal_digest', args: { days: 14, limit: 5 } },
     ]);
 
     // The model's `days` argument — not the user message text — drives the window.
@@ -298,7 +298,7 @@ describe('AssistantToolService', () => {
       ['meal'],
     );
     expect(results).toHaveLength(1);
-    expect(results[0]?.name).toBe('get_meal_analysis_digest');
+    expect(results[0]?.name).toBe('get_meal_digest');
     expect(results[0]?.data).toMatchObject({
       query: { days: 14, limit: 5, requestedDays: 14, requestedLimit: 5 },
       coverage: { status: 'complete', reason: null },
@@ -325,7 +325,7 @@ describe('AssistantToolService', () => {
   it('serves repeated knowledge queries from the tool cache', async () => {
     const { service, deps } = buildExecutor();
     const cachedResult = {
-      name: 'search_cn_medicine_products',
+      name: 'search_cn_products',
       data: {
         query: {},
         result: { products: [{ id: 'p1' }] },
@@ -337,7 +337,7 @@ describe('AssistantToolService', () => {
 
     const result = await service.executeMany(
       buildContext({ userMessage: '查一下阿司匹林的厂家' }),
-      toolCalls('search_cn_medicine_products'),
+      toolCalls('search_cn_products'),
     );
 
     expect(result).toEqual([cachedResult]);
@@ -361,7 +361,7 @@ describe('AssistantToolService', () => {
 
     const results = await service.executeMany(
       buildContext(),
-      toolCalls('get_today_summary_by_date'),
+      toolCalls('get_today_summary'),
     );
 
     expect(
@@ -369,7 +369,7 @@ describe('AssistantToolService', () => {
     ).toHaveBeenCalledWith('user-1', '2026-06-17');
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({
-      name: 'get_today_summary_by_date',
+      name: 'get_today_summary',
       data: {
         query: {
           date: '2026-06-17',
@@ -396,7 +396,7 @@ describe('AssistantToolService', () => {
           endDate: '2026-06-17',
         },
         source: {
-          tool: 'get_today_summary_by_date',
+          tool: 'get_today_summary',
           tables: ['historical_ai_summary'],
         },
         confidence: {
@@ -452,7 +452,7 @@ describe('AssistantToolService', () => {
         userMessage: '把今天那条 300ml 饮水记录备注改成 课后补水',
         enabledContextSources: ['daily_records'],
       }),
-      toolCalls('propose_update_daily_record'),
+      toolCalls('update_record_draft'),
     );
 
     expect(deps.dailyRecordsService.list).toHaveBeenCalledWith(
@@ -525,7 +525,7 @@ describe('AssistantToolService', () => {
         userMessage: '把今天那条饮水记录改一下',
         enabledContextSources: ['daily_records'],
       }),
-      toolCalls('propose_update_daily_record'),
+      toolCalls('update_record_draft'),
     );
 
     expect(results[0]?.proposedActions).toBeUndefined();
@@ -567,7 +567,7 @@ describe('AssistantToolService', () => {
         userMessage: 'I drank 300ml water today',
         enabledContextSources: ['daily_records'],
       }),
-      toolCalls('propose_create_daily_record'),
+      toolCalls('create_record_draft'),
     );
 
     expect(deps.dailyRecordCandidatesService.generate).toHaveBeenCalledWith(
@@ -614,7 +614,7 @@ describe('AssistantToolService', () => {
 
     const pending = service.executeMany(
       buildContext(),
-      toolCalls('get_today_summary_by_date'),
+      toolCalls('get_today_summary'),
     );
 
     await vi.advanceTimersByTimeAsync(TOOL_EXECUTION_TIMEOUT_MS);
@@ -622,7 +622,7 @@ describe('AssistantToolService', () => {
 
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({
-      name: 'get_today_summary_by_date',
+      name: 'get_today_summary',
       timeout: true,
       data: {
         timeout: true,
@@ -644,7 +644,7 @@ describe('AssistantToolService', () => {
 
     const pending = service.executeMany(
       buildContext(),
-      toolCalls('get_today_summary_by_date'),
+      toolCalls('get_today_summary'),
     );
 
     // 5s 就到点；若仍按代码基线 20s，这一步拿到的是挂起的 promise。
@@ -652,7 +652,7 @@ describe('AssistantToolService', () => {
     const results = await pending;
 
     expect(results[0]).toMatchObject({
-      name: 'get_today_summary_by_date',
+      name: 'get_today_summary',
       timeout: true,
     });
   });
@@ -672,7 +672,7 @@ describe('AssistantToolService', () => {
 
     const pending = service.executeMany(
       buildContext(),
-      toolCalls('get_today_summary_by_date'),
+      toolCalls('get_today_summary'),
     );
     await vi.advanceTimersByTimeAsync(TOOL_EXECUTION_TIMEOUT_MS);
     await pending;
@@ -685,7 +685,7 @@ describe('AssistantToolService', () => {
       warnSpy.mock.calls.some(
         ([message]) =>
           typeof message === 'string' &&
-          /Tool "get_today_summary_by_date" failed after timeout/.test(message),
+          /Tool "get_today_summary" failed after timeout/.test(message),
       ),
     ).toBe(true);
     expect(
@@ -704,7 +704,7 @@ describe('AssistantToolService', () => {
 
     const results = await service.executeMany(
       buildContext({ userMessage: '查一下阿司匹林的厂家' }),
-      toolCalls('search_cn_medicine_products'),
+      toolCalls('search_cn_products'),
     );
 
     expect(results).toHaveLength(1);
@@ -725,11 +725,11 @@ describe('AssistantToolService', () => {
 
     const results = await service.executeMany(
       buildContext({ userMessage: '查一下阿司匹林的厂家' }),
-      toolCalls('search_cn_medicine_products'),
+      toolCalls('search_cn_products'),
     );
 
     expect(results).toHaveLength(1);
-    expect(results[0]?.name).toBe('search_cn_medicine_products');
+    expect(results[0]?.name).toBe('search_cn_products');
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Assistant tool cache set failed'),
     );
@@ -755,7 +755,7 @@ describe('AssistantToolService', () => {
 
     const pending = service.executeMany(
       buildContext(),
-      toolCalls('get_today_summary_by_date', 'get_today_records'),
+      toolCalls('get_today_summary', 'get_today_records'),
     );
 
     // Both read tools must already be running while the summary tool is still
@@ -769,7 +769,7 @@ describe('AssistantToolService', () => {
     const results = await pending;
 
     expect(results.map((result) => result.name)).toEqual([
-      'get_today_summary_by_date',
+      'get_today_summary',
       'get_today_records',
     ]);
   });
@@ -788,7 +788,7 @@ describe('AssistantToolService', () => {
 
     const pending = service.executeMany(
       buildContext({ userMessage: '把今天那条记录改一下' }),
-      toolCalls('propose_update_daily_record', 'propose_delete_daily_record'),
+      toolCalls('update_record_draft', 'delete_record_draft'),
     );
 
     // The first proposal tool is blocked on the gate; the second must NOT have
@@ -800,8 +800,8 @@ describe('AssistantToolService', () => {
     const results = await pending;
 
     expect(results.map((result) => result.name)).toEqual([
-      'propose_update_daily_record',
-      'propose_delete_daily_record',
+      'update_record_draft',
+      'delete_record_draft',
     ]);
     expect(listMock).toHaveBeenCalledTimes(2);
   });

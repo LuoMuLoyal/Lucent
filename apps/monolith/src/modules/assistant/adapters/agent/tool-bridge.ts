@@ -60,7 +60,7 @@ function buildParameters(
   budgets: ToolLimitBudgets,
 ): z.ZodType<Record<string, unknown>> | undefined {
   switch (name) {
-    case 'get_meal_analysis_digest':
+    case 'get_meal_digest':
       return z.object({
         days: z
           .number()
@@ -82,7 +82,7 @@ function buildParameters(
           ),
       });
 
-    case 'search_cn_medicine_knowledge':
+    case 'search_cn_knowledge':
       return z.object({
         query: z
           .string()
@@ -110,7 +110,7 @@ function buildParameters(
           ),
       });
 
-    case 'resolve_drugbank_entity':
+    case 'resolve_drugbank':
       return z.object({
         query: z
           .string()
@@ -120,7 +120,7 @@ function buildParameters(
           ),
       });
 
-    case 'search_drugbank_passages':
+    case 'search_drugbank':
       return z.object({
         query: z
           .string()
@@ -132,7 +132,7 @@ function buildParameters(
           .string()
           .optional()
           .describe(
-            'DrugBank id to scope the search to. Prefer this after resolve_drugbank_entity returned exactly one entity.',
+            'DrugBank id to scope the search to. Prefer this after resolve_drugbank returned exactly one entity.',
           ),
         drugName: z
           .string()
@@ -142,7 +142,7 @@ function buildParameters(
           ),
       });
 
-    case 'reason_over_ontology':
+    case 'reason_ontology':
       return z.object({
         question: z
           .string()
@@ -161,7 +161,7 @@ function buildParameters(
           ),
       });
 
-    case 'reason_over_rules':
+    case 'reason_rules':
       return z.object({
         intent: z
           .string()

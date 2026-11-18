@@ -132,7 +132,7 @@ export class AssistantToolDrugbankSearchService {
     }));
 
     return buildReadEnvelope({
-      toolName: 'search_drugbank_passages',
+      toolName: 'search_drugbank',
       query: {
         query,
         resolvedDrugbankId,
@@ -209,7 +209,7 @@ export class AssistantToolDrugbankSearchService {
   ): AssistantReadResultEnvelope {
     const resolvedDrugbankId = options.resolvedDrugbankId ?? null;
     return buildReadEnvelope({
-      toolName: 'search_drugbank_passages',
+      toolName: 'search_drugbank',
       query: {
         resolvedDrugbankId,
       },

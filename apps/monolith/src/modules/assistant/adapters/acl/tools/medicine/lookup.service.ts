@@ -32,7 +32,7 @@ export class AssistantToolMedicineLookupService {
 
     if (!query) {
       return buildReadEnvelope({
-        toolName: 'search_cn_medicine_products',
+        toolName: 'search_cn_products',
         query: { query, matchedSource: 'cn' },
         result: { products: [], pagination: null },
         coverage: { status: 'empty', reason: 'No query was provided.' },
@@ -52,7 +52,7 @@ export class AssistantToolMedicineLookupService {
 
     if (search.items.length === 0) {
       return buildReadEnvelope({
-        toolName: 'search_cn_medicine_products',
+        toolName: 'search_cn_products',
         query: { query, matchedSource: 'cn', limit },
         result: {
           products: [],
@@ -73,7 +73,7 @@ export class AssistantToolMedicineLookupService {
     }
 
     return buildReadEnvelope({
-      toolName: 'search_cn_medicine_products',
+      toolName: 'search_cn_products',
       query: {
         query,
         matchedSource: 'cn',
@@ -108,7 +108,7 @@ export class AssistantToolMedicineLookupService {
 
     if (!query) {
       return buildReadEnvelope({
-        toolName: 'get_cn_medicine_detail',
+        toolName: 'get_cn_product_detail',
         query: { query, matchedSource: 'cn' },
         result: { product: null, candidates: [] },
         coverage: {
@@ -130,7 +130,7 @@ export class AssistantToolMedicineLookupService {
 
     if (search.items.length === 0) {
       return buildReadEnvelope({
-        toolName: 'get_cn_medicine_detail',
+        toolName: 'get_cn_product_detail',
         query: { query, matchedSource: 'cn' },
         result: { product: null, candidates: [] },
         coverage: {
@@ -149,7 +149,7 @@ export class AssistantToolMedicineLookupService {
 
     if (search.items.length > 1) {
       return buildReadEnvelope({
-        toolName: 'get_cn_medicine_detail',
+        toolName: 'get_cn_product_detail',
         query: {
           query,
           matchedSource: 'cn',
@@ -177,7 +177,7 @@ export class AssistantToolMedicineLookupService {
     const product = search.items[0];
     if (product == null) {
       return buildReadEnvelope({
-        toolName: 'get_cn_medicine_detail',
+        toolName: 'get_cn_product_detail',
         query: { query, matchedSource: 'cn' },
         result: { product: null, candidates: [] },
         coverage: { status: 'empty', reason: 'No product resolved.' },
@@ -205,7 +205,7 @@ export class AssistantToolMedicineLookupService {
 
     if (!detail) {
       return buildReadEnvelope({
-        toolName: 'get_cn_medicine_detail',
+        toolName: 'get_cn_product_detail',
         query: { query, matchedSource: 'cn', productId },
         result: { product: null, candidates: [] },
         coverage: {
@@ -223,7 +223,7 @@ export class AssistantToolMedicineLookupService {
     }
 
     return buildReadEnvelope({
-      toolName: 'get_cn_medicine_detail',
+      toolName: 'get_cn_product_detail',
       query: {
         query,
         matchedSource: 'cn',

@@ -155,7 +155,7 @@ describe('AssistantToolReadService', () => {
 
       const result = await service.getTodaySummaryByDate(mockContext);
 
-      expect(result.source.tool).toBe('get_today_summary_by_date');
+      expect(result.source.tool).toBe('get_today_summary');
       expect(result.result).toHaveProperty('found', true);
       expect(result.coverage.status).toBe('complete');
     });
@@ -194,7 +194,7 @@ describe('AssistantToolReadService', () => {
         userMessage: '最近7天的报告摘要',
       });
 
-      expect(result.source.tool).toBe('get_report_summary_by_range');
+      expect(result.source.tool).toBe('get_report_summary');
       expect(result.result).toHaveProperty('found', true);
     });
 
@@ -226,7 +226,7 @@ describe('AssistantToolReadService', () => {
 
       const result = await service.getRecentTodaySummaries(mockContext);
 
-      expect(result.source.tool).toBe('get_recent_today_summaries');
+      expect(result.source.tool).toBe('get_today_summaries');
       expect(result.result).toHaveProperty('total', 1);
       expect(result.coverage.status).toBe('complete');
     });
@@ -246,7 +246,7 @@ describe('AssistantToolReadService', () => {
 
       const result = await service.getRecentReportSummaries(mockContext);
 
-      expect(result.source.tool).toBe('get_recent_report_summaries');
+      expect(result.source.tool).toBe('get_report_summaries');
       expect(result.coverage.status).toBe('empty');
     });
   });
@@ -342,7 +342,7 @@ describe('AssistantToolReadService', () => {
 
       const result = await service.getCurrentMedicines(mockContext);
 
-      expect(result.source.tool).toBe('get_current_medicines');
+      expect(result.source.tool).toBe('get_medicines');
       const res = result.result as { medicines: unknown[]; total: number };
       expect(res.medicines).toHaveLength(1);
       expect(res.total).toBe(1);
@@ -381,7 +381,7 @@ describe('AssistantToolReadService', () => {
         userMessage: '最近3天的睡眠',
       });
 
-      expect(result.source.tool).toBe('get_sleep_summary_by_range');
+      expect(result.source.tool).toBe('get_sleep_summary');
       expect(result.result).toHaveProperty('entries');
     });
 
@@ -446,7 +446,7 @@ describe('AssistantToolReadService', () => {
         'user-1',
         { days: 7, limit: 20 },
       );
-      expect(result.source.tool).toBe('get_meal_analysis_digest');
+      expect(result.source.tool).toBe('get_meal_digest');
       expect(result.coverage).toEqual({ status: 'complete', reason: null });
       expect(result.ambiguities).toEqual([]);
       expect(result.timeRange).toMatchObject({
