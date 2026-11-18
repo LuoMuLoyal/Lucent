@@ -629,6 +629,14 @@ MCP_API_KEY          # bearer token；未设置时端点无鉴权，启动会 wa
 MCP_ALLOWED_ORIGINS  # 逗号分隔的允许来源（防 DNS rebinding）
 ```
 
+**三个键都是运行时热键**（`retrieval.schema.ts` 的 `booleanField` /
+`stringField`），读取顺序与其它 sidecar 一致：**运行时快照 → env 基线 → 兜底**。
+`MCP_ENABLED` 走快照是必要的——它是开关，改开关不该要重启。
+
+⚠️ **但热更只作用于新会话**：路由在 `onModuleInit` 注册，发布 `false` 之后不再创建
+会话，已注册的 `POST`/`GET` 路由要到重启才消失（中途摘路由会掐断在途的 SSE 流）。
+操作顺序：置 `false` → 排空 → 重启。
+
 路径 `/api/v1/mcp`，**单一端点同时接受 `POST` / `GET` / `DELETE`**（MCP
 Streamable HTTP 要求单端点）。只在 `MCP_ENABLED=true` 时由
 `McpRegistrationService.onModuleInit` 注册路由——关闭是「不存在」，不是
