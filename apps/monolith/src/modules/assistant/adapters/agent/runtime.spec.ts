@@ -1,6 +1,7 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import { InternalServerErrorException } from '@nestjs/common';
 import { MemorySaver } from '@langchain/langgraph';
+import { FakeListChatModel } from '@langchain/core/utils/testing';
 import type { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
 import { okAsync } from '../../../../common/result/index.js';
@@ -1178,6 +1179,116 @@ describe('AssistantRuntimeService', () => {
       await expect(
         service.replayFromCheckpoint(CONVERSATION_ID, 'checkpoint-1', vi.fn()),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('deepagents runtime switch', () => {
+    const READ_TOOLS = [
+      'get_today_records',
+      'get_records_by_range',
+      'search_cn_knowledge',
+    ] as const;
+    const DRAFT_TOOLS = ['get_today_records', 'create_record_draft'] as const;
+
+    function buildService(runtimeValue: unknown) {
+      // FakeListChatModel is a real BaseChatModel subclass with a working
+      // bindTools (returns a streaming RunnableBinding) — both the graph path
+      // and deepagents' `_isChatModelWithBindTools` check accept it. A plain
+      // object mock would fail deepagents' `isBaseChatModel` gate.
+      const mockModel = new FakeListChatModel({
+        responses: ['graph 路径回答'],
+      });
+      const streamSpy = vi.spyOn(mockModel, 'stream');
+      const llmRuntimeService = {
+        hasRoleConfig: vi.fn().mockReturnValue(true),
+        getModelName: vi.fn().mockReturnValue('test-model'),
+        createChatModel: vi.fn().mockReturnValue(mockModel),
+      } as unknown as LlmRuntimeService;
+      const runtimeConfig = {
+        getSnapshot: vi.fn().mockReturnValue({
+          values: { ASSISTANT_AGENT_RUNTIME: runtimeValue },
+        }),
+      };
+      const service = new AssistantRuntimeService(
+        llmRuntimeService,
+        buildLightragClient() as never,
+        buildSemanticaClient() as never,
+        buildMetricsService() as never,
+        new LlmCircuitBreakerService(),
+        buildCacheService() as never,
+        buildCheckpointerService() as never,
+        buildConversationRepository() as never,
+        buildStreamService(llmRuntimeService, buildMetricsService()),
+        runtimeConfig as never,
+      );
+      return { service, llmRuntimeService, streamSpy };
+    }
+
+    it('keeps the graph path when the runtime key is absent or unknown', async () => {
+      // Both the missing snapshot value and a typo'd value must select the
+      // proven path: an operator mistake never activates the experiment.
+      for (const value of [undefined, 'DeepAgents', 'fast']) {
+        const { service, llmRuntimeService } = buildService(value);
+        await service.runConversation(
+          {
+            userId: 'u1',
+            userMessage: '你好',
+            locale: 'zh-CN',
+            allowedTools: [...READ_TOOLS],
+            enabledContextSources: [],
+          },
+          () => Promise.resolve([]),
+        );
+        expect(
+          (llmRuntimeService.createChatModel as ReturnType<typeof vi.fn>).mock
+            .calls.length,
+        ).toBeGreaterThan(0);
+      }
+    });
+
+    it('routes a read-only turn to deepagents when the key is set', async () => {
+      const { service, llmRuntimeService } = buildService('deepagents');
+      const result = await service.runConversation(
+        {
+          userId: 'u1',
+          userMessage: '看看今天的记录',
+          locale: 'zh-CN',
+          allowedTools: [...READ_TOOLS],
+          enabledContextSources: [],
+        },
+        () => Promise.resolve([]),
+      );
+
+      expect(result.streamedContent).toBe(false);
+      expect(result.stopReason).toBe('answered');
+      // The deepagents runner builds its model exactly once per turn.
+      expect(
+        (llmRuntimeService.createChatModel as ReturnType<typeof vi.fn>).mock
+          .calls.length,
+      ).toBe(1);
+    });
+
+    it('keeps proposal turns on the graph even when the key is set', async () => {
+      // `create_record_draft` in the candidate set means the confirm endpoint
+      // may need to resume an interrupt — deepagents has no interrupt here,
+      // so the graph path is unconditional for these turns.
+      const { service, llmRuntimeService } = buildService('deepagents');
+      await service.runConversation(
+        {
+          userId: 'u1',
+          userMessage: '帮我记一笔',
+          locale: 'zh-CN',
+          allowedTools: [...DRAFT_TOOLS],
+          enabledContextSources: [],
+        },
+        () => Promise.resolve([]),
+      );
+
+      // Graph path streams through the model directly.
+      expect(
+        (llmRuntimeService.createChatModel as ReturnType<typeof vi.fn>).mock
+          .calls.length,
+      ).toBeGreaterThan(0);
     });
   });
 });

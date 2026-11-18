@@ -80,6 +80,7 @@ import {
   ASSISTANT_NODE_TIMEOUT_MS,
   buildAssistantRuntimeGraph,
 } from './graph.js';
+import { runDeepAgentTurn } from './deep-agent-runner.js';
 import type { ToolExecutorFn } from './deps.js';
 import type { AssistantRespondCache } from './respond.js';
 
@@ -178,6 +179,42 @@ export class AssistantRuntimeService {
         EnvKey.ASSISTANT_MAX_TOOL_LOOPS
       ] ?? MAX_TOOL_LOOPS
     );
+  }
+
+  /**
+   * Whether this turn runs on the deepagents backend.
+   *
+   * Two gates, both cheap reads:
+   *
+   * 1. The runtime key must say `'deepagents'` (default `'graph'`). Unknown
+   *    values are treated as `'graph'` — an operator typo must select the
+   *    proven path, not the experimental one.
+   * 2. The candidate set must contain no write-draft tool: deepagents'
+   *    `interruptOn` requires its own checkpointer, and this runner
+   *    deliberately mounts none (a second checkpointer would disagree with
+   *    `AssistantCheckpointerService` about the thread's state). Without an
+   *    interrupt there is nothing for the confirm endpoint to resume, so
+   *    proposal turns belong to the graph unconditionally.
+   *
+   * Subagent delegation *inside* the deepagents path is not routed here at
+   * all: per the deepagents design, the model itself decides via `task()`,
+   * reading each subagent's `description`. An external router would only
+   * reintroduce the layer Phase 2 deleted.
+   */
+  private shouldUseDeepAgents(allowedTools: readonly ToolName[]): boolean {
+    const value = this.readAgentRuntimeKey();
+    if (value !== 'deepagents') return false;
+    const hasDraftTools = allowedTools.some((tool) => tool.endsWith('_draft'));
+    return !hasDraftTools;
+  }
+
+  /** Reads and normalises the runtime-backend key. Unknown → 'graph'. */
+  private readAgentRuntimeKey(): 'graph' | 'deepagents' {
+    const raw =
+      this.runtimeConfigService?.getSnapshot().values[
+        EnvKey.ASSISTANT_AGENT_RUNTIME
+      ] ?? 'graph';
+    return raw === 'deepagents' ? 'deepagents' : 'graph';
   }
 
   /**
@@ -286,6 +323,43 @@ export class AssistantRuntimeService {
     // never suspends, matching the degradation matrix.
     const enableHithl = input.conversationId != null && checkpointer != null;
     let streamedContent = false;
+
+    // ── deepagents path ─────────────────────────────────────────────
+    // Hot-switchable per turn. The deepagents runner has no interrupt
+    // mechanism, so turns whose candidate set contains write-draft tools
+    // always stay on the graph: proposals must suspend the thread the
+    // confirm endpoint knows how to resume. Any construction/run failure on
+    // the deepagents path falls back to the graph for this turn — the
+    // proven path absorbs a runtime-swap failure rather than turning it
+    // into a user-facing error.
+    if (this.shouldUseDeepAgents(input.allowedTools)) {
+      try {
+        const runResult = await runDeepAgentTurn({
+          createModel: () =>
+            this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
+          toolNames: input.allowedTools,
+          budgets: this.readToolLimitBudgets(),
+          execute: (calls) => executeTools(calls),
+          systemPrompt: this.resolveAssistantSystemPrompt(input.allowedTools),
+          userMessage: input.userMessage,
+          ...(input.conversationHistory != null
+            ? { conversationHistory: input.conversationHistory }
+            : {}),
+          ...(input.conversationId != null
+            ? { conversationId: input.conversationId }
+            : {}),
+        });
+        this.circuitBreaker.recordSuccess();
+        return runResult;
+      } catch (error) {
+        this.logger.warn(
+          `deepagents turn failed, falling back to the graph runtime: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
     const graph = buildAssistantRuntimeGraph({
       createModel: () =>
         this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
