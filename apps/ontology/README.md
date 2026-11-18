@@ -15,7 +15,7 @@ connection pool, `/health`, `/schema`, `/query`, `/validate`, `/reason`,
 `/rules` and `/provenance`. The graph can also be browsed in semantica's official
 Knowledge Explorer via a scoped export — see
 [Visualization](#visualization). Wired into Lucent (assistant tool
-`reason_over_ontology`); not yet deployed as a container image.
+`reason_ontology`); not yet deployed as a container image.
 See `docs/VERIFICATION.md` for measured results and known gaps.
 
 Two graph-data gaps are handled rather than inherited, and both were measured

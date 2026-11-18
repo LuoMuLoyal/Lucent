@@ -2,10 +2,10 @@
 
 Lucent's assistant reaches DrugBank through three tools:
 
-* ``resolve_drugbank_entity`` — Prisma ``findMany`` with OR'd ``contains``
+* ``resolve_drugbank`` — Prisma ``findMany`` with OR'd ``contains``
   over name / casNumber / unii / searchText, capped at 5 rows.
 * ``get_drugbank_detail`` — one drug row by id.
-* ``search_drugbank_passages`` — vector similarity over
+* ``search_drugbank`` — vector similarity over
   ``drugbank_passage_embeddings``, scoped to one resolved drug id.
 
 This script issues the *same SQL those tools issue* against the dev database,
@@ -33,7 +33,7 @@ from semantica_service.graph.pool import StorePool
 
 SOURCE_DSN = "host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"
 
-# Inputs as the tool contract defines them. `resolve_drugbank_entity` is
+# Inputs as the tool contract defines them. `resolve_drugbank` is
 # described as "Resolve a drug name to a DrugBank entity", and it matches with
 # `contains` against name/casNumber/unii/searchText — so the LLM is expected to
 # pass a bare entity name, which is what the first group below does. Passing a
@@ -129,8 +129,8 @@ def _compare(store: Neo4jGraphStore, conn: Any) -> None:
 
     ok, why = lucent_passages_available(cur)
     print("== Lucent retrieval path availability ==")
-    print(f"  search_drugbank_passages usable: {ok}  ({why})")
-    print("  resolve_drugbank_entity: usable (Prisma over drugbank_drugs)")
+    print(f"  search_drugbank usable: {ok}  ({why})")
+    print("  resolve_drugbank: usable (Prisma over drugbank_drugs)")
     print("  get_drugbank_detail:     usable (single row)")
 
     report: list[dict[str, Any]] = []
@@ -143,7 +143,7 @@ def _compare(store: Neo4jGraphStore, conn: Any) -> None:
         t0 = time.perf_counter()
         entities = lucent_resolve(cur, question)
         rms = (time.perf_counter() - t0) * 1000
-        print(f"\n  [Lucent resolve_drugbank_entity] {len(entities)} 行 / {rms:.0f} ms")
+        print(f"\n  [Lucent resolve_drugbank] {len(entities)} 行 / {rms:.0f} ms")
         for e in entities[:5]:
             print(f"      {e['name']} ({e['drugbank_id']})")
         if not entities:
@@ -158,7 +158,7 @@ def _compare(store: Neo4jGraphStore, conn: Any) -> None:
             if detail:
                 print(f"      mechanism: {detail['mechanism'][:110]!r}")
 
-        print("  [Lucent search_drugbank_passages] -> 不可用（见上）" if not ok else "")
+        print("  [Lucent search_drugbank] -> 不可用（见上）" if not ok else "")
 
         report.append(
             {
@@ -174,7 +174,7 @@ def _compare(store: Neo4jGraphStore, conn: Any) -> None:
 
     print("\n" + "=" * 78)
     print("== 越出工具契约的输入（整句）—— 记录边界，非缺陷 ==")
-    print("resolve_drugbank_entity 的描述是「Resolve a drug name」，用 contains 匹配；")
+    print("resolve_drugbank 的描述是「Resolve a drug name」，用 contains 匹配；")
     print("整句不是它接受的输入。以下仅用于说明边界在哪：")
     for sentence in SENTENCE_INPUTS:
         rows = lucent_resolve(cur, sentence)

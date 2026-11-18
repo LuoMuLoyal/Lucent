@@ -1,6 +1,6 @@
 """Compare OAG typed traversal against the flat retrieval Lucent can do today.
 
-Lucent's DrugBank retrieval is `search_drugbank_passages` (vector similarity
+Lucent's DrugBank retrieval is `search_drugbank` (vector similarity
 over passage chunks, scoped to one resolved drug) plus `get_drugbank_detail`
 (one row). Its embedding table does not exist in this dev database and
 `drugbank_passage_chunks` is empty, so the vector path cannot be run verbatim.
@@ -42,7 +42,7 @@ def flat_search(cur: Any, terms: str, limit: int = 10) -> list[dict[str, Any]]:
 
     This is the strongest non-graph baseline available: it ranks drugs by how
     well their narrative text matches the question's terms. It is the kind of
-    retrieval `search_drugbank_passages` performs, minus the vector.
+    retrieval `search_drugbank` performs, minus the vector.
 
     ``websearch_to_tsquery`` with OR semantics is used deliberately. A plain
     ``plainto_tsquery`` ANDs every term, so a multi-word question containing one

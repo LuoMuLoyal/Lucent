@@ -108,14 +108,14 @@ shares_enzyme(db00091, db00216)  ->  Cyclosporine × Eletriptan
 
 | 工具 | 可用性 |
 | --- | --- |
-| `resolve_drugbank_entity` | 可用（Prisma，`name/casNumber/unii/searchText` 的 `contains`，上限 5 行） |
+| `resolve_drugbank` | 可用（Prisma，`name/casNumber/unii/searchText` 的 `contains`，上限 5 行） |
 | `get_drugbank_detail` | 可用（单行） |
-| `search_drugbank_passages` | **不可用** —— `drugbank_passage_embeddings` 表不存在（0 张） |
+| `search_drugbank` | **不可用** —— `drugbank_passage_embeddings` 表不存在（0 张） |
 
 `drugbank_passage_chunks` 为 0 行。也就是说当前 dev 库上，向量检索这条线**没有数据**，
-`search_drugbank_passages` 只会返回 `not configured` 的空 envelope。
+`search_drugbank` 只会返回 `not configured` 的空 envelope。
 
-`resolve_drugbank_entity` 的输入契约是**裸实体名**（工具描述：*Resolve a drug
+`resolve_drugbank` 的输入契约是**裸实体名**（工具描述：*Resolve a drug
 name*），用 `contains` 匹配。实测按契约输入正常：`Paroxetine` → 1 行、
 `Tramadol` → 1 行。整句输入（`Can Paroxetine and Tramadol be taken together`）
 返回 0 行 —— 这是**输入越界**，不是缺陷；它也说明该工具不做自然语言解析，
@@ -209,7 +209,7 @@ ATC 类的实测结果符合药理：N06A（抗抑郁药）内作用最多的靶
 - **真实 DrugBank 全量**未灌入：本次是 895 药的诱导子图，非全量 19842 药。
 - **英文侧评测集（计划 §8.1 S0）未建**：本次的六个探测是能力探测，
   不是评测集；「是否继续」应由 S0 裁决。
-- **Lucent 侧未接线**：`reason_over_ontology` 工具与四个注册点未做。
+- **Lucent 侧未接线**：`reason_ontology` 工具与四个注册点未做。
 - **向量检索线无法验证**：`drugbank_passage_embeddings` 表不存在，
   §4 的扁平基线是全文检索替代，不是向量对照。
 - **未部署**：sidecar 未进 compose。
