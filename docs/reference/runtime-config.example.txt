@@ -295,6 +295,20 @@ ASSISTANT_MAX_TOOL_LOOPS=8
 # 默认比普通模型调用多 1 秒。
 ASSISTANT_MEMORY_EXTRACTION_TIMEOUT_MS=11000
 
+# MCP 端点（/api/v1/mcp）。把知识检索组暴露为 MCP server，给外部 MCP client 用。
+# 关闭时整个路由不注册——是「不存在」，不是「存在但返回 404」。
+# ⚠️ 开关在 onModuleInit 读取，发布 false 只阻止新会话，已注册的路由要到重启才消失
+#    （中途关路由会掐断在途的 SSE 流）。操作顺序：置 false → 排空 → 重启。
+MCP_ENABLED=false
+
+# bearer token。留空 = 端点无鉴权（启动会 warn）。
+# 生成：openssl rand -base64 32
+MCP_API_KEY=
+
+# 允许调用的 Origin，逗号分隔，用于防 DNS rebinding。
+# 留空 = 不允许任何浏览器调用；不带 Origin 的非浏览器客户端仍然放行。
+MCP_ALLOWED_ORIGINS=
+
 
 ################################################################################
 #  餐食分析 · 僵尸任务清扫
