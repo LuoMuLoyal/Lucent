@@ -145,6 +145,8 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
       useExisting: DailyRecordCandidatesService,
     },
   ],
-  exports: [HistoricalAiSummaryService],
+  // `AssistantToolService` 的导出是给 `McpModule` 的：MCP 执行适配器把调用转发给
+  // 既有 `executeMany`，而那是它唯一的依赖（见 `adapters/mcp/execution.ts`）。
+  exports: [HistoricalAiSummaryService, AssistantToolService],
 })
 export class AssistantModule {}
