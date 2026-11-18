@@ -113,6 +113,53 @@ without any sandboxing, process isolation, or security restrictions」，它自�
 **因此：能读到 `~/.ssh` 或 `env` 的 agent，也能被任何影响其提示词的东西驱动。**
 真正隔离需要每会话一个容器，那是独立改动；本模块不应长出半套「看起来像防护」的围栏。
 
+## MCP 端点（`adapters/mcp/`，`/api/v1/mcp`）
+
+把**知识检索组**暴露为 MCP server，传输是 **Streamable HTTP**（不是已废弃的
+HTTP+SSE，也不做 stdio）。协议实现走官方 SDK，规范依据
+[MCP 2025-06-18 · Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)。
+
+### 为什么不提供 stdio
+
+stdio 由客户端拉起子进程，而工具执行需要 Nest DI（Prisma、Redis、sidecar 客户端、
+指标）。子进程里没有容器，等于把整个依赖图重造一遍；从 HTTP 边界进来，DI 现成。
+
+### 分层
+
+| 层                   | 文件             | 职责                                                      |
+| -------------------- | ---------------- | --------------------------------------------------------- |
+| `domain/mcp/`        | `exposure.ts`    | 导出哪些工具、命名契约。**不 import 框架**                |
+| `application/ports/` | `mcp.ts`         | 执行端口 + 调用方身份                                     |
+| `adapters/mcp/`      | `server.ts`      | 会话表、`StreamableHTTPServerTransport`、Origin、错误映射 |
+|                      | `routes.ts`      | Fastify 路由（`reply.hijack()` 让 transport 接管响应流）  |
+|                      | `tool-schema.ts` | JSON Schema → zod（给 SDK 校验入参）                      |
+|                      | `execution.ts`   | 端口 → 既有 `executeMany` 的薄适配                        |
+|                      | `auth.ts`        | bearer 鉴权（常量时间比较）                               |
+|                      | `mcp.module.ts`  | Nest 装配 + 路由注册（`onModuleInit`）                    |
+
+### 关键契约
+
+- **暴露范围是领域决策，不是过滤器**。手写 8 个知识检索工具，**不**导出用户私有
+  数据（`get_records_*` 等）与写入提案（`propose_*`，离开 confirm 端点会把状态机劈成
+  两半）。`exposure.spec.ts` 断言这些工具的 `requiredSources` 全为空——这是「MCP 只
+  认证服务、不认证带数据的用户」成立的前提。
+- **工具名是 `lucent__<rawName>`**，纯函数：会话历史、权限规则、客户端缓存都挂在
+  这个字符串上。入站调用经 `parseMcpToolName` 反解，前缀存在但工具未导出**仍然拒绝**
+  （否则调用方可以自己拼前缀绕过名单）。
+- **执行必须走既有 `executeMany`**：提案信封、单工具超时、缓存、指标都在里面。
+  第二份执行器必然漂移，漂移的表现是「提案被描述成已执行的写入」。
+- **工具失败回 `isError: true` 的结果**，不是协议错误：规范区分「调用完成且答案是
+  错误」与「协议失败」，客户端能对前者做出反应。
+- **安全三条是强制项**：校验 `Origin`（无 `Origin` 放行，CLI 不发这个头）、只绑
+  回环（部署侧决定）、所有连接鉴权。`MCP_API_KEY` 未设置时启动打 `warn`。
+
+### 测试
+
+`exposure.spec.ts`（导出名单、命名纯函数、越权拒绝）、`tool-schema.spec.ts`
+（区间/必填/枚举校验真的生效）、`auth.spec.ts`（token 比较、未配置时的行为）、
+`server.spec.ts`（**真 Fastify + 真 SDK client 端到端**：tools/list、tools/call、
+参数透传、失败映射、401、403、无 Origin 放行）。
+
 ## Tools（`adapters/acl/tools/`，按域分目录）
 
 `read`（日报记录查询 + today/report/sleep 摘要读取，范围上限 14 天，统一 envelope：

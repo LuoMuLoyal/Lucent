@@ -621,6 +621,40 @@ SEMANTICA_API_KEY    # 与 sidecar 的 API_TOKEN 必须一致；仅 ENABLED=true
 成 `kind: 'unauthorized'` 后呈现的是"推理服务不可用"——一个配置错误被伪装成基础设施故障。
 关闭状态下即便残留了 base URL / key 也不报错。
 
+### MCP 端点 — 把知识检索暴露为外部协议
+
+```text
+MCP_ENABLED          # 默认 false；关闭时整个端点不注册（不是返回 404）
+MCP_API_KEY          # bearer token；未设置时端点无鉴权，启动会 warn
+MCP_ALLOWED_ORIGINS  # 逗号分隔的允许来源（防 DNS rebinding）
+```
+
+路径 `/api/v1/mcp`，**单一端点同时接受 `POST` / `GET` / `DELETE`**（MCP
+Streamable HTTP 要求单端点）。只在 `MCP_ENABLED=true` 时由
+`McpRegistrationService.onModuleInit` 注册路由——关闭是「不存在」，不是
+「存在但拒绝」。
+
+**安全三条是规范强制的，不是可选项**（[MCP 2025-06-18 ·
+Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)）：
+
+1. **`Origin` 必须校验**（`MCP_ALLOWED_ORIGINS`）。缺了它，远端页面可以用 DNS
+   rebinding 驱动本地服务。**不带 `Origin` 的请求放行**——CLI 与其它服务不发这个头，
+   拒绝它们会切断主要用例。
+2. **只绑回环**：监听地址由 Fastify 实例决定，部署侧配置，不默认 `0.0.0.0`。
+3. **所有连接必须鉴权**。`MCP_API_KEY` 未设置时端点开放，启动日志会 `warn` ——
+   静默的无鉴权模式正是内网端点被暴露到公网的方式。
+
+**会话**：`Mcp-Session-Id` 走响应头。无会话 id 的非 `initialize` 请求回 `400`；
+未知会话 id 回 `404`。`DELETE` 终止会话。
+
+**暴露范围是领域决策，不是过滤器**。`domain/mcp/exposure.ts` 手写 8 个知识检索工具，
+**不**导出用户私有数据（`get_records_*` 等，跨进程只会放大越权面）与写入提案
+（`propose_*`，离开 confirm 端点就没有意义）。该文件同时断言这些工具的
+`requiredSources` 全为空——这是「MCP 只认证服务、不认证带数据的用户」成立的前提。
+
+**工具名是 `lucent__<rawName>`**，纯函数，不掺任何运行时值：会话历史、权限规则与
+客户端缓存都挂在这个字符串上。
+
 ### Mem0 sidecar — 跨会话长期记忆
 
 ```text

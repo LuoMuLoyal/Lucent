@@ -239,21 +239,62 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 `propose_create_daily_record` 离开会话与 confirm 端点就没有意义，包成 MCP
 只是把一套状态机切成两半。
 
-### 5.2 实现要点（照搬 DSH）
+### 5.2 传输：只做 Streamable HTTP，不提供 stdio
 
-- 新增 `adapters/mcp/`（不进 `acl/tools/`）：`server.ts`（transport 装配）、
-  `tool-bridge.ts`（映射）、`context.ts`（身份注入）。
-- **命名**：`mcp__<serverName>__<rawName>`，`serverName` 固定 `lucent`。
-  名字是 `(serverName, rawName)` 的**纯函数**，不用任何运行时可变值——
-  会话历史与权限规则挂在这个名字上。
-- **整代替换**：一次 list 原子发布；任一工具注册失败 → 整代回滚，不发布半个集合。
-- **身份**：stdio 走进程 env；streamable-http 走 `Authorization` bearer。
-  **不复用 `SEMANTICA_API_KEY` 那条共享 token**——那条通道本身还挂在
-  `docs/TODO.md` 的「AMQP 链路没有 TLS」隐患里。
+按规范实现，不发明语义。依据 [MCP 2025-06-18 · Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)。
+
+选定 **Streamable HTTP**（不是已废弃的 HTTP+SSE，也不做 stdio）：
+
+- **单一端点**，同时接受 `POST` 与 `GET`（`/api/v1/mcp`）。POST 送消息，GET 开 SSE
+  流接收服务端推送。
+- **规范要求的三条安全项**（本节最容易漏，也是唯一不能用「延迟/难度」换掉的）：
+  1. **必须校验 `Origin`**，防 DNS rebinding；
+  2. 本机运行时**只绑 `127.0.0.1`**；
+  3. 所有连接**必须鉴权**。
+     缺了这三条的 Streamable HTTP 等于给公网开了一个能改服务状态的入口。
+- **会话**：`sessionIdGenerator` 生成会话 id（`Mcp-Session-Id` 响应头）。无会话 id 的
+  非初始化请求按规范回 400；无效会话 id 回 404。
+- **`Accept` 头**：客户端必须同时声明 `application/json` 与 `text/event-stream`；
+  服务端二选一返回。不满足就按规范回 400。
+- **JSON-RPC 通知 / 响应**（非请求）收到即回 `202 Accepted` 且无 body。
+- **协议版本头** `MCP-Protocol-Version` 要处理，缺失时按规范回落。
+
+不做 stdio 的理由：stdio 由客户端拉起子进程，而 Lucent 的工具执行需要 Nest DI
+（Prisma、Redis、sidecar 客户端、指标）。子进程里没有容器，等于把整个依赖图重造一遍；
+Streamable HTTP 从 HTTP 边界进来，DI 现成。
+
+### 5.3 分层（ADR-0024 四层）
+
+MCP 不是「工具的 ACL」，是**对外协议出口**，所以单独一层而不是塞进 `acl/tools/`。
+
+| 层                   | 目录   | 内容                                                                                     |
+| -------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| `domain/mcp/`        | 纯领域 | 暴露哪些工具、命名契约、`requiredSources` 必须为空的约束。**不 import 框架**             |
+| `application/ports/` | 端口   | 复用既有 `ASSISTANT_TOOL_EXECUTOR`；外层调用只需一个 list + 一个 execute                 |
+| `adapters/mcp/`      | 适配器 | `McpServer` 装配、`StreamableHTTPServerTransport`、会话表、Origin 校验、Fastify 路由挂载 |
+| —                    | —      | 不新增 `infrastructure/`：执行器与 sidecar 客户端都已在既有层                            |
+
+依赖方向：`adapters/mcp → application/ports → domain/mcp`。`adapters/mcp` **不得**
+import `infrastructure/**`（`ddd-adapters-no-infrastructure` 会拦）。
+
+### 5.4 实现要点
+
+- **命名**：`lucent__<rawName>`，是 `(serverName, rawName)` 的**纯函数**，
+  不用任何运行时可变值。规范限制工具名字符集为 `[A-Za-z0-9_-]`，`__` 分隔符合法。
+  会话历史与权限规则挂在这个名字上，改了它就断代。
+- **整代替换**：一次 `tools/list` 原子发布；任一工具注册失败 → 整代回滚，
+  不发布半个集合。
+- **身份**：从 `Authorization` 取 bearer。**不复用 `SEMANTICA_API_KEY`**——
+  那条通道本身还挂在 `docs/TODO.md` 的「AMQP 链路没有 TLS」隐患里。
+- **执行必须走既有 `executeMany`**：提案信封、单工具超时、缓存、指标都在里面；
+  写第二份执行器必然漂移，漂移的表现是「提案被描述成已执行的写入」。
+- **`streamable-http` 用 SDK 的 `StreamableHTTPServerTransport`**（`@modelcontextprotocol/sdk@^1.32.2`），
+  不手写 JSON-RPC 帧。Fastify 侧需要 `reply.hijack()` 把 `request.raw` / `reply.raw`
+  交给 transport。
 - **外部 MCP client（地图 / 天气）**：由本进程作为 client 接，它们没有用户数据。
-  走 `@modelcontextprotocol/client`（DSH 同款），工具名同样 `mcp__<server>__<raw>`。
+  工具名同样 `lucent__<raw>` 之外的前缀规则，按各自 serverName 生成。
 
-### 5.3 与 `as const` 穷尽检查的冲突（需 ADR）
+### 5.5 与 `as const` 穷尽检查的冲突（需 ADR）
 
 `TOOL_REQUIRED_SOURCES` 是 `satisfies Record<ToolName, ...>` 穷尽检查，
 新增动态工具会绕过「用户哪些数据可读」这道闸。方案：内置组保持静态穷尽；
@@ -488,15 +529,15 @@ WeKnora 的 `ExtractDelaySeconds` + `ExtractMinIntervalSeconds` +
 
 ## 8. 执行顺序
 
-| #   | Phase  | 内容                                                 | 预估   |
-| --- | ------ | ---------------------------------------------------- | ------ |
-| 0   | —      | **依赖升级（已完成）**                               | —      |
-| 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证       | 0.5 天 |
-| 1   | 1      | **修路由缺陷（已实施，见 §3）**                      | 0.5 天 |
-| 2   | 2      | **删路由层、单循环、提示词收敛（已实施，见 §4）**    | 1–2 天 |
-| 3   | 4      | **deepagents 装配（已实施，见 §6；未接入请求路径）** | 4–6 天 |
-| 4   | 3      | MCP：知识检索组做 server + 地图天气做 client         | 2–3 天 |
-| 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐            | 3–5 天 |
+| #   | Phase  | 内容                                                           | 预估   |
+| --- | ------ | -------------------------------------------------------------- | ------ |
+| 0   | —      | **依赖升级（已完成）**                                         | —      |
+| 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证                 | 0.5 天 |
+| 1   | 1      | **修路由缺陷（已实施，见 §3）**                                | 0.5 天 |
+| 2   | 2      | **删路由层、单循环、提示词收敛（已实施，见 §4）**              | 1–2 天 |
+| 3   | 4      | **deepagents 装配（已实施，见 §6；未接入请求路径）**           | 4–6 天 |
+| 4   | 3      | MCP：知识检索组做 server（Streamable HTTP）+ 地图天气做 client | 2–3 天 |
+| 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐                      | 3–5 天 |
 
 **顺序调整说明**：deepagents 提前到 MCP 之前。理由是 Phase 2 收敛出的单循环
 本就是 deepagents 会替换掉的东西——先接 deepagents，MCP 那一步直接在
