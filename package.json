@@ -53,7 +53,7 @@
     "turbo": "2.11.11"
   },
   "simple-git-hooks": {
-    "pre-commit": "node infra/ci/check-no-js.ts --staged && npx --no-install lint-staged",
+    "pre-commit": "node infra/ci/check-no-js.ts --staged && npx --no-install lint-staged --concurrent false",
     "commit-msg": "npx --no-install commitlint --edit $1",
     "pre-push": "pnpm lint:check && pnpm docs:verify && pnpm docs:links"
   },
