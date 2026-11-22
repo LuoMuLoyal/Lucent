@@ -316,6 +316,18 @@ MCP_API_KEY=
 # 留空 = 不允许任何浏览器调用；不带 Origin 的非浏览器客户端仍然放行。
 MCP_ALLOWED_ORIGINS=
 
+# Mem0 sidecar —— 跨会话长期记忆（抽取 / 召回 / 隐私擦除）。
+# 关闭时记忆块为空、抽取是 no-op，对话不受影响；这是默认值。
+# MEM0_API_KEY 是与 sidecar 的 ADMIN_API_KEY 对齐的密钥，**不进快照**，
+# 只从环境变量读取（与 LIGHTRAG_API_KEY 同一处置）。
+MEM0_ENABLED=false
+
+# sidecar 地址。dev 走宿主映射 http://127.0.0.1:8888；生产走 compose 服务名。
+MEM0_BASE_URL=http://mem0:8000
+
+# 单次记忆读写的超时（毫秒，1000-60000）。读写都在请求路径上。
+MEM0_TIMEOUT_MS=5000
+
 
 ################################################################################
 #  餐食分析 · 僵尸任务清扫

@@ -58,8 +58,7 @@ export type Mem0SearchResult =
 
 /** Discriminated outcome for the privacy erase. */
 export type Mem0DeleteResult =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly reason: string };
+  { readonly ok: true } | { readonly ok: false; readonly reason: string };
 
 /**
  * Resolved per call from the runtime snapshot, so an operator can flip the
@@ -75,6 +74,17 @@ const AUTH_HEADER_NAME = 'X-API-Key';
 
 /** Logged once instead of once per call when the flag is on but the key is not. */
 const MAX_ERROR_BODY_LOG_CHARS = 300;
+
+/**
+ * Normalises the two upstream shapes Mem0 uses for a result list: a bare array
+ * (write path) or `{ results: [...] }` (search path). Both routes read it here
+ * so the body stays `unknown` all the way to one place.
+ */
+function resultRecords(body: unknown): unknown[] {
+  if (Array.isArray(body)) return body;
+  const results = (body as { results?: unknown } | null)?.results;
+  return Array.isArray(results) ? results : [];
+}
 
 @Injectable()
 export class Mem0ClientService {
@@ -155,13 +165,7 @@ export class Mem0ClientService {
     if (!outcome.ok) return outcome;
     // Mem0 returns the affected memory records; an empty array means the
     // extraction decided nothing durable was said — a normal, ok outcome.
-    const body = outcome.body;
-    const records = Array.isArray(body)
-      ? body
-      : Array.isArray((body as { results?: unknown[] } | null)?.results)
-        ? ((body as { results: unknown[] }).results as unknown[])
-        : [];
-    return { ok: true, added: records.length };
+    return { ok: true, added: resultRecords(outcome.body).length };
   }
 
   /**
@@ -176,14 +180,14 @@ export class Mem0ClientService {
       user_id: userId,
     });
     if (!outcome.ok) return outcome;
-    const body = outcome.body;
-    const raw = Array.isArray((body as { results?: unknown[] } | null)?.results)
-      ? ((body as { results: unknown[] }).results as unknown[])
-      : [];
     const hits: Mem0MemoryHit[] = [];
-    for (const item of raw) {
+    for (const item of resultRecords(outcome.body)) {
       if (item == null || typeof item !== 'object') continue;
-      const record = item as { memory?: unknown; score?: unknown; id?: unknown };
+      const record = item as {
+        memory?: unknown;
+        score?: unknown;
+        id?: unknown;
+      };
       if (typeof record.memory !== 'string') continue;
       hits.push({
         id: typeof record.id === 'string' ? record.id : '',
@@ -223,10 +227,9 @@ export class Mem0ClientService {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(
-      () => controller.abort(),
-      settings.timeoutMs,
-    );
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, settings.timeoutMs);
     timer.unref();
 
     try {

@@ -21,6 +21,7 @@ describe('runDeepAgentTurn', () => {
         }),
       toolNames: ['get_today_records'] as const,
       budgets: CODE_TOOL_LIMIT_BUDGETS,
+      // eslint-disable-next-line @typescript-eslint/require-await -- the runner awaits this port; the fake resolves nothing
       execute: async () => [] as AssistantToolExecutionResult[],
       systemPrompt: 'system',
       userMessage: '看看今天的记录',
@@ -92,12 +93,13 @@ describe('runDeepAgentTurn', () => {
         // object; the structural stub is cast because it does not implement
         // the full `Runnable` surface the base signature declares.
         return {
+          // eslint-disable-next-line @typescript-eslint/require-await -- the loop awaits `.stream`; a fake has nothing to await between yields
           stream: async function* () {
             for (const chunk of pick()) {
               yield chunk;
             }
           },
-          invoke: async () => toMessage(pick()),
+          invoke: () => Promise.resolve(toMessage(pick())),
         } as never;
       }
     }
@@ -106,7 +108,7 @@ describe('runDeepAgentTurn', () => {
       name: 'get_today_records',
       data: { coverage: { status: 'complete' }, items: [] },
     };
-    const execute = vi.fn(async () => [envelope]);
+    const execute = vi.fn(() => Promise.resolve([envelope]));
     const toolModel = new ToolCallModel({ responses: ['兜底'] });
     const result = await runDeepAgentTurn({
       createModel: () => toolModel,

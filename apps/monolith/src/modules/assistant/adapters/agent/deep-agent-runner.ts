@@ -53,7 +53,10 @@ export interface DeepAgentRunnerDeps {
   /** The user's message for this turn. */
   userMessage: string;
   /** Prior turns, oldest first, excluding the current message. */
-  conversationHistory?: readonly { role: 'user' | 'assistant'; content: string }[];
+  conversationHistory?: readonly {
+    role: 'user' | 'assistant';
+    content: string;
+  }[];
   conversationId?: string;
 }
 
@@ -68,14 +71,12 @@ function finalContentOf(messages: readonly unknown[]): string | null {
         ? content
         : Array.isArray(content)
           ? content
-              .map(
-                (part) =>
-                  typeof part === 'object' &&
-                  part != null &&
-                  'text' in part &&
-                  typeof part.text === 'string'
-                    ? part.text
-                    : '',
+              .map((part) =>
+                typeof part === 'object' &&
+                'text' in part &&
+                typeof part.text === 'string'
+                  ? part.text
+                  : '',
               )
               .join('')
           : '';
@@ -130,11 +131,7 @@ export async function runDeepAgentTurn(
 
   const messages = output.messages ?? [];
   const finalContent = finalContentOf(messages);
-  const usedTools = [
-    ...new Set(
-      toolResults.map((result) => result.name),
-    ),
-  ];
+  const usedTools = [...new Set(toolResults.map((result) => result.name))];
 
   return {
     toolResults,
