@@ -12,6 +12,15 @@ import type {
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import { READ_TOOL_NAMES } from '../../domain/policies/tool-permission.js';
 import {
+  AMAP_MCP_SERVER_NAME,
+  externalRemoteName,
+  isExternalToolName,
+} from '../../domain/mcp/external-tools.js';
+import {
+  ASSISTANT_EXTERNAL_MCP,
+  type ExternalMcpPort,
+} from '../../application/ports/external-mcp.js';
+import {
   ONTOLOGY_TOOL_EXECUTION_TIMEOUT_MS,
   RETRIEVAL_TOOL_EXECUTION_TIMEOUT_MS,
   TOOL_EXECUTION_TIMEOUT_MS,
@@ -109,6 +118,14 @@ export class AssistantToolService {
     @Optional()
     @Inject(RuntimeConfigService)
     private readonly runtimeConfig?: RuntimeConfigPort,
+    /**
+     * The remote-map client. `@Optional()` because the existing unit tests build
+     * this service without one; when absent, external calls return an
+     * `unavailable` envelope instead of reaching the network.
+     */
+    @Optional()
+    @Inject(ASSISTANT_EXTERNAL_MCP)
+    private readonly amapMcpClient?: ExternalMcpPort,
   ) {}
 
   /**
@@ -146,12 +163,36 @@ export class AssistantToolService {
       AssistantToolExecutionResult | undefined
     >(toolCalls.length);
 
-    const readEntries = toolCalls
+    // External (remote MCP) calls are split off *before* the built-in
+    // partitioning below. They are not `ToolName`s, so they must never reach
+    // `executeUncached`'s exhaustive switch — and they are network calls, which
+    // is a different reliability class from the in-process reads the rest of
+    // this method schedules.
+    const externalEntries = toolCalls
       .map((call, index) => ({ call, index }))
-      .filter(({ call }) => READ_TOOL_NAME_SET.has(call.name));
-    const proposeEntries = toolCalls
+      .filter(({ call }) => isExternalToolName(call.name));
+    if (externalEntries.length > 0) {
+      const executed = await Promise.all(
+        externalEntries.map(async ({ call, index }) => ({
+          index,
+          result: await this.executeExternal(call),
+        })),
+      );
+      for (const { index, result } of executed) {
+        results[index] = result;
+      }
+    }
+
+    const builtInEntries = toolCalls
       .map((call, index) => ({ call, index }))
-      .filter(({ call }) => !READ_TOOL_NAME_SET.has(call.name));
+      .filter(({ call }) => !isExternalToolName(call.name));
+
+    const readEntries = builtInEntries.filter(({ call }) =>
+      READ_TOOL_NAME_SET.has(call.name),
+    );
+    const proposeEntries = builtInEntries.filter(
+      ({ call }) => !READ_TOOL_NAME_SET.has(call.name),
+    );
 
     if (readEntries.length > 0) {
       const executed = await Promise.all(
@@ -177,6 +218,48 @@ export class AssistantToolService {
     }
 
     return results as AssistantToolExecutionResult[];
+  }
+
+  /**
+   * Runs one remote MCP tool.
+   *
+   * The result is an envelope rather than a thrown error in every case: a map
+   * server that is down, misconfigured or slow must read to the model as
+   * "unavailable", never abort the turn. `isError` from the server itself is
+   * different — that is a *tool-level* outcome (unknown city, bad coordinates)
+   * and rides back as ordinary data for the model to react to.
+   */
+  private async executeExternal(
+    call: AssistantToolCall,
+  ): Promise<AssistantToolExecutionResult> {
+    if (this.amapMcpClient == null) {
+      return {
+        name: call.name,
+        data: {
+          unavailable: true,
+          source: AMAP_MCP_SERVER_NAME,
+          reason: 'client_not_configured',
+        },
+      };
+    }
+    const outcome = await this.amapMcpClient.callTool(
+      externalRemoteName(call.name),
+      call.args,
+    );
+    if (!outcome.ok) {
+      return {
+        name: call.name,
+        data: {
+          unavailable: true,
+          source: AMAP_MCP_SERVER_NAME,
+          reason: outcome.reason,
+        },
+      };
+    }
+    return {
+      name: call.name,
+      data: { source: AMAP_MCP_SERVER_NAME, result: outcome.content },
+    };
   }
 
   /**

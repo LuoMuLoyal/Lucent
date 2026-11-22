@@ -63,4 +63,19 @@ export interface AssistantGraphDeps {
   checkpointer?: BaseCheckpointSaver | null;
   /** Persisted conversation id, used as the LangGraph thread id. */
   conversationId?: string;
+  /**
+   * Remote MCP tools to advertise alongside the built-in ones.
+   *
+   * A resolver, not a value: the list is fetched from the remote server and
+   * cached per process, and the graph is built per turn. Returning `[]` (the
+   * disabled / unreachable case) binds nothing extra, which is the same shape
+   * as "no remote server configured".
+   */
+  listExternalTools?: () => Promise<
+    readonly {
+      readonly name: string;
+      readonly description: string;
+      readonly inputSchema: Record<string, unknown>;
+    }[]
+  >;
 }

@@ -291,3 +291,45 @@ export function buildToolDefinitions(
     },
   }));
 }
+
+/**
+ * Appends remote MCP tools to the built-in definitions.
+ *
+ * Kept a separate function rather than an overload of
+ * {@link buildToolDefinitions}: the built-in version is exhaustive over
+ * `TOOL_NAMES` and looks each description up in a compile-time table, while
+ * these carry a runtime-published JSON Schema. Merging the two loops would let
+ * a remote tool silently take the place of a built-in one with the same name —
+ * here the built-ins are already in `definitions`, and a colliding remote name
+ * is dropped rather than replacing it.
+ */
+export function withExternalToolDefinitions(
+  definitions: readonly ToolDefinition[],
+  external: readonly {
+    readonly name: string;
+    readonly description: string;
+    readonly inputSchema: Record<string, unknown>;
+  }[],
+): ToolDefinition[] {
+  if (external.length === 0) return [...definitions];
+
+  const taken = new Set(
+    definitions.map((definition) => definition.function.name),
+  );
+  const merged = [...definitions];
+  for (const tool of external) {
+    if (taken.has(tool.name)) continue;
+    taken.add(tool.name);
+    merged.push({
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        // The remote server owns this schema; forwarding it verbatim keeps one
+        // source of truth for the arguments the model may send.
+        parameters: tool.inputSchema,
+      },
+    });
+  }
+  return merged;
+}

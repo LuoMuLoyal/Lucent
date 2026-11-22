@@ -82,6 +82,12 @@ import {
   buildAssistantRuntimeGraph,
 } from './graph.js';
 import { runDeepAgentTurn } from './deep-agent-runner.js';
+import {
+  AMAP_MCP_SERVER_NAME,
+  describeExternalTools,
+} from '../../domain/mcp/external-tools.js';
+import type { ExternalMcpPort } from '../../application/ports/external-mcp.js';
+import { ASSISTANT_EXTERNAL_MCP } from '../../application/ports/external-mcp.js';
 import { buildAssistantDeepAgent, deepAgentThreadId } from './deep-agent.js';
 import { createProposalReviewMiddleware } from './proposal-review.js';
 import type { DeepAgentPendingReview } from './proposal-review.js';
@@ -136,6 +142,13 @@ export class AssistantRuntimeService {
     /** Global config module; absent only in tests that build this class by hand. */
     @Optional()
     private readonly configService?: ConfigService,
+    /**
+     * Remote map/weather MCP client. `@Optional()` so hand-built test instances
+     * still construct; absent means no external tools are advertised.
+     */
+    @Optional()
+    @Inject(ASSISTANT_EXTERNAL_MCP)
+    private readonly amapMcpClient?: ExternalMcpPort,
   ) {}
 
   /**
@@ -412,6 +425,23 @@ export class AssistantRuntimeService {
       toolBudgets: () => this.readToolLimitBudgets(),
       nodeTimeoutMs: () => this.readNodeTimeoutMs(),
       maxToolLoops: () => this.readMaxToolLoops(),
+      // Remote map/weather tools, when the operator configured them. The list
+      // is empty when the client is disabled or the server is unreachable, so
+      // this never fails a turn — it only adds tools the model may call.
+      ...(this.amapMcpClient != null
+        ? {
+            listExternalTools: async () => {
+              const client = this.amapMcpClient;
+              if (client == null) return [];
+              const remote = await client.listTools();
+              return describeExternalTools(
+                AMAP_MCP_SERVER_NAME,
+                remote,
+                new Set(input.allowedTools),
+              );
+            },
+          }
+        : {}),
       buildSystemPrompt: (toolNames) =>
         this.resolveAssistantSystemPrompt(toolNames),
       ...(input.buildMemoryBlock != null

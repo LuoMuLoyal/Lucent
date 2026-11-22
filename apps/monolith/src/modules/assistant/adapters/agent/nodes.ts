@@ -3,11 +3,13 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import {
   buildToolDefinitions,
+  withExternalToolDefinitions,
   type ToolLimitBudgets,
 } from '../acl/tools/shared/tool-definitions.js';
 import type { AssistantToolExecutionResult } from '../../application/ports/assistant.js';
 import type { AssistantToolCall } from '../../application/ports/assistant.js';
 import type { AssistantRuntimeState } from './state.js';
+import type { AssistantGraphDeps } from './deps.js';
 import { streamModelResponse } from './model-stream.js';
 import { extractMessageText } from './message-text.js';
 
@@ -31,6 +33,11 @@ export function createAgentNode(deps: {
   onText?: (text: string) => void | Promise<void>;
   /** Advertised tool maxima for this turn; code baselines when absent. */
   toolBudgets?: () => ToolLimitBudgets;
+  /**
+   * Remote MCP tools to advertise alongside the built-in ones (see
+   * `AssistantGraphDeps.listExternalTools`). Absent / empty means none.
+   */
+  listExternalTools?: AssistantGraphDeps['listExternalTools'];
 }): RuntimeNode {
   return async (state) => {
     const toolNames = state.allowedTools;
@@ -43,7 +50,13 @@ export function createAgentNode(deps: {
     }
 
     const model = deps.createModel();
-    const toolDefs = buildToolDefinitions(toolNames, deps.toolBudgets?.());
+    const builtInDefs = buildToolDefinitions(toolNames, deps.toolBudgets?.());
+    // Remote tools are appended, never substituted: a colliding name is dropped
+    // by `withExternalToolDefinitions`, so a misconfigured server cannot shadow
+    // a built-in tool the permission table already approved.
+    const externalDefs =
+      deps.listExternalTools != null ? await deps.listExternalTools() : [];
+    const toolDefs = withExternalToolDefinitions(builtInDefs, externalDefs);
     const boundModel = model.bindTools?.(toolDefs);
 
     if (boundModel == null || typeof boundModel.stream !== 'function') {

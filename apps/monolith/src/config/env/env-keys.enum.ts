@@ -261,6 +261,15 @@ export enum EnvKey {
   MCP_ENABLED = 'MCP_ENABLED',
   MCP_API_KEY = 'MCP_API_KEY',
   MCP_ALLOWED_ORIGINS = 'MCP_ALLOWED_ORIGINS',
+  // ── External MCP client (Amap) ────────────────────────────────
+  // Lucent acts as an MCP *client* here: the map/weather tools live in a
+  // remote server, so they need no user data and can be added without
+  // touching `TOOL_REQUIRED_SOURCES`. The key is a secret and stays in .env;
+  // ENABLED / URL / TIMEOUT are hot keys.
+  AMAP_MCP_ENABLED = 'AMAP_MCP_ENABLED',
+  AMAP_MCP_URL = 'AMAP_MCP_URL',
+  AMAP_MCP_TIMEOUT_MS = 'AMAP_MCP_TIMEOUT_MS',
+  AMAP_MCP_KEY = 'AMAP_MCP_KEY',
   // ── Mem0 sidecar (long-term memory) ───────────────────────────────
   // ENABLED / BASE_URL / TIMEOUT_MS are hot keys (runtime schema); API_KEY is a
   // secret and stays in .env only, matching the LightRAG pattern.

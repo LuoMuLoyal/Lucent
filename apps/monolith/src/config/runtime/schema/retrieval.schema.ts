@@ -9,6 +9,8 @@
 
 import { EnvKey } from '../../env/env-keys.enum.js';
 import {
+  AMAP_MCP_DEFAULT_TIMEOUT_MS,
+  AMAP_MCP_DEFAULT_URL,
   LIGHTRAG_DEFAULT_BASE_URL,
   LIGHTRAG_DEFAULT_GRAPH_SOURCES,
   LIGHTRAG_DEFAULT_TIMEOUT_MS,
@@ -182,6 +184,26 @@ export const retrievalRuntimeFields = {
   [EnvKey.MCP_ALLOWED_ORIGINS]: stringField({
     family: 'retrieval',
     defaultValue: '',
+  }),
+
+  // ── Amap external MCP client ──────────────────────────────────────
+  // Lucent is the *client* for these tools. Amap's official server speaks
+  // Streamable HTTP, so this needs no local process and the tools can be added
+  // without touching the tool permission table — they read no user data.
+  // AMAP_MCP_KEY is a secret and deliberately absent from the snapshot.
+  [EnvKey.AMAP_MCP_ENABLED]: booleanField({
+    family: 'retrieval',
+    defaultValue: false,
+  }),
+  [EnvKey.AMAP_MCP_URL]: stringField({
+    family: 'retrieval',
+    defaultValue: AMAP_MCP_DEFAULT_URL,
+  }),
+  [EnvKey.AMAP_MCP_TIMEOUT_MS]: numberField({
+    family: 'retrieval',
+    min: 1_000,
+    max: 60_000,
+    defaultValue: AMAP_MCP_DEFAULT_TIMEOUT_MS,
   }),
 
   // ── Mem0 sidecar (long-term memory) ───────────────────────────────

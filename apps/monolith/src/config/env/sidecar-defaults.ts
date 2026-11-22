@@ -72,3 +72,20 @@ export const MEM0_DEFAULT_BASE_URL = 'http://mem0:8000';
  * from holding a turn; the retrieval tools treat "unconfigured" the same way.
  */
 export const MEM0_DEFAULT_TIMEOUT_MS = 5000;
+
+/**
+ * Amap's official MCP Server endpoint (Streamable HTTP).
+ *
+ * The key travels as the `key` query parameter — this is the vendor's
+ * documented shape, not our design. `AMAP_MCP_KEY` is appended at call time so
+ * the full URL (which contains a secret) never reaches logs or the snapshot.
+ */
+export const AMAP_MCP_DEFAULT_URL = 'https://mcp.amap.com/mcp';
+
+/**
+ * Amap request timeout.
+ *
+ * The map tools are read-only and called one per model turn; 10s covers a
+ * route-planning call while staying below the assistant's per-tool budget.
+ */
+export const AMAP_MCP_DEFAULT_TIMEOUT_MS = 10000;
