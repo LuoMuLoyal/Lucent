@@ -473,11 +473,9 @@ payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `
 
 - runner spec 的 tool-call 收集用例仍触发 deepagents 内部循环的
   `GraphRecursionError`——对照官方 test fixture 修伪造模型的形态，不要逆向源码猜。
-  当前它是全量单测的唯一失败项（4567 passed / 1 failed），且**不在 pre-push 路径上**。
+  当前它是全量单测的唯一失败项，且**不在 pre-push 路径上**。
 - 真实模型端到端（子智能体实际被委派并返回）未验证：需要模型凭据。
 - 灰度放量后观察 tool 轮数与 token 变化，再考虑把默认值切到 `deepagents`。
-- **前端设置开关未做**：后端已提供 `assistantAgentMode`，Luminous/Lumine 侧还没有
-  对应 UI，用户目前只能通过 `PATCH /user/settings` 切底座。
 
 背景事实（接线时已按此落地）：
 
@@ -485,5 +483,29 @@ payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `
   loop 与 `messages`/`files` 状态。SSE 契约（`chunk`→`result`→`done`）必须保持不变。
 - **两套 thread 命名空间**：graph 用裸 `conversationId`，deepagents 用
   `deep-{conversationId}`。共用一个 id 会让两份不同形状的状态互相覆盖。
-- **无沙箱**：`LocalShellBackend` 是无 confinement 的宿主 shell，它的原文把
-  「web servers, APIs, multi-tenant」列为不适用场景。真正隔离需要每会话一个容器。
+
+## assistant 沙箱缺失（2026-11-22，原计划 §6.3 的明确取舍）
+
+`LocalShellBackend` 是**无 confinement 的宿主 shell**，它的原文把「web servers, APIs,
+multi-tenant」列为不适用场景，而 assistant 正是这一类。三大模式的沙箱
+（`read-only` / `workspace-write` / `danger-full-access`）**没有实现**。
+
+已做的两件事（零成本、消除不需要攻击者就会发生的失败）：每会话独立 cwd
+（否则 `pwd` 是仓库根，`.env.development` 与源码都在那儿）、环境变量清洗
+（`/KEY|PASSWORD|SECRET|TOKEN|CREDENTIAL|URL|DSN|CONN/i` 与 `DSH_*`）。
+注意 `virtualMode: true` **只约束文件工具，不约束 shell 命令**——两道理应分开。
+
+**真正隔离需要每会话一个容器**（独立命名空间、无网络、只挂临时卷），那是独立的基础设施
+改动，不是本模块能长出来的一层围栏。验收：shell 默认只能读；写只能落 workspace；
+越界被拒绝且以结果事实呈现，升级需要一句话理由；无 runner 时报错而不是静默直跑。
+
+## 高德 MCP 外部工具未做端到端验证（2026-11-22）
+
+`AMAP_MCP_ENABLED` / `AMAP_MCP_URL` / `AMAP_MCP_TIMEOUT_MS` / `AMAP_MCP_KEY` 已接入，
+工具在模型侧是 `amap__<remoteName>`。**单测只覆盖命名与合并逻辑**，真实 server 的
+`tools/list` 与 `tools/call` 没有跑过——需要一把高德 Web 服务 Key（控制台选「Web 服务」
+类型）。
+
+启用前注意：高德 server 的 key 是 **URL 查询参数**，与我们的 `X-API-Key` 习惯不同；
+客户端在调用时拼接，不进快照。验收：`AMAP_MCP_ENABLED=true` 且有 key 时，问一句天气
+能拿到 `maps_weather` 的结果；关掉开关或清空 key 时，工具不绑定、对话不受影响。

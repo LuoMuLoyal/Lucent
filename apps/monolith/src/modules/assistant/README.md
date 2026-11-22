@@ -142,6 +142,30 @@ without any sandboxing, process isolation, or security restrictions」，它自�
 HTTP+SSE，也不做 stdio）。协议实现走官方 SDK，规范依据
 [MCP 2025-06-18 · Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)。
 
+### 外部 MCP client（高德地图 / 天气）—— 本进程作为 **client**
+
+`AMAP_MCP_ENABLED` 打开后，Lucent 去接高德**官方**的 Streamable HTTP server
+（`https://mcp.amap.com/mcp`），把远端工具作为 `amap__<remoteName>` 绑给模型。
+
+**外部工具不进 `TOOL_REQUIRED_SOURCES`，这是设计不是遗漏。** 那张表的语义是「这个工具读
+用户的哪些数据源」；远端地图 server 一个都不读。塞进去就得为每个外部工具编一个假答案，
+表的含义会静默漂移成「所有存在的工具」——那正是拦住「未来某工具悄悄读健康数据」的闸。
+所以按 ADR-0024 的边界：内置保持静态穷尽检查，外部是**另一个名词**
+（`domain/mcp/external-tools.ts` 的 `ExternalToolName`），类型上无法进入那张表。
+**「读用户数据的外部工具」因此不可表示**——要读就必须晋升为内置工具，改代码、过穷尽检查。
+
+**执行器在入口分流。** `executeUncached` 是按 `ToolName` 穷尽的 switch，外部名字打进去会
+破坏穷尽性；`executeMany` 先按 `amap__` 前缀把外部调用分开，同时也把网络调用与进程内读
+分成两种可靠性等级调度。
+
+**远端不可达是信封不是异常。** server 挂掉 / 没配 key / 超时 → `{ unavailable, source,
+reason }`，模型读到「不可用」，整轮不失败。但 server 自己返回的 `isError`（城市不存在、
+坐标越界）是**工具级结果**，作为普通数据回传。
+
+**key 走 URL 查询参数**（高德的规定），在调用时拼接，因此不落快照、不进日志。
+每次调用新建 SDK client：它持有 session 与流式响应体，复用会让一条挂住的路径规划拖住
+另一轮。
+
 ### 为什么不提供 stdio
 
 stdio 由客户端拉起子进程，而工具执行需要 Nest DI（Prisma、Redis、sidecar 客户端、
