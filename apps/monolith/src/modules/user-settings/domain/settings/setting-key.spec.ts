@@ -8,12 +8,13 @@ import {
 
 describe('user-settings keys', () => {
   describe('USER_SETTING_KEYS', () => {
-    it('contains the five top-level settings', () => {
-      expect(Object.keys(USER_SETTING_KEYS)).toHaveLength(5);
+    it('contains the six top-level settings', () => {
+      expect(Object.keys(USER_SETTING_KEYS)).toHaveLength(6);
       expect(USER_SETTING_KEYS.aiSummariesEnabled).toBeDefined();
       expect(USER_SETTING_KEYS.dataSharingConsent).toBeDefined();
       expect(USER_SETTING_KEYS.assistantEnabled).toBeDefined();
       expect(USER_SETTING_KEYS.assistantMemoryEnabled).toBeDefined();
+      expect(USER_SETTING_KEYS.assistantAgentMode).toBeDefined();
       expect(USER_SETTING_KEYS.waterTargetCount).toBeDefined();
     });
 

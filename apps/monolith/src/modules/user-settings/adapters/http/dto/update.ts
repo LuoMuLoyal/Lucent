@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ASSISTANT_AGENT_MODES } from '../../../domain/settings/setting-key.js';
 
 /**
  * Standard Schema (zod 4) for `PATCH /user/settings` request bodies.
@@ -51,6 +52,12 @@ export const updateUserSettingsSchema = z
       .boolean()
       .describe(
         'Allow the assistant to reuse persisted conversation history as cross-conversation memory.',
+      )
+      .optional(),
+    assistantAgentMode: z
+      .enum(ASSISTANT_AGENT_MODES)
+      .describe(
+        'Agent backend preference: "default" follows the server operator setting; "graph" and "deepagents" override it for this user.',
       )
       .optional(),
     waterTargetCount: z

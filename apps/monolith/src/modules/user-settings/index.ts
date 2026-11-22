@@ -15,10 +15,12 @@ export type { UpdateUserSettingsDto } from './adapters/http/dto/update.js';
  * cross-module readers must go through `IUserSettingsPort.getSettings()`.
  */
 export {
+  ASSISTANT_AGENT_MODES,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
   listDefaultBooleanUserSettings,
 } from './domain/settings/setting-key.js';
+export type { AssistantAgentMode } from './domain/settings/setting-key.js';
 export { IUserSettingsPort } from './application/ports/user-settings.js';
 export { UserSettingsService } from './application/services/user-settings.js';
 export { userSettingsCacheKey } from './infrastructure/cache/settings.js';

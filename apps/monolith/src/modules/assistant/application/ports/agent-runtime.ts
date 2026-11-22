@@ -19,6 +19,7 @@ import type {
   AssistantRuntimeCapabilities,
 } from './assistant.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
+import type { AssistantAgentMode } from '../../../user-settings/index.js';
 import type { ProposedAction } from '../../domain/proposal/proposed-action.js';
 
 /** DI tokens — strings so a Nest resolution error names the port readably. */
@@ -96,6 +97,11 @@ export interface AgentRuntimePort {
       }[];
       buildMemoryBlock?: (userId: string) => Promise<string>;
       conversationId?: string;
+      /**
+       * The user's `assistantAgentMode` setting. `default` follows the
+       * operator's runtime key; the other two override it for this user.
+       */
+      agentMode?: AssistantAgentMode;
     },
     executeTools: (
       toolCalls: readonly AssistantToolCall[],

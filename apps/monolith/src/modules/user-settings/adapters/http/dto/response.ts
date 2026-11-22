@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { UserSettingsResource } from '../../../application/ports/user-settings-resource.js';
+import { ASSISTANT_AGENT_MODES } from '../../../domain/settings/setting-key.js';
 
 /**
  * Standard Schema (zod 4) for the fine-grained assistant context permission
@@ -57,6 +58,11 @@ const userSettingsShape = z
       .boolean()
       .describe(
         'Allow the assistant to reuse persisted conversation history as cross-conversation memory.',
+      ),
+    assistantAgentMode: z
+      .enum(ASSISTANT_AGENT_MODES)
+      .describe(
+        'Agent backend in effect for this user: "default" follows the server operator setting.',
       ),
     waterTargetCount: z
       .number()

@@ -85,6 +85,9 @@ function toPatch(dto: UpdateUserSettingsCommand): UserSettingsPatch {
   if (dto.assistantMemoryEnabled !== undefined) {
     patch.assistantMemoryEnabled = dto.assistantMemoryEnabled;
   }
+  if (dto.assistantAgentMode !== undefined) {
+    patch.assistantAgentMode = dto.assistantAgentMode;
+  }
   if (dto.waterTargetCount !== undefined) {
     patch.waterTargetCount = dto.waterTargetCount;
   }

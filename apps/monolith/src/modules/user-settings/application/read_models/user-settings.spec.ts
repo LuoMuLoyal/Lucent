@@ -125,6 +125,7 @@ describe('UserSettingsReadModel', () => {
       dataSharingConsent: true,
       assistantEnabled: false,
       assistantMemoryEnabled: true,
+      assistantAgentMode: 'default',
       waterTargetCount: 3,
       assistantContext: {
         healthProfile: false,

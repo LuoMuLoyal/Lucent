@@ -138,6 +138,7 @@ export class AssistantStreamOrchestratorService {
         // 那样把 LightRAG/Semantica 关着时的工具也绑给模型。
         allowedTools: policy.enabledToolNames,
         memoryEnabled: settings.assistantMemoryEnabled,
+        agentMode: settings.assistantAgentMode,
         isNewConversation: this.isNewConversation(messages),
         // 历史来自请求体，不从 checkpoint 读：无状态对话（无 conversationId）
         // 根本没有 checkpoint 可读。最后一条就是本轮消息，故排除。

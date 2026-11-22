@@ -19,11 +19,13 @@
  */
 
 import {
+  ASSISTANT_AGENT_MODES,
   ASSISTANT_CONTEXT_DEFAULTS,
   ASSISTANT_CONTEXT_SETTING_KEYS,
   PASSWORD_REAUTHENTICATION_REQUIRED,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
+  type AssistantAgentMode,
   type AssistantContextField,
   type SettingUpsert,
   type SettingValue,
@@ -43,6 +45,7 @@ export interface UserSettingsSnapshot {
   dataSharingConsent: boolean;
   assistantEnabled: boolean;
   assistantMemoryEnabled: boolean;
+  assistantAgentMode: AssistantAgentMode;
   waterTargetCount: number;
   assistantContext: Record<AssistantContextField, boolean>;
   updatedAt: Date | null;
@@ -62,6 +65,7 @@ export interface UserSettingsPatch {
   dataSharingConsent?: boolean;
   assistantEnabled?: boolean;
   assistantMemoryEnabled?: boolean;
+  assistantAgentMode?: AssistantAgentMode;
   waterTargetCount?: number;
   assistantContext?: Partial<Record<AssistantContextField, boolean>>;
 }
@@ -71,6 +75,7 @@ const TOP_LEVEL_FIELDS: readonly UserSettingField[] = [
   'dataSharingConsent',
   'assistantEnabled',
   'assistantMemoryEnabled',
+  'assistantAgentMode',
   'waterTargetCount',
 ];
 
@@ -114,6 +119,19 @@ export class UserSettings {
         ? value
         : fallback;
     };
+    // A stored string that is not a known mode is treated as "default" rather
+    // than echoed back: the column is `Json`, so nothing at the storage layer
+    // constrains it, and an unknown value must not become a runtime the caller
+    // then has to re-validate.
+    const modeOf = (
+      key: string,
+      fallback: AssistantAgentMode,
+    ): AssistantAgentMode => {
+      const value = stored.get(key);
+      return typeof value === 'string' && isAssistantAgentMode(value)
+        ? value
+        : fallback;
+    };
 
     const snapshot: UserSettingsSnapshot = {
       aiSummariesEnabled: boolOf(
@@ -131,6 +149,10 @@ export class UserSettings {
       assistantMemoryEnabled: boolOf(
         USER_SETTING_KEYS.assistantMemoryEnabled,
         USER_SETTINGS_DEFAULTS.assistantMemoryEnabled,
+      ),
+      assistantAgentMode: modeOf(
+        USER_SETTING_KEYS.assistantAgentMode,
+        USER_SETTINGS_DEFAULTS.assistantAgentMode,
       ),
       waterTargetCount: numberOf(
         USER_SETTING_KEYS.waterTargetCount,
@@ -195,5 +217,13 @@ export class UserSettings {
 }
 
 function isSettingValue(value: unknown): value is SettingValue {
-  return typeof value === 'boolean' || typeof value === 'number';
+  return (
+    typeof value === 'boolean' ||
+    typeof value === 'number' ||
+    typeof value === 'string'
+  );
+}
+
+function isAssistantAgentMode(value: string): value is AssistantAgentMode {
+  return (ASSISTANT_AGENT_MODES as readonly string[]).includes(value);
 }

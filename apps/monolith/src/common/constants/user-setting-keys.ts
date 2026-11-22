@@ -11,6 +11,7 @@ export const AI_SUMMARIES_ENABLED_SETTING_KEY = 'aiSummariesEnabled';
 export const DATA_SHARING_CONSENT_SETTING_KEY = 'dataSharingConsent';
 export const ASSISTANT_ENABLED_SETTING_KEY = 'assistantEnabled';
 export const ASSISTANT_MEMORY_ENABLED_SETTING_KEY = 'assistantMemoryEnabled';
+export const ASSISTANT_AGENT_MODE_SETTING_KEY = 'assistantAgentMode';
 
 export const ASSISTANT_CONTEXT_HEALTH_PROFILE_SETTING_KEY =
   'assistantContext.healthProfile';

@@ -17,6 +17,8 @@
  * inward.
  */
 
+import type { AssistantAgentMode } from '../../domain/settings/setting-key.js';
+
 /** Fine-grained assistant context permission flags. */
 export interface AssistantContextPermissionsResource {
   healthProfile: boolean;
@@ -44,6 +46,11 @@ export interface UserSettingsResource {
   dataSharingConsent: boolean;
   assistantEnabled: boolean;
   assistantMemoryEnabled: boolean;
+  /**
+   * Which agent backend the user asked for: `default` follows the operator's
+   * `ASSISTANT_AGENT_RUNTIME`, the other two override it per user.
+   */
+  assistantAgentMode: AssistantAgentMode;
   waterTargetCount: number;
   assistantContext: AssistantContextPermissionsResource;
   /** ISO-8601 timestamp of the last write, or `null` when never written. */
@@ -73,6 +80,7 @@ export interface UpdateUserSettingsCommand {
   dataSharingConsent?: boolean | undefined;
   assistantEnabled?: boolean | undefined;
   assistantMemoryEnabled?: boolean | undefined;
+  assistantAgentMode?: AssistantAgentMode | undefined;
   waterTargetCount?: number | undefined;
   assistantContext?: AssistantContextPermissionsPatch | undefined;
 }

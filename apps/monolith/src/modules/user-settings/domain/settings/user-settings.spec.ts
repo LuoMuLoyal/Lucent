@@ -14,6 +14,7 @@ describe('UserSettings aggregate', () => {
         dataSharingConsent: false,
         assistantEnabled: true,
         assistantMemoryEnabled: false,
+        assistantAgentMode: 'default',
         waterTargetCount: 8,
         assistantContext: {
           healthProfile: true,
@@ -77,6 +78,21 @@ describe('UserSettings aggregate', () => {
       ]).toSnapshot();
 
       expect(snapshot.updatedAt).toEqual(new Date('2026-07-01T00:00:00.000Z'));
+    });
+
+    it('reads a stored assistant agent mode, and defaults when unknown', () => {
+      // The column is `Json`, so nothing at the storage layer restricts the
+      // string. An unrecognised value must not be echoed back as a runtime the
+      // caller then has to re-validate.
+      const stored = UserSettings.fromRows('user-1', [
+        row('assistantAgentMode', 'deepagents', '2026-06-17T11:00:00.000Z'),
+      ]).toSnapshot();
+      expect(stored.assistantAgentMode).toBe('deepagents');
+
+      const unknown = UserSettings.fromRows('user-1', [
+        row('assistantAgentMode', 'skynet', '2026-06-17T11:00:00.000Z'),
+      ]).toSnapshot();
+      expect(unknown.assistantAgentMode).toBe('default');
     });
   });
 

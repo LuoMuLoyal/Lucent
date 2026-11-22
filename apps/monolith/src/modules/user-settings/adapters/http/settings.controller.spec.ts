@@ -22,6 +22,7 @@ function makeSettings(
     dataSharingConsent: false,
     assistantEnabled: true,
     assistantMemoryEnabled: false,
+    assistantAgentMode: 'default',
     waterTargetCount: 8,
     assistantContext: {
       healthProfile: true,

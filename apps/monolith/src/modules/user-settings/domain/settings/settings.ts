@@ -28,7 +28,7 @@ export interface SettingRowSnapshot {
 /** One row to write, already resolved to its persisted key and value. */
 export interface SettingRowUpsert {
   key: string;
-  value: boolean | number;
+  value: boolean | number | string;
 }
 
 export abstract class SettingsRepository {

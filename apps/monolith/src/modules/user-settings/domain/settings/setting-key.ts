@@ -19,8 +19,25 @@ export const USER_SETTING_KEYS = {
   dataSharingConsent: 'dataSharingConsent',
   assistantEnabled: 'assistantEnabled',
   assistantMemoryEnabled: 'assistantMemoryEnabled',
+  assistantAgentMode: 'assistantAgentMode',
   waterTargetCount: 'waterTargetCount',
 } as const;
+
+/**
+ * The three values `assistantAgentMode` may take.
+ *
+ * `default` means "follow the operator's `ASSISTANT_AGENT_RUNTIME`". The other
+ * two are an explicit per-user override. Values are stored as strings in
+ * `UserSetting.value` (which is `Json`), so this list is also the validation
+ * boundary: anything else read back falls back to `default`.
+ */
+export const ASSISTANT_AGENT_MODES = [
+  'default',
+  'graph',
+  'deepagents',
+] as const;
+
+export type AssistantAgentMode = (typeof ASSISTANT_AGENT_MODES)[number];
 
 export const ASSISTANT_CONTEXT_SETTING_KEYS = {
   healthProfile: 'assistantContext.healthProfile',
@@ -34,6 +51,7 @@ export const USER_SETTINGS_DEFAULTS = {
   dataSharingConsent: false,
   assistantEnabled: true,
   assistantMemoryEnabled: false,
+  assistantAgentMode: 'default' as AssistantAgentMode,
   waterTargetCount: 8,
 } as const;
 
@@ -51,7 +69,7 @@ export type UserSettingField = keyof typeof USER_SETTING_KEYS;
 export type AssistantContextField = keyof typeof ASSISTANT_CONTEXT_SETTING_KEYS;
 
 /** Value type actually persisted in `UserSetting.value`. */
-export type SettingValue = boolean | number;
+export type SettingValue = boolean | number | string;
 
 /** One row to upsert: the persisted key plus its new value. */
 export interface SettingUpsert {
