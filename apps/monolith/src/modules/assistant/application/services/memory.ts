@@ -5,10 +5,18 @@
  *
  * Extraction, dedup and recall are delegated to the Mem0 sidecar
  * (`Mem0ClientService`) over REST. The hand-rolled Prisma memory path
- * (`AssistantMemory` rows + in-process setTimeout debounce) is gone: it
- * extracted only on archive, lost pending work on restart, and never
- * superseded repeated preferences. Mem0 owns all three problems — its fact
- * extraction is the capability we are buying, not building.
+ * (`AssistantMemory` rows + in-process setTimeout debounce) is gone — table
+ * dropped, repository deleted: it extracted only on archive, lost pending work
+ * on restart, and never superseded repeated preferences. Mem0 owns all three
+ * problems — its fact extraction is the capability we are buying, not building.
+ *
+ * ## Where extraction is triggered
+ *
+ * `Conversations.archiveLatest` calls {@link scheduleExtraction} right after the
+ * conversation is archived. Extraction therefore runs on the "clear latest"
+ * path, which is the one place a thread stops being the active context — the
+ * same trigger the deleted implementation used, kept because the archive point
+ * is still the only signal that the thread will not receive more turns.
  *
  * ## Degradation contract
  *
@@ -62,13 +70,26 @@ export class AssistantMemoryService {
   async extractAndStore(userId: string, conversationId: string): Promise<void> {
     if (!this.memoryEnabledForSettings()) return;
 
-    const conversation = await this.conversationRepository.find(
-      userId,
-      conversationId,
-    );
-    if (conversation == null) return;
-
-    const messages = this.lastMessages(conversation);
+    // The read itself can fail (DB down, row gone). Memory is continuity data,
+    // so a failure here must not propagate into the archive call that triggered
+    // it — that would turn "we could not remember this" into "we could not
+    // close the conversation".
+    let messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    try {
+      const conversation = await this.conversationRepository.find(
+        userId,
+        conversationId,
+      );
+      if (conversation == null) return;
+      messages = this.lastMessages(conversation);
+    } catch (error) {
+      this.logger.warn(
+        `Mem0 memory extraction could not read conversation "${conversationId}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return;
+    }
     if (messages.length === 0) return;
 
     const outcome = await this.mem0Client.addMemories(userId, messages);
@@ -155,4 +176,3 @@ export class AssistantMemoryService {
     return EnvKey.MEM0_ENABLED;
   }
 }
-

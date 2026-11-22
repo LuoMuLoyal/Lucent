@@ -159,8 +159,12 @@ export class Conversations {
   /**
    * Archives the current conversation (the "clear latest" path).
    *
-   * Archiving does **not** touch memory — only `clearMemory` does
-   * (`domain/memory/memory.ts` rule 3).
+   * Archiving does **not** touch memory — only `clearMemory` does. It *does*
+   * trigger memory extraction: once a thread is archived it will receive no
+   * more turns, which makes this the one moment where "what the user said in
+   * this conversation" is final. The call is awaited but never fatal — the
+   * sidecar gates itself (`MEM0_ENABLED`) and `AssistantMemoryService` swallows
+   * sidecar failures, so a broken memory service cannot fail an archive.
    */
   async archiveLatest(
     userId: string,
@@ -172,6 +176,7 @@ export class Conversations {
     const conversation = Conversation.fromState(record);
     conversation.archive();
     await this.repository.save(conversation);
+    await this.memoryService.scheduleExtraction(userId, record.id);
     return { archivedConversationId: record.id };
   }
 

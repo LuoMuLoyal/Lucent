@@ -67,7 +67,6 @@ model User {
   dataExportRequests     DataExportRequest[]
   assistantConversations AssistantConversation[]
   assistantMessages      AssistantMessage[]
-  assistantMemories      AssistantMemory[]
   assistantRegenerations AssistantRegeneration[]
   assistantSummaryHistories AssistantSummaryHistory[]
   notifications          UserNotification[]

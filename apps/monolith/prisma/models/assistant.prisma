@@ -27,7 +27,6 @@ model AssistantConversation {
   updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages      AssistantMessage[]
-  sourceMemories AssistantMemory[]
 
   // userId+updatedAt index removed — redundant, covered by (userId, status, updatedAt)
   @@index([userId, lastMessageAt])
@@ -81,19 +80,7 @@ user           User                 @relation(fields: [userId], references: [id]
 @@map("assistant_summary_histories")
 }
 
-model AssistantMemory {
-  id                   String   @id @default(uuid())
-  userId               String   @map("user_id")
-  sourceConversationId String   @map("source_conversation_id")
-  content              String
-  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceConversation  AssistantConversation @relation(fields: [sourceConversationId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
-  @@index([sourceConversationId])
-  @@map("assistant_memories")
-}
 
 /// Message→checkpoint mapping for assistant answer regeneration (F-5b).
 /// Records which LangGraph checkpoint produced the persisted assistant
