@@ -20,6 +20,20 @@ import type {
 } from './assistant.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import type { AssistantAgentMode } from '../../../user-settings/index.js';
+
+/**
+ * What `validate` decided about a turn's tool results.
+ *
+ * Declared here (not in `adapters/agent/state.ts`) because both runtimes produce
+ * it and the application layer reads it; the adapter's state channel re-exports
+ * this type rather than defining a second one.
+ */
+export interface AssistantValidationFlags {
+  hasEmptyResults: boolean;
+  hasPartialCoverage: boolean;
+  hasAmbiguities: boolean;
+  missingProposedActions: boolean;
+}
 import type { ProposedAction } from '../../domain/proposal/proposed-action.js';
 
 /** DI tokens — strings so a Nest resolution error names the port readably. */
@@ -39,13 +53,31 @@ export interface CheckpointerPort {
   getSaver(): unknown;
 }
 
+/**
+ * Why a turn stopped.
+ *
+ * The union is spelled out here rather than at the adapter because two runtimes
+ * (graph and deepagents) both produce it; a bare `string` would let one of them
+ * invent a value the client has no case for.
+ */
+export type ConversationStopReason =
+  | 'answered'
+  | 'no_match'
+  | 'tool_cap_reached'
+  | 'no_data'
+  | 'no_target'
+  | 'no_evidence'
+  | 'awaiting_review'
+  | null;
+
 /** Result of running the tool-loop graph for one turn. */
 export interface ConversationRunResult {
   toolResults: AssistantToolExecutionResult[];
   finalContent: string | null;
   streamedContent: boolean;
   selectedTools: ToolName[];
-  stopReason: string | null;
+  validationFlags: AssistantValidationFlags;
+  stopReason: ConversationStopReason;
 }
 
 /** Executes the tool calls one model turn asked for. */

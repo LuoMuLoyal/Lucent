@@ -15,12 +15,14 @@ export const ASSISTANT_RUNTIME_NODE_NAMES = [
 ] as const;
 
 /** Validation flags produced by sub-graph validate nodes. */
-export interface AssistantValidationFlags {
-  hasEmptyResults: boolean;
-  hasPartialCoverage: boolean;
-  hasAmbiguities: boolean;
-  missingProposedActions: boolean;
-}
+/**
+ * What `validate` decided about a turn's tool results.
+ *
+ * Re-exported from the port: the shape is shared by both runtimes and read by
+ * the application layer, so it is not an adapter-owned type.
+ */
+export type { AssistantValidationFlags } from '../../application/ports/agent-runtime.js';
+import type { AssistantValidationFlags } from '../../application/ports/agent-runtime.js';
 
 /**
  * One prior turn of the conversation.

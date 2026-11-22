@@ -32,33 +32,34 @@ import {
   MEM0_DEFAULT_BASE_URL,
   MEM0_DEFAULT_TIMEOUT_MS,
 } from '../../../../config/env/sidecar-defaults.js';
+import {
+  MemorySidecarPort,
+  type MemoryAddResult,
+  type MemoryDeleteResult,
+  type MemoryHit,
+  type MemorySearchResult,
+  type MemoryTurnMessage,
+} from '../../application/ports/memory.js';
 
-/** One conversation turn handed to Mem0 for fact extraction. */
-export interface Mem0TurnMessage {
-  readonly role: 'user' | 'assistant';
-  readonly content: string;
-}
+/**
+ * One conversation turn handed to Mem0 for fact extraction.
+ *
+ * The port's types are re-exported under the names this file already used, so
+ * callers that only need the shape never import the port directly.
+ */
+export type Mem0TurnMessage = MemoryTurnMessage;
 
 /** One recalled memory with its relevance score. */
-export interface Mem0MemoryHit {
-  readonly id: string;
-  readonly memory: string;
-  readonly score: number;
-}
+export type Mem0MemoryHit = MemoryHit;
 
 /** Discriminated outcome for a Mem0 write (fact extraction). */
-export type Mem0AddResult =
-  | { readonly ok: true; readonly added: number }
-  | { readonly ok: false; readonly reason: string };
+export type Mem0AddResult = MemoryAddResult;
 
 /** Discriminated outcome for a Mem0 read. */
-export type Mem0SearchResult =
-  | { readonly ok: true; readonly hits: readonly Mem0MemoryHit[] }
-  | { readonly ok: false; readonly reason: string };
+export type Mem0SearchResult = MemorySearchResult;
 
 /** Discriminated outcome for the privacy erase. */
-export type Mem0DeleteResult =
-  { readonly ok: true } | { readonly ok: false; readonly reason: string };
+export type Mem0DeleteResult = MemoryDeleteResult;
 
 /**
  * Resolved per call from the runtime snapshot, so an operator can flip the
@@ -87,7 +88,7 @@ function resultRecords(body: unknown): unknown[] {
 }
 
 @Injectable()
-export class Mem0ClientService {
+export class Mem0ClientService extends MemorySidecarPort {
   private readonly logger = new Logger(Mem0ClientService.name);
 
   /**
@@ -106,6 +107,7 @@ export class Mem0ClientService {
     @Inject(RuntimeConfigService)
     runtimeConfig?: RuntimeConfigPort,
   ) {
+    super();
     this.configService = configService;
     this.runtimeConfig = runtimeConfig;
     const apiKey =

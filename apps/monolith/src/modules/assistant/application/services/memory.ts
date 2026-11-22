@@ -31,7 +31,10 @@ import { EnvKey } from '../../../../config/env/env-keys.enum.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
 import type { ConversationState } from '../../domain/conversation/conversation.js';
-import { Mem0ClientService } from '../../infrastructure/memory/mem0-client.js';
+import {
+  ASSISTANT_MEMORY_SIDECAR,
+  type MemorySidecarPort,
+} from '../ports/memory.js';
 
 /** Number of most recent messages (user + assistant) handed to Mem0. */
 const EXTRACTION_MESSAGE_LIMIT = 10;
@@ -48,7 +51,8 @@ export class AssistantMemoryService {
   private readonly logger = new Logger(AssistantMemoryService.name);
 
   constructor(
-    private readonly mem0Client: Mem0ClientService,
+    @Inject(ASSISTANT_MEMORY_SIDECAR)
+    private readonly mem0Client: MemorySidecarPort,
     @Inject(ASSISTANT_CONVERSATIONS)
     private readonly conversationRepository: ConversationRepositoryPort,
   ) {}

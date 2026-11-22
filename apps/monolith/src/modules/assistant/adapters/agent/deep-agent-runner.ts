@@ -38,8 +38,8 @@ import type {
   AssistantToolExecutionResult,
 } from '../../application/ports/assistant.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
-import type { AssistantValidationFlags } from './state.js';
-import type { AssistantConversationResult } from './runtime.js';
+import type { AssistantValidationFlags } from '../../application/ports/agent-runtime.js';
+import type { ConversationRunResult } from '../../application/ports/agent-runtime.js';
 
 /** Everything one turn needs from the caller. */
 export interface DeepAgentRunnerDeps {
@@ -105,7 +105,7 @@ const NO_FLAGS: AssistantValidationFlags = {
  */
 export async function runDeepAgentTurn(
   deps: DeepAgentRunnerDeps,
-): Promise<AssistantConversationResult> {
+): Promise<ConversationRunResult> {
   const toolResults: AssistantToolExecutionResult[] = [];
 
   const agent = buildAssistantDeepAgent({
@@ -149,7 +149,7 @@ export async function runDeepAgentTurn(
   const usedTools = [...new Set(toolResults.map((result) => result.name))];
   const suspended = output.pendingReview?.status === 'pending';
 
-  const result: AssistantConversationResult = {
+  const result: ConversationRunResult = {
     toolResults,
     finalContent,
     streamedContent: false,
