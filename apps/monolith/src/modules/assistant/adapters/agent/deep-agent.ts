@@ -9,32 +9,41 @@
  * (`write_todos`), a filesystem, shell access, and `task` delegation to
  * sub-agents with isolated context windows.
  *
- * The graph in `graph.ts` is **not** deleted here. It stays as the execution
- * path until this one is proven, because the two differ in ways that matter:
+ * The graph in `graph.ts` is **not** deleted here. It stays selectable at
+ * runtime (`ASSISTANT_AGENT_RUNTIME` / the user's `assistantAgentMode`), because
+ * the two differ in ways that matter:
  *
  * - `graph.ts` streams through `onText` and returns the assistant's own
  *   `AssistantConversationResult` shape.
  * - deepagents owns its own run loop and streams `messages` / `files` state.
  *
- * Wiring deepagents in behind the same port is a separate, verifiable step; this
- * module is the piece that makes it possible to try.
+ * ## Checkpointing
+ *
+ * The agent gets **its own** thread namespace (`deep-{conversationId}`) rather
+ * than the conversation id the graph uses. Both runtimes write to the same
+ * `AssistantCheckpointerService` schema, so sharing a thread id would mean two
+ * different state shapes overwriting each other's checkpoint — `getState` would
+ * then answer with whichever runtime wrote last. The separate namespace keeps
+ * `regenerateLastMessage` (graph-only, keyed on graph checkpoint ids) correct.
+ *
+ * A checkpointer is also what makes `interrupt` work at all: without one
+ * LangGraph has nowhere to persist the suspension. `proposal-review.ts` relies
+ * on that.
  *
  * ## What is deliberately *not* configured
  *
- * - **No `checkpointer`.** The assistant already owns conversation persistence
- *   (`AssistantCheckpointerService`) and a regeneration model keyed on
- *   checkpoint ids. Two checkpointers over one thread would disagree about what
- *   "the current state" is.
  * - **No `memory` / `skills` paths.** Those read files from the backend root at
  *   agent construction; the workspace is per-conversation and empty by design.
- * - **No `interruptOn`.** HITL is the assistant's proposal flow, which suspends
- *   on `write_review` in `graph.ts` and is resumed by the confirm endpoint.
- *   deepagents' interrupt would be a second suspension mechanism for the same
- *   decision.
+ * - **No `interruptOn`.** See `proposal-review.ts`: deepagents' HITL interrupts
+ *   *before* a tool runs, but a proposal only exists *after* its draft tool has
+ *   run. The proposal flow therefore interrupts from a `wrapToolCall` hook.
  */
 import { createDeepAgent } from 'deepagents';
 import { LocalShellBackend } from 'deepagents';
+import type { BaseCheckpointSaver } from '@langchain/langgraph';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { AgentMiddleware } from 'langchain';
+import type { ReactAgent } from 'langchain';
 import type { StructuredTool } from '@langchain/core/tools';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import type { ToolLimitBudgets } from '../acl/tools/shared/tool-definitions.js';
@@ -51,6 +60,17 @@ import {
   scrubEnvironment,
 } from './workspace.js';
 
+/**
+ * Thread-id namespace for the deepagents runtime.
+ *
+ * Kept distinct from the graph's (bare conversation id) so the two runtimes
+ * never read each other's state. Exported because the resume path has to build
+ * the same id.
+ */
+export function deepAgentThreadId(conversationId: string): string {
+  return `deep-${conversationId}`;
+}
+
 /** Everything one turn's deep agent needs. */
 export interface AssistantDeepAgentOptions {
   /** The chat model, created by the caller so its config stays in one place. */
@@ -65,8 +85,19 @@ export interface AssistantDeepAgentOptions {
   ) => Promise<AssistantToolExecutionResult[]>;
   /** System prompt (already resolved, including any runtime override). */
   systemPrompt: string;
-  /** Conversation id; scopes the workspace and appears in logs. */
+  /** Conversation id; scopes the workspace and the checkpoint thread. */
   conversationId?: string;
+  /**
+   * Checkpoint saver. Required for proposal suspension to work — without it
+   * `interrupt` has nowhere to persist. Callers pass the shared
+   * `AssistantCheckpointerService` saver.
+   */
+  checkpointer?: BaseCheckpointSaver | null;
+  /**
+   * Extra middleware. Used for the proposal-review hook, which needs the
+   * runner's accumulator.
+   */
+  middleware?: readonly AgentMiddleware[];
 }
 
 /**
@@ -81,7 +112,10 @@ export interface AssistantDeepAgentOptions {
  * Confining it is a separate change (container per session); this module should
  * not grow a partial fence that reads as protection without being one.
  */
-export function buildAssistantDeepAgent(options: AssistantDeepAgentOptions) {
+export function buildAssistantDeepAgent(
+  options: AssistantDeepAgentOptions,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the concrete generic instantiates a private LangGraph type (`StreamTransformer`) that cannot be named portably
+): ReactAgent<any> {
   const workspace = resolveAgentWorkspace(options.conversationId);
 
   const tools: StructuredTool[] = buildDeepAgentTools({
@@ -109,6 +143,12 @@ export function buildAssistantDeepAgent(options: AssistantDeepAgentOptions) {
       env: scrubEnvironment(),
       inheritEnv: false,
     }),
-    ...(options.conversationId != null ? { name: 'lucent' } : {}),
+    ...(options.checkpointer != null
+      ? { checkpointer: options.checkpointer }
+      : {}),
+    ...(options.middleware != null && options.middleware.length > 0
+      ? { middleware: [...options.middleware] }
+      : {}),
+    name: 'lucent',
   });
 }

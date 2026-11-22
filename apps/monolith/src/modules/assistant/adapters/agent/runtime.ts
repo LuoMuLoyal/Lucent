@@ -67,6 +67,7 @@ import { ASSISTANT_RUNTIME_NODE_NAMES } from './state.js';
 import type { AssistantValidationFlags } from './state.js';
 import type { AssistantPendingReview } from './state.js';
 import type { CheckpointerPort } from '../../application/ports/agent-runtime.js';
+import type { AssistantAgentMode } from '../../../user-settings/index.js';
 import { extractMessageText } from './message-text.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
@@ -81,6 +82,10 @@ import {
   buildAssistantRuntimeGraph,
 } from './graph.js';
 import { runDeepAgentTurn } from './deep-agent-runner.js';
+import { buildAssistantDeepAgent, deepAgentThreadId } from './deep-agent.js';
+import { createProposalReviewMiddleware } from './proposal-review.js';
+import type { DeepAgentPendingReview } from './proposal-review.js';
+import type { AgentMiddleware } from 'langchain';
 import type { ToolExecutorFn } from './deps.js';
 import type { AssistantRespondCache } from './respond.js';
 
@@ -186,30 +191,58 @@ export class AssistantRuntimeService {
    *
    * Two gates, both cheap reads:
    *
-   * 1. The runtime key must say `'deepagents'` (default `'graph'`). Unknown
-   *    values are treated as `'graph'` — an operator typo must select the
-   *    proven path, not the experimental one.
-   * 2. The candidate set must contain no write-draft tool: deepagents'
-   *    `interruptOn` requires its own checkpointer, and this runner
-   *    deliberately mounts none (a second checkpointer would disagree with
-   *    `AssistantCheckpointerService` about the thread's state). Without an
-   *    interrupt there is nothing for the confirm endpoint to resume, so
-   *    proposal turns belong to the graph unconditionally.
+   * 1. The effective backend must be `'deepagents'`. That value comes from the
+   *    user's `assistantAgentMode` setting when it is not `'default'`, else from
+   *    the operator's `ASSISTANT_AGENT_RUNTIME` runtime key. Unknown values are
+   *    treated as `'graph'` — an operator typo must select the proven path, not
+   *    the experimental one.
+   * 2. Proposal turns must be able to suspend there (see
+   *    {@link deepAgentsSupportsProposals}).
    *
    * Subagent delegation *inside* the deepagents path is not routed here at
    * all: per the deepagents design, the model itself decides via `task()`,
    * reading each subagent's `description`. An external router would only
    * reintroduce the layer Phase 2 deleted.
    */
-  private shouldUseDeepAgents(allowedTools: readonly ToolName[]): boolean {
-    const value = this.readAgentRuntimeKey();
+  private shouldUseDeepAgents(
+    allowedTools: readonly ToolName[],
+    mode: AssistantAgentMode,
+  ): boolean {
+    const value = this.resolveAgentRuntimeKey(mode);
     if (value !== 'deepagents') return false;
-    const hasDraftTools = allowedTools.some((tool) => tool.endsWith('_draft'));
-    return !hasDraftTools;
+    return this.deepAgentsSupportsProposals(allowedTools);
   }
 
-  /** Reads and normalises the runtime-backend key. Unknown → 'graph'. */
-  private readAgentRuntimeKey(): 'graph' | 'deepagents' {
+  /**
+   * Whether the deepagents runtime can honour the proposal interrupt for this
+   * turn.
+   *
+   * The interrupt comes from a `wrapToolCall` hook (`proposal-review.ts`) and
+   * therefore needs a checkpointer to persist the suspension. When
+   * checkpointing is unavailable the thread cannot suspend, so proposal turns
+   * must stay on the graph — where the same limitation degrades to "no review"
+   * instead of a failed turn.
+   */
+  private deepAgentsSupportsProposals(
+    allowedTools: readonly ToolName[],
+  ): boolean {
+    const hasDraftTools = allowedTools.some((tool) => tool.endsWith('_draft'));
+    if (!hasDraftTools) return true;
+    return this.checkpointerService.getSaver() != null;
+  }
+
+  /**
+   * Reads the backend preference for this turn, layering the user's choice over
+   * the operator's.
+   *
+   * `default` means "whatever the operator published"; the other two values are
+   * an explicit per-user override. Both paths normalise unknown input to
+   * `'graph'` so a typo can never select the experimental backend.
+   */
+  private resolveAgentRuntimeKey(
+    mode: AssistantAgentMode,
+  ): 'graph' | 'deepagents' {
+    if (mode === 'graph' || mode === 'deepagents') return mode;
     const raw =
       this.runtimeConfigService?.getSnapshot().values[
         EnvKey.ASSISTANT_AGENT_RUNTIME
@@ -312,6 +345,11 @@ export class AssistantRuntimeService {
        * persistence and in-graph review; otherwise it stays stateless.
        */
       conversationId?: string;
+      /**
+       * The user's `assistantAgentMode` setting. `default` (or absent) follows
+       * the operator's `ASSISTANT_AGENT_RUNTIME`; the other two override it.
+       */
+      agentMode?: AssistantAgentMode;
     },
     executeTools: ToolExecutorFn,
     onChunk?: (event: AssistantStreamChunkEvent) => void | Promise<void>,
@@ -325,14 +363,14 @@ export class AssistantRuntimeService {
     let streamedContent = false;
 
     // ── deepagents path ─────────────────────────────────────────────
-    // Hot-switchable per turn. The deepagents runner has no interrupt
-    // mechanism, so turns whose candidate set contains write-draft tools
-    // always stay on the graph: proposals must suspend the thread the
-    // confirm endpoint knows how to resume. Any construction/run failure on
-    // the deepagents path falls back to the graph for this turn — the
-    // proven path absorbs a runtime-swap failure rather than turning it
-    // into a user-facing error.
-    if (this.shouldUseDeepAgents(input.allowedTools)) {
+    // Hot-switchable per turn. Proposal turns stay on the graph unless the
+    // deepagents runtime can suspend the thread itself (it needs a
+    // checkpointer for that). Any construction/run failure on the deepagents
+    // path falls back to the graph for this turn — the proven path absorbs a
+    // runtime-swap failure rather than turning it into a user-facing error.
+    if (
+      this.shouldUseDeepAgents(input.allowedTools, input.agentMode ?? 'default')
+    ) {
       try {
         const runResult = await runDeepAgentTurn({
           createModel: () =>
@@ -348,6 +386,9 @@ export class AssistantRuntimeService {
           ...(input.conversationId != null
             ? { conversationId: input.conversationId }
             : {}),
+          // Proposal suspension needs the saver; `shouldUseDeepAgents` already
+          // refused the path when a draft tool is present and it is missing.
+          checkpointer,
         });
         this.circuitBreaker.recordSuccess();
         return runResult;
@@ -437,12 +478,23 @@ export class AssistantRuntimeService {
 
   /**
    * Resumes a suspended thread after the client confirmed or rejected the
-   * pending proposals. Validates the review state (`getState`), then invokes
-   * the graph with `Command({ resume })` so `write_review` writes the decision
-   * back and `respond` produces the confirmation reply.
+   * pending proposals.
    *
-   * A missing/non-pending review is an expected client failure and becomes a
-   * `ResultAsync` Err (VALIDATION_FAILED); unknown failures re-throw.
+   * Two runtimes can suspend a thread, so two checkpoint formats exist:
+   *
+   * - **graph** — the conversation id is the thread id, the review lives in
+   *   graph state, and resuming re-enters at `write_review`.
+   * - **deepagents** — the thread id is `deep-{conversationId}` and the review
+   *   is middleware state written by `proposal-review.ts`.
+   *
+   * Which one to resume is decided by where the pending review actually is, not
+   * by the current runtime setting: the backend can be switched between the
+   * turn that suspended and the confirm call. The graph thread is checked first
+   * because it is the older format (a turn may have suspended before this
+   * change).
+   *
+   * A missing/non-pending review in both is an expected client failure and
+   * becomes a `ResultAsync` Err (VALIDATION_FAILED); unknown failures re-throw.
    */
   resumeConversation(input: {
     userId: string;
@@ -461,36 +513,96 @@ export class AssistantRuntimeService {
     decision: 'approved' | 'rejected';
     note?: string;
   }): Promise<{ finalContent: string | null }> {
-    const graph = this.buildGraphWithCheckpointer(input.conversationId);
-    const threadConfig = { configurable: { thread_id: input.conversationId } };
-
-    const snapshot = await graph.getState(threadConfig);
-    const pending = (
-      snapshot.values as { pendingReview?: AssistantPendingReview }
-    ).pendingReview;
-    if (pending == null || pending.status !== 'pending') {
-      throw new DomainFailureException(
-        createDomainFailure({
-          kind: 'validation',
-          code: 'VALIDATION_FAILED',
-          // Registry owns outbound copy (ADR-0012); keep the specific
-          // direction in `cause` for logs only.
-          cause: 'no_pending_proposal_review',
-        }),
-      );
-    }
-    // Expiry is validated per proposal by the confirm endpoint before the
-    // thread is resumed (applyApprovedProposals), so no batch-level expiry
-    // check exists here (F-11).
-
-    // The resume turn is a separate trace from the turn that suspended: it
-    // re-enters the graph at `write_review`, so it produces its own model call
-    // and its own Langfuse trace, tied to the same session.
     const langfuse = langfuseTraceConfig(await this.langfuseHandler(), {
       userId: input.userId,
       sessionId: input.conversationId,
       tags: ['assistant', 'resume'],
     });
+
+    const graphPending = await this.readGraphPendingReview(
+      input.conversationId,
+    );
+    if (graphPending != null) {
+      return this.resumeGraphThread(input, graphPending, langfuse);
+    }
+
+    const deepPending = await this.readDeepAgentPendingReview(
+      input.conversationId,
+    );
+    if (deepPending != null) {
+      return this.resumeDeepAgentThread(input, langfuse);
+    }
+
+    throw new DomainFailureException(
+      createDomainFailure({
+        kind: 'validation',
+        code: 'VALIDATION_FAILED',
+        // Registry owns outbound copy (ADR-0012); keep the specific
+        // direction in `cause` for logs only.
+        cause: 'no_pending_proposal_review',
+      }),
+    );
+  }
+
+  /** The graph thread's pending review, or `null` when it is not suspended. */
+  private async readGraphPendingReview(
+    conversationId: string,
+  ): Promise<AssistantPendingReview | null> {
+    const graph = this.buildGraphWithCheckpointer(conversationId);
+    const snapshot = await graph.getState({
+      configurable: { thread_id: conversationId },
+    });
+    const pending = (
+      snapshot.values as { pendingReview?: AssistantPendingReview }
+    ).pendingReview;
+    return pending != null && pending.status === 'pending' ? pending : null;
+  }
+
+  /**
+   * The deepagents thread's pending review, or `null` when that thread does not
+   * exist / is not suspended. Read failures are treated as "not this format":
+   * a missing deep thread is the normal case on a graph-only conversation.
+   */
+  private async readDeepAgentPendingReview(
+    conversationId: string,
+  ): Promise<DeepAgentPendingReview | null> {
+    const checkpointer =
+      this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
+    if (checkpointer == null) return null;
+    try {
+      const values = await this.readDeepAgentValues(
+        conversationId,
+        checkpointer,
+        [],
+      );
+      const pending = values?.pendingReview;
+      return pending != null && pending.status === 'pending' ? pending : null;
+    } catch (error) {
+      this.logger.debug(
+        `deepagents thread has no resumable review for "${conversationId}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  }
+
+  private async resumeGraphThread(
+    input: {
+      userId: string;
+      conversationId: string;
+      decision: 'approved' | 'rejected';
+      note?: string;
+    },
+    _pending: AssistantPendingReview,
+    langfuse: ReturnType<typeof langfuseTraceConfig>,
+  ): Promise<{ finalContent: string | null }> {
+    const graph = this.buildGraphWithCheckpointer(input.conversationId);
+    const threadConfig = { configurable: { thread_id: input.conversationId } };
+
+    // The resume turn is a separate trace from the turn that suspended: it
+    // re-enters the graph at `write_review`, so it produces its own model call
+    // and its own Langfuse trace, tied to the same session.
     const result = await graph.invoke(
       new Command({ resume: { decision: input.decision, note: input.note } }),
       { ...threadConfig, ...langfuse },
@@ -499,9 +611,90 @@ export class AssistantRuntimeService {
   }
 
   /**
+   * Resumes the deepagents thread with the client's decision.
+   *
+   * The agent is rebuilt rather than cached: the checkpointer holds the state,
+   * and rebuilding keeps this path identical to a fresh turn (same tools, same
+   * prompt resolution). `Command({ resume })` feeds the value back to the
+   * `interrupt` call in `proposal-review.ts`, which then continues the loop.
+   */
+  private async resumeDeepAgentThread(
+    input: {
+      userId: string;
+      conversationId: string;
+      decision: 'approved' | 'rejected';
+      note?: string;
+    },
+    langfuse: ReturnType<typeof langfuseTraceConfig>,
+  ): Promise<{ finalContent: string | null }> {
+    const checkpointer =
+      this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
+    if (checkpointer == null) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message:
+          'Checkpoint persistence is unavailable; cannot resume the review.',
+      });
+    }
+
+    const agent = buildAssistantDeepAgent({
+      model: this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
+      toolNames: [],
+      budgets: this.readToolLimitBudgets(),
+      execute: () => Promise.resolve([]),
+      systemPrompt: '',
+      conversationId: input.conversationId,
+      checkpointer,
+      middleware: [createProposalReviewMiddleware([])],
+    });
+
+    // `ReactAgent.invoke`'s input union is derived from the compiled graph's
+    // generics and does not admit `Command` in the published typings, even
+    // though resuming with `Command({ resume })` is the documented path. The
+    // narrowing lives here so every other call site keeps its typed input.
+    const resumable = agent as unknown as {
+      invoke: (
+        input: Command,
+        config: Record<string, unknown>,
+      ) => Promise<{ messages?: unknown[] }>;
+    };
+
+    const result = await resumable.invoke(
+      new Command({
+        resume: {
+          decision: input.decision,
+          ...(input.note != null ? { note: input.note } : {}),
+        },
+      }),
+      {
+        configurable: {
+          thread_id: deepAgentThreadId(input.conversationId),
+        },
+        ...langfuse,
+      },
+    );
+
+    return { finalContent: this.lastAssistantText(result.messages ?? []) };
+  }
+
+  private lastAssistantText(messages: readonly unknown[]): string | null {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (!AIMessage.isInstance(message)) continue;
+      const text = extractMessageText([message]);
+      if (text.trim().length > 0) return text;
+    }
+    return null;
+  }
+
+  /**
    * Reads the pending review and its proposals from the suspended thread's
    * checkpoint without resuming it. The confirm endpoint uses this to apply
    * approved writes server-side before the thread resumes.
+   *
+   * Both runtimes are consulted, in the same order {@link resumeConversation}
+   * uses: whichever thread actually holds the pending review is the one whose
+   * proposals the caller must apply.
    */
   async readPendingProposals(conversationId: string): Promise<{
     pendingReview: AssistantPendingReview | null;
@@ -515,12 +708,94 @@ export class AssistantRuntimeService {
       pendingReview?: AssistantPendingReview;
       toolResults?: AssistantToolExecutionResult[];
     };
+    if (values.pendingReview != null) {
+      return {
+        pendingReview: values.pendingReview,
+        proposals: (values.toolResults ?? []).flatMap(
+          (result) => result.proposedActions ?? [],
+        ),
+      };
+    }
+
+    const deepValues = await this.readDeepAgentState(conversationId);
     return {
-      pendingReview: values.pendingReview ?? null,
-      proposals: (values.toolResults ?? []).flatMap(
-        (result) => result.proposedActions ?? [],
-      ),
+      pendingReview: deepValues?.pendingReview ?? null,
+      proposals: deepValues?.proposals ?? [],
     };
+  }
+
+  /**
+   * Reads the deepagents thread's persisted state, or `null` when that thread
+   * does not exist (the normal case for a graph-only conversation).
+   */
+  private async readDeepAgentState(conversationId: string): Promise<{
+    pendingReview: AssistantPendingReview | null;
+    proposals: AssistantProposedAction[];
+  } | null> {
+    const checkpointer =
+      this.checkpointerService.getSaver() as BaseCheckpointSaver | null;
+    if (checkpointer == null) return null;
+    try {
+      const values = await this.readDeepAgentValues(
+        conversationId,
+        checkpointer,
+        [],
+      );
+      if (values == null) return null;
+      return {
+        pendingReview: values.pendingReview ?? null,
+        proposals: values.proposals ?? [],
+      };
+    } catch (error) {
+      this.logger.debug(
+        `deepagents state unavailable for "${conversationId}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Reads the deepagents thread's state bag.
+   *
+   * `ReactAgent.getState` is marked `@internal` with a `never` return type in
+   * the published typings, so the result has to be re-typed here. The runtime
+   * value is a normal LangGraph `StateSnapshot`; only the state keys this file
+   * reads are named.
+   */
+  private async readDeepAgentValues(
+    conversationId: string,
+    checkpointer: BaseCheckpointSaver,
+    middleware: readonly AgentMiddleware[],
+  ): Promise<{
+    pendingReview?: AssistantPendingReview;
+    proposals?: AssistantProposedAction[];
+  } | null> {
+    const agent = buildAssistantDeepAgent({
+      model: this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
+      // The read path never executes tools; an empty set keeps the agent
+      // constructible without recomputing permissions.
+      toolNames: [],
+      budgets: this.readToolLimitBudgets(),
+      execute: () => Promise.resolve([]),
+      systemPrompt: '',
+      conversationId,
+      checkpointer,
+      ...(middleware.length > 0 ? { middleware } : {}),
+    });
+    const stateful = agent as unknown as {
+      getState: (config: { configurable: { thread_id: string } }) => Promise<{
+        values?: {
+          pendingReview?: AssistantPendingReview;
+          proposals?: AssistantProposedAction[];
+        };
+      }>;
+    };
+    const snapshot = await stateful.getState({
+      configurable: { thread_id: deepAgentThreadId(conversationId) },
+    });
+    return snapshot.values ?? null;
   }
 
   /**

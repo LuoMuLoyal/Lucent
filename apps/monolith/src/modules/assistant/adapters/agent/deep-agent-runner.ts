@@ -1,51 +1,52 @@
 /**
- * Runs one assistant turn on the deepagents backend.
+ * Runs one deepagents turn and maps its output onto the assistant's own
+ * `AssistantConversationResult`.
  *
- * ## Why this adapter exists
+ * ## Why a runner and not the agent itself
  *
- * `buildAssistantDeepAgent` assembles the agent; this module is the seam the
- * production runtime calls. It exists because deepagents' run output differs
- * from the hand-written graph's `AssistantConversationResult`, and the two must
- * never be reconciled inside `runtime.ts` — that file owns the switch, not the
- * translation.
+ * `createDeepAgent` returns a LangGraph runnable with its own run loop and its
+ * own state (`messages` / `files` / middleware state). The rest of the assistant
+ * — SSE chunking, persistence, validation flags — speaks
+ * `AssistantConversationResult`. This module is that seam, and it is
+ * deliberately thin: everything it adds is a mapping, never policy.
  *
- * ## What is deliberately out of scope here
+ * ## Known deviation: no token streaming
  *
- * - **HITL proposals**: the confirm endpoint resumes a *graph* interrupt
- *   (`write_review`). deepagents would need its own suspension mechanism, and
- *   two suspension mechanisms over one conversation is the exact drift the
- *   plan (§6.1) forbids. The runner therefore reports proposals through the
- *   normal result envelope and the caller decides what to do — in practice,
- *   `runtime.ts` routes any turn with draft tools to the graph path first.
- * - **Checkpointing**: deepagents gets no checkpointer. Regeneration keys on
- *   the graph's checkpoints (`AssistantCheckpointerService`); a second one
- *   would disagree about what "the current state" is.
- * - **Streaming**: deepagents owns its run loop and does not emit per-token
- *   text the way `graph.ts`'s `onText` does. `streamedContent` is always
- *   `false` and the caller turns the finished message into word-level chunks,
- *   so the client-visible SSE contract (`chunk` → `result` → `done`) is
- *   unchanged.
+ * `streamedContent` is always `false`; the caller streams the finished text
+ * through `streamPreGeneratedContent` so the SSE contract (`chunk` → `result`
+ * → `done`) stays byte-identical to the graph path. True token streaming would
+ * mean consuming deepagents' stream mode and re-implementing the graph's
+ * `onText` semantics on top of it, which is a separate change.
+ *
+ * ## Proposals and checkpoints
+ *
+ * A turn whose candidate set contains a `*_draft` tool needs the proposal to
+ * suspend the thread (so the confirm endpoint can resume it). That suspension
+ * comes from `proposal-review.ts`, which needs a checkpointer; the runner passes
+ * one through when the caller supplied it. Without a checkpointer the
+ * middleware's `interrupt` has nowhere to persist and the turn fails — the
+ * caller is responsible for not routing proposal turns here in that case
+ * (`runtime.ts` checks it).
  */
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage } from '@langchain/core/messages';
-import type { ToolName } from '../../domain/policies/tool-permission.js';
+import type { BaseCheckpointSaver } from '@langchain/langgraph';
+import { CODE_TOOL_LIMIT_BUDGETS } from '../acl/tools/shared/tool-definitions.js';
+import { buildAssistantDeepAgent, deepAgentThreadId } from './deep-agent.js';
+import { createProposalReviewMiddleware } from './proposal-review.js';
 import type {
   AssistantToolCall,
   AssistantToolExecutionResult,
 } from '../../application/ports/assistant.js';
-import type { ToolLimitBudgets } from '../acl/tools/shared/tool-definitions.js';
-import { buildAssistantDeepAgent } from './deep-agent.js';
-import type { AssistantConversationResult } from './runtime.js';
+import type { ToolName } from '../../domain/policies/tool-permission.js';
 import type { AssistantValidationFlags } from './state.js';
+import type { AssistantConversationResult } from './runtime.js';
 
-/** All a deepagents turn needs — the same material `graph.ts` receives. */
+/** Everything one turn needs from the caller. */
 export interface DeepAgentRunnerDeps {
-  createModel: () => BaseChatModel;
-  /** Permission-filtered candidate set — the same list `graph.ts` binds. */
+  /** Builds the chat model (the caller owns its config). */
+  createModel: () => unknown;
   toolNames: readonly ToolName[];
-  /** Live advertised maxima, so zod bounds match what the server clamps. */
-  budgets: ToolLimitBudgets;
-  /** The production executor (`AssistantToolService.executeMany` shape). */
+  budgets?: typeof CODE_TOOL_LIMIT_BUDGETS;
   execute: (
     calls: readonly AssistantToolCall[],
   ) => Promise<AssistantToolExecutionResult[]>;
@@ -58,6 +59,8 @@ export interface DeepAgentRunnerDeps {
     content: string;
   }[];
   conversationId?: string;
+  /** Checkpoint saver; enables proposal suspension and turn persistence. */
+  checkpointer?: BaseCheckpointSaver | null;
 }
 
 /** Renders the final assistant text out of a deepagents run's message list. */
@@ -93,7 +96,7 @@ const NO_FLAGS: AssistantValidationFlags = {
 };
 
 /**
- * Executes one turn and maps the output onto `AssistantConversationResult`.
+ * Executes one turn and maps the output onto `ConversationRunResult`.
  *
  * Tool results are captured by wrapping `execute` rather than by scraping the
  * message list: the envelopes (coverage, ambiguities, proposedActions) are the
@@ -106,9 +109,9 @@ export async function runDeepAgentTurn(
   const toolResults: AssistantToolExecutionResult[] = [];
 
   const agent = buildAssistantDeepAgent({
-    model: deps.createModel(),
+    model: deps.createModel() as never,
     toolNames: deps.toolNames,
-    budgets: deps.budgets,
+    budgets: deps.budgets ?? CODE_TOOL_LIMIT_BUDGETS,
     execute: async (calls) => {
       const results = await deps.execute(calls);
       toolResults.push(...results);
@@ -118,6 +121,10 @@ export async function runDeepAgentTurn(
     ...(deps.conversationId != null
       ? { conversationId: deps.conversationId }
       : {}),
+    ...(deps.checkpointer != null ? { checkpointer: deps.checkpointer } : {}),
+    // The middleware reads proposals from the same accumulator `execute`
+    // fills, so it never re-parses a tool message.
+    middleware: [createProposalReviewMiddleware(toolResults)],
   });
 
   const history = (deps.conversationHistory ?? []).map((turn) => ({
@@ -125,20 +132,34 @@ export async function runDeepAgentTurn(
     content: turn.content,
   }));
 
-  const output = (await agent.invoke({
-    messages: [...history, { role: 'user', content: deps.userMessage }],
-  })) as { messages?: unknown[] };
+  const config =
+    deps.conversationId != null && deps.checkpointer != null
+      ? { configurable: { thread_id: deepAgentThreadId(deps.conversationId) } }
+      : {};
+
+  const output = (await agent.invoke(
+    {
+      messages: [...history, { role: 'user', content: deps.userMessage }],
+    },
+    config,
+  )) as { messages?: unknown[]; pendingReview?: { status?: string } };
 
   const messages = output.messages ?? [];
   const finalContent = finalContentOf(messages);
   const usedTools = [...new Set(toolResults.map((result) => result.name))];
+  const suspended = output.pendingReview?.status === 'pending';
 
-  return {
+  const result: AssistantConversationResult = {
     toolResults,
     finalContent,
     streamedContent: false,
     selectedTools: usedTools,
     validationFlags: NO_FLAGS,
-    stopReason: finalContent != null ? 'answered' : 'no_match',
+    stopReason: suspended
+      ? 'awaiting_review'
+      : finalContent != null
+        ? 'answered'
+        : 'no_match',
   };
+  return result;
 }
