@@ -11577,6 +11577,11 @@
             "type": "boolean",
             "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
           },
+          "assistantAgentMode": {
+            "type": "string",
+            "enum": ["default", "graph", "deepagents"],
+            "description": "Agent backend in effect for this user: \"default\" follows the server operator setting."
+          },
           "waterTargetCount": {
             "type": "number",
             "description": "Daily water intake target (number of glasses)."
@@ -11599,6 +11604,7 @@
           "dataSharingConsent",
           "assistantEnabled",
           "assistantMemoryEnabled",
+          "assistantAgentMode",
           "waterTargetCount",
           "assistantContext",
           "updatedAt",
@@ -14407,6 +14413,11 @@
           "assistantMemoryEnabled": {
             "type": "boolean",
             "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
+          },
+          "assistantAgentMode": {
+            "type": "string",
+            "enum": ["default", "graph", "deepagents"],
+            "description": "Agent backend preference: \"default\" follows the server operator setting; \"graph\" and \"deepagents\" override it for this user."
           },
           "waterTargetCount": {
             "type": "integer",
