@@ -228,12 +228,12 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 
 **不是全部 24 个工具都做成 MCP。** 按「谁需要从 Lucent 之外调用」来分：
 
-| 组                                                                                       | 工具 | 是否 MCP           | 理由                                                                |
-| ---------------------------------------------------------------------------------------- | ---- | ------------------ | ------------------------------------------------------------------- |
-| **知识检索**（`search_cn_*`、`get_drugbank_detail`、`reason_over_*` 等）                 | 8 个 | **是**             | 无用户数据、与其他系统/agent 天然可复用；且这是「知识库」能力的出口 |
-| **常青事实**（`get_*_summary`、`get_user_profile` 等只读）                               | 部分 | **是**（只读子集） | 只读、幂等，适合被外部 agent 复用                                   |
-| **用户私有数据**（`get_records_*`、`get_medicines`、`get_meal_digest`） | —    | **否**             | 与 `userId` 强绑定，跨进程暴露只会放大越权面                        |
-| **写入提案**（`propose_*`）                                                              | 4 个 | **否**             | HITL 门控依赖会话与确认状态，跨进程无意义                           |
+| 组                                                                       | 工具 | 是否 MCP           | 理由                                                                |
+| ------------------------------------------------------------------------ | ---- | ------------------ | ------------------------------------------------------------------- |
+| **知识检索**（`search_cn_*`、`get_drugbank_detail`、`reason_over_*` 等） | 8 个 | **是**             | 无用户数据、与其他系统/agent 天然可复用；且这是「知识库」能力的出口 |
+| **常青事实**（`get_*_summary`、`get_user_profile` 等只读）               | 部分 | **是**（只读子集） | 只读、幂等，适合被外部 agent 复用                                   |
+| **用户私有数据**（`get_records_*`、`get_medicines`、`get_meal_digest`）  | —    | **否**             | 与 `userId` 强绑定，跨进程暴露只会放大越权面                        |
+| **写入提案**（`propose_*`）                                              | 4 个 | **否**             | HITL 门控依赖会话与确认状态，跨进程无意义                           |
 
 **判断标准是「这个工具被 Lucent 之外的调用方调用时，语义是否还成立」。**
 `create_record_draft` 离开会话与 confirm 端点就没有意义，包成 MCP
@@ -341,21 +341,22 @@ ReAct 循环。** 即 Phase 2 先手工收敛成单循环（验证拓扑正确�
 - **多租户差异**：每会话一个独立临时 workspace。DSH 是单用户 CLI 不需要，
   Lucent 是 Web 多租户必须有。
 
-### 6.4 实施结果（装配层完成，未接入请求路径）
+### 6.4 实施结果（装配层完成）
 
-已落地三个文件：
+已落地四个文件：
 
 | 文件                            | 内容                                                                                                                       |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `adapters/agent/tool-bridge.ts` | 24 个既有工具 → `StructuredTool`，实现调用**既有** `executeMany`；6 个带参数工具用 zod 手写 schema，上界读同一份运行时预算 |
 | `adapters/agent/subagents.ts`   | `knowledge` / `records` / `analyst` 三个子智能体；**不声明 `tools`**，继承父级工具集                                       |
 | `adapters/agent/workspace.ts`   | 每会话临时目录 + 环境变量清洗（`/KEY\|PASSWORD\|SECRET\|TOKEN\|CREDENTIAL\|URL\|DSN\|CONN/i` 与 `DSH_*`）                  |
-| `adapters/agent/deep-agent.ts`  | `createDeepAgent` 装配：模型、工具、子智能体、`LocalShellBackend`                                                          |
+| `adapters/agent/deep-agent.ts`  | `createDeepAgent` 装配：模型、工具、子智能体、`LocalShellBackend`、checkpointer                                            |
 
-**没有接入 `runtime.ts`。** `graph.ts` 仍是生产路径。原因是两者在流式与返回形状上
-不同（deepagents 拥有自己的 run loop 与 `messages`/`files` 状态，而 `graph.ts` 通过
-`onText` 流式输出并返回 `AssistantConversationResult`）。换底座是一个独立、
-可验证的步骤，混在装配里做会分不清是「装配错」还是「换底座错」。
+**2026-11-22 更新：已接入请求路径**（`ASSISTANT_AGENT_RUNTIME` 运维键 +
+`assistantAgentMode` 用户键），并补齐 checkpointer（独立线程空间
+`deep-{conversationId}`）与提案 interrupt（`proposal-review.ts`）。原先「换底座是
+独立步骤」的判断成立：接线确实在装配完成之后单独做，且暴露了三个装配阶段看不到的
+问题（状态形状冲突、`interruptOn` 的时机、`wrapToolCall` 的重跑）。详见当日迁移日志。
 
 ### 6.5 与原计划的偏离：沙箱
 
@@ -535,7 +536,7 @@ WeKnora 的 `ExtractDelaySeconds` + `ExtractMinIntervalSeconds` +
 | 0.5 | 5 前置 | 建 `mem0` 库 + compose 接入 + baseURL 闸门验证                 | 0.5 天 |
 | 1   | 1      | **修路由缺陷（已实施，见 §3）**                                | 0.5 天 |
 | 2   | 2      | **删路由层、单循环、提示词收敛（已实施，见 §4）**              | 1–2 天 |
-| 3   | 4      | **deepagents 装配（已实施，见 §6；未接入请求路径）**           | 4–6 天 |
+| 3   | 4      | **deepagents 装配 + 接入请求路径（已实施，见 §6）**            | 4–6 天 |
 | 4   | 3      | MCP：知识检索组做 server（Streamable HTTP）+ 地图天气做 client | 2–3 天 |
 | 5   | 5      | 记忆接 Mem0 server + WeKnora 数据模型对齐                      | 3–5 天 |
 

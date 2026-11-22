@@ -80,17 +80,35 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 - **响应缓存**覆盖「本轮无工具、无记忆注入」的回复，命中点在 `respond`（agent 直答
   与 respond 自答两条路径都会写）。
 
-### deepagents 运行时（灰度开关，默认仍走 graph）
+### deepagents 运行时（用户级可切，默认跟随运维键）
 
 `buildAssistantDeepAgent` 用 `createDeepAgent` 装配同一拓扑，额外拿到规划
-（`write_todos`）、文件系统、shell 与 `task` 子智能体委派。**接线方式是灰度开关**
-`ASSISTANT_AGENT_RUNTIME`（默认 `graph`）：`runtime.ts` 按轮读取，`deepagents` 值经
-`deep-agent-runner.ts` 把运行输出映射为与 graph 相同的 `AssistantConversationResult`
-（`streamedContent` 恒为 `false`，最终文本由 `streamPreGeneratedContent` 切块下发，
-SSE 契约不变）。含 `*_draft` 工具的轮次走 graph：提案确认回路（interrupt →
-confirm → resume）实现在 graph 上，deepagents 侧的对接未做。deepagents 运行失败
-该轮自动回落 graph。`general-purpose` 兜底子智能体由 deepagents 自动注入；agent 内
-的委派由模型读 subagent description 自行决定，不加外部路由。
+（`write_todos`）、文件系统、shell 与 `task` 子智能体委派。**底座由两层决定**：
+用户设置 `assistantAgentMode`（`default` / `graph` / `deepagents`），`default` 时
+跟随运维键 `ASSISTANT_AGENT_RUNTIME`（默认 `graph`）。`runtime.ts` 按轮解析，
+未知值一律当 `graph` —— 笔误必须落在已验证路径上。`deep-agent-runner.ts` 把运行
+输出映射为与 graph 相同的 `AssistantConversationResult`（`streamedContent` 恒为
+`false`，最终文本由 `streamPreGeneratedContent` 切块下发，SSE 契约不变）。
+deepagents 运行失败时该轮自动回落 graph。`general-purpose` 兜底子智能体由
+deepagents 自动注入；agent 内的委派由模型读 subagent description 自行决定，
+不加外部路由。
+
+**两条路径各写各的 thread。** deepagents 用 `deep-{conversationId}`（
+`deepAgentThreadId()`），graph 用裸 `conversationId`。共用一个 id 会让两份不同形状的
+状态互相覆盖，`getState` 只能回答「最后写入的是谁」；独立命名空间同时保证了
+`regenerateLastMessage`（只对 graph 的 checkpoint id 有意义）不被污染。
+
+**提案挂起不再回退 graph。** deepagents 也有 checkpointer，`proposal-review.ts`
+用 `afterAgent` 在工具全部执行完之后 `interrupt`，与 graph 的 `tools` →
+`write_review_setup` → `write_review` 顺序对齐。为什么不是 `interruptOn`：
+deepagents 的 HITL 在工具**执行前**拦截，而提案是 draft 工具的**输出**，执行前挂起
+等于拿不到 proposal id。为什么不是 `wrapToolCall`：LangGraph 恢复时会重跑被中断的
+节点，工具会执行两遍。只有 checkpointer 不可用时，含 `*_draft` 的轮次才回退 graph
+（`deepAgentsSupportsProposals`）。
+
+confirm 端点支持两种挂起格式：先读 graph 线程的 `pendingReview`，没有则读
+deepagents 线程。顺序按「哪个线程真的挂着」决定，而不是按当前开关决定 —— 底座可以
+在挂起与确认之间被切换。
 
 三个组成部分：
 
@@ -333,10 +351,19 @@ headline/区间，只为返回的 ≤`limit` 条回读 `payload.mealAnalysis` �
 
 ## Persistence & Memory
 
-`repositories/`：conversation/memory/summary 三仓 + `AssistantCheckpointerService`
-（Postgres checkpointer）。跨对话记忆由归档对话后台去抖抽取，注入上限 5 条；
-删除对话不删除记忆，`DELETE memory` 是设置页全量清除入口。assistant 对话与
-历史 Today/Report AI 摘要是两回事。
+`infrastructure/persistence/`：conversation / summary 两仓 + `AssistantCheckpointerService`
+（Postgres checkpointer，schema 独立于 `public`）。
+
+**跨对话记忆全部走 Mem0 sidecar**（`infrastructure/memory/mem0-client.ts` →
+`application/services/memory.ts`）：抽取、去重、召回由 sidecar 承担，Lucent 侧只留一个
+HTTP client，**不持有记忆 schema**。旧自研存储（`domain/memory/`、
+`PrismaMemories`、`assistant_memories` 表）已删除，进程内 `setTimeout` 去抖随之消失。
+
+触发点是**归档对话**：`Conversations.archiveLatest` 保存归档后调用
+`scheduleExtraction`，抽最近 10 条消息交给 Mem0（同一偏好说三遍由 sidecar 归一为一行）。
+`MEM0_ENABLED=false`（默认）或 sidecar 不可达时全部静默 no-op —— 记忆是连续性数据，
+永远不该成为一轮对话失败的理由。`DELETE memory` 仍是设置页的全量清除入口；删除单个
+对话不删除记忆。
 
 ## 医学问答语料的编辑面（`application/` + `infrastructure/persistence/qa-chunks.ts`）
 
