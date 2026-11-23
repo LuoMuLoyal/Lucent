@@ -1,4 +1,4 @@
-import { ToolMessage } from '@langchain/core/messages';
+import { SystemMessage, ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
 import {
@@ -99,9 +99,29 @@ export function createAgentNode(deps: {
    * `AssistantGraphDeps.listExternalTools`). Absent / empty means none.
    */
   listExternalTools?: AssistantGraphDeps['listExternalTools'];
+  /**
+   * Per-step re-resolution of the bindable set; see
+   * `AssistantGraphDeps.resolveAllowedTools`.
+   */
+  resolveAllowedTools?: AssistantGraphDeps['resolveAllowedTools'];
+  /**
+   * Builds the System header for one step from the tools bound in that step.
+   *
+   * Called per step, not per turn: see `state.messages`.
+   */
+  buildSystemPrompt: AssistantGraphDeps['buildSystemPrompt'];
 }): RuntimeNode {
   return async (state) => {
-    const toolNames = state.allowedTools;
+    // DSH re-evaluates every tool's `when({ agent })` per step rather than
+    // once per turn. This is that: the set the caller snapshotted can shrink
+    // between steps (a sidecar going away, an operator flipping a runtime
+    // key), and continuing to offer a tool whose backend just vanished only
+    // produces a turn full of "unavailable" envelopes.
+    const resolved =
+      deps.resolveAllowedTools != null
+        ? await deps.resolveAllowedTools(state.allowedTools)
+        : state.allowedTools;
+    const toolNames = resolved;
     if (toolNames.length === 0) {
       return {
         pendingToolCalls: [],
@@ -138,9 +158,16 @@ export function createAgentNode(deps: {
       };
     }
 
+    // The prompt is rebuilt here, every step, from the set actually bound
+    // above. `prepare_context` no longer writes a header (see
+    // `state.stepPrompt`): a prompt naming tools this step did not bind would
+    // be a promise the model can act on and the runtime cannot keep.
+    const stepPrompt = deps.buildSystemPrompt(toolNames);
+    const stepMessages = [new SystemMessage(stepPrompt), ...state.messages];
+
     const response = await streamModelResponse(
       boundModel,
-      state.messages,
+      stepMessages,
       deps.onText,
     );
 

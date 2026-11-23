@@ -158,12 +158,22 @@ export const AssistantRuntimeState = Annotation.Root({
 
   // ── LLM conversation messages ──────────────────────────────────────────
   /**
-   * ⚠️ **append reducer**：谁写谁往后接，不能用来"改写首条 System"。
+   * The conversation transcript: assistant and tool messages, appended.
    *
-   * 旧实现让 `prepare_context` 先写 `[System, (memory), Human]`、再让下游想替换首条 ——
-   * 实际是又追加了一遍，同一轮出现两条 System、两条用户消息（2026-10-07 定位，见计划 C7）。
-   * 现在 `prepare_context` 只准备记忆块，`agent` 在**第一次**调用时一次性写出完整
-   * 消息列表；工具循环的后续轮次只追加 assistant 与 tool 消息。
+   * Append reducer because the transcript genuinely only grows.
+   *
+   * ## The System header is not in here
+   *
+   * It used to be, written once by `prepare_context`. That made it
+   * unrewritable — any later attempt to replace it appended a second one
+   * instead (2026-10-07, two System messages in one turn — plan C7).
+   *
+   * The header is now rebuilt by the `agent` node on every step, from the tool
+   * set that step actually binds, and prepended when the model is called.
+   * That is what DSH does (`systemPrompt.assemble({ …, toolSet })` per step),
+   * and it is load-bearing here: the bindable set is re-resolved per step, so
+   * a once-per-turn prompt would keep advertising tools whose backend vanished
+   * mid-turn.
    */
   messages: Annotation<BaseMessage[]>({
     reducer: (left, right) => [...left, ...right],

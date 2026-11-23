@@ -1,4 +1,8 @@
-import { AIMessageChunk, HumanMessage } from '@langchain/core/messages';
+import {
+  AIMessageChunk,
+  HumanMessage,
+  SystemMessage,
+} from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';
 import { createAgentNode } from './nodes.js';
 
@@ -27,6 +31,7 @@ describe('assistant agent node', () => {
     };
     const onText = vi.fn();
     const node = createAgentNode({
+      buildSystemPrompt: () => 'system prompt',
       createModel: () => model as never,
       onText,
     } as never);
@@ -51,10 +56,7 @@ describe('assistant agent node', () => {
   it('binds every allowed tool rather than a pre-selected subset', async () => {
     // The node used to bind `relevantTools`, a subset the router had chosen.
     // Now the whole permission-filtered set is bound and the model decides.
-    const allowed = [
-      'get_user_profile',
-      'search_cn_knowledge',
-    ] as const;
+    const allowed = ['get_user_profile', 'search_cn_knowledge'] as const;
     const stream = vi.fn().mockResolvedValue(
       (async function* () {
         await Promise.resolve();
@@ -63,6 +65,7 @@ describe('assistant agent node', () => {
     );
     const model = { bindTools: vi.fn().mockReturnValue({ stream }) };
     const node = createAgentNode({
+      buildSystemPrompt: () => 'system prompt',
       createModel: () => model as never,
     } as never);
 
@@ -87,6 +90,7 @@ describe('assistant agent node', () => {
     );
     const model = { bindTools: vi.fn().mockReturnValue({ stream }) };
     const node = createAgentNode({
+      buildSystemPrompt: () => 'system prompt',
       createModel: () => model as never,
     } as never);
 
@@ -100,6 +104,7 @@ describe('assistant agent node', () => {
   it('short-circuits to no_match when nothing may be bound', async () => {
     const model = { bindTools: vi.fn() };
     const node = createAgentNode({
+      buildSystemPrompt: () => 'system prompt',
       createModel: () => model as never,
     } as never);
 
@@ -111,5 +116,75 @@ describe('assistant agent node', () => {
       stopReason: 'no_match',
     });
     expect(model.bindTools).not.toHaveBeenCalled();
+  });
+
+  it('re-resolves the bindable set on every step and shrinks with it', async () => {
+    // DSH evaluates each tool's `when({ agent })` per step. Here the resolver
+    // plays that part: a step whose capabilities shrank must bind the smaller
+    // set, not the turn's original snapshot.
+    const stream = vi.fn().mockResolvedValue(
+      (async function* () {
+        await Promise.resolve();
+        yield new AIMessageChunk({ content: 'ok' });
+      })(),
+    );
+    const model = { bindTools: vi.fn().mockReturnValue({ stream }) };
+    const resolveAllowedTools = vi
+      .fn()
+      .mockResolvedValue(['search_cn_knowledge'] as const);
+    const node = createAgentNode({
+      buildSystemPrompt: () => 'system prompt',
+      createModel: () => model as never,
+      resolveAllowedTools,
+    } as never);
+
+    await node(
+      stateWith({
+        allowedTools: ['get_user_profile', 'search_cn_knowledge'],
+      }),
+    );
+
+    expect(resolveAllowedTools).toHaveBeenCalledWith([
+      'get_user_profile',
+      'search_cn_knowledge',
+    ]);
+    const bound = model.bindTools.mock.calls[0]?.[0] as Array<{
+      function: { name: string };
+    }>;
+    expect(bound.map((definition) => definition.function.name)).toEqual([
+      'search_cn_knowledge',
+    ]);
+  });
+
+  it('builds the System header from the tools this step bound', async () => {
+    // The prompt and the bound set are produced in the same step and must
+    // agree. A header written once per turn would keep naming a tool whose
+    // backend vanished mid-turn; `prepare_context` no longer writes one
+    // (see `state.messages`), so this is the only place it is produced.
+    const stream = vi.fn().mockResolvedValue(
+      (async function* () {
+        await Promise.resolve();
+        yield new AIMessageChunk({ content: 'ok' });
+      })(),
+    );
+    const model = { bindTools: vi.fn().mockReturnValue({ stream }) };
+    const buildSystemPrompt = vi.fn(() => 'HEADER');
+    const node = createAgentNode({
+      buildSystemPrompt,
+      createModel: () => model as never,
+    } as never);
+
+    await node(
+      stateWith({
+        allowedTools: ['get_user_profile'],
+        messages: [new HumanMessage('hello')],
+      }),
+    );
+
+    expect(buildSystemPrompt).toHaveBeenCalledWith(['get_user_profile']);
+    // The header is prepended to the walked messages, not stored in them.
+    const streamed = stream.mock.calls[0]?.[0] as Array<{ content: unknown }>;
+    expect(streamed[0]).toBeInstanceOf(SystemMessage);
+    expect(streamed[1]).toBeInstanceOf(HumanMessage);
   });
 });

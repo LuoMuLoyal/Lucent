@@ -1,6 +1,6 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 import type { BaseMessage } from '@langchain/core/messages';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage } from '@langchain/core/messages';
 import { isRetryableLlmError } from '../../../../common/llm/retry/llm-retry.helper.js';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import {
@@ -97,12 +97,11 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
         memoryBlock = await deps.buildMemoryBlock(state.userId);
       }
 
-      // The prompt is written here, in one shot: `messages` is an append
-      // reducer, so anything written earlier could only be appended to, never
-      // replaced. There is no per-turn tool subset left to wait for.
-      const messages: BaseMessage[] = [
-        new SystemMessage(deps.buildSystemPrompt(state.allowedTools)),
-      ];
+      // The System header is *not* written here. `agent` rebuilds it every
+      // step from the tool set it actually binds, so the prompt and the bound
+      // tools can never disagree (see `state.stepPrompt`). This node only
+      // writes the immutable part: the memory block and the user's question.
+      const messages: BaseMessage[] = [];
       if (memoryBlock.length > 0) {
         messages.push(new HumanMessage(memoryBlock));
       }
