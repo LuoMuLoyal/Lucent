@@ -130,6 +130,18 @@ export function describeExternalTools(
 export const EXTERNAL_LOADER_RAW_NAME = 'load_tools';
 
 /**
+ * Default cap for one catalog summary.
+ *
+ * Matches DSH's `catalogDescriptionMaxLength` default. The catalog is the whole
+ * point of on-demand loading — it must stay short enough that listing 12 remote
+ * tools costs less than binding one schema.
+ */
+export const EXTERNAL_CATALOG_SUMMARY_MAX_LENGTH = 160;
+
+/** Length of the `...` appended when a summary is truncated. */
+const ELLIPSIS_LENGTH = 3;
+
+/**
  * The loader tool's public name for one server: `<server>__load_tools`.
  *
  * Model-facing, so it follows the same pure-function contract as the tools it
@@ -165,7 +177,7 @@ function capSummary(line: string, maxLength: number): string {
   if (line.length <= maxLength) return line;
   // `slice` counts UTF-16 units, so a naive cut can emit half a character.
   // Walk back off a lone high surrogate before truncating.
-  let end = maxLength - 3;
+  let end = maxLength - ELLIPSIS_LENGTH;
   if (end > 0 && /[\uD800-\uDBFF]/.test(line[end - 1] ?? '')) end -= 1;
   return `${line.slice(0, end)}...`;
 }
@@ -190,7 +202,7 @@ function capSummary(line: string, maxLength: number): string {
 export function renderExternalToolCatalog(
   serverName: string,
   definitions: readonly ExternalToolDefinition[],
-  maxDescriptionLength = 160,
+  maxDescriptionLength: number = EXTERNAL_CATALOG_SUMMARY_MAX_LENGTH,
 ): string {
   if (definitions.length === 0) return '';
   const loader = externalLoaderName(serverName);
