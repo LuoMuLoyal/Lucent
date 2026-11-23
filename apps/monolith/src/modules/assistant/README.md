@@ -65,8 +65,16 @@ START → prepare_context → agent ⇄ tools → validate → respond → END
 
 ### 关键契约
 
-- **候选集是硬上限**：由 `policy.enabledToolNames` 算好传入 —— 用户 context 开关 ∩
-  已实现 ∩ **sidecar 可用**。`agent` 绑定它**全量**，不再二次筛选。
+- **候选集是硬上限，且按步重算**：由 `policy.enabledToolNames` 算好传入 —— 用户
+  context 开关 ∩ 已实现 ∩ **sidecar 可用**。`agent` 每步先用
+  `resolveAllowedTools` 重新求值一次（DSH 的 `when({ agent })` 对应物），再绑定
+  结果。**只收缩不扩张**：sidecar 中途挂掉该工具立刻不再提供；中途恢复则要等
+  下一轮，因为本轮的候选集是调用方为这次对话清过的那一份。
+- **每步重建 System 提示词**：`prepare_context` 只写记忆块与用户问题，不写 System
+  头；`agent` 每步用**当步绑定的工具**重新生成并前置。为什么不能一轮写一次：候选集
+  按步重算，一轮写死的提示词会继续宣称一个当步已不绑定的工具——模型照着调用，
+  只拿到「不可用」信封。`messages` 仍是 append reducer（记录只增长），但**不再承载
+  System**，避免 2026-10-07 那个「一轮两条 System」的形态复发。
 - **循环上限可配**：运行时键 `ASSISTANT_MAX_TOOL_LOOPS`（基线 8）。触顶记
   `stopReason: 'tool_cap_reached'`，由 `validate` 的 `capped` 节点显式记录 ——
   `tools` 每次迭代都会清空 `pendingToolCalls`，不另立标志位就分不清「自然结束」
@@ -145,7 +153,20 @@ HTTP+SSE，也不做 stdio）。协议实现走官方 SDK，规范依据
 ### 外部 MCP client（高德地图 / 天气）—— 本进程作为 **client**
 
 `AMAP_MCP_ENABLED` 打开后，Lucent 去接高德**官方**的 Streamable HTTP server
-（`https://mcp.amap.com/mcp`），把远端工具作为 `amap__<remoteName>` 绑给模型。
+（`https://mcp.amap.com/mcp`），把远端工具作为 `amap__<remoteName>` 提供给模型。
+
+**按需加载，不是全量绑定**（照 DSH 的 `McpToolLoader`）：
+
+- 远端工具的 **schema 不进上下文**。每轮只绑定一样东西：`amap__load_tools`。
+- 系统提示词里有一段目录（`renderExternalToolCatalog`），列出**工具名 + 首行摘要**
+  （截断 160 字符）。这就是省 token 的那一半：12 个高德工具在目录里约几百 token，
+  绑 schema 则要上千。
+- 模型调用 `amap__load_tools({ tools: [...] })` 之后，这些名字进
+  `state.loadedExternalTools`（union reducer，对话内单调增长），**下一步**才真正绑定
+  对应工具的 schema。
+- 校验全或无：请求里任一名字不在 server 当前列表 → 一个都不加载。部分加载会让模型
+  以为自己说的事做成了一半，而它无从判断哪一半。
+- 换代保留：`listTools` 结果变了，已加载且仍存在的名字继续可用。
 
 **外部工具不进 `TOOL_REQUIRED_SOURCES`，这是设计不是遗漏。** 那张表的语义是「这个工具读
 用户的哪些数据源」；远端地图 server 一个都不读。塞进去就得为每个外部工具编一个假答案，
