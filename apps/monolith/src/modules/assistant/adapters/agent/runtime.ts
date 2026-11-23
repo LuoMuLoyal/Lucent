@@ -85,6 +85,7 @@ import { runDeepAgentTurn } from './deep-agent-runner.js';
 import {
   AMAP_MCP_SERVER_NAME,
   describeExternalTools,
+  renderExternalToolCatalog,
 } from '../../domain/mcp/external-tools.js';
 import type { ExternalMcpPort } from '../../application/ports/external-mcp.js';
 import { ASSISTANT_EXTERNAL_MCP } from '../../application/ports/external-mcp.js';
@@ -268,13 +269,41 @@ export class AssistantRuntimeService {
    * released one, else the code prompt. Resolved per invocation so a pushed
    * document applies to the next turn without rebuilding the graph.
    */
-  private resolveAssistantSystemPrompt(toolNames: readonly ToolName[]): string {
+  private resolveAssistantSystemPrompt(
+    toolNames: readonly ToolName[],
+    externalToolCatalog = '',
+  ): string {
     return resolveRuntimePrompt(
       this.runtimeConfigService,
       'assistantSystem',
-      () => buildAssistantSystemPrompt(toolNames),
-      assistantSystemPromptVariables(toolNames),
+      () => buildAssistantSystemPrompt(toolNames, externalToolCatalog),
+      {
+        ...assistantSystemPromptVariables(toolNames, externalToolCatalog),
+        externalTools: externalToolCatalog,
+      },
     );
+  }
+
+  /**
+   * Renders the on-demand catalog for this turn's prompt.
+   *
+   * Empty when no external server is configured, when it is disabled, or when
+   * it is unreachable — the prompt then simply has no on-demand section, which
+   * is the same shape as a deployment that never configured one.
+   */
+  private async buildExternalToolCatalog(
+    allowedTools: readonly ToolName[],
+  ): Promise<string> {
+    const client = this.amapMcpClient;
+    if (client == null) return '';
+    const remote = await client.listTools();
+    if (remote.length === 0) return '';
+    const definitions = describeExternalTools(
+      AMAP_MCP_SERVER_NAME,
+      remote,
+      new Set(allowedTools),
+    );
+    return renderExternalToolCatalog(AMAP_MCP_SERVER_NAME, definitions);
   }
 
   hasChatModel(): boolean {
@@ -414,6 +443,12 @@ export class AssistantRuntimeService {
       }
     }
 
+    // Resolved once per turn: the same generation feeds the prompt catalog and
+    // the loader's validation, so they cannot disagree about what is offered.
+    const externalToolCatalog = await this.buildExternalToolCatalog(
+      input.allowedTools,
+    );
+
     const graph = buildAssistantRuntimeGraph({
       createModel: () =>
         this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
@@ -442,8 +477,11 @@ export class AssistantRuntimeService {
             },
           }
         : {}),
+      // Fetched once per turn and reused for both the prompt catalog and the
+      // tool list, so the two can never describe different generations.
+      externalToolCatalog,
       buildSystemPrompt: (toolNames) =>
-        this.resolveAssistantSystemPrompt(toolNames),
+        this.resolveAssistantSystemPrompt(toolNames, externalToolCatalog),
       ...(input.buildMemoryBlock != null
         ? { buildMemoryBlock: input.buildMemoryBlock }
         : {}),
