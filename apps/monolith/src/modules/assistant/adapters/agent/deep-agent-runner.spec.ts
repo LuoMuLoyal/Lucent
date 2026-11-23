@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
 import { FakeListChatModel } from '@langchain/core/utils/testing';
+import { FakeToolCallingModel } from 'langchain';
 import { CODE_TOOL_LIMIT_BUDGETS } from '../acl/tools/shared/tool-definitions.js';
 import { runDeepAgentTurn } from './deep-agent-runner.js';
 import type { AssistantToolExecutionResult } from '../../application/ports/assistant.js';
@@ -49,69 +49,34 @@ describe('runDeepAgentTurn', () => {
   });
 
   it('collects tool results through the wrapped executor', async () => {
-    // FakeListChatModel only ever emits text, so it can never trigger a tool
-    // call. This subclass stays a real BaseChatModel (deepagents' gate
-    // requires one) and overrides bindTools to return a minimal runnable
-    // whose stream emits one tool call and then the final text — the exact
-    // two-round shape of a tool-using turn.
-    class ToolCallModel extends FakeListChatModel {
-      // State lives on the instance: `bindTools` may be called once per loop
-      // round, and a fresh closure inside it would reset the round counter
-      // every time — the recursion-limit hang this test originally hit.
-      private boundRound = 0;
-
-      override bindTools(): ReturnType<FakeListChatModel['bindTools']> {
-        // Round 1 emits the tool call; round 2 emits the final text. Without
-        // the flip the loop would request the same call forever.
-        const rounds: AIMessageChunk[][] = [
-          [
-            new AIMessageChunk({
-              content: '',
-              tool_call_chunks: [
-                {
-                  name: 'get_today_records',
-                  args: '{}',
-                  id: 'call-1',
-                  index: 0,
-                  type: 'tool_call_chunk' as const,
-                },
-              ],
-            }),
-          ],
-          [new AIMessageChunk({ content: '记录读完了。' })],
-        ];
-        const pick = () =>
-          rounds[Math.min(this.boundRound, rounds.length - 1)] ?? rounds[0]!;
-        const toMessage = (chunks: AIMessageChunk[]): AIMessage => {
-          const aggregated = chunks.reduce((acc, chunk) => acc.concat(chunk));
-          return new AIMessage({
-            content: aggregated.content as string,
-            tool_calls: aggregated.tool_calls ?? [],
-          });
-        };
-        // deepagents' loop only consumes `.stream` / `.invoke` on the bound
-        // object; the structural stub is cast because it does not implement
-        // the full `Runnable` surface the base signature declares.
-        return {
-          // eslint-disable-next-line @typescript-eslint/require-await -- the loop awaits `.stream`; a fake has nothing to await between yields
-          stream: async function* () {
-            for (const chunk of pick()) {
-              yield chunk;
-            }
-          },
-          invoke: () => Promise.resolve(toMessage(pick())),
-        } as never;
-      }
-    }
+    // Uses LangChain's own test fixture rather than a hand-rolled fake.
+    //
+    // The previous version subclassed `FakeListChatModel` and returned a
+    // stubbed runnable from `bindTools`, with an instance field as the round
+    // counter. That field was never incremented, so the loop re-issued the same
+    // tool call until LangGraph's recursion limit fired — the `GraphRecursionError`
+    // this test used to hang on.
+    //
+    // `FakeToolCallingModel` is the fixture the loop is actually designed
+    // against: `toolCalls` is one entry per round, `index` advances by
+    // `+1 % length` on every `_generate`, and the shared `indexRef` means the
+    // advancement survives `bindTools` (which returns a new instance).
+    const model = new FakeToolCallingModel({
+      toolCalls: [
+        [{ name: 'get_today_records', args: {}, id: 'call-1' }],
+        // An empty round emits no `tool_calls`, which is how the loop
+        // terminates: the model stops asking for tools.
+        [],
+      ],
+    });
 
     const envelope: AssistantToolExecutionResult = {
       name: 'get_today_records',
       data: { coverage: { status: 'complete' }, items: [] },
     };
     const execute = vi.fn(() => Promise.resolve([envelope]));
-    const toolModel = new ToolCallModel({ responses: ['兜底'] });
     const result = await runDeepAgentTurn({
-      createModel: () => toolModel,
+      createModel: () => model,
       toolNames: ['get_today_records'],
       budgets: CODE_TOOL_LIMIT_BUDGETS,
       execute,
@@ -120,7 +85,7 @@ describe('runDeepAgentTurn', () => {
       conversationId,
     });
 
-    expect(execute).toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledTimes(1);
     expect(result.toolResults).toEqual([envelope]);
   });
 
