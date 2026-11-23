@@ -223,7 +223,7 @@ export const aiRuntimeFields = {
   // drops one would lose data the caller cannot re-derive.
   [EnvKey.PROMPT_ASSISTANT_SYSTEM]: promptField({
     family: 'ai',
-    placeholders: ['tools', 'toolAvailability'],
+    placeholders: ['tools', 'toolAvailability', 'externalTools'],
   }),
   [EnvKey.PROMPT_INTENT_ROUTER]: promptField({
     family: 'ai',

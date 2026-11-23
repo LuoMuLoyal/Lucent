@@ -211,7 +211,7 @@ describe('RuntimeConfigService', () => {
       restoreEnv = withEnv({});
       const service = new RuntimeConfigService();
       const body =
-        'You are a test assistant. Tools: {{tools}}. {{toolAvailability}}';
+        'You are a test assistant. Tools: {{tools}}. {{toolAvailability}} {{externalTools}}';
       const debug = vi.spyOn(Logger.prototype, 'debug');
       const result = service.applyDocument(
         `${HEADER}PROMPT_ASSISTANT_SYSTEM=${body}`,

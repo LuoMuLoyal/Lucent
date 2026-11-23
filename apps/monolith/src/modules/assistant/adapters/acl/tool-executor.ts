@@ -14,6 +14,8 @@ import { READ_TOOL_NAMES } from '../../domain/policies/tool-permission.js';
 import {
   AMAP_MCP_SERVER_NAME,
   externalRemoteName,
+  externalToolName,
+  isExternalLoaderName,
   isExternalToolName,
 } from '../../domain/mcp/external-tools.js';
 import {
@@ -232,6 +234,14 @@ export class AssistantToolService {
   private async executeExternal(
     call: AssistantToolCall,
   ): Promise<AssistantToolExecutionResult> {
+    // The loader is ours, not the remote server's: it has no wire counterpart,
+    // so sending it would be an `unknown tool` error. Validating here also puts
+    // the "did the server actually offer this?" check on the side that knows
+    // the offered list.
+    if (isExternalLoaderName(call.name)) {
+      return this.executeExternalLoader(call);
+    }
+
     if (this.amapMcpClient == null) {
       return {
         name: call.name,
@@ -259,6 +269,77 @@ export class AssistantToolService {
     return {
       name: call.name,
       data: { source: AMAP_MCP_SERVER_NAME, result: outcome.content },
+    };
+  }
+
+  /**
+   * Validates a `load_tools` request against what the server actually offers.
+   *
+   * All-or-nothing, like DSH: a request naming one unknown tool loads none of
+   * them. The alternative — load the valid ones and report the rest — leaves
+   * the model believing a partially applied request, and it has no way to tell
+   * which half landed.
+   */
+  private async executeExternalLoader(
+    call: AssistantToolCall,
+  ): Promise<AssistantToolExecutionResult> {
+    const requested = call.args['tools'];
+    if (!Array.isArray(requested) || requested.length === 0) {
+      return {
+        name: call.name,
+        data: {
+          error: 'invalid_request',
+          reason: '`tools` must be a non-empty array of tool names.',
+        },
+      };
+    }
+    const names = requested.filter(
+      (name): name is string => typeof name === 'string',
+    );
+    if (names.length !== requested.length) {
+      return {
+        name: call.name,
+        data: {
+          error: 'invalid_request',
+          reason: '`tools` must contain only strings.',
+        },
+      };
+    }
+
+    if (this.amapMcpClient == null) {
+      return {
+        name: call.name,
+        data: {
+          unavailable: true,
+          source: AMAP_MCP_SERVER_NAME,
+          reason: 'client_not_configured',
+        },
+      };
+    }
+
+    const offered = await this.amapMcpClient.listTools();
+    const offeredNames = new Set(
+      offered.map((tool) => externalToolName(AMAP_MCP_SERVER_NAME, tool.name)),
+    );
+    const unknown = names.filter((name) => !offeredNames.has(name));
+    if (unknown.length > 0) {
+      return {
+        name: call.name,
+        data: {
+          error: 'unknown_tool',
+          reason: `MCP server ${AMAP_MCP_SERVER_NAME} does not offer ${unknown
+            .map((name) => `"${name}"`)
+            .join(', ')}; use names from its on-demand tool list.`,
+        },
+      };
+    }
+
+    // Nothing is registered here — the graph node reads the arguments and
+    // writes them into `loadedExternalTools`, which is what `agent` binds from
+    // on the next step.
+    return {
+      name: call.name,
+      data: { loaded: names },
     };
   }
 

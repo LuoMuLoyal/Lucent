@@ -30,7 +30,7 @@ export interface RuntimePromptSpec {
 export const RUNTIME_PROMPT_SPECS = {
   assistantSystem: {
     key: EnvKey.PROMPT_ASSISTANT_SYSTEM,
-    placeholders: ['tools', 'toolAvailability'],
+    placeholders: ['tools', 'toolAvailability', 'externalTools'],
   },
   intentRouter: {
     key: EnvKey.PROMPT_INTENT_ROUTER,

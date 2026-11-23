@@ -26,6 +26,15 @@ const TOOL_SCOPE_LINE =
 export interface AssistantSystemPromptVariables {
   readonly tools: string;
   readonly toolAvailability: string;
+  /**
+   * The on-demand external tool catalog, or `''` when none is configured.
+   *
+   * Present as a variable (not only as an appended block) so a published
+   * prompt override can place it: the override replaces the whole text, and a
+   * hard-coded append would silently disappear for every operator who
+   * published one.
+   */
+  readonly externalTools: string;
 }
 
 /**
@@ -37,6 +46,7 @@ export interface AssistantSystemPromptVariables {
  */
 export function assistantSystemPromptVariables(
   toolNames: readonly ToolName[],
+  externalToolCatalog = '',
 ): AssistantSystemPromptVariables {
   return {
     tools: toolNames.length > 0 ? toolNames.join(', ') : 'none',
@@ -44,6 +54,7 @@ export function assistantSystemPromptVariables(
       toolNames.length > 0
         ? 'If a tool is available, use it only when the answer depends on user-recorded facts.'
         : 'No server-approved user data tools are available in this run. Do not claim you inspected records, sleep, medicines, or profile data.',
+    externalTools: externalToolCatalog,
   };
 }
 
@@ -61,6 +72,8 @@ export function assistantSystemPromptVariables(
  */
 export function buildAssistantSystemPrompt(
   toolNames: readonly ToolName[],
+  /** On-demand external tool catalog, appended verbatim when non-empty. */
+  externalToolCatalog = '',
 ): string {
   const { tools, toolAvailability } = assistantSystemPromptVariables(toolNames);
 
@@ -99,5 +112,10 @@ export function buildAssistantSystemPrompt(
 
     // Multi-domain turns are expected now that one loop serves all of them.
     'A single turn may need several unrelated tools. Call them in the order the question requires, and keep going until the question is actually answered rather than stopping after the first result.',
+
+    // On-demand external tools. Appended rather than woven in: the catalog is
+    // generated from what a remote server currently advertises, so it is the
+    // one part of this prompt that is data rather than policy.
+    ...(externalToolCatalog.length > 0 ? [externalToolCatalog] : []),
   ].join('\n');
 }
