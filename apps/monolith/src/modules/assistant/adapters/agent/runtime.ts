@@ -68,6 +68,8 @@ import type { AssistantValidationFlags } from './state.js';
 import type { AssistantPendingReview } from './state.js';
 import type { CheckpointerPort } from '../../application/ports/agent-runtime.js';
 import type { AssistantAgentMode } from '../../../user-settings/index.js';
+import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { AssistantPolicyService } from '../../application/services/policy.js';
 import { extractMessageText } from './message-text.js';
 import type { ConversationRepositoryPort } from '../../domain/conversation/conversations.js';
 import { ASSISTANT_CONVERSATIONS } from '../../domain/conversation/conversations.js';
@@ -150,6 +152,15 @@ export class AssistantRuntimeService {
     @Optional()
     @Inject(ASSISTANT_EXTERNAL_MCP)
     private readonly amapMcpClient?: ExternalMcpPort,
+    /**
+     * Per-step capability re-resolution needs the user's current settings.
+     * Optional so hand-built test instances still construct; absent means the
+     * step keeps the turn's snapshot.
+     */
+    @Optional()
+    private readonly userSettingsReader?: IUserSettingsPort,
+    @Optional()
+    private readonly policyService?: AssistantPolicyService,
   ) {}
 
   /**
@@ -304,6 +315,41 @@ export class AssistantRuntimeService {
       new Set(allowedTools),
     );
     return renderExternalToolCatalog(AMAP_MCP_SERVER_NAME, definitions);
+  }
+
+  /**
+   * Re-resolves the bindable set for one model step.
+   *
+   * DSH's `tools.resolve()` calls every registration's `when({ agent })` once
+   * per step. This is the same idea expressed against Lucent's inputs: the
+   * capability verdict depends on `lightragClient.isEnabled()` /
+   * `semanticaClient.isEnabled()` (both read the runtime snapshot live) and on
+   * the user's stored settings, and neither is frozen for a turn.
+   *
+   * Returning the caller's set when nothing shrank keeps the common path free
+   * of a settings round trip.
+   */
+  private async resolveStepAllowedTools(
+    current: readonly ToolName[],
+    userId: string,
+  ): Promise<readonly ToolName[]> {
+    const reader = this.userSettingsReader;
+    const policy = this.policyService;
+    // Both are optional together: a hand-built test instance has neither, and
+    // the step then keeps the turn's snapshot unchanged.
+    if (reader == null || policy == null) return current;
+
+    const settings = await reader.getSettings(userId);
+    // Switched off mid-turn: offer nothing rather than a snapshot the user has
+    // already revoked.
+    if (!settings.assistantEnabled) return [];
+
+    const evaluated = policy.evaluate(this.describeFoundation(), settings);
+    // Intersect with what the turn started with: this resolver may only take
+    // tools away. A sidecar that comes up mid-turn must not hand the model a
+    // tool the caller never cleared for this conversation.
+    const allowed = new Set(evaluated.enabledToolNames);
+    return current.filter((name) => allowed.has(name));
   }
 
   hasChatModel(): boolean {
@@ -480,6 +526,9 @@ export class AssistantRuntimeService {
       // Fetched once per turn and reused for both the prompt catalog and the
       // tool list, so the two can never describe different generations.
       externalToolCatalog,
+      // Re-evaluated every step, like DSH's per-registration `when`.
+      resolveAllowedTools: (current) =>
+        this.resolveStepAllowedTools(current, input.userId),
       buildSystemPrompt: (toolNames) =>
         this.resolveAssistantSystemPrompt(toolNames, externalToolCatalog),
       ...(input.buildMemoryBlock != null

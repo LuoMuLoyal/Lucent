@@ -86,4 +86,23 @@ export interface AssistantGraphDeps {
    * describe different generations.
    */
   externalToolCatalog?: string;
+  /**
+   * Re-resolves the bindable tool set before **every** model step.
+   *
+   * This is the Lucent equivalent of DSH's `when` activation condition: DSH
+   * evaluates each registration's `when({ agent })` inside `tools.resolve()`,
+   * once per step, so a capability that disappears mid-turn (a sidecar going
+   * away, an operator flipping a runtime key) stops being offered immediately.
+   *
+   * Absent means "use `state.allowedTools` as-is" — the turn-level snapshot the
+   * caller computed. Present, the returned set replaces it for this step only;
+   * the graph's own channel is left alone so a resumed thread keeps what it
+   * started with.
+   *
+   * It may be async because the real resolver has to read settings, and a
+   * `ToolName[]` is what `buildToolDefinitions` wants.
+   */
+  resolveAllowedTools?: (
+    current: readonly ToolName[],
+  ) => Promise<readonly ToolName[]>;
 }
