@@ -471,9 +471,6 @@ payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `
 路径失败自动回落 graph。checkpointer、提案 interrupt、用户级开关已于 2026-11-22 补齐
 （见当日迁移日志），剩余项：
 
-- runner spec 的 tool-call 收集用例仍触发 deepagents 内部循环的
-  `GraphRecursionError`——对照官方 test fixture 修伪造模型的形态，不要逆向源码猜。
-  当前它是全量单测的唯一失败项，且**不在 pre-push 路径上**。
 - 真实模型端到端（子智能体实际被委派并返回）未验证：需要模型凭据。
 - 灰度放量后观察 tool 轮数与 token 变化，再考虑把默认值切到 `deepagents`。
 
