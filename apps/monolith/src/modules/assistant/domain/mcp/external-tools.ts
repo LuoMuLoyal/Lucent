@@ -125,3 +125,92 @@ export function describeExternalTools(
   }
   return definitions;
 }
+
+/** Raw name of the loader tool inside a server's namespace. */
+export const EXTERNAL_LOADER_RAW_NAME = 'load_tools';
+
+/**
+ * The loader tool's public name for one server: `<server>__load_tools`.
+ *
+ * Model-facing, so it follows the same pure-function contract as the tools it
+ * loads. It is *not* a built-in `ToolName`: it belongs to the server's
+ * namespace, and putting it in `TOOL_NAMES` would drag the external noun back
+ * into the exhaustive permission table.
+ */
+export function externalLoaderName(serverName: string): string {
+  return externalToolName(serverName, EXTERNAL_LOADER_RAW_NAME);
+}
+
+/**
+ * Whether `name` is some server's loader tool.
+ *
+ * Lets the executor route a load call without first knowing which servers are
+ * configured.
+ */
+export function isExternalLoaderName(name: string): boolean {
+  return (
+    isExternalToolName(name) &&
+    externalRemoteName(name) === EXTERNAL_LOADER_RAW_NAME
+  );
+}
+
+/** First line of a description with whitespace collapsed. */
+function firstLine(description: string): string {
+  const [first = ''] = description.trim().split('\n', 1);
+  return first.replace(/\s+/g, ' ').trim();
+}
+
+/** Caps a summary without splitting a surrogate pair. */
+function capSummary(line: string, maxLength: number): string {
+  if (line.length <= maxLength) return line;
+  // `slice` counts UTF-16 units, so a naive cut can emit half a character.
+  // Walk back off a lone high surrogate before truncating.
+  let end = maxLength - 3;
+  if (end > 0 && /[\uD800-\uDBFF]/.test(line[end - 1] ?? '')) end -= 1;
+  return `${line.slice(0, end)}...`;
+}
+
+/**
+ * Renders the on-demand catalog that goes into the system prompt.
+ *
+ * This is the half of on-demand loading that keeps tokens down: the model sees
+ * **names and one-line summaries**, never the JSON schemas. The schemas only
+ * enter the context after `load_tools` registers them.
+ *
+ * Format follows DSH's `McpToolLoader.catalog`: a heading, one sentence saying
+ * these tools are not in the tool list and how to load them, then one bullet
+ * per tool. The loader's own description points at this heading, so the two
+ * must stay in step.
+ *
+ * @param serverName - the server whose tools are listed.
+ * @param definitions - its tools, already prefixed.
+ * @param maxDescriptionLength - cap for each summary (DSH defaults to 160).
+ * @returns the section text, or `''` when there is nothing to list.
+ */
+export function renderExternalToolCatalog(
+  serverName: string,
+  definitions: readonly ExternalToolDefinition[],
+  maxDescriptionLength = 160,
+): string {
+  if (definitions.length === 0) return '';
+  const loader = externalLoaderName(serverName);
+  // Sorted by name so the section is stable across syncs: an unstable list
+  // would change the prompt prefix on every reconnect and invalidate caches.
+  const lines = [...definitions]
+    .sort((a, b) => (a.name < b.name ? -1 : 1))
+    .map((definition) => {
+      const summary = capSummary(
+        firstLine(definition.description),
+        maxDescriptionLength,
+      );
+      return summary === ''
+        ? `- ${definition.name}`
+        : `- ${definition.name}: ${summary}`;
+    });
+
+  return [
+    `### On-demand tools from MCP server ${serverName}`,
+    `These tools are not in your tool list. Before calling one, load it with ${loader}.`,
+    lines.join('\n'),
+  ].join('\n\n');
+}

@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   AMAP_MCP_SERVER_NAME,
   describeExternalTools,
+  externalLoaderName,
   externalRemoteName,
   externalToolName,
+  isExternalLoaderName,
   isExternalToolName,
+  renderExternalToolCatalog,
 } from './external-tools.js';
 
 /**
@@ -101,5 +104,91 @@ describe('describeExternalTools', () => {
     expect(describeExternalTools(AMAP_MCP_SERVER_NAME, [], new Set())).toEqual(
       [],
     );
+  });
+});
+
+describe('loader tool naming', () => {
+  it('names the loader inside the server namespace', () => {
+    expect(externalLoaderName(AMAP_MCP_SERVER_NAME)).toBe('amap__load_tools');
+  });
+
+  it('recognises a loader name without confusing it with a normal tool', () => {
+    expect(isExternalLoaderName('amap__load_tools')).toBe(true);
+    expect(isExternalLoaderName('amap__maps_weather')).toBe(false);
+    // A built-in named like the loader raw name is still not a loader: it has
+    // no server prefix.
+    expect(isExternalLoaderName('load_tools')).toBe(false);
+  });
+});
+
+describe('renderExternalToolCatalog', () => {
+  const definitions = describeExternalTools(
+    AMAP_MCP_SERVER_NAME,
+    [
+      {
+        name: 'maps_weather',
+        description: 'Weather for a city\nSecond line is dropped',
+        inputSchema: { type: 'object' },
+      },
+      { name: 'maps_geo', description: '', inputSchema: { type: 'object' } },
+    ],
+    new Set(),
+  );
+
+  it('lists names and one-line summaries, never schemas', () => {
+    const catalog = renderExternalToolCatalog(
+      AMAP_MCP_SERVER_NAME,
+      definitions,
+    );
+
+    expect(catalog).toContain('### On-demand tools from MCP server amap');
+    expect(catalog).toContain('load it with amap__load_tools');
+    // First line only: the catalog is a summary, not a description dump.
+    expect(catalog).toContain('- amap__maps_weather: Weather for a city');
+    expect(catalog).not.toContain('Second line');
+    // A tool with no description is name-only rather than a dangling colon.
+    expect(catalog).toContain('- amap__maps_geo\n');
+    // The point of on-demand: schemas are not in the prompt.
+    expect(catalog).not.toContain('"type":"object"');
+  });
+
+  it('sorts by name so the prompt prefix is stable across syncs', () => {
+    const catalog = renderExternalToolCatalog(
+      AMAP_MCP_SERVER_NAME,
+      definitions,
+    );
+    const order = catalog
+      .split('\n')
+      .filter((line) => line.startsWith('- '))
+      .map((line) => line.slice(2).split(':')[0]);
+
+    expect(order).toEqual(['amap__maps_geo', 'amap__maps_weather']);
+  });
+
+  it('caps a long summary without splitting a surrogate pair', () => {
+    // 40 emoji: each is a surrogate pair, so a naive slice at an odd offset
+    // would emit half a code unit.
+    const long = '😀'.repeat(40);
+    const catalog = renderExternalToolCatalog(
+      AMAP_MCP_SERVER_NAME,
+      describeExternalTools(
+        AMAP_MCP_SERVER_NAME,
+        [{ name: 'maps_geo', description: long, inputSchema: {} }],
+        new Set(),
+      ),
+      20,
+    );
+
+    const line = catalog
+      .split('\n')
+      .find((candidate) => candidate.startsWith('- '));
+    // No lone surrogate anywhere in the truncated summary.
+    expect(line).toBeDefined();
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(line ?? '')).toBe(false);
+    expect(line).toContain('...');
+  });
+
+  it('renders nothing when the server offers nothing', () => {
+    expect(renderExternalToolCatalog(AMAP_MCP_SERVER_NAME, [])).toBe('');
   });
 });
