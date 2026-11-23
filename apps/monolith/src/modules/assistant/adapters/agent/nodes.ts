@@ -10,6 +10,67 @@ import type { AssistantToolExecutionResult } from '../../application/ports/assis
 import type { AssistantToolCall } from '../../application/ports/assistant.js';
 import type { AssistantRuntimeState } from './state.js';
 import type { AssistantGraphDeps } from './deps.js';
+import {
+  AMAP_MCP_SERVER_NAME,
+  externalLoaderName,
+  isExternalLoaderName,
+} from '../../domain/mcp/external-tools.js';
+
+/** One remote tool definition, as the runtime hands it over. */
+type RemoteTool = {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: Record<string, unknown>;
+};
+
+/**
+ * Picks the remote tools to bind for this turn.
+ *
+ * Returns the server's `load_tools` plus only those tools the conversation has
+ * already loaded. Everything else stays out of the context and is described by
+ * the prompt catalog instead (see `renderExternalToolCatalog`).
+ *
+ * A loaded name that the server no longer offers is silently skipped: the
+ * remote list can change between turns, and a stale name must not make the
+ * whole bind fail.
+ *
+ * @param listExternalTools - the server's tools, or undefined when no external
+ *   server is configured (then nothing is bound, not even a loader).
+ * @param loaded - names this conversation has loaded so far.
+ */
+async function selectLoadedExternalTools(
+  listExternalTools: AssistantGraphDeps['listExternalTools'],
+  loaded: readonly string[],
+): Promise<RemoteTool[]> {
+  if (listExternalTools == null) return [];
+
+  const offered = await listExternalTools();
+  if (offered.length === 0) return [];
+
+  // The loader itself is not in `offered` (the server never advertises it), so
+  // it is added here. Its schema is fixed: an array of tool names.
+  const loaderName = externalLoaderName(AMAP_MCP_SERVER_NAME);
+  const loader: RemoteTool = {
+    name: loaderName,
+    description:
+      `Add tools from MCP server ${AMAP_MCP_SERVER_NAME} to your tool list. ` +
+      `The system prompt lists them under "On-demand tools from MCP server ${AMAP_MCP_SERVER_NAME}".`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tools: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tool names exactly as that list shows them.',
+        },
+      },
+      required: ['tools'],
+    },
+  };
+
+  const wanted = new Set(loaded);
+  return [loader, ...offered.filter((tool) => wanted.has(tool.name))];
+}
 import { streamModelResponse } from './model-stream.js';
 import { extractMessageText } from './message-text.js';
 
@@ -51,11 +112,21 @@ export function createAgentNode(deps: {
 
     const model = deps.createModel();
     const builtInDefs = buildToolDefinitions(toolNames, deps.toolBudgets?.());
-    // Remote tools are appended, never substituted: a colliding name is dropped
-    // by `withExternalToolDefinitions`, so a misconfigured server cannot shadow
-    // a built-in tool the permission table already approved.
-    const externalDefs =
-      deps.listExternalTools != null ? await deps.listExternalTools() : [];
+    // On-demand loading (mirrors DSH's `McpToolLoader`): the remote server's
+    // tools are *not* bound here. Only two things are:
+    //
+    // 1. the server's `load_tools`, always — without it the model has no way to
+    //    bring anything in, and the prompt catalog would name a tool that does
+    //    not exist in the list;
+    // 2. the tools this conversation has already loaded.
+    //
+    // Binding the full set every turn is what this replaces: it put every
+    // remote JSON schema in the context on every step, whether or not the turn
+    // had anything to do with maps.
+    const externalDefs = await selectLoadedExternalTools(
+      deps.listExternalTools,
+      state.loadedExternalTools,
+    );
     const toolDefs = withExternalToolDefinitions(builtInDefs, externalDefs);
     const boundModel = model.bindTools?.(toolDefs);
 
@@ -135,6 +206,18 @@ export function createToolsNode(deps: {
     const toolCalls = state.pendingToolCalls;
     const results = await deps.executeTools(toolCalls);
 
+    // On-demand loading writes back here, not in the executor: the executor is
+    // stateless (it also serves the MCP server and the proposal flow), while
+    // "what this conversation has loaded" is graph state.
+    //
+    // The names are read from the *call arguments*, not from the result
+    // envelope: the loader echoes back what it accepted, but a name the server
+    // did not offer is dropped there, and trusting the echo would mean the
+    // graph channel and the bound set could disagree.
+    const loadedNow = toolCalls
+      .filter((call) => isExternalLoaderName(call.name))
+      .flatMap((call) => readRequestedToolNames(call.args));
+
     // 按**调用**而不是按结果遍历：每个 tool_call 都必须有一条 ToolMessage，
     // 且 id 要对上。旧实现按结果位置自造 `call_${index}`，一旦执行层过滤掉某个调用
     // （未获许可）就会同时造成"id 对不上"和"少一条 ToolMessage"两类 400。
@@ -154,6 +237,21 @@ export function createToolsNode(deps: {
       toolResults: results,
       pendingToolCalls: [],
       loopCount: state.loopCount + 1,
+      ...(loadedNow.length > 0 ? { loadedExternalTools: loadedNow } : {}),
     };
   };
+}
+
+/**
+ * Reads the `tools` argument of a `load_tools` call.
+ *
+ * Tolerant on purpose: the argument comes from the model, so it can be a
+ * string instead of an array, contain non-strings, or be missing entirely.
+ * Anything unusable yields `[]` — the executor has already reported the real
+ * validation failure back to the model, and this must not throw inside a node.
+ */
+function readRequestedToolNames(args: Record<string, unknown>): string[] {
+  const raw = args['tools'];
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((name): name is string => typeof name === 'string');
 }

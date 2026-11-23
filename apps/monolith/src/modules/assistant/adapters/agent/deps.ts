@@ -78,4 +78,12 @@ export interface AssistantGraphDeps {
       readonly inputSchema: Record<string, unknown>;
     }[]
   >;
+  /**
+   * The on-demand catalog for this turn's prompt.
+   *
+   * A value, not a resolver: it is fetched once per turn and handed to both the
+   * prompt and (indirectly) the loader's validation, so the two cannot
+   * describe different generations.
+   */
+  externalToolCatalog?: string;
 }

@@ -132,6 +132,24 @@ export const AssistantRuntimeState = Annotation.Root({
     default: () => DEFAULT_VALIDATION_FLAGS,
   }),
 
+  /**
+   * External tool names the model has explicitly loaded this conversation.
+   *
+   * On-demand loading: the remote server's tools are **not** in the tool list
+   * until `load_tools` names them, and this channel is what remembers that
+   * across turns. Additive (`union`) because loading is monotonic within a
+   * conversation — nothing unloads, and a resumed thread must keep what it
+   * loaded before the suspension.
+   *
+   * Why not a process-level set: two conversations on one process must not see
+   * each other's loaded tools. The checkpointer already scopes this channel to
+   * a thread, which is exactly the boundary wanted.
+   */
+  loadedExternalTools: Annotation<string[]>({
+    reducer: (left, right) => [...new Set([...left, ...right])],
+    default: () => [],
+  }),
+
   /** In-graph proposal review state (HITL); set before interrupt suspends the thread. */
   pendingReview: Annotation<AssistantPendingReview | undefined>({
     reducer: (_left, right) => right,
