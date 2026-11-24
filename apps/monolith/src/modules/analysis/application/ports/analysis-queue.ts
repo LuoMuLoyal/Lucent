@@ -1,13 +1,13 @@
 import type { GenerateTodayAnalysisDto } from '../use_cases/generate-analysis-command.js';
 
 /**
- * Injection token for {@link TodayAnalysisQueuePort}.
+ * Injection token for {@link AnalysisQueuePort}.
  *
  * A token is required because an interface erases at runtime: injecting by the
  * interface type would leave Nest with `Object` as the design type. The module
- * binds this token to `TodayAnalysisQueueService`.
+ * binds this token to `AnalysisQueueService`.
  */
-export const TODAY_ANALYSIS_QUEUE_PORT = Symbol('TodayAnalysisQueuePort');
+export const ANALYSIS_QUEUE_PORT = Symbol('AnalysisQueuePort');
 
 /**
  * What the event consumer needs from the analysis queue.
@@ -18,7 +18,7 @@ export const TODAY_ANALYSIS_QUEUE_PORT = Symbol('TodayAnalysisQueuePort');
  * (to enqueue the resolved analysis), which is a cycle. Both depend on this
  * interface instead; the queue service is the implementation.
  */
-export interface TodayAnalysisQueuePort {
+export interface AnalysisQueuePort {
   enqueue(
     userId: string,
     dto: GenerateTodayAnalysisDto,

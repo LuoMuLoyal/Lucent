@@ -28,7 +28,7 @@ export interface AnalysisJobData {
   triggerKey?: string;
 }
 
-export const TODAY_ANALYSIS_QUEUE_NAME = QUEUE_NAMES.todayAnalysis;
+export const ANALYSIS_QUEUE_NAME = QUEUE_NAMES.analysis;
 export const TODAY_ANALYSIS_JOB_NAME = 'generate';
 
 export function buildTodayAnalysisJobId(
@@ -38,7 +38,7 @@ export function buildTodayAnalysisJobId(
 ): string {
   // BullMQ rejects custom job IDs containing ':' (Job.validateOptions), so use
   // '-' as the segment separator.
-  return `${TODAY_ANALYSIS_QUEUE_NAME}-${userId}-${date}-${String(sourceVersion)}`;
+  return `${ANALYSIS_QUEUE_NAME}-${userId}-${date}-${String(sourceVersion)}`;
 }
 
 /**
@@ -52,7 +52,7 @@ export function buildTodayAnalysisJobId(
  * fall back to the synchronous `TodayAnalysisService.generate()` method.
  */
 @Injectable()
-export class TodayAnalysisQueueService extends BaseAsyncQueueService<
+export class AnalysisQueueService extends BaseAsyncQueueService<
   AnalysisJobData,
   TodayAnalysisDataDto | TodayAnalysisReadDataDto
 > {
@@ -64,7 +64,7 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
     // `forwardRef` breaks a DI cycle, not a module-import cycle. The consumer
-    // injects this queue through `TODAY_ANALYSIS_QUEUE_PORT` (bound with
+    // injects this queue through `ANALYSIS_QUEUE_PORT` (bound with
     // `useExisting` to this very class), so both are mid-construction when the
     // injector resolves them. Without it the injector's promise never settles:
     // `compile()` hangs with no error and no log, and every `createTestApp()`
@@ -76,7 +76,7 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     runtimeConfig?: RuntimeConfigPort,
   ) {
     super(
-      TODAY_ANALYSIS_QUEUE_NAME,
+      ANALYSIS_QUEUE_NAME,
       factory,
       cache,
       async (job) => {

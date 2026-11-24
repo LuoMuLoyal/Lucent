@@ -5,7 +5,7 @@ import {
   SseProblemDetailsMapper,
 } from '../../common/index.js';
 import { TodayAnalysisService } from './application/use_cases/generate-analysis.js';
-import { TodayAnalysisQueueService } from './adapters/queue/analysis.js';
+import { AnalysisQueueService } from './adapters/queue/analysis.js';
 import { TodayRecommendationsService } from './application/read_models/recommendations.js';
 import type { TodayAnalysisDataDto } from './adapters/http/dto/analysis-response.js';
 import { generateTodayAnalysisSchema } from './adapters/http/dto/generate-analysis.js';
@@ -33,7 +33,7 @@ describe('AnalysisController', () => {
           },
         },
         {
-          provide: TodayAnalysisQueueService,
+          provide: AnalysisQueueService,
           useValue: {
             isConfigured: false,
             enqueue: vi.fn(),
@@ -351,12 +351,12 @@ describe('AnalysisController', () => {
   it('generateAsync returns a jobId when the queue is configured and enqueues', async () => {
     const queue = (
       controller as unknown as {
-        todayAnalysisQueueService: {
+        analysisQueueService: {
           isConfigured: boolean;
           enqueue: ReturnType<typeof vi.fn>;
         };
       }
-    ).todayAnalysisQueueService;
+    ).analysisQueueService;
     queue.isConfigured = true;
     queue.enqueue.mockResolvedValue('job-1');
 
@@ -378,12 +378,12 @@ describe('AnalysisController', () => {
   it('generateAsync falls back when enqueue returns null', async () => {
     const queue = (
       controller as unknown as {
-        todayAnalysisQueueService: {
+        analysisQueueService: {
           isConfigured: boolean;
           enqueue: ReturnType<typeof vi.fn>;
         };
       }
-    ).todayAnalysisQueueService;
+    ).analysisQueueService;
     queue.isConfigured = true;
     queue.enqueue.mockResolvedValue(null);
     service.generate.mockResolvedValue(makeAnalysis());
@@ -402,11 +402,11 @@ describe('AnalysisController', () => {
   it('generateStatus returns not_found for unknown jobs', async () => {
     const queue = (
       controller as unknown as {
-        todayAnalysisQueueService: {
+        analysisQueueService: {
           getStatus: ReturnType<typeof vi.fn>;
         };
       }
-    ).todayAnalysisQueueService;
+    ).analysisQueueService;
     queue.getStatus.mockResolvedValue(null);
 
     const result = await controller.generateStatus('job-1');
@@ -418,11 +418,11 @@ describe('AnalysisController', () => {
   it('generateStatus returns the job status when found', async () => {
     const queue = (
       controller as unknown as {
-        todayAnalysisQueueService: {
+        analysisQueueService: {
           getStatus: ReturnType<typeof vi.fn>;
         };
       }
-    ).todayAnalysisQueueService;
+    ).analysisQueueService;
     queue.getStatus.mockResolvedValue({ status: 'completed', jobId: 'job-1' });
 
     const result = await controller.generateStatus('job-1');

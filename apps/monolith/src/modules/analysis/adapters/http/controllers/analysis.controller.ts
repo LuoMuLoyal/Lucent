@@ -35,9 +35,9 @@ import { createDomainFailure } from '../../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import type { UserPayload } from '../../../../auth/index.js';
 import { CurrentUser } from '../../../../auth/index.js';
-import { TodayAnalysisQueueService } from '../../queue/analysis.js';
+import { AnalysisQueueService } from '../../queue/analysis.js';
 import {
-  TODAY_ANALYSIS_MATERIALIZATION,
+  ANALYSIS_MATERIALIZATION,
   type TodayAnalysisMaterialization,
   type TodayAnalysisPendingResult,
 } from '../../../application/ports/materialization.js';
@@ -71,11 +71,11 @@ export class AnalysisController {
   constructor(
     private readonly todayAnalysisService: TodayAnalysisService,
     private readonly todayRecommendationsService: TodayRecommendationsService,
-    private readonly todayAnalysisQueueService: TodayAnalysisQueueService,
+    private readonly analysisQueueService: AnalysisQueueService,
     private readonly sseRegistry: SseConnectionRegistry,
     private readonly sseProblemDetails: SseProblemDetailsMapper,
     @Optional()
-    @Inject(TODAY_ANALYSIS_MATERIALIZATION)
+    @Inject(ANALYSIS_MATERIALIZATION)
     private readonly materializationStore?: TodayAnalysisMaterialization,
   ) {}
 
@@ -148,8 +148,8 @@ export class AnalysisController {
       );
     }
 
-    if (this.todayAnalysisQueueService.isConfigured) {
-      const jobId = await this.todayAnalysisQueueService.enqueue(
+    if (this.analysisQueueService.isConfigured) {
+      const jobId = await this.analysisQueueService.enqueue(
         user.sub,
         { date: request.date },
         language,
@@ -254,8 +254,8 @@ export class AnalysisController {
       if (request.pending == null || !request.pending.shouldQueue) {
         return { status: request.current.status };
       }
-      if (this.todayAnalysisQueueService.isConfigured) {
-        const jobId = await this.todayAnalysisQueueService.enqueue(
+      if (this.analysisQueueService.isConfigured) {
+        const jobId = await this.analysisQueueService.enqueue(
           user.sub,
           { date: request.date },
           language,
@@ -276,8 +276,8 @@ export class AnalysisController {
       return { result };
     }
 
-    if (this.todayAnalysisQueueService.isConfigured) {
-      const jobId = await this.todayAnalysisQueueService.enqueue(
+    if (this.analysisQueueService.isConfigured) {
+      const jobId = await this.analysisQueueService.enqueue(
         user.sub,
         dto,
         language,
@@ -307,7 +307,7 @@ export class AnalysisController {
     description: 'Job status (pending, completed, or failed)',
   })
   async generateStatus(@Param('jobId') jobId: string) {
-    const status = await this.todayAnalysisQueueService.getStatus(jobId);
+    const status = await this.analysisQueueService.getStatus(jobId);
     if (status == null) {
       return { status: 'not_found' };
     }

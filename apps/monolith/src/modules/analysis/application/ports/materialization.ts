@@ -1,7 +1,7 @@
 /**
  * Materialization port (ADR-0024 D2; judgement A in the module README).
  *
- * **No aggregate here.** `user_today_analysis_materialization` tracks "which
+ * **No aggregate here.** `user_ANALYSIS_MATERIALIZATION` tracks "which
  * version of today's analysis is current" — it manages *concurrency*, not
  * business rules. `stale` is not a stored state but a projection computed from
  * `sourceVersion > computedVersion`, and the `claimGeneration` outcomes
@@ -22,8 +22,8 @@ import type {
 } from './materialization-shapes.js';
 
 /** Injection token for {@link TodayAnalysisMaterialization}. */
-export const TODAY_ANALYSIS_MATERIALIZATION = Symbol(
-  'TodayAnalysisMaterialization',
+export const ANALYSIS_MATERIALIZATION = Symbol(
+  'AnalysisMaterialization',
 );
 /**
  * The outcome of one claim attempt.

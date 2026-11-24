@@ -16,13 +16,13 @@ import { TodayAnalysisCopyService } from './application/services/analysis-copy.j
 
 import { TodayAnalysisGeneratorService } from './infrastructure/llm/analysis-generator.js';
 
-import { TodayAnalysisQueueService } from './adapters/queue/analysis.js';
+import { AnalysisQueueService } from './adapters/queue/analysis.js';
 
 import { TodayAnalysisService } from './application/use_cases/generate-analysis.js';
 import { TodayAnalysisMaterializationStore } from './infrastructure/persistence/materialization.js';
 import { TodayAnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
-import { TODAY_ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
-import { TODAY_ANALYSIS_MATERIALIZATION } from './application/ports/materialization.js';
+import { ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
+import { ANALYSIS_MATERIALIZATION } from './application/ports/materialization.js';
 import {
   ANALYSIS_CONTEXT_SOURCE,
   ANALYSIS_GENERATOR,
@@ -51,11 +51,11 @@ import { AnalysisController } from './adapters/http/controllers/analysis.control
     TriggerEvaluatorService,
     TodayAnalysisGeneratorService,
     TodayAnalysisService,
-    TodayAnalysisQueueService,
+    AnalysisQueueService,
     TodayAnalysisMaterializationStore,
     TodayAnalysisEventConsumerService,
     {
-      provide: TODAY_ANALYSIS_MATERIALIZATION,
+      provide: ANALYSIS_MATERIALIZATION,
       useExisting: TodayAnalysisMaterializationStore,
     },
     {
@@ -67,8 +67,8 @@ import { AnalysisController } from './adapters/http/controllers/analysis.control
       useExisting: TodayAnalysisGeneratorService,
     },
     {
-      provide: TODAY_ANALYSIS_QUEUE_PORT,
-      useExisting: TodayAnalysisQueueService,
+      provide: ANALYSIS_QUEUE_PORT,
+      useExisting: AnalysisQueueService,
     },
     TodayRecommendationsService,
   ],

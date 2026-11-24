@@ -1,6 +1,6 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
-import { TodayAnalysisQueueService } from './analysis.js';
+import { AnalysisQueueService } from './analysis.js';
 import type { TodayAnalysisService } from '../../application/use_cases/generate-analysis.js';
 import type { TodayAnalysisEventConsumerService } from './event-consumer.js';
 
@@ -49,10 +49,10 @@ const mockEventConsumer = {
   handle: vi.fn().mockResolvedValue(undefined),
 } as unknown as TodayAnalysisEventConsumerService;
 
-describe('TodayAnalysisQueueService', () => {
+describe('AnalysisQueueService', () => {
   it('is not configured when Redis is unavailable', () => {
     const { factory } = buildFactory(false);
-    const svc = new TodayAnalysisQueueService(
+    const svc = new AnalysisQueueService(
       factory,
       mockCache,
       mockAnalysisService,
@@ -63,7 +63,7 @@ describe('TodayAnalysisQueueService', () => {
 
   it('is configured when Redis is available', () => {
     const { factory } = buildFactory(true);
-    const svc = new TodayAnalysisQueueService(
+    const svc = new AnalysisQueueService(
       factory,
       mockCache,
       mockAnalysisService,
@@ -74,7 +74,7 @@ describe('TodayAnalysisQueueService', () => {
 
   it('returns null from enqueue when queue is not configured', async () => {
     const { factory } = buildFactory(false);
-    const svc = new TodayAnalysisQueueService(
+    const svc = new AnalysisQueueService(
       factory,
       mockCache,
       mockAnalysisService,
@@ -86,7 +86,7 @@ describe('TodayAnalysisQueueService', () => {
 
   it('returns job id from enqueue when queue is configured', async () => {
     const { factory, mockQueue } = buildFactory(true);
-    const svc = new TodayAnalysisQueueService(
+    const svc = new AnalysisQueueService(
       factory,
       mockCache,
       mockAnalysisService,
@@ -105,7 +105,7 @@ describe('TodayAnalysisQueueService', () => {
   it('uses a stable user/date/version id for event-triggered jobs', async () => {
     const { factory, mockQueue } = buildFactory(true);
     mockQueue!.getJob.mockResolvedValue(null);
-    const svc = new TodayAnalysisQueueService(
+    const svc = new AnalysisQueueService(
       factory,
       mockCache,
       mockAnalysisService,
@@ -140,7 +140,7 @@ describe('TodayAnalysisQueueService', () => {
   it('uses the resolved profile-local date in a versioned job id', async () => {
     const { factory, mockQueue } = buildFactory(true);
     mockQueue!.getJob.mockResolvedValue(null);
-    const svc = new TodayAnalysisQueueService(
+    const svc = new AnalysisQueueService(
       factory,
       mockCache,
       mockAnalysisService,

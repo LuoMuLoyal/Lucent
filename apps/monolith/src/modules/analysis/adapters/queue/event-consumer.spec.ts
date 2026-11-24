@@ -2,7 +2,7 @@ import { HealthEventKind, DailyRecordKind } from '#generated/prisma/client.js';
 import { TodayAnalysisEventConsumerService } from './event-consumer.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
 import type { TodayAnalysisMaterialization } from '../../application/ports/materialization.js';
-import type { TodayAnalysisQueueService } from './analysis.js';
+import type { AnalysisQueueService } from './analysis.js';
 import type { TodayAnalysisContextService } from '../acl/analysis-context.js';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { EventConsumerRegistry } from '../../../../common/index.js';
@@ -35,7 +35,7 @@ describe('TodayAnalysisEventConsumerService', () => {
   function build(redisAvailable: boolean) {
     return new TodayAnalysisEventConsumerService(
       store as unknown as TodayAnalysisMaterialization,
-      queue as unknown as TodayAnalysisQueueService,
+      queue as unknown as AnalysisQueueService,
       contextService as unknown as TodayAnalysisContextService,
       { isAvailable: redisAvailable } as unknown as BullmqQueueFactory,
       registry,

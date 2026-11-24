@@ -16,7 +16,7 @@ export interface ExportJobData {
   language: string;
 }
 
-const QUEUE_NAME = QUEUE_NAMES.dataExport;
+const QUEUE_NAME = QUEUE_NAMES.exportQueue;
 const JOB_NAME = 'export';
 
 @Injectable()

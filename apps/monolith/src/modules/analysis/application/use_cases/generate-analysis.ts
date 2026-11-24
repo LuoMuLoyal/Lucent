@@ -47,7 +47,7 @@ import type {
 import type { TodayAnalysisStructuredOutput } from '../ports/analysis-output.js';
 import { nowIsoString } from '../../../../common/index.js';
 import {
-  TODAY_ANALYSIS_MATERIALIZATION,
+  ANALYSIS_MATERIALIZATION,
   type TodayAnalysisMaterialization,
 } from '../ports/materialization.js';
 import type { StreamSummaryEvent } from '../../../../common/api/stream-summary.js';
@@ -97,7 +97,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     private readonly pushDeliveryService: PushDeliveryService,
     private readonly i18n: I18nService,
     @Optional()
-    @Inject(TODAY_ANALYSIS_MATERIALIZATION)
+    @Inject(ANALYSIS_MATERIALIZATION)
     private readonly materializationStore?: TodayAnalysisMaterialization,
   ) {
     super(copyService, generatorService, policyService);

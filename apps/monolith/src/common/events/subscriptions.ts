@@ -87,7 +87,7 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
     {
-      queue: QUEUE_NAMES.todayAnalysis,
+      queue: QUEUE_NAMES.analysis,
       job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],
@@ -101,7 +101,7 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
     {
-      queue: QUEUE_NAMES.todayAnalysis,
+      queue: QUEUE_NAMES.analysis,
       job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],
@@ -153,7 +153,7 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       job: SUGGESTION_EVENT_TRIGGER_JOB,
     },
     {
-      queue: QUEUE_NAMES.todayAnalysis,
+      queue: QUEUE_NAMES.analysis,
       job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],
@@ -161,7 +161,7 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
   // input to the analysis, and no other migrated consumer reacts to it.
   [TODAY_SUGGESTION_MATERIALIZATION_CHANGED]: [
     {
-      queue: QUEUE_NAMES.todayAnalysis,
+      queue: QUEUE_NAMES.analysis,
       job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],

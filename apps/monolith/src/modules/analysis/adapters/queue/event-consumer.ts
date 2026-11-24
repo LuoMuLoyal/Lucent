@@ -10,18 +10,18 @@ import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { TRIGGER_DIMENSIONS } from '../../domain/analysis/trigger-gate.js';
 import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
 import {
-  TODAY_ANALYSIS_MATERIALIZATION,
+  ANALYSIS_MATERIALIZATION,
   type TodayAnalysisMaterialization,
 } from '../../application/ports/materialization.js';
 import type { TodayAnalysisReasonCode } from '../../domain/analysis/materialization-vocabulary.js';
 import {
-  TODAY_ANALYSIS_QUEUE_PORT,
-  type TodayAnalysisQueuePort,
+  ANALYSIS_QUEUE_PORT,
+  type AnalysisQueuePort,
 } from '../../application/ports/analysis-queue.js';
 import { TodayAnalysisContextService } from '../acl/analysis-context.js';
 
 /** BullMQ queue the analysis event consumer runs on. */
-export const TODAY_ANALYSIS_EVENT_QUEUE_NAME = QUEUE_NAMES.todayAnalysis;
+export const ANALYSIS_EVENT_QUEUE_NAME = QUEUE_NAMES.analysis;
 
 /** Kinds of daily record whose signal strength is worth re-evaluating. */
 // The whitelist is owned by domain/analysis/trigger-gate.ts (judgement B):
@@ -56,10 +56,10 @@ export class TodayAnalysisEventConsumerService implements OnModuleInit {
   private readonly logger = new Logger(TodayAnalysisEventConsumerService.name);
 
   constructor(
-    @Inject(TODAY_ANALYSIS_MATERIALIZATION)
+    @Inject(ANALYSIS_MATERIALIZATION)
     private readonly store: TodayAnalysisMaterialization,
-    @Inject(TODAY_ANALYSIS_QUEUE_PORT)
-    private readonly queue: TodayAnalysisQueuePort,
+    @Inject(ANALYSIS_QUEUE_PORT)
+    private readonly queue: AnalysisQueuePort,
     private readonly contextService: TodayAnalysisContextService,
     private readonly factory: BullmqQueueFactory,
     private readonly consumers: EventConsumerRegistry,
@@ -67,7 +67,7 @@ export class TodayAnalysisEventConsumerService implements OnModuleInit {
 
   onModuleInit(): void {
     if (this.factory.isAvailable) {
-      // The queue and its worker already exist — `TodayAnalysisQueueService`
+      // The queue and its worker already exist — `AnalysisQueueService`
       // owns them, and its processor dispatches on the job name the fan-out
       // uses. Nothing to register here.
       return;
@@ -75,7 +75,7 @@ export class TodayAnalysisEventConsumerService implements OnModuleInit {
     // No Redis: the fan-out calls this handler directly, so local development
     // and e2e still invalidate context and run the analysis inline.
     this.consumers.register(
-      TODAY_ANALYSIS_EVENT_QUEUE_NAME,
+      ANALYSIS_EVENT_QUEUE_NAME,
       TODAY_ANALYSIS_EVENT_JOB,
       (data) => this.handle(data),
     );
