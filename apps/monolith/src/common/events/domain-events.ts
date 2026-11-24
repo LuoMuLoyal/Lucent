@@ -38,7 +38,7 @@ export const HEALTH_EVENT_CHANGED = 'health-event.changed';
 
 /** Emitted when the server advances a Today Suggestion materialization version. */
 export const TODAY_SUGGESTION_MATERIALIZATION_CHANGED =
-  'today-suggestion.materialization.changed';
+  'suggestion.materialization.changed';
 
 /** Emitted when a risk assessment finishes and its result is persisted. */
 export const RISK_ASSESSMENT_COMPLETED = 'risk-assessment.completed';

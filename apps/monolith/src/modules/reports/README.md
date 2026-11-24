@@ -95,21 +95,21 @@ clinic-summary/shares/:shareId`（撤销，204）/ `POST clinic-summary/export/a
 
 | 数据                         | 来源                                                          |
 | ---------------------------- | ------------------------------------------------------------- |
-| 日报                         | `daily-records` 的 `DailyRecordReaderPort`                    |
-| 剂量日志                     | `medicine-dose-logs` 的 `MedicineDoseLogReaderPort`           |
-| 用户设置                     | `user-settings` 的 `IUserSettingsPort`                        |
-| 过敏/病史/当前用药/生日/性别 | `user-health-context` 的 `IUserHealthContextReader`           |
+| 日报                         | `record` 的 `DailyRecordReaderPort`                    |
+| 剂量日志                     | `dose` 的 `MedicineDoseLogReaderPort`           |
+| 用户设置                     | `settings` 的 `IUserSettingsPort`                        |
+| 过敏/病史/当前用药/生日/性别 | `context` 的 `IUserHealthContextReader`           |
 | 静态风险红旗                 | `medicines` 的 `MedicineRiskCheckService`（读失败降级空列表） |
 | 昵称                         | 本模块 `ClinicSummarySources`（`user` 表自有列，经端口）      |
 
 ## Dependencies
 
 - 引用：`assistant`（`HistoricalAiSummaryService` 历史摘要）、
-  `daily-records`、`health-events`、`medicines`、`medicine-dose-logs`、
-  `user-settings`、`user-health-context`、`product-events`、
-  LlmRuntime/LlmCommon、`data-export`（PDF 绘制工具）。
-- 被引用：`notification-preferences`（经 `IReportSummaryReader` 生成周报洞察）、
-  `data-export`（`ReportsService.getDashboard` 作为 PDF 数据源）。
+  `record`、`health-events`、`medicines`、`dose`、
+  `settings`、`context`、`product`、
+  LlmRuntime/LlmCommon、`export`（PDF 绘制工具）。
+- 被引用：`notification`（经 `IReportSummaryReader` 生成周报洞察）、
+  `export`（`ReportsService.getDashboard` 作为 PDF 数据源）。
 - Barrel 导出：`ReportsService`、`ReportsAiSummaryService`、
   `EventReviewService`、`IReportSummaryReader`。
 

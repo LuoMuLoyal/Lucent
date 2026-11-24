@@ -11,16 +11,16 @@ ADR-0024 定下「事件是事实，不是命令；事件经 outbox 发布，消
 抢占、`attempts` 上限、`published_at` 结算，单测齐全）。
 
 **但它是零生产者零消费者的。** 真正在跑的是 `EventEmitter2` 的进程内 `emitAsync`：
-7 个事件名、23 处 `@OnEvent`，分属 `reports`、`today-analysis`、`today-suggestion`、
+7 个事件名、23 处 `@OnEvent`，分属 `reports`、`analysis`、`suggestion`、
 `medicines`。于是有三个具体缺陷：
 
 - **丢事件的窗口**：生产点大多是「写库事务已提交 → 再 emit」。进程在这两步之间崩溃，
   事件永久丢失且没有补偿——日报写进去了，建议不重算，直到用户下次操作。
 - **时长沿调用链累加**：`emitAsync` 同步等待所有监听器。一次日报写入要等 reports 的
-  6 个缓存失效 + today-analysis 的重算入队 + today-suggestion 的 6 个缓存失效与重算入队。
+  6 个缓存失效 + analysis 的重算入队 + suggestion 的 6 个缓存失效与重算入队。
   任何一个监听器慢，写入就慢。
 - **`common/` 反向依赖业务模块**：`reminder-dispatch` 队列挂在
-  `common/queue/cron-jobs.service.ts`，处理器直接调 `medicine-reminders` 的
+  `common/queue/cron-jobs.service.ts`，处理器直接调 `reminder` 的
   `dispatchDueReminders()`。这正是基线里 `common-no-module-imports` 告警的来源。
 
 比「没接上」更糟的是**接错了方向**：事件该有的持久化在一张没人用的表里，而事件的扇出
@@ -46,7 +46,7 @@ BullMQ 队列（独立重试、独立并发、BullMQ 面板可见积压）
 ```
 
 **关键变化：outbox 不再 `emitAsync` 到 `EventEmitter2` 就完事，而是把事件转成各消费者
-队列里的任务。** 同一个事件对 `reports`（失效缓存）和 `today-suggestion`（重算）的
+队列里的任务。** 同一个事件对 `reports`（失效缓存）和 `suggestion`（重算）的
 心智完全不同，后者要做防抖合并、要能在 BullMQ 面板上看到积压、失败要单独重试——
 塞在进程内同步链路里，这些能力一个都拿不到。
 
@@ -68,8 +68,8 @@ BullMQ 队列（独立重试、独立并发、BullMQ 面板可见积压）
 | `lucent-event-fanout`       | `common`             | 新：outbox 轮询与扇出                    |
 | `report-cache-invalidation` | `reports`            | 新：替代 `@OnEvent`                      |
 | `medicine-risk-refresh`     | `medicines`          | 新：替代 health-context/reminder 监听    |
-| `suggestion-recompute`      | `today-suggestion`   | 保持队列，消费方改为 `event-trigger` job |
-| `lucent-reminder-dispatch`  | `medicine-reminders` | 搬：从 `common/queue` 移入模块           |
+| `suggestion-recompute`      | `suggestion`   | 保持队列，消费方改为 `event-trigger` job |
+| `lucent-reminder-dispatch`  | `reminder` | 搬：从 `common/queue` 移入模块           |
 
 **一个队列可以承载多种 payload 形状，但必须按 `job.name` 分派。** `suggestion-recompute`
 的处理器原本是 `processor: (job) => worker.process(job.data)`——完全不看 `job.name`。
@@ -131,13 +131,13 @@ payload 形状，没有任何报错。所以扇出用独立 job 名 `event-trigg
 - **仍有生产者不在事务内。** 写入是单条 Prisma 语句（不开事务）的路径，append 只能在
   其后执行，这一段窗口仍在。E0 修的是「本来就有事务却没把 append 放进去」的那一批，
   不是所有批次。
-- **`cron-jobs.service.ts` 仍持有 4 个业务模块引用**（`daily-records`、
-  `data-retention`、`today-suggestion`、`notification-preferences`），
+- **`cron-jobs.service.ts` 仍持有 4 个业务模块引用**（`record`、
+  `retention`、`suggestion`、`notification`），
   `common-no-module-imports` 的 3 条基线未归零。原计划认为搬走 `reminder-dispatch`
   即可归零；实际该规则**按文件记账**（同文件同规则去重为一条），搬走 5 个引用中的
   1 个只是从 5 减到 4，条数不变。这属于「cron 注册表知道所有定时任务的业务分支」，
   是另一类债，列为独立批次。
-- **E0 的基线净收益 = 1 条**：`no-circular | today-suggestion/services/recompute/queue.service.ts`。
+- **E0 的基线净收益 = 1 条**：`no-circular | suggestion/services/recompute/queue.service.ts`。
   且该条是本次迁移中引入又消掉的（类型抽出为 `recompute-job.types.ts`），
   不是清掉的既有债。
 
@@ -164,9 +164,9 @@ payload 形状，没有任何报错。所以扇出用独立 job 名 `event-trigg
 退化成不受检查的 `object`），要么靠每个调用点手工传——漏一个就静默退回非原子路径，
 且没有任何编译错误。用作用域后**原子路径是默认行为**，生产者代码一行不用改。
 
-已改到事务内的生产者：`medicine-reminders`（`reminder.changed`）。
-其余生产者（`daily-records`、`health-events`、`health-context`、`user-settings`、
-`dose-log`、`today-suggestion`、`check-risk`）的 append 已能自动加入事务，
+已改到事务内的生产者：`reminder`（`reminder.changed`）。
+其余生产者（`record`、`health-events`、`health-context`、`settings`、
+`dose-log`、`suggestion`、`check-risk`）的 append 已能自动加入事务，
 但只在它们的写入确实经由 `PrismaTransactionRunner` 时才生效；这部分随 E1（接入
 RabbitMQ 前的收口）逐个把事务入口迁到 runner 上，未完成前它们的行为与改动前一致。
 

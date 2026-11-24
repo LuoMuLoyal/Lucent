@@ -6,7 +6,7 @@ import {
   ProductEventSurface,
 } from '#generated/prisma/client.js';
 import type { ClinicSummaryShares } from '../ports/clinic-summary.js';
-import type { ProductEventsService } from '../../../product-events/index.js';
+import type { ProductEventsService } from '../../../product/index.js';
 import { ShareService } from './clinic-summary-shares.js';
 
 /**

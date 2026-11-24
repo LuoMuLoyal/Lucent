@@ -17,7 +17,7 @@ Last updated: 2026-08-30
   HTTP errors use `application/problem+json`, while an established SSE stream carries the same
   fields with an event-only termination status.
 - Product Measurement Task 9 exports the first admin aggregation endpoint
-  `GET /api/v1/user/product-events/funnel` (120 → 121 paths / 285 → 290 schemas; five
+  `GET /api/v1/user/product/funnel` (120 → 121 paths / 285 → 290 schemas; five
   count-only Funnel\* DTOs, no existing path/schema changes). It is an internal admin surface
   (JWT email must match `ADMIN_EMAIL`), not part of the Luminous client contract; the Flutter
   client does not need regeneration for it.
@@ -123,7 +123,7 @@ Last updated: 2026-08-30
 - **队列加固**（2026-08-03，按 `plans/2026-08-01-queue-service-hardening.md` 修订版实施，
   计划实施完毕文件已删）：
   - `enqueueOrFallback` 增加 `queueName` 参数并对 enqueue 包 try-catch（Redis 配置但断连时回退同步处理，
-    记 error 日志含队列名）；mail / meal-analysis enqueue 同样回退；data-export 在 `export.service.ts`
+    记 error 日志含队列名）；mail / meal-analysis enqueue 同样回退；export 在 `export.service.ts`
     调用处兜底走 inline。
   - Meal-analysis enqueue 去除确定性 jobId，去重交给 worker 幂等检查（revision 比对），
     失败 job 保留期内可同 revision 重试。
@@ -135,7 +135,7 @@ Last updated: 2026-08-30
     `@@unique([userId, reminderId, scheduledFor])`（迁移含历史重复清理），scheduler 写入改
     `createMany({ skipDuplicates: true })`，「至少一次投递」语义见
     [ADR-0011](adr/0011-reminder-delivery-at-least-once.md)。
-- **文档覆盖规则补全**（2026-08-14）：`docs/doc-map.yaml` 新增 `product-events`（`src/modules/product-events/**`）与 `data-retention`（`src/modules/data-retention/**`）两条规则，并在 `report-export` 规则追加 `docs/01-reference/data-retention.md`——此前这两个模块的代码变更无映射规则，隐私测量与保留策略的文档同步依赖人工。
+- **文档覆盖规则补全**（2026-08-14）：`docs/doc-map.yaml` 新增 `product`（`src/modules/product/**`）与 `retention`（`src/modules/retention/**`）两条规则，并在 `report-export` 规则追加 `docs/01-reference/retention.md`——此前这两个模块的代码变更无映射规则，隐私测量与保留策略的文档同步依赖人工。
 - **OpenAPI 导出格式收敛**（2026-08-14）：`scripts/contract/export-openapi.ts` 写盘前在进程内套用仓库 `.prettierrc` 格式化（prettier 3 ESM-only，`await import` 动态加载），并跟随工作树行尾约定（`core.autocrlf=true` 时为 CRLF），`pnpm export:openapi` 重复导出零 diff，不再依赖提交时的归一化。
 - **模块目录文档覆盖校验**（2026-08-14）：`pnpm docs:verify` 检查 `src/modules/*` 每个目录是否被 doc-map 至少一条规则的 `code` glob 命中（或显式豁免），新增模块不再能漏配文档治理；本次补 `audit-log` 规则。
 - **冻结文档语义**（2026-08-14）：front-matter `status: frozen` 标记有意冻结的文档（桌面/Web-freeze 等），豁免 90 天新鲜度检查但必须保留完整 front-matter；与 `status: stale`（应归档）语义区分。

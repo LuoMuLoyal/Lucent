@@ -3,7 +3,7 @@ import type { ReportSummaryDataDto } from '../../application/read_models/report-
 
 /**
  * Read-only port for AI report summaries.  Consumed by the
- * notification-preferences module to generate weekly insight summaries
+ * notification module to generate weekly insight summaries
  * without depending on the full ReportsAiSummaryService class hierarchy
  * (which extends BaseLlmSummaryService with streaming, persistence, and
  * fallback methods).

@@ -9,7 +9,7 @@ updated: 2026-08-17
 
 Last updated: 2026-08-22
 
-The product-events controller now returns direct resources for batch ingestion and admin funnel
+The product controller now returns direct resources for batch ingestion and admin funnel
 reads. Health-event create, list, active, detail, check-in, and end endpoints now also return
 direct resources; HTTP failures are handled by the global Problem Details filter.
 
@@ -21,12 +21,12 @@ string codes; product-event clients do not inspect translated error messages.
 
 ## 当前状态
 
-- 2026-08-14 增量审查修复（5 项 🟡）：`POST /product-events` 在全局限流（100 req/min）之上叠加专属限流（10 req/min，单批 ≤50 事件，持续写入速率封顶）；漏斗窗口跨度改用 UTC 午夜瞬间的日历日差计算（`utcDayNumber`，不再毫秒四舍五入，无 DST 边界误差）；`emitServerEvent` 失败日志只记录固定标识（Prisma 错误码或错误类名），原始 driver message 永不入日志；`ProductEventName` 每个枚举值必须映射到核心阶段/optional 计数或显式声明不计数（`INTENTIONALLY_UNCOUNTED_EVENT_NAMES`），由 spec 遍历枚举强制——新增枚举值未处理时测试失败，杜绝漏斗指标静默丢数。
-- Product Measurement Task 9 已完成首个产品闭环聚合查询：`GET /api/v1/user/product-events/funnel` 为内部管理员专用（`AdminGuard` 复用 AdminJS 的 `ADMIN_EMAIL` 身份，普通用户 403、未认证 401），按 UTC 日历日聚合核心漏斗（event started → suggestion impression/actioned → event ended/outcome → review opened，ended 与 outcome_confirmed 合并为一阶段）并单独输出 optional 就诊摘要 preview/export/share/open 计数，绝不输出逐用户事件、健康内容或自由文本；窗口缺省最后 30 个包含日（UTC），显式范围上限 30 天；窗口核心总数低于 `MIN_FUNNEL_GROUP_SIZE = 10` 时抑制 daily 分组细节（`detailsSuppressed: true`）但保留 totals。
+- 2026-08-14 增量审查修复（5 项 🟡）：`POST /product` 在全局限流（100 req/min）之上叠加专属限流（10 req/min，单批 ≤50 事件，持续写入速率封顶）；漏斗窗口跨度改用 UTC 午夜瞬间的日历日差计算（`utcDayNumber`，不再毫秒四舍五入，无 DST 边界误差）；`emitServerEvent` 失败日志只记录固定标识（Prisma 错误码或错误类名），原始 driver message 永不入日志；`ProductEventName` 每个枚举值必须映射到核心阶段/optional 计数或显式声明不计数（`INTENTIONALLY_UNCOUNTED_EVENT_NAMES`），由 spec 遍历枚举强制——新增枚举值未处理时测试失败，杜绝漏斗指标静默丢数。
+- Product Measurement Task 9 已完成首个产品闭环聚合查询：`GET /api/v1/user/product/funnel` 为内部管理员专用（`AdminGuard` 复用 AdminJS 的 `ADMIN_EMAIL` 身份，普通用户 403、未认证 401），按 UTC 日历日聚合核心漏斗（event started → suggestion impression/actioned → event ended/outcome → review opened，ended 与 outcome_confirmed 合并为一阶段）并单独输出 optional 就诊摘要 preview/export/share/open 计数，绝不输出逐用户事件、健康内容或自由文本；窗口缺省最后 30 个包含日（UTC），显式范围上限 30 天；窗口核心总数低于 `MIN_FUNNEL_GROUP_SIZE = 10` 时抑制 daily 分组细节（`detailsSuppressed: true`）但保留 totals。
 - 设计决策（阈值口径）：漏斗小样本阈值作用于**窗口级**核心事件总数（五阶段计数之和），不按单日分组判定——窗口总数低于 `MIN_FUNNEL_GROUP_SIZE` 时整窗抑制 daily 细节。
 - 设计决策（计数口径）：漏斗计数是去重后的**事件**计数（`(userId, clientEventId)` 唯一约束去重），不是去重用户数；阶段比值不构成转化率。
 - 健康事件服务端事件（started/ended/outcome_confirmed）、建议 actioned 与分享生命周期事件的上报发射保持不变；记录率以保存成功为分子（`recorded`），客户端 quick-entry tap 计数不参与任何服务端指标。
-- Product Measurement Task 10（收口）已完成：保留策略写入 `01-reference/data-retention.md`（原始产品事件 90 天按 occurredAt 清理、账户硬删除 FK 级联即时清除、分享 7 天 TTL + token 仅哈希存储 + 撤销、漏斗无持久化聚合故窗口受原始保留期约束）；安全扫描确认新代码无明文 token/症状/药名/note 进入日志、Sentry breadcrumb、指标标签（`product_event_emission_failure_total` 仅固定事件名标签）与产品事件载荷；Luminous 侧公开分享页信封兼容修复（raw Dio 解信封 + 缺省 section 补齐）与漏斗合同模型同步已完成，撤销后 Web/PDF 均 404。
+- Product Measurement Task 10（收口）已完成：保留策略写入 `01-reference/retention.md`（原始产品事件 90 天按 occurredAt 清理、账户硬删除 FK 级联即时清除、分享 7 天 TTL + token 仅哈希存储 + 撤销、漏斗无持久化聚合故窗口受原始保留期约束）；安全扫描确认新代码无明文 token/症状/药名/note 进入日志、Sentry breadcrumb、指标标签（`product_event_emission_failure_total` 仅固定事件名标签）与产品事件载荷；Luminous 侧公开分享页信封兼容修复（raw Dio 解信封 + 缺省 section 补齐）与漏斗合同模型同步已完成，撤销后 Web/PDF 均 404。
 - 2026-08-23 neverthrow 迁移收口：`AdminGuard` 的 401/403 改为直接构造 `UnauthorizedException`/`ForbiddenException`（与旧 `api-errors.ts` helper 相同的 `{ code, message }` payload，行为不变），旧 throw helper 已删除；漏斗错误仍走全局 Problem Details filter。
 
 - 本次响应契约硬切已将健康事件 controller 的成功 JSON 改为资源本身，不再依赖全局成功 envelope；Problem Details 错误响应与客户端同步留待全部 controller 迁移后统一收口。
@@ -45,11 +45,11 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - baseline 写入失败不会丢弃已生成建议，已生成建议仍可读取；materialization 保留固定错误码 `BASELINE_OBSERVATION_FAILED`，不标记为 ready。
 - Medication collector 按 reminder slot 评估 `planned/taken/skipped/unconfirmed/overdueUnconfirmed`，用 `now()` 与用户 profile timezone 组合 `scheduledFor + scheduledTime`；无效时区回退 `Asia/Shanghai`，DST gap 和无效日期不伪造 overdue。
 - dose-log reader 投影带出 `reminderId`；有 reminderId 的日志精确匹配槽位，历史无 reminderId 的日志仅在 medicine+scheduledTime 唯一时 fallback。同药多槽位不再按 medicineId 折叠，missed-dose rule 只消费 `overdueUnconfirmed`，文案保持待确认语义。
-- Today Analysis 使用 `userId + localDate + sourceVersion` 的 BullMQ job id 合并触发；`GET /today-analysis` 只读历史物化结果，不调用 LLM。
+- Today Analysis 使用 `userId + localDate + sourceVersion` 的 BullMQ job id 合并触发；`GET /analysis` 只读历史物化结果，不调用 LLM。
 - Today Analysis 触发源：symptom record、health-event create/end、symptom check-in、dose log、合格的 suggestion materialization 版本，以及经过维度门控的 water / meal / sleep / mood 日常记录。维度门控要求近 7 天该维度有效记录 >= 3 条，或今日值较 prior 7 天基线变化 >= 50%；基线不存在时保守不触发。
 - Today Analysis 空上下文守卫：当用户当日无任何用药、过敏、water/meal/sleep/mood/symptom 记录时，生成入口直接返回 `empty`，不进入 LLM/fallback、不持久化、不创建通知。
 - Today Analysis 物化结果 `TodayAnalysisDataDto` 携带 `aiGenerated` 标志；模型输出经安全校验使用时为 `true`，模板兜底时为 `false`，并随摘要历史持久化。
-- Today Analysis 通知执行器每天每个用户最多创建/替换一条 `ai_today_summary` 通知（scope `{ source: 'today-analysis', date }`），内容取自最新物化 summary；不再同时创建 `ai_proactive_suggestion` 类型通知。JPush 投递保持尽力而为，本地通知优先策略由 Luminous 端实现。
+- Today Analysis 通知执行器每天每个用户最多创建/替换一条 `ai_today_summary` 通知（scope `{ source: 'analysis', date }`），内容取自最新物化 summary；不再同时创建 `ai_proactive_suggestion` 类型通知。JPush 投递保持尽力而为，本地通知优先策略由 Luminous 端实现。
 - Today Analysis materialization 持久化 `sourceVersion`、`computedVersion`、`computedAt`、`generationCount` 和失败状态；每个自然日最多生成 3 次，手动刷新有 5 分钟冷却，旧结果在 `stale/pending/failed` 状态下继续可读。
 - Suggestion recompute 已接入低基数 Prometheus 指标：enqueue、dedupe、job duration、ready/failed 和 stale age；标签不包含 userId、日期或健康内容。
 - Sparse Record Semantics 的 Water 阶段已完成：Today collector、Today Analysis、Report context 与 Report AI context 共用纯 mapper/factory，合法水量统一为整数 ml；unknown、observed zero、非法输入和来源/coverage 不再混淆。旧 Report 升数序列仅作为兼容投影，并由同一 ml 结果派生。
@@ -68,8 +68,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - live E2E 在用户 A 首次读取 active event 时确认没有 check-in，随后只有显式 check-in/end API 改变状态；因此没有发现系统建议绕过用户确认写入事件状态的路径。
 - Proactive Suggestion Runtime Task 4 定向测试：9 个 spec、123 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build`、`pnpm exec prisma validate` 和 `git diff --check` 通过。OpenAPI 已重新导出，语义 diff 为 27 行。新增 `20260809020000_add_suggestion_source_version` 已应用到 development/test PostgreSQL；worker 对已完成同版本任务幂等短路，materialization 失败写入仅作用于 pending 状态。
 - Proactive Suggestion Runtime Task 5 定向测试：7 个 spec、86 tests 通过；`pnpm typecheck`、`pnpm exec prisma validate`、`pnpm prisma:generate` 和 development/test migration deploy 通过。新增 baseline observation 唯一约束已应用到两个本地 PostgreSQL 数据库。
-- Proactive Suggestion Runtime Task 6 定向测试：3 个 spec、54 tests 通过；today-suggestion 模块回归 37 个文件、400 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build` 和 `git diff --check` 通过。覆盖用户时区、非法时区 fallback、DST gap/fold、无效日期、reminderId 精确匹配、历史日志歧义和混合 reminder summary。
-- Proactive Suggestion Runtime Task 7 定向测试：today-analysis 10 个 spec、102 tests 通过；today-suggestion、health-events、daily-records、medicine-dose-logs 回归 61 个 spec、622 tests 通过。`pnpm exec prisma validate`、`pnpm prisma:generate`、`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 和 development/test migration deploy 通过。
+- Proactive Suggestion Runtime Task 6 定向测试：3 个 spec、54 tests 通过；suggestion 模块回归 37 个文件、400 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build` 和 `git diff --check` 通过。覆盖用户时区、非法时区 fallback、DST gap/fold、无效日期、reminderId 精确匹配、历史日志歧义和混合 reminder summary。
+- Proactive Suggestion Runtime Task 7 定向测试：analysis 10 个 spec、102 tests 通过；suggestion、health-events、record、dose 回归 61 个 spec、622 tests 通过。`pnpm exec prisma validate`、`pnpm prisma:generate`、`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 和 development/test migration deploy 通过。
 - Proactive Suggestion Runtime Task 8 已完成：Luminous Today 消费 `ready/stale/pending/failed/empty`，GET 只读，事件去抖刷新、resume sourceVersion 检查、cold-start cache 保留和 FIFO 请求串行均已覆盖定向测试。
 - Proactive Suggestion Runtime Task 9 已完成：Lucent 低基数运行时指标、全量验证和文档 checkpoint 已完成；PostgreSQL + Redis live acceptance 覆盖记录写入后的 worker 物化、首个只读 GET，以及连续 10 次写入后的版本收敛。
 - Task 9 验证：相关定向测试 4 个 spec、49 tests；Today suggestion API E2E 11 tests；临时 live acceptance 1 test；全量 `pnpm test`、`pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、Prisma validate、docs check/verify/links 均通过。

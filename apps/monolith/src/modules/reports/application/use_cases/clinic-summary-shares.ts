@@ -14,7 +14,7 @@ import {
   CLINIC_SUMMARY_SHARES,
   type ClinicSummaryShares,
 } from '../ports/clinic-summary.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventsService } from '../../../product/index.js';
 import {
   CLINIC_SUMMARY_REASON,
   type ClinicSummaryReason,

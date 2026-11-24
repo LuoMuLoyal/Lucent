@@ -69,17 +69,17 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
   // ── Sensitive Operation Password Reauthentication ───────────────
 
   describe('Sensitive operation password reauthentication', () => {
-    it('should reject data-export POST without password', async () => {
+    it('should reject export POST without password', async () => {
       await request(app.getHttpServer())
-        .post('/api/v1/user/data-export-requests')
+        .post('/api/v1/user/export-requests')
         .set('Authorization', bearer(alice.accessToken))
         .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
         .expect(400);
     });
 
-    it('should reject data-export POST with wrong password', async () => {
+    it('should reject export POST with wrong password', async () => {
       await request(app.getHttpServer())
-        .post('/api/v1/user/data-export-requests')
+        .post('/api/v1/user/export-requests')
         .set('Authorization', bearer(alice.accessToken))
         .send({
           kind: 'hospital',
@@ -90,9 +90,9 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
         .expect(401);
     });
 
-    it('should accept data-export POST with valid password', async () => {
+    it('should accept export POST with valid password', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/data-export-requests')
+        .post('/api/v1/user/export-requests')
         .set('Authorization', bearer(alice.accessToken))
         .send({
           kind: 'hospital',
@@ -105,10 +105,10 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
       expect(res.body).toHaveProperty('id');
     });
 
-    it('should accept data-export GET/latest without password', async () => {
+    it('should accept export GET/latest without password', async () => {
       // GET /latest is a read-only status check that only requires JWT auth.
       await request(app.getHttpServer())
-        .get('/api/v1/user/data-export-requests/latest')
+        .get('/api/v1/user/export-requests/latest')
         .set('Authorization', bearer(alice.accessToken))
         .expect(200);
     });
@@ -134,7 +134,7 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
 
       // Create a medicine reminder
       const reminderRes = await request(app.getHttpServer())
-        .post('/api/v1/user/medicine-reminders')
+        .post('/api/v1/user/reminder')
         .set('Authorization', bearer(alice.accessToken))
         .send({
           currentMedicineId: medId,
@@ -146,7 +146,7 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
 
       // Create a dose log for Alice
       const doseLogRes = await request(app.getHttpServer())
-        .post('/api/v1/user/medicine-dose-logs')
+        .post('/api/v1/user/dose')
         .set('Authorization', bearer(alice.accessToken))
         .send({
           reminderId,
@@ -159,7 +159,7 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
 
     it('Bob cannot list Alice dose logs', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/medicine-dose-logs')
+        .get('/api/v1/user/dose')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(bobToken))
         .expect(200);
@@ -173,14 +173,14 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
 
     it('Bob cannot read Alice dose log by ID', async () => {
       await request(app.getHttpServer())
-        .get(`/api/v1/user/medicine-dose-logs/${aliceDoseLogId}`)
+        .get(`/api/v1/user/dose/${aliceDoseLogId}`)
         .set('Authorization', bearer(bobToken))
         .expect(404);
     });
 
     it('Bob cannot update Alice dose log', async () => {
       await request(app.getHttpServer())
-        .patch(`/api/v1/user/medicine-dose-logs/${aliceDoseLogId}`)
+        .patch(`/api/v1/user/dose/${aliceDoseLogId}`)
         .set('Authorization', bearer(bobToken))
         .send({ status: 'skipped' })
         .expect(404);
@@ -188,7 +188,7 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
 
     it('Bob cannot delete Alice dose log', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/v1/user/medicine-dose-logs/${aliceDoseLogId}`)
+        .delete(`/api/v1/user/dose/${aliceDoseLogId}`)
         .set('Authorization', bearer(bobToken))
         .expect(404);
     });
@@ -213,9 +213,9 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
       expect(res.body['code']).toBe('VALIDATION_FAILED');
     });
 
-    it('POST /daily-records should reject unknown fields (forbidNonWhitelisted)', async () => {
+    it('POST /record should reject unknown fields (forbidNonWhitelisted)', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(alice.accessToken))
         .send({
           occurredAt: '2026-07-13',

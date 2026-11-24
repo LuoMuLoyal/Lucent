@@ -14,7 +14,7 @@ import {
 import {
   IUserHealthContextReader,
   type HealthContextResponseData,
-} from '../../../user-health-context/index.js';
+} from '../../../context/index.js';
 import {
   CLINIC_SUMMARY_SHARES,
   CLINIC_SUMMARY_SOURCES,
@@ -43,11 +43,11 @@ import type {
   EventReviewData,
 } from '../ports/event-review.js';
 import { EventReviewService } from '../../application/read_models/event-review/review.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventsService } from '../../../product/index.js';
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
-} from '../../../daily-records/index.js';
+} from '../../../record/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,

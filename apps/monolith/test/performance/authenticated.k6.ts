@@ -126,7 +126,7 @@ export default function (): void {
   sleep(0.3);
 
   // ── GET /api/v1/user/today/suggestions ──────────────────
-  group('today-suggestions', () => {
+  group('suggestions', () => {
     const res = http.get(`${BASE_URL}/api/v1/user/today/suggestions`, {
       headers: authHeaders,
       tags: { endpoint: 'today_suggestions' },
@@ -135,8 +135,8 @@ export default function (): void {
     suggestionsDuration.add(res.timings.duration);
 
     const ok = check(res, {
-      'today-suggestions: status 200': (r) => r.status === 200,
-      'today-suggestions: has suggestions array': (r) => {
+      'suggestions: status 200': (r) => r.status === 200,
+      'suggestions: has suggestions array': (r) => {
         try {
           const body = JSON.parse(r.body as string);
           return Array.isArray(body.suggestions);

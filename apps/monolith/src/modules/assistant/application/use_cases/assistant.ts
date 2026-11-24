@@ -16,7 +16,7 @@ import type {
   AssistantConfirmResultView,
   ConfirmAssistantProposalView,
 } from '../ports/views.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { IUserSettingsPort } from '../../../settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
 import { Conversations } from './conversation.js';
 import { AssistantMemoryService } from '../services/memory.js';

@@ -1,5 +1,5 @@
 // Domain: Suggestion Engine (Suggestions, Baselines, Materialization, Feedback)
-// Owning modules: today-suggestion, today-analysis
+// Owning modules: suggestion, analysis
 
 enum SuggestionType {
   confirmed_risk
@@ -180,7 +180,7 @@ model UserTodayAnalysisMaterialization {
 
   @@unique([userId, localDate])
   @@index([userId, status])
-  @@map("user_today_analysis_materializations")
+  @@map("analysis_materializations")
 }
 
 /// Feedback-driven suppression records.

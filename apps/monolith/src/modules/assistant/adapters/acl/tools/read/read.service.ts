@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../../../prisma/index.js';
 import type { IMedicineReminderReader } from '../../../../application/ports/readers.js';
 import { MEDICINE_REMINDER_READER } from '../../../../application/ports/readers.js';
-import { IUserHealthContextReader } from '../../../../../user-health-context/index.js';
-import { IUserSettingsPort } from '../../../../../user-settings/index.js';
+import { IUserHealthContextReader } from '../../../../../context/index.js';
+import { IUserSettingsPort } from '../../../../../settings/index.js';
 import { HistoricalAiSummaryService } from '../../../../application/use_cases/summaries.js';
 import type {
   AssistantReadResultEnvelope,

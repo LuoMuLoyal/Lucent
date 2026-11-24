@@ -51,7 +51,7 @@ write_subgraph`, `knowledge -> knowledge_subgraph`, and unknown/mixed intents fa
   detail record was already resolved safely.
 - Today analysis now produces two notification types in addition to persisting
   `assistant_summary_histories`: `ai_today_summary` and `ai_proactive_suggestion`. Both carry
-  `actionPayload.date` and `actionPayload.source=today-analysis` for frontend attribution.
+  `actionPayload.date` and `actionPayload.source=analysis` for frontend attribution.
 - When today analysis is regenerated on the same day, the two notification types are overwritten
   by `type + source + date` scoped replace, cleaning up old duplicates to avoid polluting the
   notification page and report page suggestion history.

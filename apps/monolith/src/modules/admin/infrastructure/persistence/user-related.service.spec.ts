@@ -66,7 +66,7 @@ describe('AdminUserRelatedService', () => {
     expect(account?.sections.map((s) => s.resource)).toEqual([
       'accounts',
       'user-sessions',
-      'user-settings',
+      'settings',
       'user-profiles',
     ]);
     expect(account?.sections[0]).toEqual({
@@ -82,7 +82,7 @@ describe('AdminUserRelatedService', () => {
 
     const notifications = result.groups.find((g) => g.key === 'notifications');
     expect(notifications?.sections[0]).toEqual({
-      resource: 'user-notification-preferences',
+      resource: 'user-notification',
       items: [],
       total: 0,
     });
@@ -102,7 +102,7 @@ describe('AdminUserRelatedService', () => {
       { page: 1, limit: 5, order: 'desc', userId: 'u1' },
     );
     expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 'user-product-events' }),
+      expect.objectContaining({ key: 'user-product' }),
       { page: 1, limit: 5, order: 'desc', userId: 'u1' },
     );
   });

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/index.js';
-import { ProductEventsModule } from '../product-events/product-events.module.js';
+import { ProductModule } from '../product/product.module.js';
 import { HealthEventsController } from './adapters/http/health-events.controller.js';
 import { CheckInsService } from './application/use_cases/check-ins.js';
 import { EventsService } from './application/use_cases/events.js';
@@ -9,7 +9,7 @@ import { HealthEventRepositoryPort } from './application/ports/health-events.js'
 import { PrismaHealthEvents } from './infrastructure/persistence/health-events.js';
 
 @Module({
-  imports: [PrismaModule, ProductEventsModule],
+  imports: [PrismaModule, ProductModule],
   controllers: [HealthEventsController],
   providers: [
     PrismaHealthEvents,

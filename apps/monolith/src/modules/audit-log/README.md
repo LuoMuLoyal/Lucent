@@ -22,8 +22,8 @@ owner: backend
 
 - imports:`PrismaModule`(DI);不依赖任何业务模块。
 - 被引用:barrel `../audit-log` 导出 `AuditLogService`,消费方为 `account`、
-  `auth`(本地登录/会话)、`assistant`、`data-export`、`admin`(只读列表与
-  `/admin/queues` 写操作审计)、`legal-documents`、`medicines`(内容管理写)。
+  `auth`(本地登录/会话)、`assistant`、`export`、`admin`(只读列表与
+  `/admin/queues` 写操作审计)、`legal`、`medicines`(内容管理写)。
 
 ## 内部结构
 

@@ -47,7 +47,7 @@ type PrismaStub = {
 
 import { okAsync } from '../../../../common/result/index.js';
 import type { ClinicSummaryPdf } from '../ports/clinic-summary-pdf.js';
-import type { ProductEventsService } from '../../../product-events/index.js';
+import type { ProductEventsService } from '../../../product/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
@@ -210,7 +210,7 @@ const i18nMock = {
  *
  * The use case stopped joining `user.profile`/`allergies`/`conditions`/
  * `currentMedicines` directly (that made `reports` a second reader of
- * `user-health-context`'s tables). It reads health data through
+ * `context`'s tables). It reads health data through
  * `IUserHealthContextReader` and only the nickname stays local. Keeping the
  * single `findFirstOrThrow` double and projecting it here means the ~25
  * existing scenarios still describe the same input data, while the assertion

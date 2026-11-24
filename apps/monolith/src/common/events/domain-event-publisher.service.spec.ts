@@ -51,7 +51,7 @@ describe('DomainEventPublisher', () => {
       aggregateType: string;
       aggregateId: string;
     };
-    expect(appended.context).toBe('daily-records');
+    expect(appended.context).toBe('record');
     expect(appended.aggregateType).toBe('daily-record');
     expect(appended.aggregateId).toBe('rec-9');
   });

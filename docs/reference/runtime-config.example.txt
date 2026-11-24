@@ -378,13 +378,13 @@ QUEUE_REMINDER_DISPATCH_CONCURRENCY=1
 # lucent-meal-analysis（餐食图片识别队列）的并发。
 QUEUE_MEAL_ANALYSIS_CONCURRENCY=1
 
-# data-export（用户数据导出队列）的并发。导出在内存里打包，不宜开高。
+# export（用户数据导出队列）的并发。导出在内存里打包，不宜开高。
 QUEUE_DATA_EXPORT_CONCURRENCY=1
 
 # medicine-recognition（药品识别队列）的并发。
 QUEUE_MEDICINE_RECOGNITION_CONCURRENCY=1
 
-# today-analysis（今日分析生成队列）的并发。
+# analysis（今日分析生成队列）的并发。
 QUEUE_TODAY_ANALYSIS_CONCURRENCY=1
 
 # clinic-summary-pdf（就诊摘要 PDF 渲染队列）的并发。

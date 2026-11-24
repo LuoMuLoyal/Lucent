@@ -10,7 +10,7 @@
  * `compilerOptions.outputPath` change only needs to update the list below.
  *
  * Used by:
- * - `app.module.ts` — gate `TestingSupportModule` (NODE_ENV=test + source only)
+ * - `app.module.ts` — gate `TestingModule` (NODE_ENV=test + source only)
  * - `i18n.module.ts` — gate `typesOutputPath` (NODE_ENV=development + source only)
  */
 

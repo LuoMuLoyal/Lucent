@@ -50,7 +50,7 @@ infrastructure/  Prisma、Redis、LLM、检索、OAuth、通知等实现
 | Medicine Catalog  | `medicines`（目录/导入/安全贴士） | core       | `Medicine`、`ImportBatch`、`SafetyTip`                    |
 | Medication Safety | `medicines`（风险检查）           | supporting | `RiskAssessment`                                          |
 | AI Assistant      | `assistant`                       | core       | `Conversation`、`Memory`、`Proposal`、`Summary`           |
-| Daily Guidance    | `today-suggestion`                | core       | `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` |
+| Daily Guidance    | `suggestion`                | core       | `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` |
 
 `medicines` 模块当前同时承载 Medicine Catalog 与 Medication Safety。重构时先在模块内
 按上下文分包，等事件与发布语言稳定后再评估拆服务；不在本 ADR 中拆进程。
@@ -97,7 +97,7 @@ Content/Ontology ──ACL──▶ AI Assistant
 
 ### 5. 迁移与治理
 
-- 首批按 `medicines` → `auth` → `today-suggestion` → `assistant` 迁移；每个上下文
+- 首批按 `medicines` → `auth` → `suggestion` → `assistant` 迁移；每个上下文
   一个批次，批次内不改公开 API。
 - 公开路径、operationId、DTO 字段、错误码、事件名保持零变化；
   `pnpm export:openapi` 必须零 diff。

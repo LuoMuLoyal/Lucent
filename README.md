@@ -194,18 +194,18 @@ matching request context entry for downstream logs.
 
 Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and
-`TENCENT_COS_REGION` to enable `POST /api/v1/user/daily-records/attachments/images/presign-upload`.
+`TENCENT_COS_REGION` to enable `POST /api/v1/user/record/attachments/images/presign-upload`.
 
 AI runtime configuration is role-based and OpenAI-compatible only. Configure
 `AI_PROVIDER=openai-compatible`, then give each role its own
 `BASE_URL` / `API_KEY` / `MODEL`, including analysis, vision, language,
 chat, chat compression, and embedding. See [docs/reference/environment-variables.md](docs/reference/environment-variables.md).
-`AI_LANGUAGE_MODEL` now powers `POST /api/v1/user/daily-records/candidate-records/generate`,
+`AI_LANGUAGE_MODEL` now powers `POST /api/v1/user/record/candidate-records/generate`,
 which converts one natural-language note into user-confirmed candidate daily records
 without writing directly into the final daily-record table.
 Today and Report AI summaries now also expose SSE variants:
 
-- `POST /api/v1/user/today-analysis/generate/stream`
+- `POST /api/v1/user/analysis/generate/stream`
 - `POST /api/v1/user/reports/summary/generate/stream`
 
 They stream safe partial `summary` text first, then finish with the final structured payload.

@@ -21,7 +21,7 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 - [reference/context-map.md](reference/context-map.md) — 限界上下文清单、上下游关系与集成契约(ADR-0024)
 - [reference/environment-variables.md](reference/environment-variables.md) — 环境变量完整参考;本地环境与运行时基线也在此文件
 - [reference/deployment.md](reference/deployment.md) — 部署模型参考(三机各跑仓库 compose:鲲鹏主站、腾讯云 Neo4j+semantica、阿里云监控栈;跨云公网 + 安全组收口)
-- [reference/data-retention.md](reference/data-retention.md) — 数据保留、清理管道与账户删除级联
+- [reference/retention.md](reference/retention.md) — 数据保留、清理管道与账户删除级联
 - [reference/assistant-safety.md](reference/assistant-safety.md) — 跨模块 AI 医疗红线与安全策略
 - [reference/logging-conventions.md](reference/logging-conventions.md) — 结构化日志字段名约定（`error` / `key` / `userId` / `traceId` / `spanId` 等）
 - [explanation/architecture.md](explanation/architecture.md) — 跨模块心智模型与设计权衡(细节以 ADR 与代码为准)
@@ -38,11 +38,11 @@ Lucent(NestJS 12 后端,ESM + zod 4)文档库唯一索引。目录即裁决:`exp
 
 模块意图、边界与陷阱以各模块 README 为准(与代码同址;进入模块前先读):
 
-- 身份与账户:[auth](../src/modules/auth/README.md)、[account](../src/modules/account/README.md)、[user](../src/modules/user/README.md)、[user-settings](../src/modules/user-settings/README.md)、[user-health-context](../src/modules/user-health-context/README.md)、[audit-log](../src/modules/audit-log/README.md)
-- 记录与建议:[daily-records](../src/modules/daily-records/README.md)、[assistant](../src/modules/assistant/README.md)、[today-suggestion](../src/modules/today-suggestion/README.md)、[today-analysis](../src/modules/today-analysis/README.md)、[reports](../src/modules/reports/README.md)、[health-events](../src/modules/health-events/README.md)、[data-export](../src/modules/data-export/README.md)
-- 药品域:[medicines](../src/modules/medicines/README.md)、[medicine-dose-logs](../src/modules/medicine-dose-logs/README.md)、[medicine-reminders](../src/modules/medicine-reminders/README.md)
-- 通知:[notifications](../src/modules/notifications/README.md)、[notification-preferences](../src/modules/notification-preferences/README.md)
-- 基础设施与支撑:[admin](../src/modules/admin/README.md)、[app-info](../src/modules/app-info/README.md)、[environment](../src/modules/environment/README.md)、[files](../src/modules/files/README.md)、[legal-documents](../src/modules/legal-documents/README.md)、[product-events](../src/modules/product-events/README.md)、[testing-support](../src/modules/testing-support/README.md)、[data-retention](../src/modules/data-retention/README.md)、[src/common](../src/common/README.md)
+- 身份与账户:[auth](../src/modules/auth/README.md)、[account](../src/modules/account/README.md)、[user](../src/modules/user/README.md)、[settings](../src/modules/settings/README.md)、[context](../src/modules/context/README.md)、[audit-log](../src/modules/audit-log/README.md)
+- 记录与建议:[record](../src/modules/record/README.md)、[assistant](../src/modules/assistant/README.md)、[suggestion](../src/modules/suggestion/README.md)、[analysis](../src/modules/analysis/README.md)、[reports](../src/modules/reports/README.md)、[health-events](../src/modules/health-events/README.md)、[export](../src/modules/export/README.md)
+- 药品域:[medicines](../src/modules/medicines/README.md)、[dose](../src/modules/dose/README.md)、[reminder](../src/modules/reminder/README.md)
+- 通知:[notifications](../src/modules/notifications/README.md)、[notification](../src/modules/notification/README.md)
+- 基础设施与支撑:[admin](../src/modules/admin/README.md)、[app-info](../src/modules/app-info/README.md)、[environment](../src/modules/environment/README.md)、[files](../src/modules/files/README.md)、[legal](../src/modules/legal/README.md)、[product](../src/modules/product/README.md)、[testing](../src/modules/testing/README.md)、[retention](../src/modules/retention/README.md)、[src/common](../src/common/README.md)
 
 ## 生成物
 

@@ -3,7 +3,7 @@ import { DailyRecordKind } from '#generated/prisma/client.js';
 import {
   DailyRecordReaderPort,
   parseMealRecordPayload,
-} from '../../../../../daily-records/index.js';
+} from '../../../../../record/index.js';
 import {
   formatDateOnly,
   parseDateOnly,

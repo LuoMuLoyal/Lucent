@@ -272,10 +272,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/legal-documents — contract', () => {
+  describe('GET /api/v1/legal — contract', () => {
     it('should match LegalDocumentListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/legal-documents')
+        .get('/api/v1/legal')
         .expect(200);
 
       assertDirectResourceShape(res.body);
@@ -372,10 +372,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/daily-records — contract', () => {
+  describe('GET /api/v1/user/record — contract', () => {
     it('should match DailyRecordListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records')
+        .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
@@ -390,10 +390,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/medicine-reminders — contract', () => {
+  describe('GET /api/v1/user/reminder — contract', () => {
     it('should match MedicineReminderListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/medicine-reminders')
+        .get('/api/v1/user/reminder')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -407,10 +407,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/medicine-dose-logs — contract', () => {
+  describe('GET /api/v1/user/dose — contract', () => {
     it('should match DoseLogListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/medicine-dose-logs')
+        .get('/api/v1/user/dose')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
@@ -534,10 +534,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/daily-records/summary — contract', () => {
+  describe('GET /api/v1/user/record/summary — contract', () => {
     it('should match daily record summary shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records/summary')
+        .get('/api/v1/user/record/summary')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
@@ -557,10 +557,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/today-analysis/recommendations — contract', () => {
+  describe('GET /api/v1/user/analysis/recommendations — contract', () => {
     it('should match recommendations shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/today-analysis/recommendations')
+        .get('/api/v1/user/analysis/recommendations')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -581,10 +581,10 @@ describe('API Contract Tests (e2e)', () => {
 
   // ── POST response shape contracts ──────────────────────────
 
-  describe('POST /api/v1/user/daily-records — response contract', () => {
+  describe('POST /api/v1/user/record — response contract', () => {
     it('should return created record with id in envelope', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(accessToken))
         .send({
           occurredAt: '2026-07-12',
@@ -663,15 +663,15 @@ describe('API Contract Tests (e2e)', () => {
       expect(res.body.pagination).toHaveProperty('total');
     });
 
-    it('GET /api/v1/user/daily-records should return items array', async () => {
+    it('GET /api/v1/user/record should return items array', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records')
+        .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
       assertDirectResourceShape(res.body);
-      // daily-records list returns data.items
+      // record list returns data.items
       if (res.body && typeof res.body === 'object') {
         const data = res.body as Record<string, unknown>;
         if (data['items'] !== undefined) {

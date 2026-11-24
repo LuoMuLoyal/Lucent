@@ -120,7 +120,7 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
 /**
  * Configure the PrismaService mock so that `$transaction(cb)` simply
  * invokes the callback with the same mock instance. This mirrors the
- * pattern used in daily-records.service.spec.ts and testing-support.service.spec.ts.
+ * pattern used in record.service.spec.ts and testing.service.spec.ts.
  *
  * Usage:
  *   const prisma = createPrismaServiceMock();

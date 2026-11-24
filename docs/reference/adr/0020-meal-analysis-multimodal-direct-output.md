@@ -73,8 +73,8 @@ headline(≤18 字，列表条目那一行), detail(一句话，详情/助手用
 - **模型漂移被限制在文案层**：`kind`/`polarity` 非法回落、`rank` 重排、区间纠正、`facets` 过滤未知键；
   结构化字段稳定，文案可再渲染。
 - **文案语言**：按分析当时语言生成并存 `locale`，切语言不回溯重生成，也不提供重生成入口。
-- **下游口径统一**：today-suggestion 的饮食信号改读 `facets`（`diet_facets` → `diet_imbalance` 规则），
-  reports 用 `analyzedDays | analyzingDays | failedDays`，today-analysis 用「菜名 + 区间 + 前两条结论」。
+- **下游口径统一**：suggestion 的饮食信号改读 `facets`（`diet_facets` → `diet_imbalance` 规则），
+  reports 用 `analyzedDays | analyzingDays | failedDays`，analysis 用「菜名 + 区间 + 前两条结论」。
 - **遗留**：`food_composition_items` / `meal_dish_templates` / `meal_dish_template_ingredients` 三张表
   及其导入脚本在删除链路后已无消费方，删表与否单独立项（见 `docs/TODO.md`）。
 - **回溯成本**：若将来需要成分级明细（宏量营养素克数），应按「模型直出 + 明确标注为估算」重做，

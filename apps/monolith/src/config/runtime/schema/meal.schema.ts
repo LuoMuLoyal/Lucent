@@ -1,7 +1,7 @@
 /**
  * Meal-analysis family: stale-job reaping schedule and batch sizes.
  *
- * Baselines mirror `modules/daily-records/constants/meal-analysis.constants.ts`.
+ * Baselines mirror `modules/record/constants/meal-analysis.constants.ts`.
  * The vision model timeout lives in the AI family (`AI_VISION_TIMEOUT_MS`); it
  * is the same knob the vision service passes to the model.
  */

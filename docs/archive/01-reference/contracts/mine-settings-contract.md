@@ -5,17 +5,17 @@
 子文档：
 
 - [[app-info-contract]]
-- [[data-export-contract]]
+- [[export-contract]]
 
 ## Summary
 
 This contract defines the Lucent API for Mine/Settings data that was previously
 static or toast-only on the Luminous client. It covers user-owned settings,
-app metadata, and data-export request status.
+app metadata, and export request status.
 
 ## Boundary
 
-- **Lucent provides:** user settings storage, app metadata, and data-export
+- **Lucent provides:** user settings storage, app metadata, and export
   request/status tracking.
 - **Luminous consumes:** displays settings values, routes to real pages, shows
   contract-backed status for rows that were previously fake.
@@ -192,7 +192,7 @@ after the update. Successful settings responses are direct resources;
 they do not include a generic `{ code, message, data }` envelope. Empty successful
 operations use `204 No Content` where applicable.
 
-The same direct-resource rule applies to account, app-info, environment, and data-export response
+The same direct-resource rule applies to account, app-info, environment, and export response
 DTOs in the generated OpenAPI contract.
 
 **Storage:** `UserSetting` Prisma model — one row per user per setting key.

@@ -29,7 +29,7 @@ model UserNotificationPreference {
   updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("user_notification_preferences")
+  @@map("notification_preferences")
 }
 
 model UserNotification {

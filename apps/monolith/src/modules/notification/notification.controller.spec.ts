@@ -1,0 +1,84 @@
+import { NotificationController } from './notification.controller.js';
+import {
+  createDomainFailure,
+  errAsync,
+  okAsync,
+} from '../../common/result/index.js';
+
+describe('NotificationController', () => {
+  it('returns the authenticated user preferences resource', async () => {
+    const preferences = {
+      isHealthAlertsEnabled: true,
+      isWeeklyInsightEnabled: false,
+      isWaterRemindersEnabled: true,
+      isSleepReminderEnabled: false,
+      sleepBedtimeMinutes: null,
+      sleepWakeTimeMinutes: null,
+      configured: false,
+      updatedAt: null,
+    };
+    const service = {
+      get: vi.fn().mockResolvedValue(preferences),
+      patch: vi.fn(),
+    };
+    const controller = new NotificationController(service as never);
+
+    await expect(
+      controller.get({ sub: 'user-1', email: 'a@b.c', status: 'active' }),
+    ).resolves.toEqual(preferences);
+    expect(service.get).toHaveBeenCalledWith('user-1');
+  });
+
+  it('partially updates preferences and returns the resource', async () => {
+    const preferences = {
+      isHealthAlertsEnabled: false,
+      isWeeklyInsightEnabled: false,
+      isWaterRemindersEnabled: true,
+      isSleepReminderEnabled: false,
+      sleepBedtimeMinutes: null,
+      sleepWakeTimeMinutes: null,
+      configured: true,
+      updatedAt: '2026-08-20T01:02:03.000Z',
+    };
+    const service = {
+      get: vi.fn(),
+      patch: vi.fn().mockReturnValue(okAsync(preferences)),
+    };
+    const controller = new NotificationController(service as never);
+
+    await expect(
+      controller.patch(
+        { sub: 'user-1', email: 'a@b.c', status: 'active' },
+        { isHealthAlertsEnabled: false },
+      ),
+    ).resolves.toEqual(preferences);
+    expect(service.patch).toHaveBeenCalledWith('user-1', {
+      isHealthAlertsEnabled: false,
+    });
+  });
+
+  it('folds a patch validation failure into DomainFailureException (400)', async () => {
+    const service = {
+      get: vi.fn(),
+      patch: vi.fn().mockReturnValue(
+        errAsync(
+          createDomainFailure({
+            kind: 'validation',
+            code: 'VALIDATION_FAILED',
+          }),
+        ),
+      ),
+    };
+    const controller = new NotificationController(service as never);
+
+    await expect(
+      controller.patch(
+        { sub: 'user-1', email: 'a@b.c', status: 'active' },
+        { sleepBedtimeMinutes: 9999 },
+      ),
+    ).rejects.toMatchObject({
+      name: 'DomainFailureException',
+      failure: { code: 'VALIDATION_FAILED' },
+    });
+  });
+});

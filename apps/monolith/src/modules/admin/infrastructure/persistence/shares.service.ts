@@ -9,7 +9,7 @@ import { AuditLogService } from '../../../audit-log/index.js';
  *
  * The write is issued directly against `user_clinic_summary_share` rather than
  * routed through the `reports` module's `ShareService`: `reports` reaches
- * `product-events`, which imports `AdminModule` (for `AdminGuard`), so an
+ * `product`, which imports `AdminModule` (for `AdminGuard`), so an
  * `AdminModule → ReportsModule` import would form a module cycle. The domain
  * consequence is deliberate — an administrative revoke must not emit the
  * user-facing `visit_summary_share_revoked` telemetry event, which is why only

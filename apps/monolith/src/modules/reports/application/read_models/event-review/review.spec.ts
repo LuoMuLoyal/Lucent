@@ -8,8 +8,8 @@ import {
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 import type { HealthEventsOwnershipService } from '../../../../health-events/index.js';
-import type { DailyRecordReaderPort } from '../../../../daily-records/index.js';
-import type { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+import type { DailyRecordReaderPort } from '../../../../record/index.js';
+import type { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
 import type { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import { EventReviewFactsService } from './facts.js';
 import { EventReviewChangesService } from './changes.js';

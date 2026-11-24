@@ -15,16 +15,16 @@ import { RedisService } from '../../../src/common/redis/redis.service.js';
 import { SseConnectionRegistry } from '../../../src/common/api/sse/sse-connection-registry.service.js';
 import { SseProblemDetailsMapper } from '../../../src/common/api/sse/sse-problem-details.js';
 import { ProblemCatalog } from '../../../src/common/api/problem-catalog.js';
-import { DataRetentionService } from '../../../src/modules/data-retention/index.js';
-import { MealAnalysisSweeperService } from '../../../src/modules/daily-records/index.js';
-import { LifecycleService } from '../../../src/modules/today-suggestion/index.js';
-import { ReminderSchedulerService } from '../../../src/modules/medicine-reminders/index.js';
-import { ReminderDispatcher } from '../../../src/modules/medicine-reminders/application/ports/delivery-services.js';
+import { RetentionService } from '../../../src/modules/retention/index.js';
+import { MealAnalysisSweeperService } from '../../../src/modules/record/index.js';
+import { LifecycleService } from '../../../src/modules/suggestion/index.js';
+import { ReminderSchedulerService } from '../../../src/modules/reminder/index.js';
+import { ReminderDispatcher } from '../../../src/modules/reminder/application/ports/delivery-services.js';
 import {
   REMINDER_QUEUE_NAME,
   ReminderDispatchQueue,
-} from '../../../src/modules/medicine-reminders/adapters/queue/dispatch.js';
-import { WeeklyInsightSchedulerService } from '../../../src/modules/notification-preferences/index.js';
+} from '../../../src/modules/reminder/adapters/queue/dispatch.js';
+import { WeeklyInsightSchedulerService } from '../../../src/modules/notification/index.js';
 import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
 
 /**
@@ -51,7 +51,7 @@ import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
  * provided separately below and their schedulers read from separate queues.
  */
 const CRON_SCHEDULER_IDS = [
-  'data-retention-cleanup',
+  'retention-cleanup',
   'lifecycle-refresh',
   'weekly-insight',
   'meal-analysis-reap',
@@ -115,7 +115,7 @@ describe('startup and shutdown ordering (e2e)', () => {
           },
         },
         {
-          provide: DataRetentionService,
+          provide: RetentionService,
           useValue: makeSchedulerStub(),
         },
         { provide: LifecycleService, useValue: makeSchedulerStub() },
@@ -125,7 +125,7 @@ describe('startup and shutdown ordering (e2e)', () => {
         },
         // `ReminderDispatchQueue` takes the dispatch port as its second
         // constructor argument. The real binding lives in
-        // `MedicineRemindersModule`; this suite builds a minimal provider list,
+        // `ReminderModule`; this suite builds a minimal provider list,
         // so the port needs its own stub here.
         {
           provide: ReminderDispatcher,

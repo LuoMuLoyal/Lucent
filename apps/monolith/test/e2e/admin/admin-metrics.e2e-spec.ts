@@ -21,7 +21,7 @@ import type {
 } from '../../helpers/e2e-helpers.js';
 
 const FUNNEL_PATH = '/api/v1/admin/metrics/funnel';
-const LEGACY_FUNNEL_PATH = '/api/v1/user/product-events/funnel';
+const LEGACY_FUNNEL_PATH = '/api/v1/user/product/funnel';
 
 // Dedicated window for this file — no other e2e seeds events on this date, so
 // the aggregated counts stay exact.
@@ -192,7 +192,7 @@ describe('Admin metrics API (e2e)', () => {
       expect(json).not.toContain('suggestionRuleCode');
     });
 
-    it('matches the pre-existing product-events funnel payload', async () => {
+    it('matches the pre-existing product funnel payload', async () => {
       const query = { dateFrom: WINDOW_DATE, dateTo: SECOND_WINDOW_DATE };
       const admin = await request(app.getHttpServer())
         .get(FUNNEL_PATH)

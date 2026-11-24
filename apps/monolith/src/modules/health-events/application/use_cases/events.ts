@@ -30,7 +30,7 @@ import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventsService } from '../../../product/index.js';
 
 /**
  * `ProductEventResult` mirrors `HealthEventOutcome` string-for-string in the

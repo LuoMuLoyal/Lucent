@@ -35,11 +35,11 @@ CI/CD is operational, but the project has not yet shipped a stable release.
   (suggestions, reports dashboard, today analysis context, legal documents,
   user settings, medicine safety tips, support resources, suggestion history)
 - Queue infrastructure: `BullmqQueueFactory` with shared Redis connection, 8
-  queues (mail, meal-analysis, data-export, today-analysis, report-summary,
+  queues (mail, meal-analysis, export, analysis, report-summary,
   suggestion-explanation, medicine-recognition, clinic-summary-pdf), Redis
   unavailable → sync fallback
-- Repository abstraction: 6 modules with Port pattern (daily-records, assistant,
-  auth, user-health-context, medicine-dose-logs, medicine-reminders)
+- Repository abstraction: 6 modules with Port pattern (record, assistant,
+  auth, context, dose, reminder)
 - Security: global ThrottlerGuard, per-endpoint rate limiting (LLM explain
   5/min, feedback 20/min), JWT status field enforcement, soft-delete safety,
   Security PIN lifecycle

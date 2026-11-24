@@ -82,7 +82,7 @@ import type {
   AdminSafetyTipCreateDto,
   AdminSafetyTipUpdateDto,
 } from './adapters/http/dto/admin-content.js';
-import { LegalDocumentsAdminService } from '../legal-documents/index.js';
+import { LegalDocumentsAdminService } from '../legal/index.js';
 import { SafetyTipsAdminService } from '../medicines/index.js';
 import { QaChunksAdminService } from '../assistant/index.js';
 import { adminIdentityResponseSchema } from './adapters/http/dto/admin-identity.js';
@@ -438,7 +438,7 @@ export class AdminController {
     return this.adminConsole.listAuditLogs(query);
   }
 
-  @Get('content/legal-documents')
+  @Get('content/legal')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:read')
   // NOTE: JSON array body. The global serializer validates array items one by
@@ -451,7 +451,7 @@ export class AdminController {
     return this.legalDocuments.list();
   }
 
-  @Put('content/legal-documents/:docType')
+  @Put('content/legal/:docType')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
   @SerializeOptions({ schema: adminLegalDocumentSchema })
@@ -477,7 +477,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:read')
   // NOTE: JSON array body — item schema for outbound validation, array schema
-  // for OpenAPI. See the legal-documents list above.
+  // for OpenAPI. See the legal list above.
   @SerializeOptions({ schema: adminSafetyTipSchema })
   @ApiOperation({ operationId: 'listAdminSafetyTips', summary: 'List medication safety tips for administration' })
   async listSafetyTips() {
@@ -663,14 +663,14 @@ registerResponseSchema({
   description: 'Paginated security audit log entries.',
 });
 registerResponseSchema({
-  path: '/api/v1/admin/content/legal-documents',
+  path: '/api/v1/admin/content/legal',
   method: 'get',
   componentName: 'AdminLegalDocumentList',
   schema: adminLegalDocumentListSchema,
   description: 'Legal document administration list.',
 });
 registerResponseSchema({
-  path: '/api/v1/admin/content/legal-documents/{docType}',
+  path: '/api/v1/admin/content/legal/{docType}',
   method: 'put',
   componentName: 'AdminLegalDocument',
   schema: adminLegalDocumentSchema,

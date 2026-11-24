@@ -242,10 +242,10 @@ describe('findUncoveredModuleDirs', () => {
   it('flags module dirs without a README', () => {
     expect(
       findUncoveredModuleDirs(
-        ['auth', 'audit-log', 'product-events'],
-        (dir) => dir !== 'product-events',
+        ['auth', 'audit-log', 'product'],
+        (dir) => dir !== 'product',
       ),
-    ).toEqual(['product-events']);
+    ).toEqual(['product']);
   });
   it('a module with a README counts as covered', () => {
     expect(findUncoveredModuleDirs(['foo'], () => true)).toEqual([]);
@@ -253,9 +253,9 @@ describe('findUncoveredModuleDirs', () => {
   it('respects explicit exemptions', () => {
     expect(
       findUncoveredModuleDirs(
-        ['auth', 'audit-log', 'product-events'],
+        ['auth', 'audit-log', 'product'],
         () => false,
-        ['product-events', 'brand-new-module'],
+        ['product', 'brand-new-module'],
       ),
     ).toEqual(['auth', 'audit-log']);
   });

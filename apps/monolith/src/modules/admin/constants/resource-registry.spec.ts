@@ -53,7 +53,7 @@ describe('admin resource registry', () => {
   it('marks import and log tables read-only', () => {
     for (const key of [
       'audit-logs',
-      'user-product-events',
+      'user-product',
       'drug-source-imports',
       'drugbank-drugs',
       'drugbank-structures',
@@ -96,10 +96,10 @@ describe('admin resource registry', () => {
           'user-sessions',
           'user-profiles',
           'user-allergies',
-          'user-daily-records',
+          'user-record',
           'assistant-conversations',
-          'user-notification-preferences',
-          'user-product-events',
+          'user-notification',
+          'user-product',
         ]),
       );
       expect(new Set(all).size).toBe(all.length);

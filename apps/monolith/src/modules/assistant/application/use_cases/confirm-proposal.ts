@@ -10,11 +10,11 @@ import {
 } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import { Inject, Injectable } from '@nestjs/common';
-import { DailyRecordsService } from '../../../daily-records/index.js';
+import { DailyRecordsService } from '../../../record/index.js';
 import type {
   CreateDailyRecordDto,
   UpdateDailyRecordDto,
-} from '../../../daily-records/index.js';
+} from '../../../record/index.js';
 import type {
   AssistantConfirmResultView,
   ConfirmAssistantProposalView,
@@ -23,7 +23,7 @@ import {
   ASSISTANT_AGENT_RUNTIME,
   type AgentRuntimePort,
 } from '../ports/agent-runtime.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { IUserSettingsPort } from '../../../settings/index.js';
 import { AuditLogService } from '../../../audit-log/index.js';
 import { toDomainFailure } from '../services/provider-failures.js';
 import type { AssistantProposedAction } from '../ports/assistant.js';

@@ -23,7 +23,7 @@ import type { ReportRange } from '../read_models/dashboard/report-range.js';
  *
  * Explicit `| undefined` on every key because `z.infer` of an optional key is
  * `T | undefined`, which `exactOptionalPropertyTypes` distinguishes from a bare
- * optional `T` (same resolution as `user-settings`' `UpdateUserSettingsCommand`).
+ * optional `T` (same resolution as `settings`' `UpdateUserSettingsCommand`).
  */
 export interface ReportDashboardQuery {
   range?: ReportRange | undefined;

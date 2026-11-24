@@ -8,7 +8,7 @@ import { AssistantDailyRecordProposalService } from './daily-record-proposal.ser
 import { AssistantSettingsProposalService } from './settings-proposal.service.js';
 
 /**
- * Facade over the daily-record and user-settings proposal builders.
+ * Facade over the daily-record and settings proposal builders.
  *
  * Kept as the single entry point for proposal construction so tool
  * implementations depend on one stable service while the two domains

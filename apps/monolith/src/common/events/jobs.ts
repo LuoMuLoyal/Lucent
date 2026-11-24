@@ -16,7 +16,7 @@
 export const REPORT_CACHE_INVALIDATION_JOB = 'invalidate';
 
 /**
- * `today-suggestion`: an upstream event arrived; invalidate its caches and
+ * `suggestion`: an upstream event arrived; invalidate its caches and
  * decide whether to recompute.
  *
  * This is deliberately **not** the queue's own `recompute` job name. The
@@ -36,7 +36,7 @@ export const SUGGESTION_EVENT_TRIGGER_JOB = 'event-trigger';
 export const MEDICINE_RISK_REFRESH_JOB = 'refresh';
 
 /**
- * `today-analysis`: an upstream event arrived; invalidate the cached context,
+ * `analysis`: an upstream event arrived; invalidate the cached context,
  * mark the materialization pending, and queue the analysis.
  *
  * Deliberately **not** the queue's own `generate` job name. That queue already

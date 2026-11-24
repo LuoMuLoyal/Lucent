@@ -19,7 +19,7 @@ import type {
   AssistantRuntimeCapabilities,
 } from './assistant.js';
 import type { ToolName } from '../../domain/policies/tool-permission.js';
-import type { AssistantAgentMode } from '../../../user-settings/index.js';
+import type { AssistantAgentMode } from '../../../settings/index.js';
 
 /**
  * What `validate` decided about a turn's tool results.

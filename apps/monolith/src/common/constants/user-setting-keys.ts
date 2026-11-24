@@ -1,10 +1,10 @@
 /**
  * Canonical user-setting key strings shared across modules.
  *
- * These keys are used by both domain modules (user-settings) and common
+ * These keys are used by both domain modules (settings) and common
  * infrastructure (AI summaries). Keeping them in `common/` breaks the
  * previous reverse dependency where `common/llm` imported from
- * `modules/user-settings`.
+ * `modules/settings`.
  */
 
 export const AI_SUMMARIES_ENABLED_SETTING_KEY = 'aiSummariesEnabled';

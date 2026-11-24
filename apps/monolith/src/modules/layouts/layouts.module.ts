@@ -15,7 +15,7 @@ import { PrismaLayouts } from './infrastructure/persistence/layouts.js';
 /**
  * User Profile context — interface layouts (ADR-0024).
  *
- * Wiring mirrors `user-settings`: `PrismaLayouts extends LayoutRepository`, and
+ * Wiring mirrors `settings`: `PrismaLayouts extends LayoutRepository`, and
  * the concrete class is aliased to the abstract token so the application layer
  * only ever sees the port.
  *
@@ -29,7 +29,7 @@ import { PrismaLayouts } from './infrastructure/persistence/layouts.js';
  * artefact* (same nature as the `payload` stored by `PUT /layouts/:surface`),
  * not a chat message. That is what keeps it in this module rather than in
  * `assistant`: the judgement is about what the endpoint produces, not about
- * whether it happens to call a model. `today-analysis` calls a model too and
+ * whether it happens to call a model. `analysis` calls a model too and
  * remains its own module.
  */
 @Module({

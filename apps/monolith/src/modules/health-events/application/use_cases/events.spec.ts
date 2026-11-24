@@ -11,7 +11,7 @@ import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
 } from '../ports/health-events.js';
-import type { ProductEventsService } from '../../../product-events/index.js';
+import type { ProductEventsService } from '../../../product/index.js';
 import type {
   DomainFailure,
   ResultAsync,

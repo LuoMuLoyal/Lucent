@@ -18,8 +18,8 @@ export interface NotificationScope {
 
 /**
  * Write-only port for sending notifications.  Consumed by modules that need
- * to create notifications (today-suggestion, today-analysis, auth,
- * medicine-reminders, data-export, notification-preferences) without
+ * to create notifications (suggestion, analysis, auth,
+ * reminder, export, notification) without
  * depending on the full NotificationsService API.
  *
  * Registered in NotificationsModule via:

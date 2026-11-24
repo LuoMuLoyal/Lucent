@@ -16,8 +16,8 @@ Last updated: 2026-07-28
 
 ## Legal Documents API
 
-- `GET /api/v1/legal-documents` — list all active legal documents (metadata only)
-- `GET /api/v1/legal-documents/:docType` — get a specific document with Markdown content
+- `GET /api/v1/legal` — list all active legal documents (metadata only)
+- `GET /api/v1/legal/:docType` — get a specific document with Markdown content
 - `?lang=zh|en` query parameter controls title/content language (default: `zh`)
 - Valid `docType` values: `terms`, `privacy`, `disclaimer`, `minor-protection`, `sdk-list`,
   `permissions`, `account-cancellation`

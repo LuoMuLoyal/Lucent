@@ -1,7 +1,7 @@
 import { rgb } from 'pdf-lib';
-import { CONTENT_WIDTH, MARGIN_X } from '../../../data-export/index.js';
-import type { EmbeddedFont, PageContext } from '../../../data-export/index.js';
-import { ensureSpace, wrapText } from '../../../data-export/index.js';
+import { CONTENT_WIDTH, MARGIN_X } from '../../../export/index.js';
+import type { EmbeddedFont, PageContext } from '../../../export/index.js';
+import { ensureSpace, wrapText } from '../../../export/index.js';
 import type { ClinicSummaryTranslator } from './copy.js';
 import type {
   ClinicSummaryWaterEntryDto,

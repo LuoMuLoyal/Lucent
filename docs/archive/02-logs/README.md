@@ -15,7 +15,7 @@ Major changes grouped by area:
 
 - **Auth / Security** (OAuth, Security PIN, rate limit, JWT)
   - Key Dates: 07/04, 07/05, 07/08, 07/09, 07/10, 07/12
-- **AI Pipeline** (Assistant runtime, today-analysis, meal-analysis, LLM)
+- **AI Pipeline** (Assistant runtime, analysis, meal-analysis, LLM)
   - Key Dates: 07/01, 07/04, 07/07, 07/08, 07/09, 07/10, 07/12
 - **Medicine** (dose logs, reminders, knowledge base, RAG)
   - Key Dates: 07/03, 07/08, 07/11

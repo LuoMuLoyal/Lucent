@@ -2,7 +2,7 @@
 
 > 状态：**草案，待评审**。2026-10-24 起草。
 > 范围：`Lucent` 后端为主；`Luminous`（患者端）与 `Lumine`（分析端）的呈现差异在 §七 说明。
-> 前置阅读：`Luminary/apps/lumine/PRODUCT.md` §五/§十、`src/modules/today-suggestion/README.md`、
+> 前置阅读：`Luminary/apps/lumine/PRODUCT.md` §五/§十、`src/modules/suggestion/README.md`、
 > `src/modules/medicines/README.md`。
 
 ## 一、结论

@@ -16,13 +16,13 @@ import type {
   WaterMetricInput,
 } from '../../../../common/index.js';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordReaderPort } from '../../../daily-records/index.js';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { DailyRecordReaderPort } from '../../../record/index.js';
+import { MedicineDoseLogReaderPort } from '../../../dose/index.js';
+import { IUserSettingsPort } from '../../../settings/index.js';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
-} from '../../../daily-records/index.js';
+} from '../../../record/index.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,

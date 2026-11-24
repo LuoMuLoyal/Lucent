@@ -23,8 +23,8 @@ import {
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
-} from '../../../../daily-records/index.js';
-import { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+} from '../../../../record/index.js';
+import { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
 import { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import type {
   EventReviewData,

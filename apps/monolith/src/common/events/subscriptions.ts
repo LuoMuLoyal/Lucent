@@ -72,7 +72,7 @@ export interface EventSubscription {
 export const EVENT_SUBSCRIPTIONS: Readonly<
   Record<string, readonly EventSubscription[]>
 > = {
-  // `reports` and `today-suggestion` have migrated (ADR-0025). Every event that
+  // `reports` and `suggestion` have migrated (ADR-0025). Every event that
   // used to invalidate the dashboard or trigger a suggestion recompute through
   // an in-process `@OnEvent` now does it through a queue. The remaining
   // consumers of these same events still run in process until their own row
@@ -157,7 +157,7 @@ export const EVENT_SUBSCRIPTIONS: Readonly<
       job: TODAY_ANALYSIS_EVENT_JOB,
     },
   ],
-  // Only today-analysis consumes this: a freshly materialized suggestion is an
+  // Only analysis consumes this: a freshly materialized suggestion is an
   // input to the analysis, and no other migrated consumer reacts to it.
   [TODAY_SUGGESTION_MATERIALIZATION_CHANGED]: [
     {

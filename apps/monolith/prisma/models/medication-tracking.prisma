@@ -1,5 +1,5 @@
 // Domain: Medication Tracking (Current Medicines, Reminders, Deliveries, Dose Logs)
-// Owning modules: medicine-dose-logs, medicine-reminders
+// Owning modules: dose, reminder
 
 enum MedicineSource {
   drugbank
@@ -65,7 +65,7 @@ model UserMedicineReminder {
   @@index([userId, currentMedicineId])
   @@index([userId, deletedAt])
   @@index([userId, startDate, endDate])
-  @@map("user_medicine_reminders")
+  @@map("reminders")
 }
 
 model UserReminderDelivery {
@@ -89,7 +89,7 @@ model UserReminderDelivery {
   @@index([userId, reminderId])
   @@index([userId, channel, status])
   @@index([scheduledFor])
-  @@map("user_reminder_deliveries")
+  @@map("reminder_deliveries")
 }
 
 model UserMedicineDoseLog {
@@ -128,5 +128,5 @@ model UserMedicineDoseLog {
   /// must never be merged, and a soft-deleted row must not block re-marking.
   /// Removing that migration's index silently restores the duplicate-row bug —
   /// `mark` relies on it, so the read-then-write is no longer the only guard.
-  @@map("user_medicine_dose_logs")
+  @@map("dose_logs")
 }

@@ -10,8 +10,8 @@ Status: 参考池（非执行计划，采纳项另立计划）
 
 对比基线是 Lumos 现状：
 
-- `Lucent`：`medicines`（药品搜索/详情/药盒识别/风险检查）、`medicine-dose-logs`（服药记录）、
-  `medicine-reminders`（提醒）、`daily-records`（每日记录）、`user-health-context`（健康档案）、
+- `Lucent`：`medicines`（药品搜索/详情/药盒识别/风险检查）、`dose`（服药记录）、
+  `reminder`（提醒）、`record`（每日记录）、`context`（健康档案）、
   `assistant`（AI 问答）
 - `Luminous`：Five-tab 客户端（today / record / medicine / review / mine）
 
@@ -27,7 +27,7 @@ Status: 参考池（非执行计划，采纳项另立计划）
 | 6   | **用药依从性**追踪                | 无。只有记录，没有"该吃没吃"的统计              | medTimer / Medisafe 类     | 中     |
 | 7   | **剩余药量 / 补药提醒**           | 无                                              | medTimer                   | 小     |
 | 8   | 药品**图片/条码扫描**入库         | 有药盒识别，但无条码                            | openemr / openfda NDC      | 小     |
-| 9   | **检验指标结构化 + 趋势**         | 无。`daily-records` 是自由记录                  | mirobody / CTAI            | 大     |
+| 9   | **检验指标结构化 + 趋势**         | 无。`record` 是自由记录                  | mirobody / CTAI            | 大     |
 | 10  | 指标**参考区间**判定（偏高/偏低） | 无                                              | mirobody                   | 中     |
 | 11  | **过敏—药品交叉反应**             | 弱。现为字符串 `includes` 匹配                  | openemr allergy check      | 中     |
 | 12  | **药物—疾病**禁忌                 | 有 `UserCondition`，但未参与确定性判定          | openemr / cTAKES           | 大     |
@@ -98,7 +98,7 @@ Status: 参考池（非执行计划，采纳项另立计划）
 - **他们有什么**：
   - 每次提醒后记录"已服用 / 跳过 / 稍后"，形成依从率统计
   - 连续漏服高亮、依从率折线图
-- **我们现状**：有 `medicine-dose-logs`（服药记录）与 `medicine-reminders`（提醒），
+- **我们现状**：有 `dose`（服药记录）与 `reminder`（提醒），
   但缺少**把两者关联起来的依从性视图** —— 用户看不到"我这周按时吃药的比例"
 - **借鉴点**：提醒响应事件（taken/skipped/snoozed）落库，`review` tab 出依从率
 
@@ -125,7 +125,7 @@ Status: 参考池（非执行计划，采纳项另立计划）
 - **他们有什么**：
   - mirobody：化验单 → 结构化指标（LOINC/ICPC-3 归一），数值 + 单位 + 参考区间
   - CTAI：多次检查的定量指标做成折线/对比图，看病灶变化趋势
-- **我们现状**：`daily-records` 是通用记录；没有专门的检验指标模型，
+- **我们现状**：`record` 是通用记录；没有专门的检验指标模型，
   无法回答"我的血糖这三个月在变好还是变差"
 - **借鉴点**：这是**最大的功能空白**。健康管理类产品的核心价值在趋势，
   我们目前只有离散记录
@@ -152,7 +152,7 @@ Status: 参考池（非执行计划，采纳项另立计划）
 
 - 参考：openemr / https://github.com/apache/ctakes（⭐139，Apache-2.0）
 - **他们有什么**：把患者疾病与药品禁忌、适应证做结构化匹配
-- **我们现状**：有 `user-health-context` 与 `UserCondition`，但风险检查中
+- **我们现状**：有 `context` 与 `UserCondition`，但风险检查中
   疾病主要作为 LLM 上下文，**未参与确定性判定**
 - **借鉴点**：先做常见慢性病（高血压/糖尿病/肾病/肝病/妊娠）的确定性禁忌表，
   覆盖 80% 场景，不必一上来做全量
@@ -170,7 +170,7 @@ Status: 参考池（非执行计划，采纳项另立计划）
 - 参考：https://github.com/huimeicloud/hm_editor（⭐123，LGPL-2.1）
   / https://github.com/tlzzu/SoDiaoEditor（⭐614，**无许可证**）
 - **他们有什么**：结构化病历编辑（数据元组件化、模板、打印续打、修订留痕）
-- **我们现状**：`daily-records` 是自由文本/简单结构
+- **我们现状**：`record` 是自由文本/简单结构
 - **借鉴点**：**对本产品优先级不高**（我们面向个人而非医生），若未来做
   "就诊记录整理"再考虑
 

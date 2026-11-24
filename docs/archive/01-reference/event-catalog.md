@@ -31,7 +31,7 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 | Field                 | Value                                                                                                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Constant**          | `DAILY_RECORD_CHANGED`                                                                                                                                                   |
-| **Publisher module**  | `daily-records`                                                                                                                                                          |
+| **Publisher module**  | `record`                                                                                                                                                          |
 | **Publisher file**    | `services/records.service.ts`                                                                                                                                            |
 | **Trigger condition** | A daily record is created, updated, or soft-deleted. For updates that move a record across calendar days, events are emitted for **both** the previous and the new date. |
 
@@ -49,9 +49,9 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 
 | Subscriber                                                     | Module           | File                                                       | Behavior                                                                                                                                                    |
 | -------------------------------------------------------------- | ---------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RecomputeTriggerListener.handleDailyRecordChanged`            | today-suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`daily_record_changed`) and enqueues recompute                                                                               |
-| `SuggestionCacheInvalidationListener.handleDailyRecordChanged` | today-suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates suggestion signal cache for `(userId, date)`                                                                                                    |
-| `TodayAnalysisTriggerListener.handleDailyRecordChanged`        | today-analysis   | `services/recompute/trigger.listener.ts`                   | Invalidates analysis context, triggers analysis if kind is `symptom` (always) or `water`/`meal`/`sleep`/`mood` (conditional on `shouldTriggerForDimension`) |
+| `RecomputeTriggerListener.handleDailyRecordChanged`            | suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`daily_record_changed`) and enqueues recompute                                                                               |
+| `SuggestionCacheInvalidationListener.handleDailyRecordChanged` | suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates suggestion signal cache for `(userId, date)`                                                                                                    |
+| `TodayAnalysisTriggerListener.handleDailyRecordChanged`        | analysis   | `services/recompute/trigger.listener.ts`                   | Invalidates analysis context, triggers analysis if kind is `symptom` (always) or `water`/`meal`/`sleep`/`mood` (conditional on `shouldTriggerForDimension`) |
 | `ReportsCacheInvalidationListener.handleDailyRecordChanged`    | reports          | `dashboard/cache-invalidation.listener.ts`                 | Invalidates dashboard cache for the user                                                                                                                    |
 
 ## Event: `dose-log.changed`
@@ -59,7 +59,7 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 | Field                 | Value                                                                    |
 | --------------------- | ------------------------------------------------------------------------ |
 | **Constant**          | `DOSE_LOG_CHANGED`                                                       |
-| **Publisher module**  | `medicine-dose-logs`                                                     |
+| **Publisher module**  | `dose`                                                     |
 | **Publisher file**    | `services/dose-logs.service.ts`                                          |
 | **Trigger condition** | A dose log is created, marked (taken/skipped), updated, or soft-deleted. |
 
@@ -76,9 +76,9 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 
 | Subscriber                                                 | Module           | File                                                       | Behavior                                                                  |
 | ---------------------------------------------------------- | ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `RecomputeTriggerListener.handleDoseLogChanged`            | today-suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`dose_log_changed`) and enqueues recompute |
-| `SuggestionCacheInvalidationListener.handleDoseLogChanged` | today-suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates suggestion signal cache for `(userId, date)`                  |
-| `TodayAnalysisTriggerListener.handleDoseLogChanged`        | today-analysis   | `services/recompute/trigger.listener.ts`                   | Invalidates analysis context, triggers analysis (`dose_log_changed`)      |
+| `RecomputeTriggerListener.handleDoseLogChanged`            | suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`dose_log_changed`) and enqueues recompute |
+| `SuggestionCacheInvalidationListener.handleDoseLogChanged` | suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates suggestion signal cache for `(userId, date)`                  |
+| `TodayAnalysisTriggerListener.handleDoseLogChanged`        | analysis   | `services/recompute/trigger.listener.ts`                   | Invalidates analysis context, triggers analysis (`dose_log_changed`)      |
 | `ReportsCacheInvalidationListener.handleDoseLogChanged`    | reports          | `dashboard/cache-invalidation.listener.ts`                 | Invalidates dashboard cache for the user                                  |
 
 ## Event: `reminder.changed`
@@ -86,7 +86,7 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 | Field                 | Value                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------ |
 | **Constant**          | `REMINDER_CHANGED`                                                                   |
-| **Publisher module**  | `medicine-reminders`                                                                 |
+| **Publisher module**  | `reminder`                                                                 |
 | **Publisher file**    | `services/reminders.service.ts`                                                      |
 | **Trigger condition** | A medicine reminder is created, updated, or soft-deleted (after transaction commit). |
 
@@ -103,8 +103,8 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 
 | Subscriber                                                  | Module           | File                                                       | Behavior                                                                                      |
 | ----------------------------------------------------------- | ---------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `RecomputeTriggerListener.handleReminderChanged`            | today-suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`reminder_changed`), enqueues recompute for user's local today |
-| `SuggestionCacheInvalidationListener.handleReminderChanged` | today-suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache + baseline cache for user's local today                              |
+| `RecomputeTriggerListener.handleReminderChanged`            | suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`reminder_changed`), enqueues recompute for user's local today |
+| `SuggestionCacheInvalidationListener.handleReminderChanged` | suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache + baseline cache for user's local today                              |
 | `MedicineRiskCheckListener.handleReminderChanged`           | medicines        | `services/risk/risk-check.listener.ts`                     | Marks risk check stale, schedules debounced static check (5s debounce)                        |
 | `ReportsCacheInvalidationListener.handleReminderChanged`    | reports          | `dashboard/cache-invalidation.listener.ts`                 | Invalidates dashboard cache for the user                                                      |
 
@@ -113,7 +113,7 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 | Field                 | Value                                                                                                    |
 | --------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Constant**          | `HEALTH_CONTEXT_CHANGED`                                                                                 |
-| **Publisher module**  | `user-health-context`                                                                                    |
+| **Publisher module**  | `context`                                                                                    |
 | **Publisher file**    | `services/health-context.service.ts`                                                                     |
 | **Trigger condition** | User health context changes — profile updates, allergy/condition changes, current medicine list changes. |
 
@@ -127,8 +127,8 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 
 | Subscriber                                                       | Module           | File                                                       | Behavior                                                                                            |
 | ---------------------------------------------------------------- | ---------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `RecomputeTriggerListener.handleHealthContextChanged`            | today-suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`health_context_changed`), enqueues recompute for user's local today |
-| `SuggestionCacheInvalidationListener.handleHealthContextChanged` | today-suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache + baseline cache for user's local today                                    |
+| `RecomputeTriggerListener.handleHealthContextChanged`            | suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`health_context_changed`), enqueues recompute for user's local today |
+| `SuggestionCacheInvalidationListener.handleHealthContextChanged` | suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache + baseline cache for user's local today                                    |
 | `MedicineRiskCheckListener.handleHealthContextChanged`           | medicines        | `services/risk/risk-check.listener.ts`                     | Marks risk check stale, schedules debounced static check (5s debounce)                              |
 | `ReportsCacheInvalidationListener.handleHealthContextChanged`    | reports          | `dashboard/cache-invalidation.listener.ts`                 | Invalidates dashboard cache for the user                                                            |
 
@@ -137,8 +137,8 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 | Field                 | Value                                                                           |
 | --------------------- | ------------------------------------------------------------------------------- |
 | **Constant**          | `SETTINGS_CHANGED`                                                              |
-| **Publisher module**  | `user-settings`                                                                 |
-| **Publisher file**    | `services/user-settings.service.ts`                                             |
+| **Publisher module**  | `settings`                                                                 |
+| **Publisher file**    | `services/settings.service.ts`                                             |
 | **Trigger condition** | User settings are updated (e.g. water target count, assistant context toggles). |
 
 **Payload**: `SettingsChangedPayload`
@@ -151,8 +151,8 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 
 | Subscriber                                                  | Module           | File                                                       | Behavior                                                                                      |
 | ----------------------------------------------------------- | ---------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `RecomputeTriggerListener.handleSettingsChanged`            | today-suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`settings_changed`), enqueues recompute for user's local today |
-| `SuggestionCacheInvalidationListener.handleSettingsChanged` | today-suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache + baseline cache for user's local today                              |
+| `RecomputeTriggerListener.handleSettingsChanged`            | suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`settings_changed`), enqueues recompute for user's local today |
+| `SuggestionCacheInvalidationListener.handleSettingsChanged` | suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache + baseline cache for user's local today                              |
 | `ReportsCacheInvalidationListener.handleSettingsChanged`    | reports          | `dashboard/cache-invalidation.listener.ts`                 | Invalidates dashboard cache for the user                                                      |
 
 ## Event: `health-event.changed`
@@ -181,19 +181,19 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 
 | Subscriber                                                     | Module           | File                                                       | Behavior                                                                   | Filter                                     |
 | -------------------------------------------------------------- | ---------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------ |
-| `RecomputeTriggerListener.handleHealthEventChanged`            | today-suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`health_event_changed`), enqueues recompute | Skips `check-in` with `kind === 'other'`   |
-| `SuggestionCacheInvalidationListener.handleHealthEventChanged` | today-suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache for `(userId, date)`                              | —                                          |
-| `TodayAnalysisTriggerListener.handleHealthEventChanged`        | today-analysis   | `services/recompute/trigger.listener.ts`                   | Invalidates analysis context, triggers analysis                            | Skips `check-in` when `kind !== 'symptom'` |
+| `RecomputeTriggerListener.handleHealthEventChanged`            | suggestion | `services/recompute/trigger.listener.ts`                   | Marks materialization pending (`health_event_changed`), enqueues recompute | Skips `check-in` with `kind === 'other'`   |
+| `SuggestionCacheInvalidationListener.handleHealthEventChanged` | suggestion | `services/cache/suggestion-cache-invalidation.listener.ts` | Invalidates signal cache for `(userId, date)`                              | —                                          |
+| `TodayAnalysisTriggerListener.handleHealthEventChanged`        | analysis   | `services/recompute/trigger.listener.ts`                   | Invalidates analysis context, triggers analysis                            | Skips `check-in` when `kind !== 'symptom'` |
 | `ReportsCacheInvalidationListener.handleHealthEventChanged`    | reports          | `dashboard/cache-invalidation.listener.ts`                 | Invalidates dashboard cache for the user                                   | —                                          |
 
-## Event: `today-suggestion.materialization.changed`
+## Event: `suggestion.materialization.changed`
 
 | Field                 | Value                                                                                                                                                                                                           |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Constant**          | `TODAY_SUGGESTION_MATERIALIZATION_CHANGED`                                                                                                                                                                      |
-| **Publisher module**  | `today-suggestion`                                                                                                                                                                                              |
+| **Publisher module**  | `suggestion`                                                                                                                                                                                              |
 | **Publisher file**    | `services/materialization/store.service.ts`                                                                                                                                                                     |
-| **Trigger condition** | The suggestion materialization store advances a `sourceVersion` for a user+date **and** the reason codes include `dose_log_changed` or `health_event_changed` (i.e. the change is eligible for today-analysis). |
+| **Trigger condition** | The suggestion materialization store advances a `sourceVersion` for a user+date **and** the reason codes include `dose_log_changed` or `health_event_changed` (i.e. the change is eligible for analysis). |
 
 **Payload**: `TodaySuggestionMaterializationChangedPayload`
 
@@ -202,29 +202,29 @@ payload types, and the typed union are defined in `src/common/events/domain-even
 | `userId`           | `string`  | Yes      | Target user                                                  |
 | `date`             | `string`  | Yes      | ISO date of the materialization                              |
 | `sourceVersion`    | `number`  | Yes      | The new source version number                                |
-| `analysisEligible` | `boolean` | Yes      | Whether the change is eligible for today-analysis triggering |
+| `analysisEligible` | `boolean` | Yes      | Whether the change is eligible for analysis triggering |
 | `triggerKey`       | `string`  | No       | Dedup key for materialization fencing                        |
 
-> This is an internal event — the only subscriber is today-analysis, which
+> This is an internal event — the only subscriber is analysis, which
 > uses it to chain suggestion materialization → analysis triggering.
 
 **Subscribers**:
 
 | Subscriber                                                            | Module         | File                                     | Behavior                                                                                                      |
 | --------------------------------------------------------------------- | -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `TodayAnalysisTriggerListener.handleSuggestionMaterializationChanged` | today-analysis | `services/recompute/trigger.listener.ts` | If `analysisEligible`, triggers today-analysis (`suggestion_materialization_changed`) with the source version |
+| `TodayAnalysisTriggerListener.handleSuggestionMaterializationChanged` | analysis | `services/recompute/trigger.listener.ts` | If `analysisEligible`, triggers analysis (`suggestion_materialization_changed`) with the source version |
 
 ## Summary Table
 
 | Event                                      | Publishers          | Subscriber count | Pattern                                     |
 | ------------------------------------------ | ------------------- | ---------------- | ------------------------------------------- |
-| `daily-record.changed`                     | daily-records       | 4                | Cache invalidation + recompute + analysis   |
-| `dose-log.changed`                         | medicine-dose-logs  | 4                | Cache invalidation + recompute + analysis   |
-| `reminder.changed`                         | medicine-reminders  | 4                | Cache invalidation + recompute + risk check |
-| `health-context.changed`                   | user-health-context | 4                | Cache invalidation + recompute + risk check |
-| `settings.changed`                         | user-settings       | 3                | Cache invalidation + recompute              |
+| `daily-record.changed`                     | record       | 4                | Cache invalidation + recompute + analysis   |
+| `dose-log.changed`                         | dose  | 4                | Cache invalidation + recompute + analysis   |
+| `reminder.changed`                         | reminder  | 4                | Cache invalidation + recompute + risk check |
+| `health-context.changed`                   | context | 4                | Cache invalidation + recompute + risk check |
+| `settings.changed`                         | settings       | 3                | Cache invalidation + recompute              |
 | `health-event.changed`                     | health-events       | 4                | Cache invalidation + recompute + analysis   |
-| `today-suggestion.materialization.changed` | today-suggestion    | 1                | Analysis trigger (internal)                 |
+| `suggestion.materialization.changed` | suggestion    | 1                | Analysis trigger (internal)                 |
 
 All 7 events follow the same pattern: **data change → invalidate caches + enqueue recompute**.
 No subscriber mutates source domain state. The event layer is the correct seam for

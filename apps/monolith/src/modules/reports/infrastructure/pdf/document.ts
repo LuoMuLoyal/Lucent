@@ -10,8 +10,8 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../../../data-export/index.js';
-import type { PageContext } from '../../../data-export/index.js';
+} from '../../../export/index.js';
+import type { PageContext } from '../../../export/index.js';
 import {
   ensureSpace,
   drawSectionTitle,
@@ -19,7 +19,7 @@ import {
   drawPageChrome,
   wrapText,
   CJK_FONT_PATH,
-} from '../../../data-export/index.js';
+} from '../../../export/index.js';
 import type { ClinicSummaryOptions } from '../../application/use_cases/build-clinic-summary.js';
 import { ClinicSummaryService } from '../../application/use_cases/build-clinic-summary.js';
 import {

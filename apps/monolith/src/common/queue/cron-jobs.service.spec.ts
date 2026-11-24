@@ -2,10 +2,10 @@ import { Logger } from '@nestjs/common';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
 import type { RuntimeConfigPort } from '../../config/runtime/runtime-config.types.js';
 import type { BullmqQueueFactory } from './queue.factory.js';
-import type { MealAnalysisSweeperService } from '../../modules/daily-records/index.js';
-import type { DataRetentionService } from '../../modules/data-retention/index.js';
-import type { LifecycleService } from '../../modules/today-suggestion/index.js';
-import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/index.js';
+import type { MealAnalysisSweeperService } from '../../modules/record/index.js';
+import type { RetentionService } from '../../modules/retention/index.js';
+import type { LifecycleService } from '../../modules/suggestion/index.js';
+import type { WeeklyInsightSchedulerService } from '../../modules/notification/index.js';
 import { CronJobsService, CRON_QUEUE_NAME } from './cron-jobs.service.js';
 
 type ProcessorFn = (job: {
@@ -108,7 +108,7 @@ function buildServices() {
   return {
     dataRetentionService: {
       cleanupExpiredData: vi.fn().mockResolvedValue(undefined),
-    } as unknown as DataRetentionService,
+    } as unknown as RetentionService,
     lifecycleService: {
       refreshLifecycleStates: vi.fn().mockResolvedValue(undefined),
     } as unknown as LifecycleService,
@@ -124,7 +124,7 @@ function buildServices() {
 describe('CronJobsService', () => {
   let factory: BullmqQueueFactory;
   let captured: CapturedQueue[];
-  let dataRetentionService: DataRetentionService;
+  let dataRetentionService: RetentionService;
   let lifecycleService: LifecycleService;
   let weeklyInsightSchedulerService: WeeklyInsightSchedulerService;
   let mealAnalysisSweeperService: MealAnalysisSweeperService;
@@ -195,12 +195,12 @@ describe('CronJobsService', () => {
       expect(cronQ?.workerConcurrency).toBe(2);
     });
 
-    it('registers data-retention scheduler on cron queue', () => {
+    it('registers retention scheduler on cron queue', () => {
       const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
       expect(cronQ?.upsertJobScheduler).toHaveBeenCalledWith(
-        'data-retention-cleanup',
+        'retention-cleanup',
         expect.objectContaining({ tz: 'UTC' }),
-        expect.objectContaining({ name: 'data-retention-cleanup' }),
+        expect.objectContaining({ name: 'retention-cleanup' }),
       );
     });
 
@@ -277,10 +277,10 @@ describe('CronJobsService', () => {
       )!.processor;
     });
 
-    it('dispatches data-retention-cleanup to DataRetentionService', async () => {
+    it('dispatches retention-cleanup to RetentionService', async () => {
       await cronProcessor({
         id: '1',
-        name: 'data-retention-cleanup',
+        name: 'retention-cleanup',
         data: {},
       });
       expect(dataRetentionService.cleanupExpiredData).toHaveBeenCalledOnce();
@@ -307,7 +307,7 @@ describe('CronJobsService', () => {
     });
 
     it('does not dispatch reminder-dispatch', async () => {
-      // The job belongs to `medicine-reminders` now; this processor must not
+      // The job belongs to `reminder` now; this processor must not
       // reach for it, and the module no longer injects the reminder service.
       await cronProcessor({
         id: '4',

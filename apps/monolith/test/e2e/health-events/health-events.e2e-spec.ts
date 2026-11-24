@@ -19,7 +19,7 @@ import {
 } from '#generated/prisma/client.js';
 
 const HEALTH_EVENTS_PATH = '/api/v1/user/health-events';
-const DAILY_RECORDS_PATH = '/api/v1/user/daily-records';
+const DAILY_RECORDS_PATH = '/api/v1/user/record';
 const CHECK_IN_DATE = '2026-08-09';
 
 interface HealthEventItem {

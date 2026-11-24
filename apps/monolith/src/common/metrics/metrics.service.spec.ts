@@ -149,11 +149,11 @@ describe('MetricsService', () => {
     });
 
     it('records a BullMQ job failure', async () => {
-      service.recordBullmqJob('data-export', 'failed');
+      service.recordBullmqJob('export', 'failed');
 
       const metrics = await service.getMetrics();
       expect(metrics).toContain('bullmq_jobs_total');
-      expect(metrics).toContain('data-export');
+      expect(metrics).toContain('export');
     });
 
     it('does not throw when disabled', () => {
@@ -175,8 +175,8 @@ describe('MetricsService', () => {
     });
 
     it('sets gauges to zero', async () => {
-      service.setBullmqActiveJobs('data-export', 0);
-      service.setBullmqWaitingJobs('data-export', 0);
+      service.setBullmqActiveJobs('export', 0);
+      service.setBullmqWaitingJobs('export', 0);
 
       const metrics = await service.getMetrics();
       expect(metrics).toContain('bullmq_active_jobs');

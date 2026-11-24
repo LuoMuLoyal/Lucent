@@ -16,7 +16,7 @@ account 负责"证明之后如何管理账号"。
 - 管:`/account` 下的账号自助操作(资料、身份绑定、邮箱/密码、注销)与
   敏感操作的审计写入。
 - 不管:注册/登录/会话/OAuth 流程(auth 模块);User 表底层 CRUD(user 模块);
-  用户健康档案与偏好(user-health-context / user-settings)。
+  用户健康档案与偏好(context / settings)。
 
 ## 依赖方向
 

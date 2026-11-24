@@ -67,7 +67,7 @@ Last updated: 2026-08-30
 - Error-info extraction is centralized in `src/common/helpers/error-info.utils.ts`
   (`extractErrorInfo`); 13 catch blocks across 11 files now share the same message/stack extraction
   pattern instead of repeating `error instanceof Error ? error.message : String(error)`.
-- Key optional string fields in daily-records, medicine-dose-logs, and medicine-reminders DTOs now
+- Key optional string fields in record, dose, and reminder DTOs now
   use `@IsNotEmpty()` alongside `@IsString()` to reject empty strings that would otherwise pass
   validation. Fields that explicitly support empty-string clearing (e.g. `UpdateAccountDto.nickname`)
   are intentionally left without `@IsNotEmpty()`.
@@ -82,9 +82,9 @@ Last updated: 2026-08-30
   - Module-level `config/` restricted to runtime configuration objects/classes only.
   - `medicines/sources/` renamed to `medicines/adapters/` (matches existing `adapters/` whitelist).
   - `assistant/tools/services/` flattened into `assistant/tools/`.
-  - `data-export/config/report-pdf.constants.ts` moved to `data-export/constants/`;
-    `report-pdf.theme.ts` moved to `data-export/utils/`.
-  - `user-settings/config/user-settings.constants.ts` moved to `user-settings/constants/`.
+  - `export/config/report-pdf.constants.ts` moved to `export/constants/`;
+    `report-pdf.theme.ts` moved to `export/utils/`.
+  - `settings/config/settings.constants.ts` moved to `settings/constants/`.
   - `architecture.md` directory example updated to match the whitelist.
 - Domain event contracts are documented in `docs/01-reference/event-catalog.md`
   (7 events, all publishers/subscribers/payloads). `doc-map.yaml` routes relevant
@@ -133,16 +133,16 @@ Last updated: 2026-08-30
 - Unit test coverage expanded for low-coverage modules identified in the 2026-07-07 review:
   - `llm-runtime` service spec expanded from 3 to 18 tests, covering `hasRoleConfig` edge cases,
     `createChatModel` without/partial options, and `createEmbeddingModel` (null/configured/dimension).
-  - `medicine-reminders` gained 3 new spec files: `mapper.service.spec.ts` (29 tests),
+  - `reminder` gained 3 new spec files: `mapper.service.spec.ts` (29 tests),
     `ownership.service.spec.ts` (7 tests), `reminder-deliveries.controller.spec.ts` (5 tests).
   - `account`, `notifications`, `user` were assessed as already well covered (service + controller specs).
 
 - Audit report LUC-2026-0709 fully remediated: fuzzy-match thresholds, verification-code service
   parameters, mail-queue tuning, OAuth State TTL, and retry defaults are now environment-configurable
   with Joi validation. The `.gitattributes` file marks generated code paths.
-- COS storage runtime unified: `DailyRecordImageUploadRuntime` (daily-records) and `DataExportCosRuntime`
-  (data-export) replaced by a single `CosStorageRuntime` in `src/common/storage/`, provided via
-  `StorageModule`. The `files` module no longer reverse-depends on `daily-records/config/`.
+- COS storage runtime unified: `DailyRecordImageUploadRuntime` (record) and `DataExportCosRuntime`
+  (export) replaced by a single `CosStorageRuntime` in `src/common/storage/`, provided via
+  `StorageModule`. The `files` module no longer reverse-depends on `record/config/`.
 - Today-suggestion test coverage expanded: 5 new spec files (+65 test cases) for `MedicationCollectorService`,
   `ProfileCollectorService`, `RecordCollectorService`, `BaselineService`, and `SuggestionService`
   (the orchestrator). Total test count: 119 suites, 839 tests.
@@ -170,7 +170,7 @@ Last updated: 2026-08-30
   - `reference.spec.ts`（14 tests）：覆盖 `getStaticEnvironmentSnapshot` 区域选择逻辑（default/china_temperate/tropical/high_latitude/northern/southern）、边界值、深拷贝
   - `auth.decorators.spec.ts`（23 tests）：覆盖 `IsStrongPassword`/`IsVerificationCode`/`IsEmailAddress` 装饰器及密码常量/正则
   - `tool-definitions.spec.ts`（7 tests）：覆盖 `buildToolDefinitions` 空数组/单个/全量/顺序/描述/schema
-  - `user-settings/constants.spec.ts`（17 tests）：覆盖 `USER_SETTING_KEYS`/`ASSISTANT_CONTEXT_SETTING_KEYS`/默认值/`listDefaultBooleanUserSettings`
+  - `settings/constants.spec.ts`（17 tests）：覆盖 `USER_SETTING_KEYS`/`ASSISTANT_CONTEXT_SETTING_KEYS`/默认值/`listDefaultBooleanUserSettings`
 
 - 2026-07-20 审计日志 + 推送通知投递链路：
   - `AuditLogService` 采用 fire-and-forget 模式（`logFireAndForget()`），审计写入失败不阻塞
@@ -210,11 +210,11 @@ Last updated: 2026-08-30
 - 2026-07-29 架构精炼 Phase 2 — Reader Port 补全（ADR-0009）：
   - 新增 `MedicineReminderReaderPort` + `MedicineReminderFact`，`MedicineRemindersModule` 导出
     reader port，跨模块消费者不再直接注入 `PrismaService` 查询 `UserMedicineReminder`。
-  - `today-analysis/context.service.ts` 中 `prisma.userMedicineReminder.findMany` 替换为
+  - `analysis/context.service.ts` 中 `prisma.userMedicineReminder.findMany` 替换为
     `reminderReader.listActiveFacts(userId)`，移除内联 `_reminderSelect` / `ReminderShape`。
   - `reports/dashboard/context.service.ts` 中 `prisma.userSetting.findFirst` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
-  - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
+  - `suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
 
 - 2026-08-06 增量审查修复：
@@ -255,7 +255,7 @@ Last updated: 2026-08-30
   - `pdf.service.spec.ts` 两个多页 PDF 渲染用例超时 30s → 120s，消除 CI flaky（实测用例 2.9s）。
   - medicines risk-check 子系统 8 个源文件覆盖率从 0–14% 提升至 ≥90%（lines，prompt 100%），
     新增 9 个 spec + `test/e2e/medicines/risk-check.e2e-spec.ts`（5 用例，401/首查空/static 持久化）。
-  - P2 中等覆盖率文件全部 ≥80%：today-analysis/today-suggestion controller、assistant runtime.service、
+  - P2 中等覆盖率文件全部 ≥80%：analysis/suggestion controller、assistant runtime.service、
     auth.service、oauth.controller、app.controller、copy.service（100%）。
   - `classify.ts` 0% 为缓存误报已确认排除：清 `node_modules/.vite` 后单文件实测 ≥90%。
   - 全量基线：`pnpm test:ci` 274 文件 2769 用例零失败；`pnpm test:coverage` 整体 lines 90.25%
@@ -281,8 +281,8 @@ Last updated: 2026-08-30
   - 调度器提醒标题/正文从硬编码中文改为经 `I18nService` 按 `UserProfile.locale`
     本地化（fallback `zh-CN`，`resolveLocale` 归一化），in-app 与 JPush 两处复用
     同一翻译结果；`findDueReminders` select 复用既有 user→profile join 补 `locale`。
-  - 新增 i18n key：`medicine-reminders.reminder_fallback_label` 与
-    `medicine-reminders.reminder_due_content`（`{label}` 插值，zh-CN / en 各一份）。
+  - 新增 i18n key：`reminder.reminder_fallback_label` 与
+    `reminder.reminder_due_content`（`{label}` 插值，zh-CN / en 各一份）。
 
 - 2026-08-16 提醒组整组 upsert（F-6）：
   - `MedicineReminderRepositoryPort` 新增 `transaction<T>(fn)` 端口（实现委托 `prisma.$transaction`），
@@ -293,9 +293,9 @@ Last updated: 2026-08-30
   - 整组 upsert 在单事务内完成 update/create/`updateMany` 软删，提交后只发一次 `reminder.changed`
     事件，消除逐槽提交在弱网下的半保存窗口；空 slots 服务层防御性 400（DTO 已 `@ArrayMinSize(1)`）。
 
-- 2026-08-17 today-suggestion evidence i18n：规则生成的 evidence label（如
+- 2026-08-17 suggestion evidence i18n：规则生成的 evidence label（如
   `caffeine_mentioned_records`、`mood_parsed_records`）需在
-  `src/i18n/{zh-CN,en}/today-suggestion.json` 中保持同 key，确保文案/解释层能一致本地化。
+  `src/i18n/{zh-CN,en}/suggestion.json` 中保持同 key，确保文案/解释层能一致本地化。
 
 - 2026-08-25 错误处理基础设施层扫尾（P0）：
   - `RedisService.onModuleDestroy` 的 `.catch(() => undefined)` 改为记录 warn 日志，

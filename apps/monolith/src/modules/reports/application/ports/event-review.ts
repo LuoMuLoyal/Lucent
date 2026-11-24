@@ -157,7 +157,7 @@ export interface EventReviewListData {
  * Explicit `| undefined` on every key: the HTTP layer parses with zod, and
  * `z.infer` of an optional key is `T | undefined`, which
  * `exactOptionalPropertyTypes` distinguishes from a bare optional `T`. Same
- * resolution as `user-settings`' `UpdateUserSettingsCommand`.
+ * resolution as `settings`' `UpdateUserSettingsCommand`.
  */
 export interface EventReviewListQuery {
   status?: HealthEventStatus | undefined;

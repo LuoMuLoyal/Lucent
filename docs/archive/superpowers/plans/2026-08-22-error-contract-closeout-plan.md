@@ -71,7 +71,7 @@
 - Modify: `Lucent/src/common/api/index.ts`
 - Modify: `Lucent/src/common/api/sse/sse-connection-registry.service.ts`
 - Modify: `Lucent/src/modules/assistant/assistant.controller.ts`
-- Modify: `Lucent/src/modules/today-analysis/today-analysis.controller.ts`
+- Modify: `Lucent/src/modules/analysis/analysis.controller.ts`
 - Modify: `Lucent/src/modules/reports/reports.controller.ts`
 - Create/modify: `Lucent/src/common/api/sse/sse-problem-details.ts`
 - Test: `Lucent/src/common/api/sse/sse-problem-details.spec.ts`
@@ -95,7 +95,7 @@
 
 - [ ] **Step 6: Commit the SSE slice.**
 
-  `git add src/common/api src/common/helpers/errors src/common/api/sse src/modules/assistant src/modules/today-analysis src/modules/reports && git commit -m "refactor(contract): 统一 SSE 错误事件"`
+  `git add src/common/api src/common/helpers/errors src/common/api/sse src/modules/assistant src/modules/analysis src/modules/reports && git commit -m "refactor(contract): 统一 SSE 错误事件"`
 
 ## Task 4: Audit known backend failures and descriptions
 

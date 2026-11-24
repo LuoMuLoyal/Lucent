@@ -552,8 +552,23 @@ async function main() {
   );
   const problemDetails = problemDetailsModule.default ?? problemDetailsModule;
 
+  // ## Why the logger is not simply `false`
+  //
+  // The app is built only to introspect controllers, so routine Nest logging is
+  // noise. But `logger: false` also swallows the one message this script cannot
+  // afford to lose: a DI resolution failure. Nest reports that through its
+  // logger and then calls `process.exit(1)` *before* `main()` can reject, so the
+  // `catch` at the bottom never runs and the command prints nothing at all —
+  // a silent failure that reads like "the export is broken" with no lead.
+  //
+  // Errors-only keeps the noise out and the diagnosis in.
   const app = await NestFactory.create(AppModule, new FastifyAdapter(), {
-    logger: false,
+    logger: ['error'],
+    // Re-throw instead of calling `process.exit(1)`, so a DI failure rejects
+    // `main()` and reaches the handler at the bottom of this file. That handler
+    // is where the operator-facing message belongs; `abortOnError: false` is
+    // what makes it reachable.
+    abortOnError: false,
   });
   await setupApp(app, app.get(ConfigService));
 
@@ -628,7 +643,7 @@ async function main() {
         `${unnamed.join('\n  ')}\n` +
         "Annotate the handler (e.g. `@ApiOperation({ operationId: 'listDoseLogs' })`) " +
         'so the generated client method name is the endpoint intent, not the ' +
-        'controller wiring. The runtime testing-support controller is exempt ' +
+        'controller wiring. The runtime testing controller is exempt ' +
         'only because it is not part of the registered document.',
     );
   }
@@ -818,7 +833,40 @@ async function main() {
   await app.close();
 }
 
-void main().catch((error) => {
+void main().catch((error: unknown) => {
   console.error('Export failed:', error);
+  // A DI failure is the one error this script kept silent about: Nest used to
+  // exit before this handler ran. Say what it means, because the stack alone
+  // reads like a crash rather than "a provider is not registered".
+  if (isDependencyResolutionError(error)) {
+    console.error(
+      [
+        '',
+        'This is a dependency-injection failure, not a contract problem.',
+        'The application could not be constructed, so no document was produced.',
+        'Check the provider listed above: an abstract class used as an injection',
+        'token must be registered with `{ provide: TheClass, useExisting: ... }`,',
+        'not only under a string token.',
+      ].join('\n'),
+    );
+  }
   process.exit(1);
 });
+
+/**
+ * Whether an error came from Nest's injector.
+ *
+ * Nest throws `UnknownDependenciesException` / `UndefinedDependencyException`;
+ * both carry a `type` or `moduleRef` field that plain errors do not. Checking the
+ * class name keeps this working across the Duplicate/Unknown family without
+ * importing every one of them.
+ */
+function isDependencyResolutionError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const name = error.constructor?.name ?? '';
+  return (
+    name.includes('Dependency') ||
+    name.includes('NestCannot') ||
+    'moduleRef' in error
+  );
+}

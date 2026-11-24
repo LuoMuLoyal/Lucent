@@ -127,7 +127,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-settings',
+    key: 'settings',
     model: 'userSetting',
     searchFields: ['key'],
     filterFields: ['userId', 'key'],
@@ -227,7 +227,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-medicine-reminders',
+    key: 'user-reminder',
     model: 'userMedicineReminder',
     softDelete: true,
     searchFields: ['label', 'note'],
@@ -262,7 +262,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-medicine-dose-logs',
+    key: 'user-dose',
     model: 'userMedicineDoseLog',
     softDelete: true,
     searchFields: ['doseText', 'note'],
@@ -296,7 +296,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-daily-records',
+    key: 'user-record',
     model: 'userDailyRecord',
     softDelete: true,
     searchFields: ['title', 'value', 'note'],
@@ -443,7 +443,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-today-analysis-materializations',
+    key: 'user-analysis-materializations',
     model: 'userTodayAnalysisMaterialization',
     filterFields: ['userId', 'status'],
     writableFields: [
@@ -539,7 +539,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-notification-preferences',
+    key: 'user-notification',
     model: 'userNotificationPreference',
     idField: 'userId',
     filterFields: ['userId'],
@@ -571,7 +571,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'data-export-requests',
+    key: 'export-requests',
     model: 'dataExportRequest',
     searchFields: ['kind', 'status'],
     filterFields: ['userId', 'status', 'kind'],
@@ -610,7 +610,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'user-product-events',
+    key: 'user-product',
     model: 'userProductEvent',
     readOnly: true,
     filterFields: ['userId', 'name', 'surface'],
@@ -618,7 +618,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
 
   // ── 1.4 Content / knowledge base ───────────────────────────────────────
   defineResource({
-    key: 'legal-documents',
+    key: 'legal',
     model: 'legalDocument',
     searchFields: ['docType', 'titleZh', 'titleEn'],
     filterFields: ['isActive', 'docType'],
@@ -781,22 +781,22 @@ const USER_RELATED_GROUP_KEYS: readonly {
 }[] = [
   {
     key: 'account',
-    resources: ['accounts', 'user-sessions', 'user-settings', 'user-profiles'],
+    resources: ['accounts', 'user-sessions', 'settings', 'user-profiles'],
   },
   { key: 'health', resources: ['user-allergies', 'user-conditions'] },
   {
     key: 'medication',
     resources: [
       'user-current-medicines',
-      'user-medicine-reminders',
+      'user-reminder',
       'user-reminder-deliveries',
-      'user-medicine-dose-logs',
+      'user-dose',
       'medicine-risk-check-records',
     ],
   },
   {
     key: 'records',
-    resources: ['user-daily-records', 'user-daily-record-attachments'],
+    resources: ['user-record', 'user-daily-record-attachments'],
   },
   { key: 'events', resources: ['health-events'] },
   {
@@ -806,7 +806,7 @@ const USER_RELATED_GROUP_KEYS: readonly {
       'user-suggestion-baselines',
       'user-suggestion-baseline-observations',
       'user-suggestion-materializations',
-      'user-today-analysis-materializations',
+      'user-analysis-materializations',
       'user-suggestion-feedbacks',
     ],
   },
@@ -822,13 +822,13 @@ const USER_RELATED_GROUP_KEYS: readonly {
   },
   {
     key: 'notifications',
-    resources: ['user-notification-preferences', 'user-notifications'],
+    resources: ['user-notification', 'user-notifications'],
   },
   {
     key: 'privacy',
-    resources: ['data-export-requests', 'user-clinic-summary-shares'],
+    resources: ['export-requests', 'user-clinic-summary-shares'],
   },
-  { key: 'telemetry', resources: ['user-product-events'] },
+  { key: 'telemetry', resources: ['user-product'] },
 ];
 
 export const ADMIN_USER_RELATED_GROUPS: readonly AdminUserRelatedGroup[] =

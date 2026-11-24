@@ -87,9 +87,9 @@ Implications:
   passages, and filtered medical QA are separate retrieval tools with different trust boundaries.
   None of them replaces the reviewed medicine safety rule engine.
 
-Today Analysis is a bounded, materialized read model. `GET /api/v1/user/today-analysis` reads the
+Today Analysis is a bounded, materialized read model. `GET /api/v1/user/analysis` reads the
 latest persisted result and returns `empty`, `pending`, `ready`, `stale`, or `failed`; it never
-starts the LLM pipeline. `POST /api/v1/user/today-analysis/refresh` is the explicit refresh path,
+starts the LLM pipeline. `POST /api/v1/user/analysis/refresh` is the explicit refresh path,
 with a five-minute per-user/date cooldown and a three-generation daily cap. Server-side health
 event, symptom record, dose-log, and eligible suggestion-materialization events enqueue versioned
 jobs; ordinary food, mood, water, and note records do not.
@@ -129,8 +129,8 @@ inline:
 - `DELETE /api/v1/user/assistant/memory` — erase all persisted cross-conversation memories of the authenticated user; returns `{ cleared }` (number of deleted memory rows)
 - `POST /api/v1/user/assistant/conversations/:conversationId/confirm`
 - `POST /api/v1/user/assistant/messages/stream`
-- `GET /api/v1/user/today-analysis`
-- `POST /api/v1/user/today-analysis/refresh`
+- `GET /api/v1/user/analysis`
+- `POST /api/v1/user/analysis/refresh`
 
 All successful JSON responses from the assistant controller are direct resources. They do not
 include a generic `{ code, message, data }` envelope. SSE endpoints keep their event-specific

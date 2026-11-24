@@ -10,7 +10,7 @@
  * A share's lifecycle is **derived, not stored**: it is valid iff
  * `revokedAt === null && expiresAt > now`. There is no `status` column and no
  * closed set of states, so there is nothing for an aggregate to guard — the
- * same judgement `today-suggestion` made for its materialization table
+ * same judgement `suggestion` made for its materialization table
  * ("`stale` is a projection, not a state"). What *is* domain logic is the
  * predicate itself: {@link isShareAccessible}. It lives in `domain/clinic-summary/`
  * so both the read path and the guards call one definition instead of each
@@ -81,7 +81,7 @@ export const CLINIC_SUMMARY_SOURCES = Symbol('ClinicSummarySources');
  *
  * Everything *health-related* (allergies, conditions, current medicines,
  * birth date, sex at birth) is deliberately **not** here: it belongs to
- * `user-health-context` and is read through its `IUserHealthContextReader`
+ * `context` and is read through its `IUserHealthContextReader`
  * port. Reaching into `userAllergy` / `userCondition` / `userCurrentMedicine`
  * from `reports` would make this context a second writer-shaped owner of
  * another context's tables — invisible to the dependency rules, since a Prisma

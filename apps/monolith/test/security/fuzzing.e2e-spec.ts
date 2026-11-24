@@ -176,10 +176,10 @@ describe('Security: Input Fuzzing (e2e)', () => {
 
   // ── Authenticated endpoints ─────────────────────────────────
 
-  describe('POST /api/v1/user/daily-records — fuzzing', () => {
+  describe('POST /api/v1/user/record — fuzzing', () => {
     it('should reject XSS attempt in payload', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(accessToken))
         .send({
           date: '2026-07-12',
@@ -197,7 +197,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
 
     it('should reject invalid date format', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(accessToken))
         .send({
           date: 'not-a-date',
@@ -211,7 +211,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
 
     it('should reject invalid kind enum', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(accessToken))
         .send({
           date: '2026-07-12',
@@ -331,7 +331,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
       // after a successful preflight.  This test locks in the explicit
       // methods override in setup-app.ts and prevents a future regression.
       const res = await request(app.getHttpServer())
-        .options('/api/v1/user/daily-records/123')
+        .options('/api/v1/user/record/123')
         .set('Origin', 'https://web.example.com')
         .set('Access-Control-Request-Method', 'DELETE')
         .expect(204);

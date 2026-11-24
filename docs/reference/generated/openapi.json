@@ -111,7 +111,7 @@
         "tags": ["Health"]
       }
     },
-    "/api/v1/user/daily-records": {
+    "/api/v1/user/record": {
       "get": {
         "operationId": "listDailyRecords",
         "parameters": [
@@ -256,7 +256,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/summary": {
+    "/api/v1/user/record/summary": {
       "get": {
         "operationId": "summary",
         "parameters": [
@@ -291,7 +291,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/symptom-catalog": {
+    "/api/v1/user/record/symptom-catalog": {
       "get": {
         "operationId": "getSymptomCatalog",
         "parameters": [],
@@ -316,7 +316,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/attachments/images/presign-upload": {
+    "/api/v1/user/record/attachments/images/presign-upload": {
       "post": {
         "operationId": "createImageUpload",
         "parameters": [],
@@ -351,7 +351,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/candidate-records/generate": {
+    "/api/v1/user/record/candidate-records/generate": {
       "post": {
         "operationId": "generateCandidates",
         "parameters": [],
@@ -386,7 +386,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/{id}": {
+    "/api/v1/user/record/{id}": {
       "get": {
         "operationId": "getDailyRecord",
         "parameters": [
@@ -923,7 +923,7 @@
         "tags": ["Health Events"]
       }
     },
-    "/api/v1/user/product-events": {
+    "/api/v1/user/product": {
       "post": {
         "description": "Write-only ingestion for product measurement. userId always comes from the session — a client-supplied userId is rejected by the whitelist. Raw events are retained 90 days, then deleted.",
         "operationId": "recordBatch",
@@ -962,7 +962,7 @@
         "tags": ["Product Events"]
       }
     },
-    "/api/v1/user/product-events/funnel": {
+    "/api/v1/user/product/funnel": {
       "get": {
         "description": "Internal admin surface: a valid JWT must belong to a user with an AdminUser role; regular users get 403. Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
         "operationId": "getFunnel",
@@ -1730,7 +1730,7 @@
         "tags": ["Admin"]
       }
     },
-    "/api/v1/admin/content/legal-documents": {
+    "/api/v1/admin/content/legal": {
       "get": {
         "operationId": "listAdminLegalDocuments",
         "parameters": [],
@@ -1755,7 +1755,7 @@
         "tags": ["Admin"]
       }
     },
-    "/api/v1/admin/content/legal-documents/{docType}": {
+    "/api/v1/admin/content/legal/{docType}": {
       "put": {
         "operationId": "updateAdminLegalDocument",
         "parameters": [
@@ -3991,7 +3991,7 @@
         "tags": ["Notifications"]
       }
     },
-    "/api/v1/legal-documents": {
+    "/api/v1/legal": {
       "get": {
         "operationId": "listLegalDocuments",
         "parameters": [
@@ -4023,7 +4023,7 @@
         "tags": ["Legal Documents"]
       }
     },
-    "/api/v1/legal-documents/{docType}": {
+    "/api/v1/legal/{docType}": {
       "get": {
         "operationId": "getLegalDocument",
         "parameters": [
@@ -5170,7 +5170,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/notification-preferences": {
+    "/api/v1/user/notification": {
       "get": {
         "operationId": "getNotificationPreferences",
         "parameters": [],
@@ -6812,7 +6812,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/medicine-reminders": {
+    "/api/v1/user/reminder": {
       "get": {
         "operationId": "listMedicineReminders",
         "parameters": [
@@ -6900,7 +6900,7 @@
         "tags": ["Medicine Reminders"]
       }
     },
-    "/api/v1/user/medicine-reminders/{id}": {
+    "/api/v1/user/reminder/{id}": {
       "patch": {
         "operationId": "updateMedicineReminder",
         "parameters": [
@@ -7019,7 +7019,7 @@
         "tags": ["Medicine Reminders"]
       }
     },
-    "/api/v1/user/medicine-reminders/group": {
+    "/api/v1/user/reminder/group": {
       "put": {
         "operationId": "upsertGroup",
         "parameters": [],
@@ -7220,7 +7220,7 @@
         "tags": ["Reminder Deliveries"]
       }
     },
-    "/api/v1/user/medicine-dose-logs": {
+    "/api/v1/user/dose": {
       "get": {
         "operationId": "listDoseLogs",
         "parameters": [
@@ -7317,7 +7317,7 @@
             }
           },
           "409": {
-            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)",
+            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT): another live row already occupies the slot the request targets.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7336,7 +7336,7 @@
         "tags": ["Medicine Dose Logs"]
       }
     },
-    "/api/v1/user/medicine-dose-logs/mark": {
+    "/api/v1/user/dose/mark": {
       "post": {
         "operationId": "mark",
         "parameters": [],
@@ -7380,16 +7380,6 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -7401,7 +7391,7 @@
         "tags": ["Medicine Dose Logs"]
       }
     },
-    "/api/v1/user/medicine-dose-logs/{id}": {
+    "/api/v1/user/dose/{id}": {
       "patch": {
         "operationId": "updateDoseLog",
         "parameters": [
@@ -8276,7 +8266,7 @@
         "tags": ["Environment"]
       }
     },
-    "/api/v1/user/today-analysis": {
+    "/api/v1/user/analysis": {
       "get": {
         "operationId": "read",
         "parameters": [
@@ -8310,7 +8300,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/refresh": {
+    "/api/v1/user/analysis/refresh": {
       "post": {
         "operationId": "refreshTodayAnalysis",
         "parameters": [],
@@ -8345,7 +8335,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate": {
+    "/api/v1/user/analysis/generate": {
       "post": {
         "operationId": "generate",
         "parameters": [],
@@ -8387,7 +8377,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate/async": {
+    "/api/v1/user/analysis/generate/async": {
       "post": {
         "operationId": "enqueueAnalysisGeneration",
         "parameters": [],
@@ -8422,7 +8412,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate/status/{jobId}": {
+    "/api/v1/user/analysis/generate/status/{jobId}": {
       "get": {
         "operationId": "generateStatus",
         "parameters": [
@@ -8449,7 +8439,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/recommendations": {
+    "/api/v1/user/analysis/recommendations": {
       "get": {
         "operationId": "getRecommendations",
         "parameters": [
@@ -8487,7 +8477,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate/stream": {
+    "/api/v1/user/analysis/generate/stream": {
       "post": {
         "operationId": "generateStream",
         "parameters": [],
@@ -8543,7 +8533,7 @@
         "tags": ["App Info"]
       }
     },
-    "/api/v1/user/data-export-requests": {
+    "/api/v1/user/export-requests": {
       "post": {
         "operationId": "createRequest",
         "parameters": [],
@@ -8618,7 +8608,7 @@
         "tags": ["Data Export"]
       }
     },
-    "/api/v1/user/data-export-requests/latest": {
+    "/api/v1/user/export-requests/latest": {
       "get": {
         "operationId": "getLatestRequest",
         "parameters": [],
@@ -13281,7 +13271,7 @@
             "example": [
               {
                 "kind": "image",
-                "objectKey": "daily-records/user_1/2026-06-04/photo.jpg",
+                "objectKey": "record/user_1/2026-06-04/photo.jpg",
                 "contentType": "image/jpeg"
               }
             ]
@@ -13430,7 +13420,7 @@
             "example": [
               {
                 "kind": "image",
-                "objectKey": "daily-records/user_1/2026-06-04/photo.jpg",
+                "objectKey": "record/user_1/2026-06-04/photo.jpg",
                 "contentType": "image/jpeg"
               }
             ]
@@ -22947,14 +22937,14 @@
             "type": "string",
             "maxLength": 500,
             "description": "Object storage key, stable across signed URL rotations.",
-            "example": "daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "record/user_1/2026-06-04/photo.jpg"
           },
           "bucket": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
             "description": "Object storage bucket.",
-            "example": "lumos-daily-records"
+            "example": "lumos-record"
           },
           "provider": {
             "nullable": true,
@@ -23006,7 +22996,7 @@
             "type": "string",
             "maxLength": 2000,
             "description": "Optional public or already-signed display URL.",
-            "example": "https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "https://cdn.example.com/record/user_1/2026-06-04/photo.jpg"
           }
         },
         "required": ["objectKey"],
@@ -23025,14 +23015,14 @@
             "type": "string",
             "maxLength": 500,
             "description": "Object storage key, stable across signed URL rotations.",
-            "example": "daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "record/user_1/2026-06-04/photo.jpg"
           },
           "bucket": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
             "description": "Object storage bucket.",
-            "example": "lumos-daily-records"
+            "example": "lumos-record"
           },
           "provider": {
             "nullable": true,
@@ -23084,7 +23074,7 @@
             "type": "string",
             "maxLength": 2000,
             "description": "Optional public or already-signed display URL.",
-            "example": "https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "https://cdn.example.com/record/user_1/2026-06-04/photo.jpg"
           }
         },
         "required": ["objectKey"],

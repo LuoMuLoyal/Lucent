@@ -106,15 +106,15 @@ Luminous 移动端新增「应用内 WebView 授权」后，两条路都能走�
 
 ### health-events ownership shim 的移除
 
-`HealthEventsOwnershipService` 为模块外消费方（reports / medicine-dose-logs /
-daily-records）保留 legacy `Promise<T>` 契约，内部用 `unwrapResult` 折叠模块自身的
+`HealthEventsOwnershipService` 为模块外消费方（reports / dose /
+record）保留 legacy `Promise<T>` 契约，内部用 `unwrapResult` 折叠模块自身的
 `ResultAsync`，抛出的 `DomainFailureException` 由全局过滤器转成 Problem Details。
-三个消费方各自把 Promise 折回 Result（daily-records 的 `requireActiveHealthEvent`）
-或直接 rethrow（medicine-dose-logs 的 `fromPromise`），属过渡形态。
+三个消费方各自把 Promise 折回 Result（record 的 `requireActiveHealthEvent`）
+或直接 rethrow（dose 的 `fromPromise`），属过渡形态。
 
 验收：消费方改为直接消费 events 的 `Result` 后，删除该 shim 与三处 `TODO(error)`
-折叠代码（`services/ownership.service.ts`、`daily-records/services/records.service.ts`、
-`medicine-dose-logs/services/dose-logs.service.ts`）。
+折叠代码（`services/ownership.service.ts`、`record/services/records.service.ts`、
+`dose/services/dose-logs.service.ts`）。
 
 ### D1：dead-code 端点台账（2026-09-18，09-17 审查 S3）
 
@@ -185,7 +185,7 @@ ambient scope 让调用方**不必**传它——正常路径下 `tx` 参数已�
 向后兼容的位置。收掉它需要确认没有外部调用点后再删参数；不急着做，因为当前
 签名不造成正确性问题。
 
-### `product-events` 的 `FunnelData` 形状镜像
+### `product` 的 `FunnelData` 形状镜像
 
 `application/commands/` 与 `adapters/http/dto/` 各有一份形状定义（`application → adapters`
 被 arch 规则禁止）。已由 `adapters/http/dto/product-event-mirror.spec.ts` 的双向
@@ -203,7 +203,7 @@ ambient scope 让调用方**不必**传它——正常路径下 `tx` 参数已�
 ### `SummaryWrite` 接受两种形状
 
 `domain/summary/summaries.ts` 的 `SummaryWrite` 同时接受 `scope`（域形态）和扁平的
-`kind`/`date`/`rangeKey`/`scopeKey`，因为 `reports` 与 `today-analysis` 两个消费方
+`kind`/`date`/`rangeKey`/`scopeKey`，因为 `reports` 与 `analysis` 两个消费方
 仍在传扁平形态。版本栅栏已在领域里判，双形态不造成正确性问题；收干净要改那两个
 模块的 4 处调用。
 

@@ -16,9 +16,9 @@ Last updated: 2026-07-20
 - Elevation tokens are invalidated when the PIN is enabled, changed, or disabled because
   `securityElevationVersion` is bumped.
 - Sensitive routes (`POST /account/password`, `POST /account/email`, `DELETE
-/account/identities/:identityId`, `POST /user/data-export-requests`) are protected by
+/account/identities/:identityId`, `POST /user/export-requests`) are protected by
   `SecurityElevationGuard` and `@RequireSecurityElevation()`.
-  `GET /user/data-export-requests/latest` is a read-only status check and only requires
+  `GET /user/export-requests/latest` is a read-only status check and only requires
   JWT auth — security elevation is not needed.
 - Credential login no longer returns 2FA challenge fields (`requiresTwoFactor`, `tempToken`).
 - `User.email` has a database-level unique constraint (`@unique`); the application-layer duplicate

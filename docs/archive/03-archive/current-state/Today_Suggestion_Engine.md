@@ -54,7 +54,7 @@ SuggestionService (编排器, 4 依赖)
 
 ## 模块位置
 
-- `src/modules/today-suggestion/`
+- `src/modules/suggestion/`
 
 ## 卡片类型
 
@@ -205,11 +205,11 @@ SuggestionService (编排器, 4 依赖)
 
 - 规则服务中的 evidence `label` 和 action `label` 从硬编码中文字符串改为 locale-neutral 的 i18n key（如 `current_count`、`go_record`）
 - `SuggestionPresentationService.toDto()` 注入 `I18nService`，在 DTO 映射时按 `Accept-Language` 本地化 evidence label、enum value 和 action label
-- 最终兜底文案从 `suggestion.service.ts` 和 `copy.service.ts` 中的硬编码中文改为 i18n 调用（`today-suggestion.fallback.*`）
-- LLM Prompt 指令文案从 `isZh` 三元分支改为 i18n 调用（`today-suggestion.prompt.*`）
+- 最终兜底文案从 `suggestion.service.ts` 和 `copy.service.ts` 中的硬编码中文改为 i18n 调用（`suggestion.fallback.*`）
+- LLM Prompt 指令文案从 `isZh` 三元分支改为 i18n 调用（`suggestion.prompt.*`）
 - System Prompt 中的中文词汇示例替换为英文等价描述，消除语言偏置
 - `copy-llm-generator.service.ts` 中硬编码的 `locale: 'zh-CN'` 移除，system prompt 不再依赖 locale
-- 翻译文件位于 `src/i18n/zh-CN/today-suggestion.json` 和 `src/i18n/en/today-suggestion.json`
+- 翻译文件位于 `src/i18n/zh-CN/suggestion.json` 和 `src/i18n/en/suggestion.json`
 
 ## AI 文案生成层
 

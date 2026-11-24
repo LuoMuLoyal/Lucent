@@ -3,7 +3,7 @@ import { PrismaModule } from '../../prisma/prisma.module.js';
 import { AuditLogModule } from '../audit-log/audit-log.module.js';
 import { AuthModule } from './../auth/auth.module.js';
 import { UserModule } from '../user/user.module.js';
-import { LegalDocumentsModule } from '../legal-documents/legal-documents.module.js';
+import { LegalModule } from '../legal/legal.module.js';
 import { MedicinesModule } from './../medicines/medicines.module.js';
 import { AssistantContentModule } from './../assistant/assistant-content.module.js';
 import { AdminController } from './admin.controller.js';
@@ -25,7 +25,7 @@ import { AdminPermissionGuard } from './guards/admin-permission.guard.js';
     AuditLogModule,
     AuthModule,
     UserModule,
-    LegalDocumentsModule,
+    LegalModule,
     MedicinesModule,
     AssistantContentModule,
   ],

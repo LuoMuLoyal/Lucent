@@ -14,7 +14,7 @@
 - `src/modules/assistant/`:LangGraph + LangChain 运行时,工具齐备(`tools/drugbank`、`knowledge`、`leaflet`、`medicine`、`records`、`read`、`vector`、`proposal`),Postgres checkpointer 长期记忆与会话压缩,SSE 流式。
 - 写操作已走 proposal 门控(`tools/proposal` + `confirm-proposal.dto`)。
 - 模型基建平台化:chat/vision/analysis/embedding/compression 多角色模型池,openai-compatible,熔断/重试/安全策略。
-- `medicine-reminders` 自述 schedule-only,纯规则;`today-analysis`、`today-suggestion`、`historical-ai-summary` 各自独立调 AI,未与 assistant 共享上下文。
+- `reminder` 自述 schedule-only,纯规则;`analysis`、`suggestion`、`historical-ai-summary` 各自独立调 AI,未与 assistant 共享上下文。
 - BullMQ 已在技术栈(Worker 进程分离已按 2026-07-24 计划落地)。
 
 ## Phase 0 夯实期:吃满基建红利
@@ -25,7 +25,7 @@
 - [ ] **P0-2 扫药视觉字段提取服务**
   - 提供 vision 模型池驱动的药品标签字段提取端点;在线时作为字段提取主路径**替代纯规则解析**,端侧 PaddleOCR 文本 + 规则解析仅作离线/失败降级;明确置信度与降级策略(端侧可用、扫码主流程不因云端失败而阻塞)。
 - [ ] **P0-3 AI 上下文统一**
-  - 抽取共享上下文构建器(user-health-context、近期记录、用药清单),让 `today-analysis` / `today-suggestion` / `historical-ai-summary` 与 assistant 图共享同一份上下文来源,消除各调各的重复拼装。
+  - 抽取共享上下文构建器(context、近期记录、用药清单),让 `analysis` / `suggestion` / `historical-ai-summary` 与 assistant 图共享同一份上下文来源,消除各调各的重复拼装。
 - [ ] **P0-4 proposal 服务域化**
   - 把 `tools/proposal` 从 assistant 工具内部实现上提为可复用域服务,使后续 today/review/reminders 等模块都能以同一套门控协议发起写提案。
 
@@ -38,7 +38,7 @@
 - [ ] **P1-3 review 复盘生成工具**
   - 复盘生成 + 调整计划起草工具;复用 `historical-ai-summary` 的结论但经 assistant 图编排,产出结构化提案。
 - [ ] **P1-4 reminders 对话式调整工具**
-  - medicine-reminders 的写操作封装为 proposal 工具(改时间/剂量/暂停),agent 只能提案、用户确认后落库。
+  - reminder 的写操作封装为 proposal 工具(改时间/剂量/暂停),agent 只能提案、用户确认后落库。
 - [ ] **P1-5 合同与测试**
   - 每个 Phase 1 端点变更后:`pnpm export:openapi` + 提醒 Luminous `dart run scripts/contract/bootstrap.dart`;工具与门控路径补集成测试。
 
@@ -46,14 +46,14 @@
 
 - [ ] **P2-1 事件总线设计**
   - 基于 BullMQ + Outbox(与 2026-08-22 盘点中的 Outbox 方向对齐)定义事件契约:服药/漏服记录、记录落库、复盘就绪、提醒触发等;明确事件 schema 版本化。
-- [ ] **P2-2 medicine-reminders 事件化**
+- [ ] **P2-2 reminder 事件化**
   - schedule-only → 调度触发时同时发出事件(Worker 进程),为漏服模式识别提供数据流;不改变现有本地通知语义。
 - [ ] **P2-3 依从性模式识别触发器**
   - 规则引擎(先规则后模型):如"连续三天漏服晚间药"→ 生成主动提议(调整时间/询问原因),经通知通道推送并附带可点入的 assistant 会话;必须有冷却/去重/静默时段,防止过度打扰。
 - [ ] **P2-4 复查节点主动关怀**
   - health-events 复查日期临近时触发关怀任务;输出为通知 + assistant 预置会话。
 - [ ] **P2-5 review 摘要主动推送**
-  - 复盘从"用户点开才有"改为生成即推送(尊重 notification-preferences 的开关)。
+  - 复盘从"用户点开才有"改为生成即推送(尊重 notification 的开关)。
 - [ ] **P2-6 Proactive 治理**
   - 频控、用户级开关、审计日志(audit-log)、proactive 内容同样过安全策略;所有主动写操作一律仍是 proposal,绝不静默落库。
 

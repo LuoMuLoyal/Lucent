@@ -14,7 +14,7 @@
 
 /** 通知的作用域元数据 —— 幂等替换的依据。 */
 export interface NotificationScope {
-  /** 来源标识（如 `today-suggestion`）。 */
+  /** 来源标识（如 `suggestion`）。 */
   source: string;
   /** 业务日期（`YYYY-MM-DD`）。 */
   date: string;

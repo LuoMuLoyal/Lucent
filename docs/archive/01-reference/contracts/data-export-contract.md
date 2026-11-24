@@ -11,8 +11,8 @@
 **Endpoints:**
 
 ```text
-POST /api/v1/user/data-export-requests
-GET  /api/v1/user/data-export-requests/latest
+POST /api/v1/user/export-requests
+GET  /api/v1/user/export-requests/latest
 ```
 
 Both require authentication. POST additionally requires the user's current password for
@@ -109,7 +109,7 @@ interface DataExportRequestDto {
 /api/v1/user/reports/reviews/current`, `/reviews`, `/reviews/:eventId`) into the reports
   controller and exports them to `docs/openapi.json` (117 paths). The review list is
   cursor-paginated (`startedAt|id` composite cursor) with an optional status filter and no
-  7/30-day default contract; none of this changes the data-export request/response DTOs, and the
+  7/30-day default contract; none of this changes the export request/response DTOs, and the
   existing dashboard/summary/clinic-summary endpoints keep their response shapes for one
   compatibility cycle.
 - The review list `limit` query parameter is documented in the OpenAPI schema as an integer with

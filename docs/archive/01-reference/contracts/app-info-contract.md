@@ -4,7 +4,7 @@
 
 相关子文档：
 
-- [[data-export-contract]]
+- [[export-contract]]
 
 ### 4. App Info
 

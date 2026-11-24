@@ -33,27 +33,27 @@ export interface EventOrigin {
 
 export const EVENT_ORIGINS: Readonly<Record<string, EventOrigin>> = {
   [DAILY_RECORD_CHANGED]: {
-    context: 'daily-records',
+    context: 'record',
     aggregateType: 'daily-record',
     aggregateIdField: 'recordId',
   },
   [DOSE_LOG_CHANGED]: {
-    context: 'medicine-dose-logs',
+    context: 'dose',
     aggregateType: 'dose-log',
     aggregateIdField: 'doseLogId',
   },
   [REMINDER_CHANGED]: {
-    context: 'medicine-reminders',
+    context: 'reminder',
     aggregateType: 'reminder',
     aggregateIdField: 'userId',
   },
   [HEALTH_CONTEXT_CHANGED]: {
-    context: 'user-health-context',
+    context: 'context',
     aggregateType: 'health-context',
     aggregateIdField: 'userId',
   },
   [SETTINGS_CHANGED]: {
-    context: 'user-settings',
+    context: 'settings',
     aggregateType: 'settings',
     aggregateIdField: 'userId',
   },
@@ -68,7 +68,7 @@ export const EVENT_ORIGINS: Readonly<Record<string, EventOrigin>> = {
     aggregateIdField: 'assessmentId',
   },
   [TODAY_SUGGESTION_MATERIALIZATION_CHANGED]: {
-    context: 'today-suggestion',
+    context: 'suggestion',
     aggregateType: 'daily-suggestion',
     aggregateIdField: 'userId',
   },

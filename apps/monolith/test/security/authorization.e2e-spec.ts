@@ -143,7 +143,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     beforeAll(async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(aliceToken))
         .send({
           occurredAt: '2026-07-12',
@@ -156,7 +156,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot list Alice daily records', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records')
+        .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(bobToken))
         .expect(200);
@@ -175,14 +175,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
     // Bob cannot reach Alice's record — holds either way.
     it('Bob cannot read Alice daily record by ID', async () => {
       await request(app.getHttpServer())
-        .get(`/api/v1/user/daily-records/${aliceRecordId}`)
+        .get(`/api/v1/user/record/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
         .expect(404);
     });
 
     it('Bob cannot update Alice daily record', async () => {
       await request(app.getHttpServer())
-        .patch(`/api/v1/user/daily-records/${aliceRecordId}`)
+        .patch(`/api/v1/user/record/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
         .send({ payload: { mealType: 'lunch', items: [] } })
         .expect(404);
@@ -190,7 +190,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot delete Alice daily record', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/v1/user/daily-records/${aliceRecordId}`)
+        .delete(`/api/v1/user/record/${aliceRecordId}`)
         .set('Authorization', bearer(bobToken))
         .expect(404);
     });
@@ -215,7 +215,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       const medId = expectData(medRes.body as { id: string }).id;
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/medicine-reminders')
+        .post('/api/v1/user/reminder')
         .set('Authorization', bearer(aliceToken))
         .send({
           currentMedicineId: medId,
@@ -228,7 +228,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot list Alice medicine reminders', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/medicine-reminders')
+        .get('/api/v1/user/reminder')
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
@@ -241,7 +241,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot update Alice medicine reminder', async () => {
       await request(app.getHttpServer())
-        .patch(`/api/v1/user/medicine-reminders/${aliceReminderId}`)
+        .patch(`/api/v1/user/reminder/${aliceReminderId}`)
         .set('Authorization', bearer(bobToken))
         .send({ note: 'Hacked' })
         .expect(403);
@@ -249,7 +249,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot delete Alice medicine reminder', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/v1/user/medicine-reminders/${aliceReminderId}`)
+        .delete(`/api/v1/user/reminder/${aliceReminderId}`)
         .set('Authorization', bearer(bobToken))
         .expect(403);
     });
@@ -412,7 +412,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot see Alice export request in latest', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/data-export-requests/latest')
+        .get('/api/v1/user/export-requests/latest')
         .set('Authorization', bearer(bobToken))
         .expect(200);
 

@@ -219,7 +219,7 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 - 每日上限按**自然日**而非滚动 24 小时（与日历一致，避免同一天弹两次、跨零点又放行）。
 - 已确认、尚未到时的记录一律不提示；无可用半衰期时返回 `noData`，调用方应保持原逻辑。
 
-**未接入**：`today-suggestion` 的 `missed_dose_pending` 仍按固定时长运行。接入需要
+**未接入**：`suggestion` 的 `missed_dose_pending` 仍按固定时长运行。接入需要
 「每药每日已提示」的持久化（领域函数接受 `lastNotifiedAt`，但没有地方存它）与
 `UserCurrentMedicine → half_life` 的关联。见 `docs/TODO.md`「半衰期感知的漏服提示接入」。
 ⚠️ 该 TODO 还记着一个前提：dev 库只有 78 条药有 `half_life`，不先补数据则接入后
@@ -351,7 +351,7 @@ database.xml` 全部 55 个顶层字段的列存。导出侧已按「`<drugbank>
   （安全贴士管理写的审计）。
 - 被引用：`assistant`（结构化药品查询）、`reports`（event-review 只读
   `redFlags`）、`admin`（内容管理 API 调用 `SafetyTipsAdminService`）。
-  `medicine-reminders` 以 Prisma 外键关联 `currentMedicine`，
+  `reminder` 以 Prisma 外键关联 `currentMedicine`，
   不经本模块服务。
 - Barrel 导出：`DrugbankMedicinesService`、`CnMedicinesService`、
   `MedicineRiskCheckService`、`SafetyTipsAdminService`，

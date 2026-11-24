@@ -36,12 +36,12 @@ Medicine recognition's queued response is an endpoint-specific resource with exa
     weekly summary)
 - Backend reminder schedule
   - Status: Implemented schedule-only medicine reminders with optional start/end date window:
-    Prisma model + `/api/v1/user/medicine-reminders` CRUD
+    Prisma model + `/api/v1/user/reminder` CRUD
 - Dose-log to health-event association
   - Status: Dose logs may explicitly carry an active `healthEventId`; reminder schedules remain
     independent, and no dose log is automatically assigned to the user's latest event.
 - Dose-log mark (temporary logging)
-  - Status: `POST /api/v1/user/medicine-dose-logs/mark` accepts temporary (non-reminder) dose logs.
+  - Status: `POST /api/v1/user/dose/mark` accepts temporary (non-reminder) dose logs.
     When `reminderId` is absent, the endpoint requires only `currentMedicineId` (and optionally
     `scheduledTime`); it does **not** reject a missing `scheduledTime` for temporary logs.
 - Dose-log recomputation trigger
@@ -50,7 +50,7 @@ Medicine recognition's queued response is an endpoint-specific resource with exa
     versioned refresh from the same event, subject to its per-date generation cap.
 - Backend notification preferences
   - Status: Implemented as `UserNotificationPreference`, a 1:1 user-owned model exposed by
-    `GET/PATCH /api/v1/user/notification-preferences`.
+    `GET/PATCH /api/v1/user/notification`.
   - Defaults are `healthAlertsEnabled=true`, `weeklyInsightEnabled=false`,
     `waterRemindersEnabled=true`, `sleepReminderEnabled=false`; sleep minute fields are nullable
     and validated in the inclusive range `0..1439`. GET reports `configured` and `updatedAt`.
@@ -79,8 +79,8 @@ Medicine recognition's queued response is an endpoint-specific resource with exa
     the client can degrade honestly. `candidate` is rejected for LLM checks.
 - Notification content templates
   - Status: Implemented — the scheduler localizes reminder title/content per `UserProfile.locale`
-    via `I18nService` (keys `medicine-reminders.reminder_fallback_label` and
-    `medicine-reminders.reminder_due_content`, `{label}` interpolation). Missing locale falls
+    via `I18nService` (keys `reminder.reminder_fallback_label` and
+    `reminder.reminder_due_content`, `{label}` interpolation). Missing locale falls
     back to `zh-CN`; in-app and JPush share the same translated copy.
 
 ## Planned API Surface
@@ -106,10 +106,10 @@ UserNotificationPreference {
 **API endpoints:**
 
 - `GET`
-  - Path: `/api/v1/user/notification-preferences`
+  - Path: `/api/v1/user/notification`
   - Description: Read preferences
 - `PATCH`
-  - Path: `/api/v1/user/notification-preferences`
+  - Path: `/api/v1/user/notification`
   - Description: Update preferences
 
 **Notes:**
@@ -149,19 +149,19 @@ UserMedicineReminder {
 **API endpoints:**
 
 - `GET`
-  - Path: `/api/v1/user/medicine-reminders`
+  - Path: `/api/v1/user/reminder`
   - Description: List reminders
 - `POST`
-  - Path: `/api/v1/user/medicine-reminders`
+  - Path: `/api/v1/user/reminder`
   - Description: Create reminder
 - `PATCH`
-  - Path: `/api/v1/user/medicine-reminders/:id`
+  - Path: `/api/v1/user/reminder/:id`
   - Description: Update reminder
 - `DELETE`
-  - Path: `/api/v1/user/medicine-reminders/:id`
+  - Path: `/api/v1/user/reminder/:id`
   - Description: Delete reminder
 - `PUT`
-  - Path: `/api/v1/user/medicine-reminders/group`
+  - Path: `/api/v1/user/reminder/group`
   - Description: Upsert a whole reminder group for a medicine in a single transaction.
     Body: `{ currentMedicineId, label?, daysOfWeek?, startDate?, endDate?, isActive?, note?,
 slots: [{ id?, scheduledHour, scheduledMinute }] }` (`slots` requires at least one entry).

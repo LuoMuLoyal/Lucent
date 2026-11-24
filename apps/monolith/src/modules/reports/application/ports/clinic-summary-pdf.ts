@@ -7,7 +7,7 @@
  * renderer with `useExisting`.
  *
  * `ClinicSummaryDto` is imported type-only from the DTO module. That is the
- * same allowance `user-settings` uses for its resource shapes: a `type` import
+ * same allowance `settings` uses for its resource shapes: a `type` import
  * produces no runtime edge, and the DTO is already the single declaration of
  * this wire shape — duplicating it would create a second source of truth for a
  * 300-line structure.
