@@ -19,7 +19,7 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-SOURCE_DSN = "host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"
+SOURCE_DSN = "host=127.0.0.1 port=5432 dbname=lucent user=postgres password=postgres"
 
 # Clinically coherent ATC level-4 classes, chosen so the graph has:
 #   * the cytochrome P450 / transporter hub targets shared across classes
