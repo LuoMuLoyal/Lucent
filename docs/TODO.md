@@ -172,67 +172,6 @@ v2.0.0 水平扩展时需验证多实例限流计数器在 Redis 中的正确性
 的 SMILES 出图包，且 `structures.sdf` 为纯 2D（z 恒为 0），没有构象数据可消费。
 若将来要出图，需先引入/自研 SMILES 布局渲染，并评估移动端渲染成本。
 
-### 半衰期感知的漏服提示接入（2026-10-24，领域逻辑已就绪，链路未接）
-
-`domain/services/half-life.ts` 与 `half-life-gap.ts` 已落地并测试（解析在真实数据上覆盖
-76/78 条），但**尚未接进提示链路**：`today-suggestion` 的 `missed_dose_pending` 规则
-仍按「到点没吃就提醒」的固定时长逻辑运行。
-
-**为什么值得接**：同一条固定时长规则在两类药上说反话——半衰期 3 小时的药漏 6 小时
-（两个半衰期，浓度掉到 25%）该提醒；半衰期 102 小时的依那西普（Etanercept）漏 6 小时
-浓度几乎没动，提醒只制造焦虑。判定依据应是「缺口占半衰期的比例」。
-
-**接入需要三件事**：
-
-1. `missed_dose_pending` 规则读药品的 `half_life` 并经 `evaluateHalfLifeGap` 判定
-   （返回 `noData` 时保持原有逻辑，不要变激进或变保守）；
-2. 新增「每药每日已提示」的持久化（迁移 + 表），用于 `half-life-gap.ts` 的每日上限——
-   当前领域函数接受 `lastNotifiedAt` 参数，但没有任何地方存它；
-3. 药品与 `half_life` 的关联：`UserCurrentMedicine` → DrugBank 详情。
-   ⚠️ 前提：本机 dev 的 `drugbank_drugs` 只有 78 条有 `half_life`（全表 100 条药），
-   见下方「Prisma 药品知识库回填」——不先补数据，接入后绝大多数药会落到 `noData`。
-
-**验收**：半衰期 3 小时的药漏 2 个半衰期会提示、同一药一天只提示一次；半衰期 102 小时的
-药同样缺口不提示；`half_life` 缺失的药行为与接入前完全一致。
-
-### 剂量日志槽位唯一性缺失：`mark` 的幂等只是「通常成立」（2026-10-25，四层迁移补测试时发现）
-
-`POST /medicine-dose-logs/mark` 的契约是「同一槽位幂等」，实现是 **find-then-create**
-（`findBySlot` → 命中则 `update`，否则 `create`），**但表上没有任何覆盖槽位的唯一约束兜底**，
-并发下同一槽位会写入两行。
-
-已核对（非推测）：
-
-- `prisma/models/medication-tracking.prisma` 的 `UserMedicineDoseLog` 只有 5 个 `@@index`，
-  无 `@@unique`；4 个涉及该表的 migration 里 `UNIQUE` 命中为 0；
-- 连 **dev（15432）与 test（5432）两个库**查 `pg_indexes`：该表唯一索引只有主键
-  `user_medicine_dose_logs_pkey`，槽位相关索引全是普通索引；
-- `git log --all -S` 查无任何分支曾加过该约束——**这是既有缺陷，不是四层迁移引入的**。
-
-**连带问题**：controller 上 `POST /medicine-dose-logs` 与 `/mark` 的
-`@ApiResponse({ status: 409, description: 'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)' })` 是**假声明**——没有唯一约束，P2002 永远不会由槽位重复触发
-（`create` 的 P2002→`RESOURCE_CONFLICT` 映射本身正确，但只可能来自别的约束）。
-
-**修法（三件事要一起做，缺一不可）**：
-
-1. 加**部分**唯一索引，只约束未软删的行，让「软删后重标记」仍然可行：
-
-   ```sql
-   CREATE UNIQUE INDEX user_medicine_dose_logs_slot_uniq
-     ON user_medicine_dose_logs (user_id, reminder_id, scheduled_for, scheduled_time)
-     WHERE deleted_at IS NULL;
-   ```
-
-   注意 `scheduled_time` 可为 NULL、`reminder_id` 可为 NULL（临时日志）——需确认 Postgres
-   对 NULL 的处理符合预期，必要时拆成两条索引或改用 `COALESCE` 表达式索引。
-
-2. `mark` 的 find-then-create 改成 `upsert`（或 `create` + 捕获 P2002 后重试成 `update`）。
-   **只加约束不改写路径的话，并发只是把「两行」变成「500」**，并没有修好幂等。
-3. 删除或更正上述两条 409 文档声明。
-
-**前置**：加约束前要查存量重复数据（同一 user+槽位多行未删），否则 migration 会失败；
-`prisma/models/**` 变更需同步 `pnpm export:openapi`（409 文案若改动）。
-
 ## DDD 四层迁移收尾遗留（2026-10-25）
 
 六条轨道合并后 `typecheck` / `lint` / `arch:check` / 单测 / e2e 全绿，以下是这轮
