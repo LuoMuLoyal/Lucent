@@ -31,13 +31,30 @@ import { PrismaDoseLogs } from './dose-logs.js';
  * duplicate slot — see the note on `create` below.
  */
 
-function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
+/**
+ * Builds a Prisma known-request error.
+ *
+ * `target` is what `isSlotConflict` reads to tell the slot index apart from any
+ * other unique constraint; Postgres reports it as an array of column names.
+ */
+function prismaError(
+  code: string,
+  target?: readonly string[] | string,
+): Prisma.PrismaClientKnownRequestError {
   const error = Object.create(
     Prisma.PrismaClientKnownRequestError.prototype,
   ) as Prisma.PrismaClientKnownRequestError;
   error.code = code;
+  if (target !== undefined) {
+    (
+      error as unknown as { meta: { target: readonly string[] | string } }
+    ).meta = { target };
+  }
   return error;
 }
+
+/** The slot index name the adapter matches on. */
+const SLOT_INDEX = 'user_medicine_dose_logs_slot_uniq';
 
 function doseLogRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -320,11 +337,11 @@ describe('PrismaDoseLogs', () => {
       // part of the public error contract: without it a concurrent insert would
       // surface as a 500 instead.
       //
-      // NOTE: this asserts the *mapping*, not that Postgres rejects the duplicate.
-      // `user_medicine_dose_logs` currently has no UNIQUE constraint covering the
-      // slot (verified against both local databases), so in production P2002 can
-      // only come from another constraint. The mapping is still required, and the
-      // missing constraint is tracked separately.
+      // NOTE: this asserts the *mapping*, not that Postgres rejects the
+      // duplicate. The slot index itself is a partial unique index
+      // (`20261124120000_add_dose_log_slot_uniq`), which a mock cannot enforce.
+      // `mark` no longer relies on this mapping — `createOrUpdateOnSlot`
+      // absorbs the race — but the plain `create` endpoint still documents 409.
       prisma.userMedicineDoseLog.create.mockRejectedValue(prismaError('P2002'));
 
       await expect(
@@ -385,6 +402,102 @@ describe('PrismaDoseLogs', () => {
           doseText: null,
           note: null,
         }),
+      ).rejects.toBe(original);
+    });
+  });
+
+  describe('createOrUpdateOnSlot', () => {
+    const input = {
+      userId: 'user-1',
+      healthEventId: null,
+      currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
+      status: 'taken' as const,
+      scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+      scheduledTime: '08:30',
+      takenAt: null,
+      doseText: null,
+      note: null,
+    };
+
+    it('returns the inserted row when the slot is free', async () => {
+      prisma.userMedicineDoseLog.create.mockResolvedValue(
+        doseLogRow() as never,
+      );
+
+      const result = await repository.createOrUpdateOnSlot(input, {
+        status: 'skipped',
+      });
+
+      expect(result.id).toBe('dose-1');
+      // No second read and no update on the happy path.
+      expect(prisma.userMedicineDoseLog.findFirst).not.toHaveBeenCalled();
+      expect(prisma.userMedicineDoseLog.update).not.toHaveBeenCalled();
+    });
+
+    it('updates the winner when another write took the slot first', async () => {
+      // Losing the insert race is the exact case the unique index creates: the
+      // loser must converge on the winner's row, not surface a 409 to a client
+      // whose sync queue would then retry the same byte-identical payload.
+      prisma.userMedicineDoseLog.create.mockRejectedValue(
+        prismaError('P2002', [SLOT_INDEX]),
+      );
+      prisma.userMedicineDoseLog.findFirst.mockResolvedValue(
+        doseLogRow() as never,
+      );
+      prisma.userMedicineDoseLog.update.mockResolvedValue(
+        doseLogRow({ status: 'skipped' }) as never,
+      );
+
+      const result = await repository.createOrUpdateOnSlot(input, {
+        status: 'skipped',
+      });
+
+      expect(prisma.userMedicineDoseLog.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'dose-1' } }),
+      );
+      expect(result.status).toBe('skipped');
+    });
+
+    it('treats a P2002 from any other constraint as a conflict, not a race', async () => {
+      // Narrowing by index name is the point: a P2002 from somewhere else is a
+      // real error, and folding it into "update the winner" would overwrite an
+      // unrelated row.
+      prisma.userMedicineDoseLog.create.mockRejectedValue(
+        prismaError('P2002', ['some_other_uniq']),
+      );
+
+      await expect(
+        repository.createOrUpdateOnSlot(input, { status: 'skipped' }),
+      ).rejects.toMatchObject({
+        failure: { kind: 'conflict', code: 'RESOURCE_CONFLICT' },
+      });
+      expect(prisma.userMedicineDoseLog.update).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the winning row is no longer live', async () => {
+      // The winner was soft-deleted between the insert and the re-read. There is
+      // no live row to update and re-inserting could loop, so this must not be
+      // swallowed into success.
+      prisma.userMedicineDoseLog.create.mockRejectedValue(
+        prismaError('P2002', [SLOT_INDEX]),
+      );
+      prisma.userMedicineDoseLog.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.createOrUpdateOnSlot(input, { status: 'skipped' }),
+      ).rejects.toMatchObject({
+        failure: { code: 'RESOURCE_CONFLICT' },
+      });
+      expect(prisma.userMedicineDoseLog.update).not.toHaveBeenCalled();
+    });
+
+    it('leaves a non-conflict failure as-is', async () => {
+      const original = new Error('connection lost');
+      prisma.userMedicineDoseLog.create.mockRejectedValue(original);
+
+      await expect(
+        repository.createOrUpdateOnSlot(input, { status: 'skipped' }),
       ).rejects.toBe(original);
     });
   });

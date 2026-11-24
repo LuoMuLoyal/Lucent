@@ -92,7 +92,7 @@ export class MedicineDoseLogsController {
   @ApiResponse({
     status: HttpStatus.CONFLICT,
     description:
-      'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)',
+      'Duplicate dose log for the same slot (RESOURCE_CONFLICT): another live row already occupies the slot the request targets.',
     type: ProblemDetailsDto,
   })
   async create(
@@ -121,12 +121,6 @@ export class MedicineDoseLogsController {
   @ApiResponse({
     status: 404,
     description: 'Reminder or current medicine not found (RESOURCE_NOT_FOUND)',
-    type: ProblemDetailsDto,
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description:
-      'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)',
     type: ProblemDetailsDto,
   })
   async mark(

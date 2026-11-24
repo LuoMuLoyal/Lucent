@@ -118,5 +118,14 @@ model UserMedicineDoseLog {
   @@index([userId, currentMedicineId, scheduledFor, scheduledTime])
   @@index([userId, deletedAt])
   @@index([userId, healthEventId])
+  /// Slot uniqueness for `mark` idempotency. Prisma cannot express a PARTIAL
+  /// unique index, so it lives only in migration
+  /// `20261124120000_add_dose_log_slot_uniq`:
+  ///   UNIQUE (user_id, reminder_id, scheduled_for, scheduled_time)
+  ///   WHERE deleted_at IS NULL AND reminder_id IS NOT NULL
+  /// Two conditions, both business rules: a temporary log (`reminder_id` NULL)
+  /// must never be merged, and a soft-deleted row must not block re-marking.
+  /// Removing that migration's index silently restores the duplicate-row bug —
+  /// `mark` relies on it, so the read-then-write is no longer the only guard.
   @@map("user_medicine_dose_logs")
 }

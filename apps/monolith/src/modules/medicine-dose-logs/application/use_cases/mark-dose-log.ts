@@ -93,6 +93,20 @@ export class MarkDoseLog {
     return toDoseLogResource(record);
   }
 
+  /**
+   * Writes the mark, letting the database arbitrate the slot.
+   *
+   * ## Why the find-then-create is gone
+   *
+   * It was a check-then-act: two concurrent marks both read "no live row" and
+   * both inserted, leaving two rows for one slot. The partial unique index
+   * (`20261124120000_add_dose_log_slot_uniq`) is now the actual arbiter, and
+   * `createOrUpdateOnSlot` handles losing that race by updating the winner.
+   *
+   * The cheap pre-read is kept for the **common** path only (a retried mark,
+   * where the row is already there): it avoids one wasted insert, and its result
+   * is no longer load-bearing — the insert path is correct on its own.
+   */
   private async upsert(
     userId: string,
     command: MarkDoseLogCommand,
@@ -109,14 +123,35 @@ export class MarkDoseLog {
       unresolvedTarget();
     }
 
+    const patch: DoseLogPatch = {
+      status: command.status,
+      currentMedicineId: target.currentMedicineId,
+      reminderId: target.reminderId,
+      scheduledTime: target.scheduledTime,
+      takenAt: takenAtFor(command.status === 'taken' ? 'taken' : 'skipped', at),
+      doseText: command.doseText ?? null,
+      note: command.note ?? null,
+    };
+    if (command.healthEventId !== undefined) {
+      patch.healthEventId = command.healthEventId;
+    }
+
+    // Fast path for the retried-mark case (the row is already there). A miss
+    // here does not mean "insert" — it means "let the index decide".
     const existing =
       slot === null ? null : await this.repository.findBySlot(userId, slot);
-
     if (existing !== null) {
-      const patch: DoseLogPatch = {
-        status: command.status,
+      return await this.repository.update(existing.id, patch);
+    }
+
+    return await this.repository.createOrUpdateOnSlot(
+      {
+        userId,
+        healthEventId: command.healthEventId ?? null,
         currentMedicineId: target.currentMedicineId,
         reminderId: target.reminderId,
+        status: command.status,
+        scheduledFor: target.scheduledFor,
         scheduledTime: target.scheduledTime,
         takenAt: takenAtFor(
           command.status === 'taken' ? 'taken' : 'skipped',
@@ -124,24 +159,8 @@ export class MarkDoseLog {
         ),
         doseText: command.doseText ?? null,
         note: command.note ?? null,
-      };
-      if (command.healthEventId !== undefined) {
-        patch.healthEventId = command.healthEventId;
-      }
-      return await this.repository.update(existing.id, patch);
-    }
-
-    return await this.repository.create({
-      userId,
-      healthEventId: command.healthEventId ?? null,
-      currentMedicineId: target.currentMedicineId,
-      reminderId: target.reminderId,
-      status: command.status,
-      scheduledFor: target.scheduledFor,
-      scheduledTime: target.scheduledTime,
-      takenAt: takenAtFor(command.status === 'taken' ? 'taken' : 'skipped', at),
-      doseText: command.doseText ?? null,
-      note: command.note ?? null,
-    });
+      },
+      patch,
+    );
   }
 }

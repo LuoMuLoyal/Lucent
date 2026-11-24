@@ -21,13 +21,16 @@
  * never becomes a 4xx.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, type DoseLogStatus } from '#generated/prisma/client.js';
 
 import { PrismaService } from '../../../../prisma/index.js';
 import { mapPrismaKnownRequestError } from '../../../../common/helpers/prisma/prisma-result.utils.js';
 import { nonDeleted } from '../../../../common/index.js';
-import { DomainFailureException } from '../../../../common/result/index.js';
+import {
+  createDomainFailure,
+  DomainFailureException,
+} from '../../../../common/result/index.js';
 import type { DoseLogFact } from '../../domain/dose-log/dose-log-facts.js';
 import { MedicineDoseLogReaderPort } from '../../domain/dose-log/dose-log-facts.js';
 import type {
@@ -46,6 +49,55 @@ import { DoseLogs } from '../../domain/dose-log/dose-logs.js';
  */
 const MAX_READER_FACTS = 500;
 
+/**
+ * Name of the partial unique index that guards one slot.
+ *
+ * Kept in sync with migration `20261124120000_add_dose_log_slot_uniq`. A literal
+ * here is deliberate: P2002 does not distinguish constraints structurally, and
+ * the alternative — treating *every* P2002 as "slot taken" — would turn an
+ * unrelated conflict into a silent overwrite.
+ */
+const DOSE_LOG_SLOT_INDEX = 'user_medicine_dose_logs_slot_uniq';
+
+/**
+ * Whether a write failed because another row already owns the slot.
+ *
+ * Prisma surfaces the violated constraints in `meta.target`; that field is a
+ * string on some providers and an array on Postgres, so both shapes are read.
+ *
+ * ## Why this is structural rather than `instanceof`
+ *
+ * Prisma is loaded through more than one module identity in this repo (the
+ * generated client and the runtime client are separate packages), so
+ * `instanceof Prisma.PrismaClientKnownRequestError` can be false for an error
+ * Prisma itself threw. The shape it needs — `code === 'P2002'` plus a target —
+ * is stable across both.
+ */
+function isSlotConflict(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const candidate = error as {
+    code?: unknown;
+    meta?: unknown;
+    message?: unknown;
+  };
+  if (candidate.code !== 'P2002') return false;
+
+  const target = (candidate.meta as { target?: unknown } | undefined)?.target;
+  if (typeof target === 'string') return target.includes(DOSE_LOG_SLOT_INDEX);
+  if (Array.isArray(target)) {
+    return target.some(
+      (entry) =>
+        typeof entry === 'string' && entry.includes(DOSE_LOG_SLOT_INDEX),
+    );
+  }
+  // Postgres can omit `target`; the constraint name then only appears in the
+  // message. Fall back to it rather than losing the race silently.
+  return (
+    typeof candidate.message === 'string' &&
+    candidate.message.includes(DOSE_LOG_SLOT_INDEX)
+  );
+}
+
 const doseLogFactSelect = {
   currentMedicineId: true,
   reminderId: true,
@@ -62,6 +114,8 @@ export class PrismaDoseLogs
   constructor(private readonly prisma: PrismaService) {
     super();
   }
+
+  private readonly logger = new Logger(PrismaDoseLogs.name);
 
   async listByDate(
     userId: string,
@@ -117,23 +171,93 @@ export class PrismaDoseLogs
   }
 
   async create(input: NewDoseLog): Promise<DoseLogRecord> {
-    const row = await this.lift(
-      this.prisma.userMedicineDoseLog.create({
-        data: {
-          userId: input.userId,
-          currentMedicineId: input.currentMedicineId,
-          reminderId: input.reminderId,
-          status: input.status as DoseLogStatus,
-          scheduledFor: input.scheduledFor,
-          scheduledTime: input.scheduledTime,
-          takenAt: input.takenAt,
-          doseText: input.doseText,
-          note: input.note,
-          healthEventId: input.healthEventId,
-        },
-      }),
-    );
+    return await this.lift(this.insertRaw(input));
+  }
+
+  /**
+   * The insert itself, mapped to a record but **not** error-mapped.
+   *
+   * Split out so `createOrUpdateOnSlot` can inspect the raw Prisma error (it
+   * needs the constraint name) while `create` still gets the mapped form.
+   */
+  private async insertRaw(input: NewDoseLog): Promise<DoseLogRecord> {
+    const row = await this.prisma.userMedicineDoseLog.create({
+      data: {
+        userId: input.userId,
+        currentMedicineId: input.currentMedicineId,
+        reminderId: input.reminderId,
+        status: input.status as DoseLogStatus,
+        scheduledFor: input.scheduledFor,
+        scheduledTime: input.scheduledTime,
+        takenAt: input.takenAt,
+        doseText: input.doseText,
+        note: input.note,
+        healthEventId: input.healthEventId,
+      },
+    });
     return toRecord(row);
+  }
+
+  /**
+   * Insert, or update the live row that already owns the slot.
+   *
+   * ## Why not Prisma `upsert`
+   *
+   * `upsert` needs a unique *key* Prisma knows about, and this constraint is a
+   * **partial** index (`WHERE deleted_at IS NULL AND reminder_id IS NOT NULL`)
+   * that Prisma's schema cannot express. Writing it as a compound `where` would
+   * silently target a different set of rows than the index guards.
+   *
+   * So: try the insert, and let the database arbitrate. Losing the race with
+   * P2002 means the slot is taken — re-read it and apply the patch. That is the
+   * same outcome as the old find-then-create when no race happens, and a
+   * convergent one when a race does.
+   *
+   * A temporary log has no slot identity, so its insert can never raise the slot
+   * violation; it falls through to `create`.
+   */
+  async createOrUpdateOnSlot(
+    input: NewDoseLog,
+    patchOnConflict: DoseLogPatch,
+  ): Promise<DoseLogRecord> {
+    let conflict: unknown;
+    try {
+      return await this.insertRaw(input);
+    } catch (error) {
+      if (!isSlotConflict(error)) {
+        // Not the slot race: rethrow in the exception form the use case expects.
+        const failure = mapPrismaKnownRequestError(error);
+        if (failure != null) throw new DomainFailureException(failure);
+        throw error;
+      }
+      conflict = error;
+    }
+
+    // The slot is taken. `input.reminderId` is non-null here by construction:
+    // the partial index ignores rows without one, so they cannot conflict.
+    const existing = await this.findBySlot(input.userId, {
+      reminderId: input.reminderId as string,
+      scheduledFor: input.scheduledFor,
+      scheduledTime: input.scheduledTime,
+    });
+    if (existing === null) {
+      // The winner was soft-deleted between our insert and this read. Update is
+      // impossible (there is no live row) and re-inserting could loop, so report
+      // the conflict honestly instead of masking it.
+      this.logger.warn(
+        `Dose log slot conflict whose winning row is not live: ${
+          conflict instanceof Error ? conflict.message : String(conflict)
+        }`,
+      );
+      throw new DomainFailureException(
+        createDomainFailure({
+          kind: 'conflict',
+          code: 'RESOURCE_CONFLICT',
+          cause: 'dose_log_slot_taken_by_deleted_row',
+        }),
+      );
+    }
+    return await this.update(existing.id, patchOnConflict);
   }
 
   async update(id: string, patch: DoseLogPatch): Promise<DoseLogRecord> {

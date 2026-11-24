@@ -116,6 +116,30 @@ export abstract class DoseLogs {
     id: string,
   ): Promise<{ userId: string; scheduledFor: Date } | null>;
 
+  /**
+   * Creates the row, or updates the live row already occupying its slot.
+   *
+   * ## Why this is a port operation and not "find, then write" at the use case
+   *
+   * `findBySlot` followed by `create` is a check-then-act: two concurrent marks
+   * both read "no row" and both insert. The partial unique index
+   * (`20261124120000_add_dose_log_slot_uniq`) is what actually decides the
+   * winner; this method is the write that survives losing that race.
+   *
+   * Implementations must therefore treat a slot-uniqueness violation as "the row
+   * exists, update it", not as an error. Any other conflict stays an error.
+   *
+   * @param input - the row to create.
+   * @param patchOnConflict - the patch to apply when the slot is already taken.
+   *   Only meaningful for a row that has a slot identity; a temporary log has
+   *   none and always creates.
+   * @returns the created or updated row.
+   */
+  abstract createOrUpdateOnSlot(
+    input: NewDoseLog,
+    patchOnConflict: DoseLogPatch,
+  ): Promise<DoseLogRecord>;
+
   abstract create(input: NewDoseLog): Promise<DoseLogRecord>;
 
   abstract update(id: string, patch: DoseLogPatch): Promise<DoseLogRecord>;
