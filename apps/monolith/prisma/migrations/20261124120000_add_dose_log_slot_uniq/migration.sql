@@ -2,7 +2,7 @@
 --
 -- ## 问题
 --
--- `POST /dose/mark` 的契约是「同一槽位幂等」，实现是
+-- `POST /medicine-dose-logs/mark` 的契约是「同一槽位幂等」，实现是
 -- find-then-create（先 findBySlot，命中则 update，否则 create），表上没有任何
 -- 覆盖槽位的唯一约束。两个并发请求都读不到行，于是都 insert —— 同一槽位两行。
 --
@@ -24,6 +24,6 @@
 -- 单独建 COALESCE 表达式索引会把「没时刻」折叠成同一个值，反而把两个合法槽位判成
 -- 重复。选择接受这个边角，并在 mark 路径上保证有 reminder 时写入 time。
 
-CREATE UNIQUE INDEX "dose_logs_slot_uniq"
+CREATE UNIQUE INDEX "user_medicine_dose_logs_slot_uniq"
   ON "user_medicine_dose_logs" ("user_id", "reminder_id", "scheduled_for", "scheduled_time")
   WHERE "deleted_at" IS NULL AND "reminder_id" IS NOT NULL;

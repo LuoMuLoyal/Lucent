@@ -79,6 +79,9 @@ DECLARE
     ['user_medicine_dose_logs_user_id_scheduled_for_idx',         'dose_logs_user_id_scheduled_for_idx'],
     ['user_medicine_dose_logs_user_id_deleted_at_idx',            'dose_logs_user_id_deleted_at_idx'],
     ['user_medicine_dose_logs_user_id_health_event_id_idx',       'dose_logs_user_id_health_event_id_idx'],
+    -- 槽位部分唯一索引（`20261124120000` 建的那条）。它不随表改名自动跟过来，
+    -- 而 `PrismaDoseLogs` 按索引名识别 P2002，名字不改等于让槽位冲突退化成 409。
+    ['user_medicine_dose_logs_slot_uniq',                         'dose_logs_slot_uniq'],
     -- 这两条的旧名在两个库里不同：dev 是长名，test 是更早的短名。
     -- 两个旧名各自映射到同一个新名，缺失的那条自然跳过。
     ['user_medicine_dose_logs_user_id_reminder_id_scheduled_for_idx',
