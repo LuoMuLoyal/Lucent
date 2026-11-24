@@ -72,12 +72,57 @@ export class PrismaReminders
    * data it does not own.
    */
   async listCurrentMedicines(userId: string): Promise<CurrentMedicineFact[]> {
-    return this.prisma.userCurrentMedicine.findMany({
+    // ## Why the half-life join happens here
+    //
+    // `user_current_medicines` carries only `source` + `sourceRefId`; the
+    // `half_life` text lives in `drugbank_drugs`, which belongs to the
+    // `medicines` context. A consumer (today-suggestion) joining them itself
+    // would be exactly the cross-context table read ADR-0024 §3 forbids, so the
+    // owning context resolves it and hands back a plain fact.
+    //
+    // The join is deliberately narrow:
+    // - only `source = drugbank` rows have a counterpart (a `cn` product or a
+    //   manual entry has no DrugBank ID), and
+    // - a missing row or a NULL column yields `halfLife: null`, which consumers
+    //   read as "unknown" rather than "no half-life".
+    const rows = await this.prisma.userCurrentMedicine.findMany({
       where: { userId, isCurrent: true },
-      select: { id: true, displayName: true },
+      select: { id: true, displayName: true, source: true, sourceRefId: true },
       orderBy: [{ createdAt: 'asc' }],
       take: MAX_READER_FACTS,
     });
+
+    // `sourceRefId` is only a DrugBank ID when `source = 'drugbank'`; a `cn`
+    // product id that happens to collide with one must not pick up its
+    // half-life.
+    const drugbankIds = rows
+      .filter((row) => row.source === 'drugbank')
+      .map((row) => row.sourceRefId)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    if (drugbankIds.length === 0) {
+      return rows.map((row) => ({
+        id: row.id,
+        displayName: row.displayName,
+        halfLife: null,
+      }));
+    }
+
+    const knowledges = await this.prisma.drugbankDrug.findMany({
+      where: { drugbankId: { in: drugbankIds } },
+      select: { drugbankId: true, halfLife: true },
+    });
+    const halfLifeById = new Map(
+      knowledges.map((row) => [row.drugbankId, row.halfLife]),
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      displayName: row.displayName,
+      halfLife:
+        row.source === 'drugbank' && row.sourceRefId != null
+          ? (halfLifeById.get(row.sourceRefId) ?? null)
+          : null,
+    }));
   }
 
   override findManyReminders(

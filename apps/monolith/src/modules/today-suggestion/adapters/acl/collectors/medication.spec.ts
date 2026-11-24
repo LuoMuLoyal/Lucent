@@ -7,6 +7,7 @@ import type {
   IUserHealthContextReader,
   HealthContextResponseData,
 } from '../../../../user-health-context/index.js';
+import type { MedicineNotifyLedgerPort } from '../../../application/ports/medicine-notify-ledger.js';
 import { MedicationCollectorService } from './medication.js';
 import { MedicationTimeResolverService } from './medication-time-resolver.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
@@ -20,6 +21,10 @@ describe('MedicationCollectorService', () => {
   let doseLogReader: DeepMocked<MedicineDoseLogReaderPort>;
   let healthContext: { getForUser: ReturnType<typeof vi.fn> };
   let timeResolver: MedicationTimeResolverService;
+  let notifyLedger: {
+    findMark: ReturnType<typeof vi.fn>;
+    claimMark: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     // The collector reads through reader ports, so the doubles satisfy those
@@ -45,11 +50,18 @@ describe('MedicationCollectorService', () => {
       ),
     };
     timeResolver = new MedicationTimeResolverService();
+    // Default to "no mark yet, and this caller wins the claim", so every
+    // existing case keeps the legacy behaviour unless it opts into the gate.
+    notifyLedger = {
+      findMark: vi.fn().mockResolvedValue(null),
+      claimMark: vi.fn().mockResolvedValue(true),
+    };
     service = new MedicationCollectorService(
       reminders as unknown as MedicineReminderReaderPort,
       doseLogReader,
       healthContext as unknown as IUserHealthContextReader,
       timeResolver,
+      notifyLedger as unknown as MedicineNotifyLedgerPort,
     );
   });
 
@@ -872,5 +884,109 @@ describe('MedicationCollectorService', () => {
           signal.payload['reminderId'] === 'reminder-1',
       ),
     ).toBeDefined();
+  });
+
+  /**
+   * Half-life aware missed-dose gating.
+   *
+   * The whole point is that one fixed-duration rule says opposite things about
+   * different drugs: the same 6-hour gap is two half-lives for a 3-hour drug
+   * and noise for a 102-hour one. These cases pin both directions plus the two
+   * "do not change anything" paths (`noData`, lost claim).
+   */
+  describe('half-life gate on overdue slots', () => {
+    /** 09:00 local (Asia/Shanghai) on 2026-07-09 → overdue by 6h at 15:00. */
+    const date = '2026-07-09';
+    const setNow = (iso: string) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(iso));
+    };
+
+    const arrange = (halfLife: string | null) => {
+      (
+        reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(mockMedicines([{ halfLife }]));
+      (reminders.listActiveFacts as ReturnType<typeof vi.fn>).mockResolvedValue(
+        mockReminders([
+          { id: 'reminder-9', scheduledHour: 9, scheduledMinute: 0 },
+        ]),
+      );
+      (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
+    };
+
+    const overdueSignals = (
+      signals: Awaited<ReturnType<typeof service.collect>>,
+    ) => signals.filter((signal) => signal.kind === 'overdueUnconfirmed');
+
+    it('hints a short half-life drug whose gap spans two half-lives', async () => {
+      // 3h half-life, 6h late = 2 half-lives → concentration down to ~25%.
+      setNow('2026-07-09T07:00:00.000Z');
+      arrange('3 hours');
+
+      const signals = await service.collect('user-1', date);
+
+      expect(overdueSignals(signals)).toHaveLength(1);
+      expect(notifyLedger.claimMark).toHaveBeenCalledWith(
+        'user-1',
+        'med-1',
+        date,
+      );
+    });
+
+    it('stays silent for a long half-life drug at the same gap', async () => {
+      // 102h half-life: 6h is 6% of one half-life, so the fixed-duration rule
+      // would nag for no pharmacological reason.
+      setNow('2026-07-09T07:00:00.000Z');
+      arrange('102 hours');
+
+      const signals = await service.collect('user-1', date);
+
+      expect(overdueSignals(signals)).toHaveLength(0);
+      // No claim either: it was never going to be hinted.
+      expect(notifyLedger.claimMark).not.toHaveBeenCalled();
+    });
+
+    it('keeps the legacy behaviour when the drug has no half-life', async () => {
+      // The common case until the knowledge base is backfilled: `noData` must
+      // behave exactly as before, neither more nor less eager.
+      setNow('2026-07-09T07:00:00.000Z');
+      arrange(null);
+
+      const signals = await service.collect('user-1', date);
+
+      expect(overdueSignals(signals)).toHaveLength(1);
+      expect(overdueSignals(signals)[0]?.payload['halfLifeOutcome']).toBe(
+        'noData',
+      );
+      // `noData` does not consume today's slot, so a later run can still hint.
+      expect(notifyLedger.claimMark).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when a concurrent run already claimed today', async () => {
+      // The claim is the arbiter: the domain rule said "notify", but this run
+      // lost the insert. Emitting here is what produced double hints.
+      setNow('2026-07-09T07:00:00.000Z');
+      arrange('3 hours');
+      notifyLedger.claimMark.mockResolvedValue(false);
+
+      const signals = await service.collect('user-1', date);
+
+      expect(overdueSignals(signals)).toHaveLength(0);
+    });
+
+    it('stays silent when today already has a mark', async () => {
+      setNow('2026-07-09T07:00:00.000Z');
+      arrange('3 hours');
+      notifyLedger.findMark.mockResolvedValue({
+        currentMedicineId: 'med-1',
+        notifyDate: date,
+        notifiedAt: new Date('2026-07-09T05:00:00.000Z'),
+      });
+
+      const signals = await service.collect('user-1', date);
+
+      expect(overdueSignals(signals)).toHaveLength(0);
+      expect(notifyLedger.claimMark).not.toHaveBeenCalled();
+    });
   });
 });

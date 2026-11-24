@@ -50,6 +50,10 @@ describe('PrismaReminders', () => {
         findFirst: vi.fn(),
         findMany: vi.fn(),
       },
+      // Read for the half-life join on `listCurrentMedicines`.
+      drugbankDrug: {
+        findMany: vi.fn(),
+      },
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
 
@@ -84,10 +88,89 @@ describe('PrismaReminders', () => {
 
       expect(prisma.userCurrentMedicine.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1', isCurrent: true },
-        select: { id: true, displayName: true },
+        // `source`/`sourceRefId` are selected because the half-life join needs
+        // them: only a `drugbank` row's `sourceRefId` is a DrugBank ID.
+        select: {
+          id: true,
+          displayName: true,
+          source: true,
+          sourceRefId: true,
+        },
         orderBy: [{ createdAt: 'asc' }],
         take: 500,
       });
+    });
+
+    it('resolves half_life for drugbank entries only', async () => {
+      // `sourceRefId` is only a DrugBank ID when `source = 'drugbank'`; a `cn`
+      // product id that happens to collide must not inherit its half-life.
+      prisma.userCurrentMedicine.findMany.mockResolvedValue([
+        {
+          id: 'med-1',
+          displayName: 'Aspirin',
+          source: 'drugbank',
+          sourceRefId: 'DB00945',
+        },
+        {
+          id: 'med-2',
+          displayName: 'Local product',
+          source: 'cn',
+          sourceRefId: 'DB00945',
+        },
+        {
+          id: 'med-3',
+          displayName: 'Manual entry',
+          source: 'manual',
+          sourceRefId: null,
+        },
+      ] as never);
+      prisma.drugbankDrug.findMany.mockResolvedValue([
+        { drugbankId: 'DB00945', halfLife: '3 hours' },
+      ] as never);
+
+      const result = await repository.listCurrentMedicines('user-1');
+
+      expect(result).toEqual([
+        { id: 'med-1', displayName: 'Aspirin', halfLife: '3 hours' },
+        { id: 'med-2', displayName: 'Local product', halfLife: null },
+        { id: 'med-3', displayName: 'Manual entry', halfLife: null },
+      ]);
+    });
+
+    it('skips the knowledge query when nothing is drugbank-sourced', async () => {
+      prisma.userCurrentMedicine.findMany.mockResolvedValue([
+        {
+          id: 'med-1',
+          displayName: 'Manual',
+          source: 'manual',
+          sourceRefId: null,
+        },
+      ] as never);
+
+      const result = await repository.listCurrentMedicines('user-1');
+
+      expect(prisma.drugbankDrug.findMany).not.toHaveBeenCalled();
+      expect(result).toEqual([
+        { id: 'med-1', displayName: 'Manual', halfLife: null },
+      ]);
+    });
+
+    it('reports null when the catalogued drug records no half-life', async () => {
+      prisma.userCurrentMedicine.findMany.mockResolvedValue([
+        {
+          id: 'med-1',
+          displayName: 'Aspirin',
+          source: 'drugbank',
+          sourceRefId: 'DB00945',
+        },
+      ] as never);
+      prisma.drugbankDrug.findMany.mockResolvedValue([
+        { drugbankId: 'DB00945', halfLife: null },
+      ] as never);
+
+      const result = await repository.listCurrentMedicines('user-1');
+
+      expect(result[0]?.halfLife).toBeNull();
     });
   });
   describe('findManyReminders', () => {

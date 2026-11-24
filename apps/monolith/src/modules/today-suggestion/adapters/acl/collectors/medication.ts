@@ -7,6 +7,10 @@ import {
 import { DoseLogStatus } from '#generated/prisma/client.js';
 import { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
 import {
+  evaluateHalfLifeGap,
+  type HalfLifeGapOutcome,
+} from '../../../../medicines/index.js';
+import {
   MedicineReminderReaderPort,
   type MedicineReminderFact,
 } from '../../../../medicine-reminders/index.js';
@@ -14,13 +18,11 @@ import { IUserHealthContextReader } from '../../../../user-health-context/index.
 import { MISSED_DOSE_GRACE_MINUTES } from '../../../domain/rule/thresholds.js';
 import type { SuggestionSignal } from '../../../domain/signal/signal.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
+import { MedicineNotifyLedgerPort } from '../../../application/ports/medicine-notify-ledger.js';
 import { MedicationTimeResolverService } from './medication-time-resolver.js';
 
 type DoseSlotStatus =
-  | 'taken'
-  | 'skipped'
-  | 'unconfirmed'
-  | 'overdueUnconfirmed';
+  'taken' | 'skipped' | 'unconfirmed' | 'overdueUnconfirmed';
 
 type DoseLogFactShape = {
   currentMedicineId: string | null;
@@ -41,6 +43,7 @@ export class MedicationCollectorService {
     private readonly doseLogReader: MedicineDoseLogReaderPort,
     private readonly healthContext: IUserHealthContextReader,
     private readonly timeResolver: MedicationTimeResolverService,
+    private readonly notifyLedger: MedicineNotifyLedgerPort,
   ) {}
 
   async collect(userId: string, date: string): Promise<SuggestionSignal[]> {
@@ -132,15 +135,57 @@ export class MedicationCollectorService {
           pendingCount += 1;
         }
 
-        signals.push({
-          signalId: `med_${status}_${medicine.id}_${reminder.id}`,
-          source: 'medication',
-          kind: status,
-          recordedAt: day,
-          userId,
-          triggerType: TriggerType.EVENT,
-          payload,
-        });
+        // Half-life gate. A slot that the fixed-duration rule calls "overdue"
+        // is only surfaced when the gap is meaningful *for this drug*: 6 hours
+        // late on a 3-hour half-life is two half-lives (concentration down to
+        // 25%), the same 6 hours on a 102-hour half-life is noise.
+        //
+        // `noData` keeps the old behaviour verbatim — a drug whose half-life
+        // the catalogue does not record must not change how it is hinted,
+        // neither more nor less.
+        const gated =
+          status === 'overdueUnconfirmed'
+            ? await this.evaluateOverdueSlot(
+                userId,
+                medicine,
+                date,
+                scheduledInstant,
+                currentTime,
+              )
+            : { emit: true };
+
+        // The emitted signal keeps the *observed* status: `overdueUnconfirmed`
+        // still describes the slot, and the rule's job is to decide whether to
+        // hint it. Downgrading the status here would hide the fact from every
+        // other consumer of this signal.
+        //
+        // `emit: false` means the half-life gate declined — either the gap is
+        // too small for this drug, today's slot was already claimed, or a
+        // concurrent run won the claim. In all three cases this run must not
+        // surface the signal, but the slot still counts as overdue in the
+        // summary numbers above.
+        if (gated.emit) {
+          signals.push({
+            signalId: `med_${status}_${medicine.id}_${reminder.id}`,
+            source: 'medication',
+            kind: status,
+            recordedAt: day,
+            userId,
+            triggerType: TriggerType.EVENT,
+            payload: {
+              ...payload,
+              // Present only when a half-life decision was involved, so a
+              // consumer can tell "hinted after half-life check" from "no
+              // half-life data, legacy path".
+              ...(gated.outcome != null
+                ? { halfLifeOutcome: gated.outcome.status }
+                : {}),
+              ...(gated.outcome != null && 'gapHours' in gated.outcome
+                ? { halfLifeGapHours: gated.outcome.gapHours }
+                : {}),
+            },
+          });
+        }
 
         if (status !== 'taken' && status !== 'skipped') {
           // Legacy compatibility signal. The missed-dose rule consumes only
@@ -356,6 +401,70 @@ export class MedicationCollectorService {
       return 'overdueUnconfirmed';
     }
     return 'unconfirmed';
+  }
+
+  /**
+   * Decides whether one overdue slot should be hinted, half-life aware.
+   *
+   * ## The two-step shape, and why the order matters
+   *
+   * 1. The domain rule (`evaluateHalfLifeGap`) answers "is this gap meaningful
+   *    for this drug, and has it been hinted today".
+   * 2. `claimMark` then **atomically** reserves today's slot. Only the caller
+   *    whose insert lands may emit.
+   *
+   * The claim is the guard, not the rule's `lastNotifiedAt`: two recomputes can
+   * both read "not hinted yet", and only the insert can settle which of them
+   * actually gets to speak.
+   *
+   * @returns `emit: false` when the slot must not be hinted. `outcome` is absent
+   *   when the drug has no usable half-life — the legacy path then applies.
+   */
+  private async evaluateOverdueSlot(
+    userId: string,
+    medicine: { id: string; halfLife: string | null },
+    date: string,
+    scheduledInstant: Date | null,
+    currentTime: Date,
+  ): Promise<{ emit: boolean; outcome?: HalfLifeGapOutcome }> {
+    if (scheduledInstant == null) return { emit: true };
+
+    const existing = await this.notifyLedger.findMark(
+      userId,
+      medicine.id,
+      date,
+    );
+    const outcome = evaluateHalfLifeGap(
+      { scheduledAt: scheduledInstant, isConfirmed: false },
+      {
+        halfLifeText: medicine.halfLife,
+        now: currentTime,
+        lastNotifiedAt: existing?.notifiedAt ?? null,
+      },
+    );
+
+    switch (outcome.status) {
+      case 'noData':
+        // No half-life on record: leave the legacy fixed-duration behaviour
+        // exactly as it was. This is the case the TODO warned about — most
+        // catalogue rows have no half-life until the knowledge base is
+        // backfilled, so this branch is the common one today.
+        return { emit: true, outcome };
+      case 'belowThreshold':
+        return { emit: false, outcome };
+      case 'throttled':
+        return { emit: false, outcome };
+      case 'notify': {
+        // Claim the day for this medicine. Losing the claim means a concurrent
+        // run already hinted it, so this one stays silent.
+        const claimed = await this.notifyLedger.claimMark(
+          userId,
+          medicine.id,
+          date,
+        );
+        return { emit: claimed, outcome };
+      }
+    }
   }
 
   private statusPriority(status: DoseLogStatus): number {

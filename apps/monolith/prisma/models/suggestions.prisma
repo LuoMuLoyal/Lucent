@@ -199,3 +199,26 @@ model UserSuggestionFeedback {
   @@index([userId, suggestionId])
   @@map("user_suggestion_feedbacks")
 }
+/// 每药每日已提示的漏服记录，用于半衰期感知漏服的每日上限。
+///
+/// 为什么单独一张表而不是复用 `UserSuggestion`：那条路要求先生成建议再由
+/// 反馈回写，而「今天是否已经提示过这个药」必须在**生成建议之前**就能查到——
+/// 否则一次重算就会再弹一次，而重算远比提示频繁。
+///
+/// `normalizedKey` = userId + medicineId + 本地自然日。每日上限按**自然日**
+/// 而非滚动 24 小时（与 `half-life-gap.ts` 的 `isSameLocalDay` 同一口径）：
+/// 滚动窗口会让同一天内提示两次，又在跨零点时意外放行。
+model UserMedicineNotifyMark {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  currentMedicineId String @map("current_medicine_id")
+  /// 提示所属的本地自然日（`YYYY-MM-DD`），与 `normalizedKey` 同源。
+  notifyDate    String   @map("notify_date")
+  notifiedAt    DateTime @default(now()) @map("notified_at") @db.Timestamptz(3)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine UserCurrentMedicine @relation(fields: [currentMedicineId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, currentMedicineId, notifyDate])
+  @@index([userId, notifyDate])
+  @@map("user_medicine_notify_marks")
+}

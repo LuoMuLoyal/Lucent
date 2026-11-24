@@ -34,6 +34,7 @@ model UserCurrentMedicine {
   doseLogs      UserMedicineDoseLog[]
   reminders     UserMedicineReminder[]
   healthEventMedicines HealthEventMedicine[]
+  notifyMarks          UserMedicineNotifyMark[]
 
   // isCurrent index replaced by partial index in migration (WHERE is_current = true)
   @@index([userId, source])

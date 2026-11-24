@@ -39,6 +39,19 @@ export interface MedicineReminderFact {
 export interface CurrentMedicineFact {
   id: string;
   displayName: string;
+  /**
+   * The drug's `half_life` text as the knowledge base stores it, or `null`.
+   *
+   * Carried here rather than read by the consumer because
+   * `user_current_medicines` and the DrugBank table live in different contexts:
+   * a consumer joining them directly would be the cross-context table read
+   * ADR-0024 §3 forbids. Resolution happens in this context's own query.
+   *
+   * `null` is a normal value — a manual entry has no DrugBank counterpart, and
+   * a catalogue row may simply not record one. Consumers must treat it as
+   * "unknown", never as "no half-life".
+   */
+  halfLife: string | null;
 }
 
 /**

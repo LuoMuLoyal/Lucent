@@ -28,6 +28,8 @@ import {
 } from './application/ports/collectors.js';
 import { ESCALATION_PORT } from './application/services/suggestions.js';
 import { MedicationCollectorService } from './adapters/acl/collectors/medication.js';
+import { MEDICINE_NOTIFY_LEDGER } from './application/ports/medicine-notify-ledger.js';
+import { PrismaMedicineNotifyLedger } from './infrastructure/persistence/medicine-notify-ledger.js';
 import { MedicationTimeResolverService } from './adapters/acl/collectors/medication-time-resolver.js';
 import { SleepTrendBuilderService } from './adapters/acl/collectors/sleep-trend-builder.js';
 import { ProfileCollectorService } from './adapters/acl/collectors/profile.js';
@@ -97,6 +99,11 @@ import { buildSuggestionRules } from './domain/rule/rule-catalog.js';
     // Collectors
     MedicationCollectorService,
     MedicationTimeResolverService,
+    PrismaMedicineNotifyLedger,
+    {
+      provide: MEDICINE_NOTIFY_LEDGER,
+      useExisting: PrismaMedicineNotifyLedger,
+    },
     SleepTrendBuilderService,
     RecordCollectorService,
     ProfileCollectorService,
