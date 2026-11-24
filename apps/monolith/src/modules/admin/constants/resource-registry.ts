@@ -521,13 +521,6 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
     ],
   }),
   defineResource({
-    key: 'assistant-memories',
-    model: 'assistantMemory',
-    searchFields: ['content'],
-    filterFields: ['userId', 'sourceConversationId'],
-    writableFields: ['userId', 'sourceConversationId', 'content'],
-  }),
-  defineResource({
     key: 'assistant-regenerations',
     model: 'assistantRegeneration',
     filterFields: ['userId', 'conversationId'],
@@ -816,7 +809,6 @@ const USER_RELATED_GROUP_KEYS: readonly {
       'assistant-conversations',
       'assistant-messages',
       'assistant-summary-histories',
-      'assistant-memories',
       'assistant-regenerations',
     ],
   },
