@@ -75,11 +75,10 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
   **`stale` 不是状态而是投影**（`ready` 且 `sourceVersion > computedVersion` 时算出），
   因为它随时可由两个字段推导，无需持久化。派生状态归查询侧。
   它与 `DailySuggestion`（`user_suggestion`，真正的建议卡）是**两个东西**。
-- `services/collectors/` 仍留 3 个文件（`medication` / `profile` /
-  `medication-time-resolver`），是**已知状态**，不是遗漏：
-  `medication` 与 `profile` 目前**绕过 reader port 直接 `PrismaService` 查
-  `userCurrentMedicine` / `userMedicineReminder` / `userAllergy` / `userCondition`
-  / `userProfile`**（ADR-0024 §3 违规），补 port 前不能进 `adapters/acl/`；
+- `adapters/acl/collectors/` 下另有 `medication` 与 `medication-time-resolver`：
+  `medication` 已改为**只经 reader port**（`MedicineReminderReaderPort`、
+  `MedicineDoseLogReaderPort`、`IUserHealthContextReader`、
+  `MedicineNotifyLedgerPort`）读数据，不再直接查他上下文的表。
   `medication-time-resolver` 是 `medication` 的私有辅助（纯时间换算，**没有上游**
   可翻译，进 acl 会与唯一消费者分离），跟着它留。
 - `domain/policies/{medication,lifestyle,sleep,health}/` — **8 条规则**（纯函数）。
@@ -91,6 +90,41 @@ facet kind 在上游仍存在」。它与规则侧的行为测试**缺一不可*
 - `domain/rule/` — 规则基础设施：`rule-definition.ts`（契约）、`rule-catalog.ts`
   （`new` 8 条规则的唯一构造点）、`thresholds.ts`（阈值就是产品行为）、
   `symptom-severity.ts`（严重度序 → 可比数值）。
+
+### 半衰期感知的漏服判定
+
+`missed_dose_pending` 的「到点没吃就提醒」是**固定时长**逻辑，它对两类药说反话：
+半衰期 3 小时的药漏 6 小时（两个半衰期，浓度掉到 25%）该提醒；半衰期 102 小时的
+依那西普漏 6 小时浓度几乎没动，提醒只制造焦虑。判定依据应是「缺口占半衰期
+的比例」，这需要药品知识——通用提醒类 App 做不到。
+
+链路分两段，**判定在 domain、认领在 collector**：
+
+1. `medicines/domain/services/half-life-gap.ts` 的 `evaluateHalfLifeGap`（纯函数，
+   经 `medicines` barrel 导出）回答「这个缺口对**这个药**是否够大、今天是否已提示」。
+   两条硬约束：**用半衰期区间下界**（区间宽的药按保守口径算，宁可晚提示也不误提示）、
+   **每天最多一次**。
+2. `adapters/acl/collectors/medication.ts` 先问判定，再 `claimMark` **原子认领**当天
+   名额。只有 insert 真正落地的那个调用方才允许产出 `overdueUnconfirmed` 信号。
+
+**为什么认领必须原子。** `findMark` + 写入是 check-then-act：两个并发重算都读到
+「今天没提示」，于是都产出、都写——一行插入成功，但用户已经看到两次。所以
+`MedicineNotifyLedgerPort` 的仲裁方法是 `claimMark`（insert-if-absent 的返回值决定
+谁赢），`findMark` 只用来回答「上次提示是什么时候」给规则做节流。
+
+**`noData` 保持原行为。** 没有 `half_life` 的药（当前是多数——知识库未回填）
+**完全沿用固定时长逻辑**，不变得更激进或更保守。这是域名函数的既定契约，也是
+「接入不改变现状」的保证。
+
+**每日上限按自然日**（`YYYY-MM-DD`，与 `isSameLocalDay` 同口径），不是滚动 24 小时：
+滚动窗口会在同一自然日提示两次，又在跨零点时意外放行。
+
+**`half_life` 不经他上下文直接查。** `user_current_medicines` 只有
+`source` + `sourceRefId`，`half_life` 在 `drugbank_drugs`；由
+`MedicineReminderReaderPort.listCurrentMedicines` 在**自己的查询里**解析好再交给
+消费者（跨上下文读表是 ADR-0024 §3 禁止的）。只有 `source = drugbank` 的
+`sourceRefId` 才是 DrugBank ID，`cn` 的 id 撞上同一串也不得借用它的半衰期。
+
 - `domain/signal/` — 信号词汇（`signal.ts`、`observed-metric.ts`、`diet-facet.ts`）。
 - `domain/suggestion/` — 建议卡词汇与规则：`suggestion.types.ts`（类型/触发/置信度
   枚举）、`suggestion-candidate.ts`（规则产出的候选），以及 `daily-suggestion.ts`：
