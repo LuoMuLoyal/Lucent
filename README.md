@@ -228,8 +228,8 @@ docs below.
 
 Local database layout:
 
-- development DB: `postgres/postgres@127.0.0.1:15432/lucent`
-- test / e2e DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`
+- development DB: `postgres/postgres@127.0.0.1:5432/lucent`
+- test / e2e DB: `postgres/postgres@127.0.0.1:5432/test` (same instance, separate database)
 - Redis: `redis://127.0.0.1:6379`
 
 ## Runtime Probes

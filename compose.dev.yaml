@@ -41,10 +41,15 @@ services:
       retries: 10
       start_period: 60s
 
-  # ── PostgreSQL 18 (development) ──────────────────────────────
+  # ── PostgreSQL 18 (development + test) ──────────────────────
   # 镜像含 pgvector 与 zhparser(见 docker/postgres/)。图数据在 Neo4j,不经这里。
   # 构建一次即可：
   #   docker build -t lucent-db:18 docker/postgres
+  #
+  # **一个实例、两个 database**：`lucent`（开发）与 `test`（e2e）。
+  # 早先是两个容器，代价是同一台机器上两份 Postgres、两份卷与两套扩展，
+  # 而 e2e 需要的隔离只到 database 粒度——它清自己的表，从不碰 `lucent`。
+  # 两个 database 之间没有跨库查询路径，`migrate reset` 也只作用于目标库。
   postgres-dev:
     image: ${LUCENT_DB_IMAGE:-lucent-db:18}
     container_name: lucent-postgres-dev
@@ -54,30 +59,15 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: lucent
     ports:
-      - '15432:5432'
-    volumes:
-      - pgdata-dev:/var/lib/postgresql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d lucent']
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # ── PostgreSQL 18 (test / e2e) ───────────────────────────────
-  postgres-test:
-    image: ${LUCENT_DB_IMAGE:-lucent-db:18}
-    container_name: lucent-postgres-test
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: lucent
-      POSTGRES_PASSWORD: lucent_dev
-      POSTGRES_DB: lucent
-    ports:
+      # 5432 是原先 test 容器占的端口。现在只有这一个实例，两个库都走它。
       - '5432:5432'
     volumes:
-      - pgdata-test:/var/lib/postgresql
+      - pgdata-dev:/var/lib/postgresql
+      # 只在**空卷首次启动**时执行：建 `test` database 并装齐扩展。
+      # 已存在的卷不会重跑（见 README 的手工补建步骤）。
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/10-init-test-db.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U lucent -d lucent']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d lucent']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -401,7 +391,6 @@ services:
 
 volumes:
   pgdata-dev:
-  pgdata-test:
   redisdata:
   rabbitmqdata:
   neo4j-dev-data:

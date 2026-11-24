@@ -30,6 +30,23 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS zhparser;   -- 需要时
 ```
 
+## 两个 database：`lucent`（开发）与 `test`（e2e）
+
+同一个实例承载两个库，宿主端口 5432。`lucent` 由 `POSTGRES_DB` 自动创建；
+`test` 由 `init-test-db.sql` 在**空卷首次启动**时创建，并装齐 vector / pg_trgm /
+zhparser 与 `chinese` 分词配置。
+
+已经存在 `pgdata-dev` 卷的机器不会重跑初始化脚本，需要手工补一次：
+
+```bash
+docker exec lucent-postgres-dev psql -U postgres -d lucent -c "CREATE DATABASE test OWNER postgres;"
+docker exec lucent-postgres-dev psql -U postgres -d test -c \
+  "CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS zhparser;"
+cd apps/monolith && pnpm db:migrate:test
+```
+
+两库之间没有跨库查询路径，e2e 的 `migrate reset` 只作用于 `test`。
+
 LightRAG 的独立库（不进 Prisma 迁移域）同样需要 pgvector：
 
 ```sql

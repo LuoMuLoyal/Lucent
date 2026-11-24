@@ -25,8 +25,8 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 
 ## 本地开发基线
 
-- Development DB:`postgres/postgres@127.0.0.1:15432/lucent`;Test/e2e DB:
-  `lucent/lucent_dev@127.0.0.1:5432/lucent`;Redis:`redis://127.0.0.1:6379`;
+- Development DB:`postgres/postgres@127.0.0.1:5432/lucent`;Test/e2e DB:
+  `postgres/postgres@127.0.0.1:5432/test`(同实例、独立 database);Redis:`redis://127.0.0.1:6379`;
   RabbitMQ:`amqp://lucent:lucent-dev-rabbit@127.0.0.1:5672`(管理台 15672)
 - Global prefix `/api`,URI 版本默认 `1`;管理控制台 `/admin`(SPA,由后端同源挂载)
 - 健康探针:`GET /api/v1/health`(readiness 别名,关键依赖不可用返回 503)、
