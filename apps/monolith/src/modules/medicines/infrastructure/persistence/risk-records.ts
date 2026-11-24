@@ -6,7 +6,7 @@ import {
   type MedicineRiskCheckType,
   type MedicineReminderRow,
   type MedicineRiskRecordsPort,
-  type UserHealthContext,
+  type UserContext,
 } from '../../application/ports/risk-records.js';
 
 /** Prisma's `check_type` column is a free string; the port narrows it. */
@@ -59,10 +59,10 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
     });
   }
 
-  async loadHealthContext(
+  async loadContext(
     userId: string,
     limit: number,
-  ): Promise<UserHealthContext | null> {
+  ): Promise<UserContext | null> {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, ...nonDeleted },
       include: {

@@ -847,7 +847,7 @@ describe('TodayAnalysisService', () => {
         aiSummariesEnabled: options?.userSettingValue ?? true,
       }),
     };
-    const healthContext = {
+    const context = {
       getForUser: vi.fn().mockResolvedValue(
         okAsync({
           profile: { timezone: options?.timezone ?? null },
@@ -1019,7 +1019,7 @@ describe('TodayAnalysisService', () => {
     return new TodayAnalysisService(
       aiSummaryHistoryService as never,
       contextService,
-      healthContext as never,
+      context as never,
       userSettings as never,
       copyService,
       generatorService,

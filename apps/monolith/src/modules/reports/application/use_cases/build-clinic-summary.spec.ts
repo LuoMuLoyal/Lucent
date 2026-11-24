@@ -17,7 +17,7 @@ import {
  * longer touches Prisma, so a spec under `application/` importing it would
  * reintroduce the very edge `ddd-application-no-direct-prisma` forbids.
  */
-/** The user row shape the doubles project into the health-context port. */
+/** The user row shape the doubles project into the context port. */
 type StubUserRow = {
   nickname: string | null;
   profile: { birthDate: Date | null; sexAtBirth: string | null } | null;
@@ -114,7 +114,7 @@ function withEventReview(
   return new Ctor(
     shares,
     adapted.sources,
-    adapted.healthContext,
+    adapted.context,
     records,
     cache,
     config,
@@ -211,7 +211,7 @@ const i18nMock = {
  * The use case stopped joining `user.profile`/`allergies`/`conditions`/
  * `currentMedicines` directly (that made `reports` a second reader of
  * `context`'s tables). It reads health data through
- * `IUserHealthContextReader` and only the nickname stays local. Keeping the
+ * `IUserContextReader` and only the nickname stays local. Keeping the
  * single `findFirstOrThrow` double and projecting it here means the ~25
  * existing scenarios still describe the same input data, while the assertion
  * surface is the port contract rather than an SQL select list.
@@ -222,7 +222,7 @@ function adaptUserRows(prisma: PrismaStub) {
     sources: {
       findDisplayName: async () => (await row()).nickname,
     },
-    healthContext: {
+    context: {
       getForUser: async () => {
         const user = await row();
         return okAsync({
@@ -387,7 +387,7 @@ describe('ClinicSummaryService', () => {
     service = new ClinicSummaryService(
       clinicShares as never,
       adapted.sources as never,
-      adapted.healthContext as never,
+      adapted.context as never,
       dailyRecordReader as never,
       cacheManager as never,
       configService,

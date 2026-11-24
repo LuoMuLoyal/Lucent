@@ -6,25 +6,25 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { userHealthContextInclude } from '../../domain/health-context/health-context.types.js';
-import { UserHealthContextRepositoryPort } from '../../application/ports/health-context-repository.js';
+import { userContextInclude } from '../../domain/context/types.js';
+import { UserContextRepositoryPort } from '../../application/ports/context-repository.js';
 
 /**
- * Prisma implementation of `UserHealthContextRepositoryPort`.
+ * Prisma implementation of `UserContextRepositoryPort`.
  *
  * Stays split from the port file so `application/**` never imports Prisma
  * (D5): the port declares the shape, this class only maps.
  */
 @Injectable()
-export class PrismaUserHealthContext extends UserHealthContextRepositoryPort {
+export class PrismaUserContext extends UserContextRepositoryPort {
   constructor(private readonly prisma: PrismaService) {
     super();
   }
 
-  override findUserWithHealthContext(userId: string) {
+  override findUserWithContext(userId: string) {
     return this.prisma.user.findFirst({
       where: { id: userId, ...nonDeleted },
-      include: userHealthContextInclude,
+      include: userContextInclude,
     });
   }
 

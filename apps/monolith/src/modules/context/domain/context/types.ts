@@ -22,7 +22,7 @@ export const DIETARY_PREFERENCE_VALUES = [
 
 export type DietaryPreference = (typeof DIETARY_PREFERENCE_VALUES)[number];
 
-export const userHealthContextInclude = {
+export const userContextInclude = {
   profile: true,
   allergies: {
     where: { isActive: true },
@@ -37,6 +37,6 @@ export const userHealthContextInclude = {
   },
 } satisfies Prisma.UserInclude;
 
-export type UserHealthContextRecord = Prisma.UserGetPayload<{
-  include: typeof userHealthContextInclude;
+export type UserContextRecord = Prisma.UserGetPayload<{
+  include: typeof userContextInclude;
 }>;

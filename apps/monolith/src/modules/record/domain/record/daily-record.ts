@@ -50,7 +50,7 @@ export type RecordPayloadProblem =
   | 'vital-shape-invalid'
   | 'activity-shape-invalid';
 
-/** 症状严重度码词汇（与客户端 `SymptomSeverity` 及 health-context 过敏严重度一致）。 */
+/** 症状严重度码词汇（与客户端 `SymptomSeverity` 及 context 过敏严重度一致）。 */
 export const SYMPTOM_SEVERITIES = [
   'mild',
   'moderate',

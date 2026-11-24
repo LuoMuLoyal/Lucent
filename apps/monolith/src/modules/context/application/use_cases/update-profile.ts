@@ -7,10 +7,10 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
-import type { UpdateHealthContextProfileDto } from '../ports/update-profile.js';
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
-import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
+import type { UpdateContextProfileDto } from '../ports/update-profile.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserContextMapper } from '../read_models/mapper.js';
 
 interface ProfileWriteData {
   createData: Prisma.UserProfileUncheckedCreateInput;
@@ -20,14 +20,14 @@ interface ProfileWriteData {
 @Injectable()
 export class UpdateProfile {
   constructor(
-    private readonly repository: UserHealthContextRepositoryPort,
-    private readonly ownershipService: UserHealthContextOwnership,
-    private readonly mapperService: UserHealthContextMapper,
+    private readonly repository: UserContextRepositoryPort,
+    private readonly ownershipService: UserContextOwnership,
+    private readonly mapperService: UserContextMapper,
   ) {}
 
   upsertProfile(
     userId: string,
-    dto: UpdateHealthContextProfileDto,
+    dto: UpdateContextProfileDto,
   ): ResultAsync<void, DomainFailure> {
     return this.ownershipService
       .ensureActiveUserExists(userId)
@@ -50,7 +50,7 @@ export class UpdateProfile {
 
   private async buildWriteData(
     userId: string,
-    dto: UpdateHealthContextProfileDto,
+    dto: UpdateContextProfileDto,
   ): Promise<ProfileWriteData> {
     const updateData: Prisma.UserProfileUpdateInput = {};
     const createData: Prisma.UserProfileUncheckedCreateInput = { userId };

@@ -76,7 +76,7 @@ describe('RecomputeEventTriggerService', () => {
     ['daily-record.changed', 'daily_record_changed'],
     ['dose-log.changed', 'dose_log_changed'],
     ['reminder.changed', 'reminder_changed'],
-    ['health-context.changed', 'health_context_changed'],
+    ['context.changed', 'context_changed'],
     ['settings.changed', 'settings_changed'],
     ['health-event.changed', 'health_event_changed'],
   ] as const)('%s maps to reason code %s', async (eventType, reasonCode) => {
@@ -144,7 +144,7 @@ describe('RecomputeEventTriggerService', () => {
     }
   });
 
-  it.each(['reminder.changed', 'health-context.changed', 'settings.changed'])(
+  it.each(['reminder.changed', 'context.changed', 'settings.changed'])(
     'also invalidates the baseline for %s',
     async (eventType) => {
       await service.resolve(event(eventType));

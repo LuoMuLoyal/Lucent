@@ -11,7 +11,7 @@ const FEEDBACK_VALUES = [
 
 /**
  * Standard Schema (zod 4) for the JSON body of
- * `POST /today/suggestions/:id/feedback`.
+ * `POST /suggestion/:id/feedback`.
  *
  * Replaces the former class-validator DTO:
  * - `@IsIn(FEEDBACK_VALUES)` → `z.enum(SuggestionFeedback)` — zod v4 merged
@@ -32,7 +32,7 @@ export const suggestionFeedbackSchema = z
   })
   .strict();
 
-/** Strongly typed body of `POST /today/suggestions/:id/feedback`. */
+/** Strongly typed body of `POST /suggestion/:id/feedback`. */
 export type SuggestionFeedbackDto = z.infer<typeof suggestionFeedbackSchema>;
 
 export class SuggestionFeedbackData {
@@ -55,5 +55,5 @@ export class SuggestionFeedbackData {
   expiresAt?: string;
 }
 
-/** Envelope response for POST /today/suggestions/:id/feedback. */
+/** Envelope response for POST /suggestion/:id/feedback. */
 export class SuggestionFeedbackResponse extends SuggestionFeedbackData {}

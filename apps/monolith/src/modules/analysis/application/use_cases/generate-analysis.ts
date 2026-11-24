@@ -24,7 +24,7 @@ import {
   INotificationSender,
   PushDeliveryService,
 } from '../../../notifications/index.js';
-import { IUserHealthContextReader } from '../../../context/index.js';
+import { IUserContextReader } from '../../../context/index.js';
 import { IUserSettingsPort } from '../../../settings/index.js';
 import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
@@ -87,7 +87,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
     @Inject(ANALYSIS_CONTEXT_SOURCE)
     private readonly contextService: AnalysisContextSource,
-    private readonly healthContext: IUserHealthContextReader,
+    private readonly context: IUserContextReader,
     private readonly userSettings: IUserSettingsPort,
     copyService: TodayAnalysisCopyService,
     @Inject(ANALYSIS_GENERATOR)
@@ -108,7 +108,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       return date;
     }
 
-    const context = await this.healthContext.getForUser(userId);
+    const context = await this.context.getForUser(userId);
     const timezone = context.isOk() ? context.value.profile.timezone : null;
     return formatDateOnlyInTimezone(now(), timezone ?? DEFAULT_USER_TIMEZONE);
   }

@@ -4,10 +4,10 @@ import {
   SexAtBirth,
   UnitSystem,
 } from '#generated/prisma/client.js';
-import { DIETARY_PREFERENCE_VALUES } from '../../domain/health-context/health-context.types.js';
+import { DIETARY_PREFERENCE_VALUES } from '../../domain/context/types.js';
 
 /**
- * Standard Schema (zod 4) for `PATCH /health-context/profile` body.
+ * Standard Schema (zod 4) for `PATCH /context/profile` body.
  *
  * Replaces the former class-validator DTO:
  * - `@IsString` + `@MaxLength` → `z.string().max(...)`;
@@ -19,7 +19,7 @@ import { DIETARY_PREFERENCE_VALUES } from '../../domain/health-context/health-co
  *   service's `normalizeNullableText`, unchanged);
  * - unknown keys are rejected (`.strict()`, forbidNonWhitelisted parity).
  */
-export const updateHealthContextProfileSchema = z
+export const updateContextProfileSchema = z
   .object({
     locale: z
       .string()
@@ -102,7 +102,7 @@ export const updateHealthContextProfileSchema = z
   })
   .strict();
 
-/** Strongly typed body of `PATCH /health-context/profile`. */
-export type UpdateHealthContextProfileDto = z.infer<
-  typeof updateHealthContextProfileSchema
+/** Strongly typed body of `PATCH /context/profile`. */
+export type UpdateContextProfileDto = z.infer<
+  typeof updateContextProfileSchema
 >;

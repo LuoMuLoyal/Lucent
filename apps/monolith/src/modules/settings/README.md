@@ -7,7 +7,7 @@ owner: backend
 
 用户级偏好设置（AI/隐私/助手开关与水量目标），服务端持有、跨设备同步。
 设备本地状态（OS 通知权限、本地通知排程、主题、语言偏好）不归本模块。
-health-context 的 profile extras 属 `context`。
+context 的 profile extras 属 `context`。
 
 ## Endpoints（挂 `/user` 前缀，事实源 = openapi.json）
 
@@ -67,7 +67,7 @@ import `common/`）。两份由 `user-setting-keys.spec.ts` 钉住，漂移即�
 | ----------------------------------- | ----------------------------------------- |
 | AI/隐私开关、数据共享同意、助手开关 | **Server**（本模块持久化）                |
 | 主题模式/配色                       | Device（SharedPreferences，不同步）       |
-| 语言偏好                            | Device（另经 health-context locale 通路） |
+| 语言偏好                            | Device（另经 context locale 通路） |
 | 通知权限（OS 授权）                 | Device                                    |
 | 提醒排程                            | Device（本地通知控制器）                  |
 | App 关于元数据                      | Server（见 app-info 模块）                |

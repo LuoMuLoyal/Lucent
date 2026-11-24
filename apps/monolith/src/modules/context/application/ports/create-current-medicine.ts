@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MedicineSource } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for `POST /health-context/current-medicines` body.
+ * Standard Schema (zod 4) for `POST /context/current-medicines` body.
  *
  * Replaces the former class-validator DTO:
  * - `@IsEnum` → `z.enum(...)` reusing the Prisma enum const object;
@@ -87,7 +87,7 @@ export const createCurrentMedicineSchema = z
     }
   });
 
-/** Strongly typed body of `POST /health-context/current-medicines`. */
+/** Strongly typed body of `POST /context/current-medicines`. */
 export type CreateCurrentMedicineDto = z.infer<
   typeof createCurrentMedicineSchema
 >;

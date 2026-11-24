@@ -70,7 +70,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
     beforeAll(async () => {
       // Seed Alice's health context
       const allergyRes = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/allergies')
+        .post('/api/v1/user/context/allergies')
         .set('Authorization', bearer(aliceToken))
         .send({ kind: 'drug', label: 'Penicillin', severity: 'severe' })
         .expect(201);
@@ -80,7 +80,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       aliceAllergyId = allergyData.allergies[0]!.id;
 
       const condRes = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/conditions')
+        .post('/api/v1/user/context/conditions')
         .set('Authorization', bearer(aliceToken))
         .send({ label: 'Hypertension', status: 'active' })
         .expect(201);
@@ -93,7 +93,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
     it('Bob cannot read Alice health context', async () => {
       // Health context is always the authenticated user's own — Bob gets his own (empty), not Alice's
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/health-context')
+        .get('/api/v1/user/context')
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
@@ -107,7 +107,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot update Alice allergy', async () => {
       await request(app.getHttpServer())
-        .patch(`/api/v1/user/health-context/allergies/${aliceAllergyId}`)
+        .patch(`/api/v1/user/context/allergies/${aliceAllergyId}`)
         .set('Authorization', bearer(bobToken))
         .send({ label: 'Hacked' })
         .expect(403);
@@ -115,14 +115,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot delete Alice allergy', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/v1/user/health-context/allergies/${aliceAllergyId}`)
+        .delete(`/api/v1/user/context/allergies/${aliceAllergyId}`)
         .set('Authorization', bearer(bobToken))
         .expect(403);
     });
 
     it('Bob cannot update Alice condition', async () => {
       await request(app.getHttpServer())
-        .patch(`/api/v1/user/health-context/conditions/${aliceConditionId}`)
+        .patch(`/api/v1/user/context/conditions/${aliceConditionId}`)
         .set('Authorization', bearer(bobToken))
         .send({ label: 'Hacked' })
         .expect(403);
@@ -130,7 +130,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     it('Bob cannot delete Alice condition', async () => {
       await request(app.getHttpServer())
-        .delete(`/api/v1/user/health-context/conditions/${aliceConditionId}`)
+        .delete(`/api/v1/user/context/conditions/${aliceConditionId}`)
         .set('Authorization', bearer(bobToken))
         .expect(403);
     });
@@ -204,7 +204,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
     beforeAll(async () => {
       // Seed a current medicine for Alice first
       const medRes = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/current-medicines')
+        .post('/api/v1/user/context/current-medicines')
         .set('Authorization', bearer(aliceToken))
         .send({
           displayName: 'Test Med',

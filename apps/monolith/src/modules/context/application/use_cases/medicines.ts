@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { MedicineSource, Prisma } from '#generated/prisma/client.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
 import { normalizeNullableText, now } from '../../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
-import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserContextMapper } from '../read_models/mapper.js';
 import type { CreateCurrentMedicineDto } from '../ports/create-current-medicine.js';
 
 import type { UpdateCurrentMedicineDto } from '../ports/update-current-medicine.js';
@@ -15,9 +15,9 @@ import type { UpdateCurrentMedicineDto } from '../ports/update-current-medicine.
 @Injectable()
 export class MedicineUseCases {
   constructor(
-    private readonly repository: UserHealthContextRepositoryPort,
-    private readonly ownershipService: UserHealthContextOwnership,
-    private readonly mapperService: UserHealthContextMapper,
+    private readonly repository: UserContextRepositoryPort,
+    private readonly ownershipService: UserContextOwnership,
+    private readonly mapperService: UserContextMapper,
   ) {}
 
   create(

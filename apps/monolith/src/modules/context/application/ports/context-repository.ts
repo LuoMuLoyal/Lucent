@@ -11,7 +11,7 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { type userHealthContextInclude } from '../../domain/health-context/health-context.types.js';
+import { type userContextInclude } from '../../domain/context/types.js';
 
 /**
  * Abstract port for context data access.
@@ -27,13 +27,13 @@ import { type userHealthContextInclude } from '../../domain/health-context/healt
  * `Promise<T | null>` — a missing row is a legitimate value; the application
  * service decides when absence is a failure.
  */
-export abstract class UserHealthContextRepositoryPort {
+export abstract class UserContextRepositoryPort {
   // ── Read ────────────────────────────────────────────────────────────────
 
-  abstract findUserWithHealthContext(
+  abstract findUserWithContext(
     userId: string,
   ): Promise<Prisma.UserGetPayload<{
-    include: typeof userHealthContextInclude;
+    include: typeof userContextInclude;
   }> | null>;
 
   abstract findProfileByUserId(

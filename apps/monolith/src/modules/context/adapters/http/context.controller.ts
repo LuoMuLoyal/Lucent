@@ -22,73 +22,73 @@ import { registerResponseSchema } from '../../../../common/api/response-schema.r
 import { unwrapResult } from '../../../../common/result/index.js';
 import { CurrentUser } from '../../../auth/index.js';
 import type { UserPayload } from '../../../auth/index.js';
-import { createHealthContextAllergySchema } from '../../application/ports/create-allergy.js';
-import type { CreateHealthContextAllergyDto } from '../../application/ports/create-allergy.js';
-import { createHealthContextConditionSchema } from '../../application/ports/create-condition.js';
-import type { CreateHealthContextConditionDto } from '../../application/ports/create-condition.js';
+import { createContextAllergySchema } from '../../application/ports/create-allergy.js';
+import type { CreateContextAllergyDto } from '../../application/ports/create-allergy.js';
+import { createContextConditionSchema } from '../../application/ports/create-condition.js';
+import type { CreateContextConditionDto } from '../../application/ports/create-condition.js';
 import { createCurrentMedicineSchema } from '../../application/ports/create-current-medicine.js';
 import type { CreateCurrentMedicineDto } from '../../application/ports/create-current-medicine.js';
-import { healthContextResponseSchema } from '../../application/ports/health-context-resource.js';
-import { updateHealthContextAllergySchema } from '../../application/ports/update-allergy.js';
-import type { UpdateHealthContextAllergyDto } from '../../application/ports/update-allergy.js';
-import { updateHealthContextConditionSchema } from '../../application/ports/update-condition.js';
-import type { UpdateHealthContextConditionDto } from '../../application/ports/update-condition.js';
+import { contextResponseSchema } from '../../application/ports/context-resource.js';
+import { updateContextAllergySchema } from '../../application/ports/update-allergy.js';
+import type { UpdateContextAllergyDto } from '../../application/ports/update-allergy.js';
+import { updateContextConditionSchema } from '../../application/ports/update-condition.js';
+import type { UpdateContextConditionDto } from '../../application/ports/update-condition.js';
 import { updateCurrentMedicineSchema } from '../../application/ports/update-current-medicine.js';
 import type { UpdateCurrentMedicineDto } from '../../application/ports/update-current-medicine.js';
-import { updateHealthContextProfileSchema } from '../../application/ports/update-profile.js';
-import type { UpdateHealthContextProfileDto } from '../../application/ports/update-profile.js';
-import { UserHealthContextService } from '../../application/services/health-context.js';
+import { updateContextProfileSchema } from '../../application/ports/update-profile.js';
+import type { UpdateContextProfileDto } from '../../application/ports/update-profile.js';
+import { UserContextService } from '../../application/services/context.js';
 
 @ApiTags('User Health Context')
-@Controller('health-context')
+@Controller('context')
 export class ContextController {
   constructor(
-    private readonly userHealthContextService: UserHealthContextService,
+    private readonly userContextService: UserContextService,
   ) {}
 
   @Get()
   @ApiBearerAuth('access-token')
   @ApiOperation({
-    operationId: 'getUserHealthContext',
+    operationId: 'getUserContext',
     summary: 'Get the current user health context aggregate',
   })
   @ApiResponse({
     status: 200,
-    description: 'The current user health-context aggregate.',
+    description: 'The current user context aggregate.',
   })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
-  async getUserHealthContext(@CurrentUser() user: UserPayload) {
-    return unwrapResult(this.userHealthContextService.getForUser(user.sub));
+  @SerializeOptions({ schema: contextResponseSchema })
+  async getUserContext(@CurrentUser() user: UserPayload) {
+    return unwrapResult(this.userContextService.getForUser(user.sub));
   }
 
   @Patch('profile')
   @ApiBearerAuth('access-token')
   @ApiOperation({
-    operationId: 'updateUserHealthContextProfile',
-    summary: 'Update the current user health-context profile',
+    operationId: 'updateUserContextProfile',
+    summary: 'Update the current user context profile',
   })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
-  async updateUserHealthContextProfile(
+  @SerializeOptions({ schema: contextResponseSchema })
+  async updateUserContextProfile(
     @CurrentUser() user: UserPayload,
-    @Body({ schema: updateHealthContextProfileSchema })
-    dto: UpdateHealthContextProfileDto,
+    @Body({ schema: updateContextProfileSchema })
+    dto: UpdateContextProfileDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.updateProfile(user.sub, dto),
+      this.userContextService.updateProfile(user.sub, dto),
     );
   }
 
@@ -105,21 +105,21 @@ export class ContextController {
   // description-only in OpenAPI until the export side grows 201 support.
   @ApiResponse({
     status: 201,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async createAllergy(
     @CurrentUser() user: UserPayload,
-    @Body({ schema: createHealthContextAllergySchema })
-    dto: CreateHealthContextAllergyDto,
+    @Body({ schema: createContextAllergySchema })
+    dto: CreateContextAllergyDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.createAllergy(user.sub, dto),
+      this.userContextService.createAllergy(user.sub, dto),
     );
   }
 
@@ -132,7 +132,7 @@ export class ContextController {
   @ApiParam({ name: 'id', description: 'Allergy id' })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 403,
@@ -144,15 +144,15 @@ export class ContextController {
     description: 'Allergy not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async updateAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body({ schema: updateHealthContextAllergySchema })
-    dto: UpdateHealthContextAllergyDto,
+    @Body({ schema: updateContextAllergySchema })
+    dto: UpdateContextAllergyDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.updateAllergy(user.sub, id, dto),
+      this.userContextService.updateAllergy(user.sub, id, dto),
     );
   }
 
@@ -165,7 +165,7 @@ export class ContextController {
   @ApiParam({ name: 'id', description: 'Allergy id' })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 403,
@@ -177,13 +177,13 @@ export class ContextController {
     description: 'Allergy not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async deleteAllergy(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return unwrapResult(
-      this.userHealthContextService.deleteAllergy(user.sub, id),
+      this.userContextService.deleteAllergy(user.sub, id),
     );
   }
 
@@ -200,21 +200,21 @@ export class ContextController {
   // description-only in OpenAPI until the export side grows 201 support.
   @ApiResponse({
     status: 201,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async createCondition(
     @CurrentUser() user: UserPayload,
-    @Body({ schema: createHealthContextConditionSchema })
-    dto: CreateHealthContextConditionDto,
+    @Body({ schema: createContextConditionSchema })
+    dto: CreateContextConditionDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.createCondition(user.sub, dto),
+      this.userContextService.createCondition(user.sub, dto),
     );
   }
 
@@ -227,7 +227,7 @@ export class ContextController {
   @ApiParam({ name: 'id', description: 'Condition id' })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 403,
@@ -239,15 +239,15 @@ export class ContextController {
     description: 'Condition not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async updateCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body({ schema: updateHealthContextConditionSchema })
-    dto: UpdateHealthContextConditionDto,
+    @Body({ schema: updateContextConditionSchema })
+    dto: UpdateContextConditionDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.updateCondition(user.sub, id, dto),
+      this.userContextService.updateCondition(user.sub, id, dto),
     );
   }
 
@@ -260,7 +260,7 @@ export class ContextController {
   @ApiParam({ name: 'id', description: 'Condition id' })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 403,
@@ -272,13 +272,13 @@ export class ContextController {
     description: 'Condition not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async deleteCondition(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return unwrapResult(
-      this.userHealthContextService.deleteCondition(user.sub, id),
+      this.userContextService.deleteCondition(user.sub, id),
     );
   }
 
@@ -295,21 +295,21 @@ export class ContextController {
   // description-only in OpenAPI until the export side grows 201 support.
   @ApiResponse({
     status: 201,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 404,
     description: 'User not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async createCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createCurrentMedicineSchema })
     dto: CreateCurrentMedicineDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.createCurrentMedicine(user.sub, dto),
+      this.userContextService.createCurrentMedicine(user.sub, dto),
     );
   }
 
@@ -322,7 +322,7 @@ export class ContextController {
   @ApiParam({ name: 'id', description: 'Current medicine id' })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 403,
@@ -334,7 +334,7 @@ export class ContextController {
     description: 'Current medicine not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async updateCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -342,7 +342,7 @@ export class ContextController {
     dto: UpdateCurrentMedicineDto,
   ) {
     return unwrapResult(
-      this.userHealthContextService.updateCurrentMedicine(user.sub, id, dto),
+      this.userContextService.updateCurrentMedicine(user.sub, id, dto),
     );
   }
 
@@ -355,7 +355,7 @@ export class ContextController {
   @ApiParam({ name: 'id', description: 'Current medicine id' })
   @ApiResponse({
     status: 200,
-    description: 'The updated user health-context aggregate.',
+    description: 'The updated user context aggregate.',
   })
   @ApiResponse({
     status: 403,
@@ -367,104 +367,104 @@ export class ContextController {
     description: 'Current medicine not found',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: healthContextResponseSchema })
+  @SerializeOptions({ schema: contextResponseSchema })
   async deleteCurrentMedicine(
     @CurrentUser() user: UserPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return unwrapResult(
-      this.userHealthContextService.deleteCurrentMedicine(user.sub, id),
+      this.userContextService.deleteCurrentMedicine(user.sub, id),
     );
   }
 }
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context',
+  path: '/api/v1/user/context',
   method: 'get',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The current user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The current user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/profile',
+  path: '/api/v1/user/context/profile',
   method: 'patch',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 // 201 主成功体注记:export-openapi 目前只把注册组件的 200 响应回写为 $ref;
 // 三个 201 端点(POST allergies/conditions/current-medicines)的响应体与 GET
 // 同一 aggregate,按稳定组件名登记,导出脚本支持 201 回写后自动生效。
 registerResponseSchema({
-  path: '/api/v1/user/health-context/allergies',
+  path: '/api/v1/user/context/allergies',
   method: 'post',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/conditions',
+  path: '/api/v1/user/context/conditions',
   method: 'post',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/current-medicines',
+  path: '/api/v1/user/context/current-medicines',
   method: 'post',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/allergies/{id}',
+  path: '/api/v1/user/context/allergies/{id}',
   method: 'patch',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/allergies/{id}',
+  path: '/api/v1/user/context/allergies/{id}',
   method: 'delete',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/conditions/{id}',
+  path: '/api/v1/user/context/conditions/{id}',
   method: 'patch',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/conditions/{id}',
+  path: '/api/v1/user/context/conditions/{id}',
   method: 'delete',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/current-medicines/{id}',
+  path: '/api/v1/user/context/current-medicines/{id}',
   method: 'patch',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/health-context/current-medicines/{id}',
+  path: '/api/v1/user/context/current-medicines/{id}',
   method: 'delete',
-  componentName: 'HealthContextResponse',
-  schema: healthContextResponseSchema,
-  description: 'The updated user health-context aggregate.',
+  componentName: 'ContextResponse',
+  schema: contextResponseSchema,
+  description: 'The updated user context aggregate.',
 });

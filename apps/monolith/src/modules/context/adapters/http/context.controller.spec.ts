@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ContextController } from './context.controller.js';
-import { UserHealthContextService } from '../../application/services/health-context.js';
+import { UserContextService } from '../../application/services/context.js';
 import type { UserPayload } from '../../../auth/index.js';
 import { DomainFailureException } from '../../../../common/result/unwrap-result.js';
 import { okAsync, errAsync } from '../../../../common/result/index.js';
@@ -8,7 +8,7 @@ import type { DomainFailure } from '../../../../common/result/index.js';
 
 describe('ContextController', () => {
   let controller: ContextController;
-  let service: vi.Mocked<UserHealthContextService>;
+  let service: vi.Mocked<UserContextService>;
 
   const mockUser: UserPayload = {
     sub: 'user-1',
@@ -46,11 +46,11 @@ describe('ContextController', () => {
       createCurrentMedicine: vi.fn().mockReturnValue(okAsync(mockResponse)),
       updateCurrentMedicine: vi.fn().mockReturnValue(okAsync(mockResponse)),
       deleteCurrentMedicine: vi.fn().mockReturnValue(okAsync(mockResponse)),
-    } as unknown as vi.Mocked<UserHealthContextService>;
+    } as unknown as vi.Mocked<UserContextService>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ContextController],
-      providers: [{ provide: UserHealthContextService, useValue: service }],
+      providers: [{ provide: UserContextService, useValue: service }],
     }).compile();
 
     controller = module.get(ContextController);
@@ -62,7 +62,7 @@ describe('ContextController', () => {
 
   describe('GET /', () => {
     it('returns health context for user', async () => {
-      const result = await controller.getUserHealthContext(mockUser);
+      const result = await controller.getUserContext(mockUser);
       expect(service.getForUser).toHaveBeenCalledWith('user-1');
       expectResource(result);
     });
@@ -71,7 +71,7 @@ describe('ContextController', () => {
       service.getForUser.mockReturnValue(errAsync(notFoundFailure));
 
       await expect(
-        controller.getUserHealthContext(mockUser),
+        controller.getUserContext(mockUser),
       ).rejects.toMatchObject({
         failure: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
@@ -81,7 +81,7 @@ describe('ContextController', () => {
   describe('PATCH /profile', () => {
     it('updates profile and returns health context', async () => {
       const dto = { birthDate: '2000-01-01' };
-      const result = await controller.updateUserHealthContextProfile(
+      const result = await controller.updateUserContextProfile(
         mockUser,
         dto,
       );
@@ -93,7 +93,7 @@ describe('ContextController', () => {
       service.updateProfile.mockReturnValue(errAsync(notFoundFailure));
 
       await expect(
-        controller.updateUserHealthContextProfile(mockUser, {}),
+        controller.updateUserContextProfile(mockUser, {}),
       ).rejects.toBeInstanceOf(DomainFailureException);
     });
   });

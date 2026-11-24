@@ -10,7 +10,7 @@ import {
 } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for the summary block of the health-context
+ * Standard Schema (zod 4) for the summary block of the context
  * aggregate. Replaces the former module-private `UserHealthSummaryDto`
  * response class.
  */
@@ -39,7 +39,7 @@ const userHealthSummarySchema = z.object({
 });
 
 /**
- * Standard Schema (zod 4) for the profile block of the health-context
+ * Standard Schema (zod 4) for the profile block of the context
  * aggregate. Replaces the former module-private `UserHealthProfileDto`
  * response class.
  */
@@ -76,7 +76,7 @@ const userHealthProfileSchema = z.object({
 });
 
 /**
- * Standard Schema (zod 4) for one allergy item of the health-context
+ * Standard Schema (zod 4) for one allergy item of the context
  * aggregate. Replaces the former module-private `UserAllergyItemDto`
  * response class.
  */
@@ -95,7 +95,7 @@ const userAllergyItemSchema = z.object({
 });
 
 /**
- * Standard Schema (zod 4) for one condition item of the health-context
+ * Standard Schema (zod 4) for one condition item of the context
  * aggregate. Replaces the former module-private `UserConditionItemDto`
  * response class.
  */
@@ -118,7 +118,7 @@ const userConditionItemSchema = z.object({
 });
 
 /**
- * Standard Schema (zod 4) for one current-medicine item of the health-context
+ * Standard Schema (zod 4) for one current-medicine item of the context
  * aggregate. Replaces the former module-private
  * `UserCurrentMedicineItemDto` response class.
  */
@@ -144,12 +144,12 @@ const userCurrentMedicineItemSchema = z.object({
 });
 
 /**
- * Standard Schema (zod 4) for the full health-context aggregate returned by
- * every `/health-context` endpoint (GET, profile/allergy/condition/medicine
- * writes). Replaces the former `HealthContextDataDto` /
- * `HealthContextResponseDto` response classes.
+ * Standard Schema (zod 4) for the full context aggregate returned by
+ * every `/context` endpoint (GET, profile/allergy/condition/medicine
+ * writes). Replaces the former `ContextDataDto` /
+ * `ContextResponseDto` response classes.
  */
-export const healthContextResponseSchema = z.object({
+export const contextResponseSchema = z.object({
   summary: userHealthSummarySchema,
   profile: userHealthProfileSchema,
   allergies: z.array(userAllergyItemSchema),
@@ -157,11 +157,11 @@ export const healthContextResponseSchema = z.object({
   currentMedicines: z.array(userCurrentMedicineItemSchema),
 });
 
-/** Strongly typed health-context aggregate payload. */
-export type HealthContextDataDto = z.infer<typeof healthContextResponseSchema>;
+/** Strongly typed context aggregate payload. */
+export type ContextDataDto = z.infer<typeof contextResponseSchema>;
 
-/** Backwards-compatible response alias for the health-context endpoints. */
-export type HealthContextResponseDto = HealthContextDataDto;
+/** Backwards-compatible response alias for the context endpoints. */
+export type ContextResponseDto = ContextDataDto;
 
 /** Backwards-compatible data alias kept for in-module references. */
-export type HealthContextResponseData = HealthContextDataDto;
+export type ContextResponseData = ContextDataDto;

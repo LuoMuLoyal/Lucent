@@ -21,7 +21,7 @@ import {
   UserStatus,
 } from '#generated/prisma/client.js';
 
-interface HealthContextData {
+interface ContextData {
   summary: {
     age: number | null;
     onboardingCompleted: boolean;
@@ -66,7 +66,7 @@ interface HealthContextData {
   }>;
 }
 
-const HEALTH_CONTEXT_PATH = '/api/v1/user/health-context';
+const HEALTH_CONTEXT_PATH = '/api/v1/user/context';
 const AUTH_HEADER = 'Authorization';
 
 describe('User Health Context API (e2e)', () => {
@@ -174,7 +174,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.summary.onboardingCompleted).toBe(true);
@@ -269,7 +269,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(200);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.profile.locale).toBe('zh-CN');
@@ -316,7 +316,7 @@ describe('User Health Context API (e2e)', () => {
       .send({ onboardingCompleted: true })
       .expect(200);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.summary.onboardingCompleted).toBe(true);
@@ -361,7 +361,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(200);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.profile.birthDate).toBeNull();
@@ -476,7 +476,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.summary.activeAllergyCount).toBe(1);
@@ -526,7 +526,7 @@ describe('User Health Context API (e2e)', () => {
       .send({ label: ' Penicillin G ', severity: UserAllergySeverity.severe })
       .expect(200);
 
-    const data = expectData(response.body as HealthContextData);
+    const data = expectData(response.body as ContextData);
     expect(data.allergies).toHaveLength(1);
     const updatedAllergy = expectDefined(
       data.allergies[0],
@@ -564,7 +564,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const data = expectData(response.body as HealthContextData);
+    const data = expectData(response.body as ContextData);
     expect(data.summary.activeAllergyCount).toBe(0);
 
     const stored = await ctx.prisma.userAllergy.findUniqueOrThrow({
@@ -635,7 +635,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.summary.conditionCount).toBe(1);
@@ -688,7 +688,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(200);
 
-    const data = expectData(response.body as HealthContextData);
+    const data = expectData(response.body as ContextData);
     expect(data.conditions).toHaveLength(1);
     const updatedCondition = expectDefined(
       data.conditions[0],
@@ -726,7 +726,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const data = expectData(response.body as HealthContextData);
+    const data = expectData(response.body as ContextData);
     expect(data.conditions).toHaveLength(1);
     const resolvedCondition = expectDefined(
       data.conditions[0],
@@ -807,7 +807,7 @@ describe('User Health Context API (e2e)', () => {
       })
       .expect(201);
 
-    const body = response.body as HealthContextData;
+    const body = response.body as ContextData;
 
     const data = expectData(body);
     expect(data.summary.currentMedicineCount).toBe(1);
@@ -851,7 +851,7 @@ describe('User Health Context API (e2e)', () => {
       .send({ displayName: ' Ibuprofen G ', strengthText: '400 mg' })
       .expect(200);
 
-    const data = expectData(response.body as HealthContextData);
+    const data = expectData(response.body as ContextData);
     expect(data.currentMedicines).toHaveLength(1);
     const updatedCurrentMedicine = expectDefined(
       data.currentMedicines[0],
@@ -889,7 +889,7 @@ describe('User Health Context API (e2e)', () => {
       .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
-    const data = expectData(response.body as HealthContextData);
+    const data = expectData(response.body as ContextData);
     expect(data.summary.currentMedicineCount).toBe(0);
 
     const stored = await ctx.prisma.userCurrentMedicine.findUniqueOrThrow({

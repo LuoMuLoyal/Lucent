@@ -1,14 +1,14 @@
 import { Test } from '@nestjs/testing';
-import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UserContextMapper } from '../read_models/mapper.js';
 
-describe('UserHealthContextMapper', () => {
-  let service: UserHealthContextMapper;
+describe('UserContextMapper', () => {
+  let service: UserContextMapper;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
-      providers: [UserHealthContextMapper],
+      providers: [UserContextMapper],
     }).compile();
-    service = module.get(UserHealthContextMapper);
+    service = module.get(UserContextMapper);
   });
 
   it('maps a complete record', () => {

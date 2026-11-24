@@ -4,8 +4,8 @@ import { DoseLogStatus } from '#generated/prisma/client.js';
 import type { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
 import type { MedicineReminderReaderPort } from '../../../../reminder/index.js';
 import type {
-  IUserHealthContextReader,
-  HealthContextResponseData,
+  IUserContextReader,
+  ContextResponseData,
 } from '../../../../context/index.js';
 import type { NotifyLedgerPort } from '../../../application/ports/notify-ledger.js';
 import { MedicationCollectorService } from './medication.js';
@@ -19,7 +19,7 @@ describe('MedicationCollectorService', () => {
     listCurrentMedicines: ReturnType<typeof vi.fn>;
   };
   let doseLogReader: DeepMocked<MedicineDoseLogReaderPort>;
-  let healthContext: { getForUser: ReturnType<typeof vi.fn> };
+  let context: { getForUser: ReturnType<typeof vi.fn> };
   let timeResolver: MedicationTimeResolverService;
   let notifyLedger: {
     findMark: ReturnType<typeof vi.fn>;
@@ -38,7 +38,7 @@ describe('MedicationCollectorService', () => {
     doseLogReader = {
       listFactsInRange: vi.fn().mockResolvedValue([]),
     } as unknown as DeepMocked<MedicineDoseLogReaderPort>;
-    healthContext = {
+    context = {
       getForUser: vi.fn().mockReturnValue(
         okAsync({
           summary: {},
@@ -46,7 +46,7 @@ describe('MedicationCollectorService', () => {
           allergies: [],
           conditions: [],
           currentMedicines: [],
-        } as unknown as HealthContextResponseData),
+        } as unknown as ContextResponseData),
       ),
     };
     timeResolver = new MedicationTimeResolverService();
@@ -59,7 +59,7 @@ describe('MedicationCollectorService', () => {
     service = new MedicationCollectorService(
       reminders as unknown as MedicineReminderReaderPort,
       doseLogReader,
-      healthContext as unknown as IUserHealthContextReader,
+      context as unknown as IUserContextReader,
       timeResolver,
       notifyLedger as unknown as NotifyLedgerPort,
     );
@@ -578,14 +578,14 @@ describe('MedicationCollectorService', () => {
   it('trims a valid profile timezone before calculating the scheduled instant', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T08:30:00.000Z'));
-    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+    (context.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
       okAsync({
         summary: {},
         profile: { timezone: ' UTC ' },
         allergies: [],
         conditions: [],
         currentMedicines: [],
-      } as unknown as HealthContextResponseData),
+      } as unknown as ContextResponseData),
     );
     (
       reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
@@ -607,14 +607,14 @@ describe('MedicationCollectorService', () => {
   it('falls back to the common default timezone for an invalid profile timezone', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-09T00:30:00.000Z'));
-    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+    (context.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
       okAsync({
         summary: {},
         profile: { timezone: 'Not/IANA' },
         allergies: [],
         conditions: [],
         currentMedicines: [],
-      } as unknown as HealthContextResponseData),
+      } as unknown as ContextResponseData),
     );
     (
       reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
@@ -637,14 +637,14 @@ describe('MedicationCollectorService', () => {
   it('does not create an overdue instant for a DST spring-forward gap', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-08T08:00:00.000Z'));
-    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+    (context.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
       okAsync({
         summary: {},
         profile: { timezone: 'America/New_York' },
         allergies: [],
         conditions: [],
         currentMedicines: [],
-      } as unknown as HealthContextResponseData),
+      } as unknown as ContextResponseData),
     );
     (
       reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
@@ -670,14 +670,14 @@ describe('MedicationCollectorService', () => {
     vi.useFakeTimers();
     // 01:30 occurs at both 05:30Z and 06:30Z; the collector chooses 05:30Z.
     vi.setSystemTime(new Date('2026-11-01T06:00:00.000Z'));
-    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+    (context.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
       okAsync({
         summary: {},
         profile: { timezone: 'America/New_York' },
         allergies: [],
         conditions: [],
         currentMedicines: [],
-      } as unknown as HealthContextResponseData),
+      } as unknown as ContextResponseData),
     );
     (
       reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
@@ -839,14 +839,14 @@ describe('MedicationCollectorService', () => {
     (
       reminders.listCurrentMedicines as ReturnType<typeof vi.fn>
     ).mockResolvedValue([]);
-    (healthContext.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
+    (context.getForUser as ReturnType<typeof vi.fn>).mockReturnValue(
       okAsync({
         summary: {},
         profile: { timezone: null },
         allergies: [],
         conditions: [],
         currentMedicines: [],
-      } as unknown as HealthContextResponseData),
+      } as unknown as ContextResponseData),
     );
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
@@ -854,7 +854,7 @@ describe('MedicationCollectorService', () => {
 
     expect(reminders.listActiveFacts).not.toHaveBeenCalled();
     expect(reminders.listCurrentMedicines).not.toHaveBeenCalled();
-    expect(healthContext.getForUser).not.toHaveBeenCalled();
+    expect(context.getForUser).not.toHaveBeenCalled();
     expect(doseLogReader.listFactsInRange).not.toHaveBeenCalled();
   });
 

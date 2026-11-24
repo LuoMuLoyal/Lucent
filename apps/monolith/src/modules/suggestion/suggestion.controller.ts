@@ -48,7 +48,7 @@ import type { SuggestionHistoryDataDto } from './dto/suggestion-history-query.dt
 
 @ApiTags('Today Suggestion')
 @ApiBearerAuth('access-token')
-@Controller('today/suggestions')
+@Controller('suggestion')
 export class SuggestionController {
   constructor(
     private readonly suggestionService: SuggestionService,
@@ -310,7 +310,7 @@ export class SuggestionController {
 }
 
 registerResponseSchema({
-  path: '/api/v1/user/today/suggestions',
+  path: '/api/v1/user/suggestion',
   method: 'get',
   componentName: 'TodaySuggestionsResponse',
   schema: todaySuggestionsDataSchema,
@@ -318,7 +318,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/today/suggestions/history',
+  path: '/api/v1/user/suggestion/history',
   method: 'get',
   componentName: 'SuggestionHistoryResponse',
   schema: suggestionHistoryDataSchema,
@@ -329,7 +329,7 @@ registerResponseSchema({
 // $ref;explain(201)与 explain/async(202)的响应体按稳定组件名登记,导出脚本
 // 支持对应状态码回写后自动生效。
 registerResponseSchema({
-  path: '/api/v1/user/today/suggestions/{id}/explain',
+  path: '/api/v1/user/suggestion/{id}/explain',
   method: 'post',
   componentName: 'SuggestionExplanationResponse',
   schema: suggestionExplanationDataSchema,
@@ -337,7 +337,7 @@ registerResponseSchema({
 });
 
 registerResponseSchema({
-  path: '/api/v1/user/today/suggestions/{id}/explain/async',
+  path: '/api/v1/user/suggestion/{id}/explain/async',
   method: 'post',
   componentName: 'SuggestionExplanationJobResponse',
   schema: suggestionExplanationAsyncResponseSchema,

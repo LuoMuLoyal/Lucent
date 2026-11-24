@@ -7,9 +7,9 @@ import {
 
 describe('admin resource registry', () => {
   it('registers every Prisma table exactly once', () => {
-    expect(ADMIN_RESOURCES).toHaveLength(51);
-    expect(new Set(ADMIN_RESOURCES.map((r) => r.key)).size).toBe(51);
-    expect(new Set(ADMIN_RESOURCES.map((r) => r.model)).size).toBe(51);
+    expect(ADMIN_RESOURCES).toHaveLength(50);
+    expect(new Set(ADMIN_RESOURCES.map((r) => r.key)).size).toBe(50);
+    expect(new Set(ADMIN_RESOURCES.map((r) => r.model)).size).toBe(50);
   });
 
   it('keeps sensitive columns out of the writable allowlist', () => {

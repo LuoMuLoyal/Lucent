@@ -3,7 +3,7 @@ import { suggestionItemSchema } from './suggestion-response.dto.js';
 
 /**
  * Standard Schema (zod 4) for the Today page suggestion cards returned by
- * `GET /today/suggestions`. Replaces the former `TodaySuggestionsDataDto`
+ * `GET /suggestion`. Replaces the former `TodaySuggestionsDataDto`
  * response class.
  */
 export const todaySuggestionsDataSchema = z.object({
@@ -47,7 +47,7 @@ export type TodaySuggestionsDataDto = z.infer<
 >;
 
 /**
- * Backwards-compatible response alias for `GET /today/suggestions`;
+ * Backwards-compatible response alias for `GET /suggestion`;
  * identical to {@link TodaySuggestionsDataDto} on the wire.
  */
 export type TodaySuggestionsResponseDto = TodaySuggestionsDataDto;

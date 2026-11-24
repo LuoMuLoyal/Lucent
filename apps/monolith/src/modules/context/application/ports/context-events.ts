@@ -1,5 +1,5 @@
 /**
- * Outbound port: announce `health-context.changed` after a successful write.
+ * Outbound port: announce `context.changed` after a successful write.
  *
  * `suggestion` and `assistant` drop derived state on this event. Best
  * effort: the write is already persisted, so a dropped publish only leaves stale
@@ -11,8 +11,8 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 
-export abstract class HealthContextEvents {
-  abstract healthContextChanged(
+export abstract class ContextEvents {
+  abstract contextChanged(
     userId: string,
   ): ResultAsync<void, DomainFailure>;
 }

@@ -6,14 +6,14 @@ import {
 } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for `PATCH /health-context/allergies/:id` body.
+ * Standard Schema (zod 4) for `PATCH /context/allergies/:id` body.
  *
  * Replaces the former class-validator DTO: every field is optional; fields
  * that map to nullable columns keep `.nullable()` so `null` still clears the
  * stored value (`severity`/`reaction`/`note`/`recordedAt`), while the others
  * reject `null` like their declared non-nullable types.
  */
-export const updateHealthContextAllergySchema = z
+export const updateContextAllergySchema = z
   .object({
     kind: z
       .enum(UserAllergyKind)
@@ -59,7 +59,7 @@ export const updateHealthContextAllergySchema = z
   })
   .strict();
 
-/** Strongly typed body of `PATCH /health-context/allergies/:id`. */
-export type UpdateHealthContextAllergyDto = z.infer<
-  typeof updateHealthContextAllergySchema
+/** Strongly typed body of `PATCH /context/allergies/:id`. */
+export type UpdateContextAllergyDto = z.infer<
+  typeof updateContextAllergySchema
 >;

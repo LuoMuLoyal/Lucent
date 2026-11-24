@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Standard Schema (zod 4) for the data payload of
- * `POST /today/suggestions/:id/explain`. Replaces the former
+ * `POST /suggestion/:id/explain`. Replaces the former
  * `SuggestionExplanationDataDto` response class.
  */
 export const suggestionExplanationDataSchema = z.object({

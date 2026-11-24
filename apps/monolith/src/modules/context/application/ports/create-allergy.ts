@@ -6,7 +6,7 @@ import {
 } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for `POST /health-context/allergies` body.
+ * Standard Schema (zod 4) for `POST /context/allergies` body.
  *
  * Replaces the former class-validator DTO:
  * - `@IsEnum` → `z.enum(...)` reusing the Prisma enum const object;
@@ -16,7 +16,7 @@ import {
  *   offset/local date-time strings keep passing;
  * - unknown keys are rejected (`.strict()`, forbidNonWhitelisted parity).
  */
-export const createHealthContextAllergySchema = z
+export const createContextAllergySchema = z
   .object({
     kind: z
       .enum(UserAllergyKind)
@@ -52,7 +52,7 @@ export const createHealthContextAllergySchema = z
   })
   .strict();
 
-/** Strongly typed body of `POST /health-context/allergies`. */
-export type CreateHealthContextAllergyDto = z.infer<
-  typeof createHealthContextAllergySchema
+/** Strongly typed body of `POST /context/allergies`. */
+export type CreateContextAllergyDto = z.infer<
+  typeof createContextAllergySchema
 >;

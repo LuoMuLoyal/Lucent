@@ -6,15 +6,15 @@ import {
   formatDateTime,
   parseDateOnly,
 } from '../../../../common/index.js';
-import type { HealthContextResponseData } from '../ports/health-context-resource.js';
+import type { ContextResponseData } from '../ports/context-resource.js';
 import {
   CORE_PROFILE_FIELDS,
-  type UserHealthContextRecord,
-} from '../../domain/health-context/health-context.types.js';
+  type UserContextRecord,
+} from '../../domain/context/types.js';
 
 @Injectable()
-export class UserHealthContextMapper {
-  toResponse(user: UserHealthContextRecord): HealthContextResponseData {
+export class UserContextMapper {
+  toResponse(user: UserContextRecord): ContextResponseData {
     const rawExtras =
       (user.profile?.extras as Record<string, unknown> | null) ?? {};
 

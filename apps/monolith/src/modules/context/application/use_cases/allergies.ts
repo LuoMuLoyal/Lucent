@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, UserAllergySeverity } from '#generated/prisma/client.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
 import { normalizeNullableText } from '../../../../common/index.js';
 import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
-import type { CreateHealthContextAllergyDto } from '../ports/create-allergy.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
+import type { CreateContextAllergyDto } from '../ports/create-allergy.js';
 
-import type { UpdateHealthContextAllergyDto } from '../ports/update-allergy.js';
+import type { UpdateContextAllergyDto } from '../ports/update-allergy.js';
 
 @Injectable()
 export class AllergyUseCases {
   constructor(
-    private readonly repository: UserHealthContextRepositoryPort,
-    private readonly ownershipService: UserHealthContextOwnership,
+    private readonly repository: UserContextRepositoryPort,
+    private readonly ownershipService: UserContextOwnership,
   ) {}
 
   create(
     userId: string,
-    dto: CreateHealthContextAllergyDto,
+    dto: CreateContextAllergyDto,
   ): ResultAsync<void, DomainFailure> {
     return this.ownershipService.ensureActiveUserExists(userId).andThen(() =>
       this.repository.createAllergy({
@@ -38,7 +38,7 @@ export class AllergyUseCases {
   update(
     userId: string,
     allergyId: string,
-    dto: UpdateHealthContextAllergyDto,
+    dto: UpdateContextAllergyDto,
   ): ResultAsync<void, DomainFailure> {
     return this.ownershipService
       .ensureAllergyOwnedByUser(userId, allergyId)

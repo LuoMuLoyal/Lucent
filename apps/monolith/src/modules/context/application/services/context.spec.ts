@@ -19,20 +19,20 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
 import { AllergyUseCases } from '../use_cases/allergies.js';
 
 import { ConditionUseCases } from '../use_cases/conditions.js';
 
-import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UserContextMapper } from '../read_models/mapper.js';
 
 import { MedicineUseCases } from '../use_cases/medicines.js';
 
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
 
 import { UpdateProfile } from '../use_cases/update-profile.js';
 
-import { UserHealthContextService } from './health-context.js';
+import { UserContextService } from './context.js';
 
 const mockUserBase = {
   id: 'user-uuid-1',
@@ -78,25 +78,25 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextService', () => {
-  let service: UserHealthContextService;
+describe('UserContextService', () => {
+  let service: UserContextService;
 
-  let repository: Mocked<UserHealthContextRepositoryPort>;
+  let repository: Mocked<UserContextRepositoryPort>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        UserHealthContextService,
-        UserHealthContextOwnership,
-        UserHealthContextMapper,
+        UserContextService,
+        UserContextOwnership,
+        UserContextMapper,
         UpdateProfile,
         AllergyUseCases,
         ConditionUseCases,
         MedicineUseCases,
         {
-          provide: UserHealthContextRepositoryPort,
+          provide: UserContextRepositoryPort,
           useValue: {
-            findUserWithHealthContext: vi.fn(),
+            findUserWithContext: vi.fn(),
             findActiveUserById: vi.fn(),
             findProfileByUserId: vi.fn(),
             upsertProfile: vi.fn().mockReturnValue(okAsync(undefined)),
@@ -123,10 +123,10 @@ describe('UserHealthContextService', () => {
       ],
     }).compile();
 
-    service = module.get(UserHealthContextService);
+    service = module.get(UserContextService);
     repository = module.get(
-      UserHealthContextRepositoryPort,
-    ) as unknown as Mocked<UserHealthContextRepositoryPort>;
+      UserContextRepositoryPort,
+    ) as unknown as Mocked<UserContextRepositoryPort>;
   });
 
   afterEach(() => {
@@ -135,7 +135,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should return RESOURCE_NOT_FOUND when the active user does not exist', async () => {
-    repository.findUserWithHealthContext.mockResolvedValue(null);
+    repository.findUserWithContext.mockResolvedValue(null);
 
     await expect(
       collectResult(service.getForUser('missing-user')),
@@ -146,7 +146,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should return a stable empty profile shape when the relation is missing', async () => {
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -156,7 +156,7 @@ describe('UserHealthContextService', () => {
 
     const result = await unwrapOk(service.getForUser(mockUserBase.id));
 
-    expect(repository.findUserWithHealthContext).toHaveBeenCalledWith(
+    expect(repository.findUserWithContext).toHaveBeenCalledWith(
       mockUserBase.id,
     );
     expect(result.profile).toEqual({
@@ -193,7 +193,7 @@ describe('UserHealthContextService', () => {
   it('should derive summary counts, age, and formatted dates from stored records', async () => {
     vi.useFakeTimers().setSystemTime(new Date('2026-05-30T12:00:00Z'));
 
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -345,7 +345,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -419,7 +419,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -475,7 +475,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -519,7 +519,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -561,7 +561,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -601,7 +601,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -655,7 +655,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: null,
       allergies: [
@@ -707,7 +707,7 @@ describe('UserHealthContextService', () => {
     repository.findAllergyById.mockResolvedValue({
       userId: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [
@@ -757,7 +757,7 @@ describe('UserHealthContextService', () => {
     repository.findAllergyById.mockResolvedValue({
       userId: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -808,7 +808,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -855,7 +855,7 @@ describe('UserHealthContextService', () => {
     repository.findConditionById.mockResolvedValue({
       userId: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -906,7 +906,7 @@ describe('UserHealthContextService', () => {
     repository.findConditionById.mockResolvedValueOnce({
       userId: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -975,7 +975,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -1038,7 +1038,7 @@ describe('UserHealthContextService', () => {
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
     });
-    repository.findUserWithHealthContext.mockResolvedValueOnce({
+    repository.findUserWithContext.mockResolvedValueOnce({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -1091,7 +1091,7 @@ describe('UserHealthContextService', () => {
       userId: mockUserBase.id,
       endedAt: null,
     });
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -1146,7 +1146,7 @@ describe('UserHealthContextService', () => {
       userId: mockUserBase.id,
       endedAt: null,
     });
-    repository.findUserWithHealthContext.mockResolvedValue({
+    repository.findUserWithContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],

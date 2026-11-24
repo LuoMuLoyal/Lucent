@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { UserConditionStatus } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for `POST /health-context/conditions` body.
+ * Standard Schema (zod 4) for `POST /context/conditions` body.
  *
  * Replaces the former class-validator DTO:
  * - `@IsNotEmpty` + `@MaxLength` → `.min/.max`;
@@ -11,7 +11,7 @@ import { UserConditionStatus } from '#generated/prisma/client.js';
  * - `@IsEnum` → `z.enum(...)` reusing the Prisma enum const object;
  * - unknown keys are rejected (`.strict()`, forbidNonWhitelisted parity).
  */
-export const createHealthContextConditionSchema = z
+export const createContextConditionSchema = z
   .object({
     label: z
       .string()
@@ -40,7 +40,7 @@ export const createHealthContextConditionSchema = z
   })
   .strict();
 
-/** Strongly typed body of `POST /health-context/conditions`. */
-export type CreateHealthContextConditionDto = z.infer<
-  typeof createHealthContextConditionSchema
+/** Strongly typed body of `POST /context/conditions`. */
+export type CreateContextConditionDto = z.infer<
+  typeof createContextConditionSchema
 >;

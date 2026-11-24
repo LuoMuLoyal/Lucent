@@ -17,7 +17,7 @@ const REASON_CODES: Readonly<Record<string, MaterializationReasonCode>> = {
   'daily-record.changed': 'daily_record_changed',
   'dose-log.changed': 'dose_log_changed',
   'reminder.changed': 'reminder_changed',
-  'health-context.changed': 'health_context_changed',
+  'context.changed': 'context_changed',
   'settings.changed': 'settings_changed',
   'health-event.changed': 'health_event_changed',
 };
@@ -25,7 +25,7 @@ const REASON_CODES: Readonly<Record<string, MaterializationReasonCode>> = {
 /** Events whose change also invalidates the per-user baseline cache. */
 const BASELINE_INVALIDATING_EVENTS: ReadonlySet<string> = new Set([
   'reminder.changed',
-  'health-context.changed',
+  'context.changed',
   'settings.changed',
 ]);
 
@@ -89,7 +89,7 @@ export class RecomputeEventTriggerService {
       typeof payloadDate === 'string' && payloadDate.length > 0
         ? payloadDate
         : null;
-    // Events without a payload date (reminder/health-context/settings) affect
+    // Events without a payload date (reminder/context/settings) affect
     // the user's local today, so resolve it once in their timezone.
     const localDate = explicitDate ?? (await this.todayForUser(userId));
 

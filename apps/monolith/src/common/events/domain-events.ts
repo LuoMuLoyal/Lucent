@@ -28,7 +28,7 @@ export const DOSE_LOG_CHANGED = 'dose-log.changed';
 export const REMINDER_CHANGED = 'reminder.changed';
 
 /** Emitted when the user health context (profile, allergy, condition, medicine) changes. */
-export const HEALTH_CONTEXT_CHANGED = 'health-context.changed';
+export const HEALTH_CONTEXT_CHANGED = 'context.changed';
 
 /** Emitted when user settings are updated. */
 export const SETTINGS_CHANGED = 'settings.changed';
@@ -67,7 +67,7 @@ export interface ReminderChangedPayload {
   userId: string;
 }
 
-export interface HealthContextChangedPayload {
+export interface ContextChangedPayload {
   userId: string;
 }
 

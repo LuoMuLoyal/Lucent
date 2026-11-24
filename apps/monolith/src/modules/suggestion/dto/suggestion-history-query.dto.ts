@@ -9,7 +9,7 @@ import {
 
 /**
  * Standard Schema (zod 4) for a single suggestion history item returned by
- * `GET /today/suggestions/history`. Replaces the former
+ * `GET /suggestion/history`. Replaces the former
  * `SuggestionHistoryItemDto` response class.
  */
 export const suggestionHistoryItemSchema = z.object({
@@ -35,7 +35,7 @@ export type SuggestionHistoryItemDto = z.infer<
   typeof suggestionHistoryItemSchema
 >;
 
-/** Query parameters for GET /today/suggestions/history. */
+/** Query parameters for GET /suggestion/history. */
 export class SuggestionHistoryQueryDto {
   @ApiProperty({
     description: 'Start date (YYYY-MM-DD). Defaults to 30 days ago.',
@@ -78,7 +78,7 @@ export class SuggestionHistoryQueryDto {
 
 /**
  * Standard Schema (zod 4) for the data payload of
- * `GET /today/suggestions/history`. Replaces the former
+ * `GET /suggestion/history`. Replaces the former
  * `SuggestionHistoryDataDto` response class.
  */
 export const suggestionHistoryDataSchema = z.object({
@@ -99,7 +99,7 @@ export type SuggestionHistoryDataDto = z.infer<
 >;
 
 /**
- * Backwards-compatible response alias for `GET /today/suggestions/history`;
+ * Backwards-compatible response alias for `GET /suggestion/history`;
  * identical to {@link SuggestionHistoryDataDto} on the wire.
  */
 export type SuggestionHistoryResponseDto = SuggestionHistoryDataDto;

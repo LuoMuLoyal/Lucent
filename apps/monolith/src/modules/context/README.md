@@ -11,10 +11,10 @@ CRUD，不含通知偏好（notification）与设置开关（settings）。
 
 ## Endpoints（挂 `/user` 前缀，事实源 = openapi.json）
 
-- `GET /api/v1/user/health-context` — 返回聚合资源：`summary`
+- `GET /api/v1/user/context` — 返回聚合资源：`summary`
   （age、onboardingCompleted、各类计数、missingCoreProfileFields）、
   `profile`、`allergies`、`conditions`、`currentMedicines`。
-- `PATCH /api/v1/user/health-context/profile` — 更新档案（locale/timezone/
+- `PATCH /api/v1/user/context/profile` — 更新档案（locale/timezone/
   unitSystem/activityLevel/birthDate/sexAtBirth/heightCm/dietaryPreferences/
   weightKg/onboardingCompleted；bloodType 与紧急联系人已移除）。`onboardingCompleted`
   是入参，出参只有 `profile.onboardingCompletedAt`：置 `true` 时仅在缺失时补
@@ -25,10 +25,10 @@ CRUD，不含通知偏好（notification）与设置开关（settings）。
   落 `status='resolved'` + `resolvedAt=今天`；DELETE current-medicine 落
   `isCurrent=false`，`endedAt` 已有值则保留、否则补今天。跨用户归属返回 403，
   不存在返回 404。每个写端点都返回更新后的完整聚合资源，并在成功写入后发
-  `health-context.changed`（best-effort，失败只记日志，不回滚写入，也不会让
+  `context.changed`（best-effort，失败只记日志，不回滚写入，也不会让
   写请求失败）。
 - 集合只返回「活跃」子集：allergies 过滤 `isActive=true`、currentMedicines
-  过滤 `isCurrent=true`（`types/health-context.types.ts` 的
+  过滤 `isCurrent=true`（`types/types.ts` 的
   `userHealthContextInclude`），conditions 不过滤——已解决病史仍会随聚合返回。
 
 ## Profile extras 扩展字段（JSONB 提升）
@@ -47,14 +47,14 @@ CRUD，不含通知偏好（notification）与设置开关（settings）。
 
 ## 内部结构（services/）
 
-- `health-context.service.ts` — 聚合读取与写入口编排（实现
+- `services/context.ts` — 聚合读取与写入口编排（实现
   `IUserHealthContextReader`；每次写成功后 `getForUser` 回读，保证响应是聚合）。
 - `writes/profile-write.service.ts` — 档案 upsert + extras 深合并。
 - `writes/allergy-write.service.ts` / `condition-write.service.ts` /
   `medicine-write.service.ts` — 三类记录写服务。
 - `ownership.service.ts` — 活跃用户存在性与记录归属判定。
 - `mapper.service.ts` — Prisma 行 → DTO（date-only 格式化、age 计算、summary）。
-- `repositories/health-context.repository.ts` — 经 `UserHealthContextRepositoryPort`
+- `persistence/context.ts` — 经 `UserHealthContextRepositoryPort`
   注册（useExisting）。
 
 ## Dependencies
@@ -68,6 +68,6 @@ CRUD，不含通知偏好（notification）与设置开关（settings）。
 
 ## Tests
 
-`context.controller.spec.ts`、`services/health-context.service.spec.ts`、
+`context.controller.spec.ts`、`services/context.spec.ts`、
 `services/ownership.service.spec.ts`、`services/mapper.service.spec.ts`、
-`services/writes/*.spec.ts`、`repositories/health-context.repository.spec.ts`。
+`services/writes/*.spec.ts`、`persistence/context.spec.ts`。

@@ -14,7 +14,7 @@ import {
   MedicineReminderReaderPort,
   type MedicineReminderFact,
 } from '../../../../reminder/index.js';
-import { IUserHealthContextReader } from '../../../../context/index.js';
+import { IUserContextReader } from '../../../../context/index.js';
 import { MISSED_DOSE_GRACE_MINUTES } from '../../../domain/rule/thresholds.js';
 import type { SuggestionSignal } from '../../../domain/signal/signal.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
@@ -41,7 +41,7 @@ export class MedicationCollectorService {
   constructor(
     private readonly reminders: MedicineReminderReaderPort,
     private readonly doseLogReader: MedicineDoseLogReaderPort,
-    private readonly healthContext: IUserHealthContextReader,
+    private readonly context: IUserContextReader,
     private readonly timeResolver: MedicationTimeResolverService,
     private readonly notifyLedger: NotifyLedgerPort,
   ) {}
@@ -55,16 +55,16 @@ export class MedicationCollectorService {
     const weekday = day.getUTCDay();
     const currentTime = now();
 
-    const [reminders, doseLogs, currentMedicines, healthContext] =
+    const [reminders, doseLogs, currentMedicines, context] =
       await Promise.all([
         this.reminders.listActiveFacts(userId),
         this.doseLogReader.listFactsInRange(userId, day, day),
         this.reminders.listCurrentMedicines(userId),
-        this.healthContext.getForUser(userId),
+        this.context.getForUser(userId),
       ]);
 
     const timezone = this.timeResolver.normalizeTimezone(
-      healthContext.isOk() ? healthContext.value.profile.timezone : null,
+      context.isOk() ? context.value.profile.timezone : null,
     );
     const remindersForDate = reminders.filter((reminder) =>
       this.matchesDate(reminder, day, weekday),

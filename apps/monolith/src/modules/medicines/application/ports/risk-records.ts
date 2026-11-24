@@ -59,7 +59,7 @@ export interface CurrentMedicineRow {
   healthEventIds: string[];
 }
 
-export interface UserHealthContext {
+export interface UserContext {
   allergies: UserAllergyRow[];
   conditions: UserConditionRow[];
   currentMedicines: CurrentMedicineRow[];
@@ -85,10 +85,10 @@ export interface MedicineRiskRecordsPort {
    * related-record count per list (allergies, conditions, medicines) so
    * extreme data volumes cannot blow up query latency.
    */
-  loadHealthContext(
+  loadContext(
     userId: string,
     limit: number,
-  ): Promise<UserHealthContext | null>;
+  ): Promise<UserContext | null>;
 
   /** Active medicine reminders ordered by scheduled time. */
   listReminders(userId: string): Promise<MedicineReminderRow[]>;

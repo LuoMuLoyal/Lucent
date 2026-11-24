@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { UserConditionStatus } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for `PATCH /health-context/conditions/:id` body.
+ * Standard Schema (zod 4) for `PATCH /context/conditions/:id` body.
  *
  * Replaces the former class-validator DTO: every field is optional; fields
  * mapped to nullable columns keep `.nullable()` so `null` clears the stored
  * value (`diagnosedAt`/`note`), while non-nullable columns reject `null`.
  */
-export const updateHealthContextConditionSchema = z
+export const updateContextConditionSchema = z
   .object({
     label: z
       .string()
@@ -38,7 +38,7 @@ export const updateHealthContextConditionSchema = z
   })
   .strict();
 
-/** Strongly typed body of `PATCH /health-context/conditions/:id`. */
-export type UpdateHealthContextConditionDto = z.infer<
-  typeof updateHealthContextConditionSchema
+/** Strongly typed body of `PATCH /context/conditions/:id`. */
+export type UpdateContextConditionDto = z.infer<
+  typeof updateContextConditionSchema
 >;

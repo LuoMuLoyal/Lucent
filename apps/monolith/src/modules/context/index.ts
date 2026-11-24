@@ -1,3 +1,3 @@
-export { UserHealthContextService } from './application/services/health-context.js';
-export { IUserHealthContextReader } from './application/ports/health-context-reader.js';
-export type { HealthContextResponseData } from './application/ports/health-context-resource.js';
+export { UserContextService } from './application/services/context.js';
+export { IUserContextReader } from './application/ports/context-reader.js';
+export type { ContextResponseData } from './application/ports/context-resource.js';

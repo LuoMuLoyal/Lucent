@@ -8,9 +8,9 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 import { UpdateProfile } from './update-profile.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
-import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserContextMapper } from '../read_models/mapper.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -24,28 +24,28 @@ async function collectResult<T>(
 describe('UpdateProfile', () => {
   let service: UpdateProfile;
 
-  let repository: Mocked<UserHealthContextRepositoryPort>;
+  let repository: Mocked<UserContextRepositoryPort>;
   let ensureActive: vi.Mock;
 
   beforeEach(async () => {
     repository = {
       findProfileByUserId: vi.fn().mockResolvedValue(null),
       upsertProfile: vi.fn().mockReturnValue(okAsync(undefined)),
-    } as unknown as Mocked<UserHealthContextRepositoryPort>;
+    } as unknown as Mocked<UserContextRepositoryPort>;
     ensureActive = vi.fn().mockReturnValue(okAsync(undefined));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UpdateProfile,
-        { provide: UserHealthContextRepositoryPort, useValue: repository },
+        { provide: UserContextRepositoryPort, useValue: repository },
         {
-          provide: UserHealthContextOwnership,
+          provide: UserContextOwnership,
           useValue: {
             ensureActiveUserExists: ensureActive,
           },
         },
         {
-          provide: UserHealthContextMapper,
+          provide: UserContextMapper,
           useValue: {
             dateOnlyStringToUtcDate: vi
               .fn()

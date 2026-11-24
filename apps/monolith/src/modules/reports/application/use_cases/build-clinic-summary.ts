@@ -12,8 +12,8 @@ import {
   ProductEventSurface,
 } from '#generated/prisma/client.js';
 import {
-  IUserHealthContextReader,
-  type HealthContextResponseData,
+  IUserContextReader,
+  type ContextResponseData,
 } from '../../../context/index.js';
 import {
   CLINIC_SUMMARY_SHARES,
@@ -142,7 +142,7 @@ export class ClinicSummaryService {
     private readonly shares: ClinicSummaryShares,
     @Inject(CLINIC_SUMMARY_SOURCES)
     private readonly sources: ClinicSummarySources,
-    private readonly healthContext: IUserHealthContextReader,
+    private readonly context: IUserContextReader,
     private readonly dailyRecordReader: DailyRecordReaderPort,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
@@ -157,11 +157,11 @@ export class ClinicSummaryService {
     options: ClinicSummaryOptions = {},
   ): Promise<ClinicSummaryDto> {
     // Health data (allergies/conditions/medicines/profile) comes from its owner
-    // through `IUserHealthContextReader`; the nickname is `user`'s own column.
+    // through `IUserContextReader`; the nickname is `user`'s own column.
     // The previous implementation joined all four tables here, which made
     // `reports` a second reader of another context's schema.
     const [health, nickname] = await Promise.all([
-      this.unwrapHealthContext(userId),
+      this.unwrapContext(userId),
       this.sources.findDisplayName(userId),
     ]);
     const user = {
@@ -355,7 +355,7 @@ export class ClinicSummaryService {
   }
 
   /**
-   * Unwraps the health-context `ResultAsync` into a value or a domain failure.
+   * Unwraps the context `ResultAsync` into a value or a domain failure.
    *
    * `getForUser` returns `ResultAsync` because "this user has no health context
    * row" is a business outcome (`not_found`), not an exception. The summary is
@@ -364,10 +364,10 @@ export class ClinicSummaryService {
    * silently treated as "no allergies, no conditions, no medicines" — the
    * latter would print a clinically empty summary that looks complete.
    */
-  private async unwrapHealthContext(
+  private async unwrapContext(
     userId: string,
-  ): Promise<HealthContextResponseData> {
-    const result = await this.healthContext.getForUser(userId);
+  ): Promise<ContextResponseData> {
+    const result = await this.context.getForUser(userId);
     if (result.isErr()) {
       throw new DomainFailureException(result.error);
     }

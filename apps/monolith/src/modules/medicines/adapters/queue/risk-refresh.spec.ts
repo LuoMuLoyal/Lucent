@@ -22,7 +22,7 @@ function event(
 ): DomainEventJobData {
   return {
     eventId: 'evt-1',
-    eventType: 'health-context.changed',
+    eventType: 'context.changed',
     version: 1,
     occurredAt: '2026-10-24T00:00:00.000Z',
     userId: 'u1',

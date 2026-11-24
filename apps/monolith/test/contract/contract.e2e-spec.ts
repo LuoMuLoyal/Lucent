@@ -321,10 +321,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/health-context — contract', () => {
-    it('should match HealthContextResponse shape', async () => {
+  describe('GET /api/v1/user/context — contract', () => {
+    it('should match ContextResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/health-context')
+        .get('/api/v1/user/context')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -332,7 +332,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/HealthContextResponse',
+        '#/components/schemas/ContextResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
@@ -442,10 +442,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/today/suggestions — contract', () => {
+  describe('GET /api/v1/user/suggestion — contract', () => {
     it('should match TodaySuggestionsResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/today/suggestions')
+        .get('/api/v1/user/suggestion')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -546,10 +546,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/today/suggestions/history — contract', () => {
+  describe('GET /api/v1/user/suggestion/history — contract', () => {
     it('should match suggestion history shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/today/suggestions/history')
+        .get('/api/v1/user/suggestion/history')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -600,10 +600,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('POST /api/v1/user/health-context/allergies — response contract', () => {
+  describe('POST /api/v1/user/context/allergies — response contract', () => {
     it('should return updated allergies list in envelope', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/allergies')
+        .post('/api/v1/user/context/allergies')
         .set('Authorization', bearer(accessToken))
         .send({ kind: 'drug', label: 'ContractAllergy', severity: 'mild' })
         .expect(201);

@@ -224,10 +224,10 @@ describe('Security: Input Fuzzing (e2e)', () => {
     });
   });
 
-  describe('PATCH /api/v1/user/health-context/allergies/:id — fuzzing', () => {
+  describe('PATCH /api/v1/user/context/allergies/:id — fuzzing', () => {
     it('should reject invalid UUID format', async () => {
       const res = await request(app.getHttpServer())
-        .patch('/api/v1/user/health-context/allergies/not-a-uuid')
+        .patch('/api/v1/user/context/allergies/not-a-uuid')
         .set('Authorization', bearer(accessToken))
         .send({ label: 'Test' })
         .expect(400);
@@ -237,7 +237,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
 
     it('should reject invalid allergy severity enum', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/allergies')
+        .post('/api/v1/user/context/allergies')
         .set('Authorization', bearer(accessToken))
         .send({
           kind: 'INVALID_KIND',

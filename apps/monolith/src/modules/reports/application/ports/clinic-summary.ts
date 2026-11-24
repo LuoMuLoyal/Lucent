@@ -81,7 +81,7 @@ export const CLINIC_SUMMARY_SOURCES = Symbol('ClinicSummarySources');
  *
  * Everything *health-related* (allergies, conditions, current medicines,
  * birth date, sex at birth) is deliberately **not** here: it belongs to
- * `context` and is read through its `IUserHealthContextReader`
+ * `context` and is read through its `IUserContextReader`
  * port. Reaching into `userAllergy` / `userCondition` / `userCurrentMedicine`
  * from `reports` would make this context a second writer-shaped owner of
  * another context's tables — invisible to the dependency rules, since a Prisma

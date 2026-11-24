@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MedicineSource } from '#generated/prisma/client.js';
 
 /**
- * Standard Schema (zod 4) for `PATCH /health-context/current-medicines/:id`
+ * Standard Schema (zod 4) for `PATCH /context/current-medicines/:id`
  * body.
  *
  * Replaces the former class-validator DTO: every field is optional; fields
@@ -79,7 +79,7 @@ export const updateCurrentMedicineSchema = z
   })
   .strict();
 
-/** Strongly typed body of `PATCH /health-context/current-medicines/:id`. */
+/** Strongly typed body of `PATCH /context/current-medicines/:id`. */
 export type UpdateCurrentMedicineDto = z.infer<
   typeof updateCurrentMedicineSchema
 >;

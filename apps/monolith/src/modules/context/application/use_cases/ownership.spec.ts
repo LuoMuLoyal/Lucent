@@ -4,8 +4,8 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -16,10 +16,10 @@ async function collectResult<T>(
   );
 }
 
-describe('UserHealthContextOwnership', () => {
-  let service: UserHealthContextOwnership;
+describe('UserContextOwnership', () => {
+  let service: UserContextOwnership;
 
-  let repository: Mocked<UserHealthContextRepositoryPort>;
+  let repository: Mocked<UserContextRepositoryPort>;
 
   beforeEach(async () => {
     repository = {
@@ -27,16 +27,16 @@ describe('UserHealthContextOwnership', () => {
       findAllergyById: vi.fn(),
       findConditionById: vi.fn(),
       findCurrentMedicineById: vi.fn(),
-    } as unknown as Mocked<UserHealthContextRepositoryPort>;
+    } as unknown as Mocked<UserContextRepositoryPort>;
 
     const module = await Test.createTestingModule({
       providers: [
-        UserHealthContextOwnership,
-        { provide: UserHealthContextRepositoryPort, useValue: repository },
+        UserContextOwnership,
+        { provide: UserContextRepositoryPort, useValue: repository },
       ],
     }).compile();
 
-    service = module.get(UserHealthContextOwnership);
+    service = module.get(UserContextOwnership);
   });
 
   describe('ensureActiveUserExists', () => {

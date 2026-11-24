@@ -1,4 +1,4 @@
-import type { HealthContextResponseData } from '../ports/health-context-resource.js';
+import type { ContextResponseData } from '../ports/context-resource.js';
 import type {
   DomainFailure,
   ResultAsync,
@@ -7,15 +7,15 @@ import type {
 /**
  * Read-only port for user health context.  Consumed by the assistant module
  * to read a user's health profile (allergies, conditions, current medicines)
- * without depending on the full UserHealthContextService API (which also
+ * without depending on the full UserContextService API (which also
  * includes write methods for allergies, conditions, medicines, and event
  * emission).
  *
  * Registered in ContextModule via:
- * `{ provide: IUserHealthContextReader, useExisting: UserHealthContextService }`
+ * `{ provide: IUserContextReader, useExisting: UserContextService }`
  */
-export abstract class IUserHealthContextReader {
+export abstract class IUserContextReader {
   abstract getForUser(
     userId: string,
-  ): ResultAsync<HealthContextResponseData, DomainFailure>;
+  ): ResultAsync<ContextResponseData, DomainFailure>;
 }

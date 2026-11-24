@@ -1,52 +1,52 @@
 import { Module } from '@nestjs/common';
 
 import { ContextController } from './adapters/http/context.controller.js';
-import { PublishedHealthContextEvents } from './adapters/events/health-context-changed.js';
-import { UserHealthContextService } from './application/services/health-context.js';
-import { HealthContextEvents } from './application/ports/health-context-events.js';
-import { IUserHealthContextReader } from './application/ports/health-context-reader.js';
-import { UserHealthContextMapper } from './application/read_models/mapper.js';
+import { PublishedContextEvents } from './adapters/events/context-changed.js';
+import { UserContextService } from './application/services/context.js';
+import { ContextEvents } from './application/ports/context-events.js';
+import { IUserContextReader } from './application/ports/context-reader.js';
+import { UserContextMapper } from './application/read_models/mapper.js';
 import { AllergyUseCases } from './application/use_cases/allergies.js';
 import { ConditionUseCases } from './application/use_cases/conditions.js';
 import { MedicineUseCases } from './application/use_cases/medicines.js';
 import { UpdateProfile } from './application/use_cases/update-profile.js';
-import { UserHealthContextOwnership } from './application/use_cases/ownership.js';
-import { UserHealthContextRepositoryPort } from './application/ports/health-context-repository.js';
-import { PrismaUserHealthContext } from './infrastructure/persistence/health-context.js';
+import { UserContextOwnership } from './application/use_cases/ownership.js';
+import { UserContextRepositoryPort } from './application/ports/context-repository.js';
+import { PrismaUserContext } from './infrastructure/persistence/context.js';
 
 /**
  * User Profile context — health profile, allergies, conditions, current medicines
  * (ADR-0024).
  *
- * `IUserHealthContextReader` is the published read port: `assistant` and the
+ * `IUserContextReader` is the published read port: `assistant` and the
  * `suggestion` profile collector inject it by that token. It stays exported
  * from the barrel under its historical name.
  */
 @Module({
   controllers: [ContextController],
   providers: [
-    PrismaUserHealthContext,
+    PrismaUserContext,
     {
-      provide: UserHealthContextRepositoryPort,
-      useExisting: PrismaUserHealthContext,
+      provide: UserContextRepositoryPort,
+      useExisting: PrismaUserContext,
     },
-    PublishedHealthContextEvents,
+    PublishedContextEvents,
     {
-      provide: HealthContextEvents,
-      useExisting: PublishedHealthContextEvents,
+      provide: ContextEvents,
+      useExisting: PublishedContextEvents,
     },
-    UserHealthContextOwnership,
-    UserHealthContextMapper,
+    UserContextOwnership,
+    UserContextMapper,
     UpdateProfile,
     AllergyUseCases,
     ConditionUseCases,
     MedicineUseCases,
-    UserHealthContextService,
+    UserContextService,
     {
-      provide: IUserHealthContextReader,
-      useExisting: UserHealthContextService,
+      provide: IUserContextReader,
+      useExisting: UserContextService,
     },
   ],
-  exports: [UserHealthContextService, IUserHealthContextReader],
+  exports: [UserContextService, IUserContextReader],
 })
 export class ContextModule {}

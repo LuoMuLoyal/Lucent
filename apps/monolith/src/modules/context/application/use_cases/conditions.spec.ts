@@ -5,9 +5,9 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
-import { UserHealthContextOwnership } from '../../application/use_cases/ownership.js';
-import { UserHealthContextMapper } from '../read_models/mapper.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
+import { UserContextOwnership } from '../../application/use_cases/ownership.js';
+import { UserContextMapper } from '../read_models/mapper.js';
 import { ConditionUseCases } from './conditions.js';
 
 async function collectResult<T>(
@@ -22,7 +22,7 @@ async function collectResult<T>(
 describe('ConditionUseCases', () => {
   let service: ConditionUseCases;
 
-  let repository: Mocked<UserHealthContextRepositoryPort>;
+  let repository: Mocked<UserContextRepositoryPort>;
   let ensureActive: vi.Mock;
   let ensureOwned: vi.Mock;
 
@@ -32,22 +32,22 @@ describe('ConditionUseCases', () => {
       updateCondition: vi.fn().mockReturnValue(okAsync(undefined)),
       softDeleteCondition: vi.fn().mockReturnValue(okAsync(undefined)),
       findConditionById: vi.fn(),
-    } as unknown as Mocked<UserHealthContextRepositoryPort>;
+    } as unknown as Mocked<UserContextRepositoryPort>;
     ensureActive = vi.fn().mockReturnValue(okAsync(undefined));
     ensureOwned = vi.fn().mockReturnValue(okAsync(undefined));
     const module = await Test.createTestingModule({
       providers: [
         ConditionUseCases,
-        { provide: UserHealthContextRepositoryPort, useValue: repository },
+        { provide: UserContextRepositoryPort, useValue: repository },
         {
-          provide: UserHealthContextOwnership,
+          provide: UserContextOwnership,
           useValue: {
             ensureActiveUserExists: ensureActive,
             ensureConditionOwnedByUser: ensureOwned,
           },
         },
         {
-          provide: UserHealthContextMapper,
+          provide: UserContextMapper,
           useValue: {
             dateOnlyStringToUtcDate: vi.fn((v: any) =>
               v ? new Date(v) : null,

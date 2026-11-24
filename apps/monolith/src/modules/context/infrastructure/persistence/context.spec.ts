@@ -5,7 +5,7 @@ import type {
   DomainFailure,
   ResultAsync,
 } from '../../../../common/result/index.js';
-import { PrismaUserHealthContext } from './health-context.js';
+import { PrismaUserContext } from './context.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
@@ -25,8 +25,8 @@ async function collectResult<T>(
   );
 }
 
-describe('PrismaUserHealthContext', () => {
-  let repository: PrismaUserHealthContext;
+describe('PrismaUserContext', () => {
+  let repository: PrismaUserContext;
   let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
@@ -53,14 +53,14 @@ describe('PrismaUserHealthContext', () => {
       },
     } as unknown as DeepMocked<PrismaService>;
 
-    repository = new PrismaUserHealthContext(prisma);
+    repository = new PrismaUserContext(prisma);
   });
 
-  describe('findUserWithHealthContext', () => {
+  describe('findUserWithContext', () => {
     it('queries user with health context include', async () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'user-1' } as never);
 
-      const result = await repository.findUserWithHealthContext('user-1');
+      const result = await repository.findUserWithContext('user-1');
 
       expect(result).toMatchObject({ id: 'user-1' });
       const call = prisma.user.findFirst.mock.calls[0]?.[0];
@@ -69,7 +69,7 @@ describe('PrismaUserHealthContext', () => {
 
     it('returns null when not found', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
-      expect(await repository.findUserWithHealthContext('missing')).toBeNull();
+      expect(await repository.findUserWithContext('missing')).toBeNull();
     });
   });
 

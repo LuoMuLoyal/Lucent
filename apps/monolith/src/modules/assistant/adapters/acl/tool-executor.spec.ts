@@ -68,7 +68,7 @@ describe('AssistantToolService', () => {
       listRecentTodaySummaries: vi.fn(),
       listRecentReportSummaries: vi.fn(),
     };
-    const userHealthContextService = {
+    const userContextService = {
       getForUser: vi.fn(),
     };
     const medicineRemindersService = {
@@ -94,7 +94,7 @@ describe('AssistantToolService', () => {
     const readService = new AssistantToolReadService(
       {} as never,
       aiSummaryHistoryService as never,
-      userHealthContextService as never,
+      userContextService as never,
       medicineRemindersService as never,
       userSettingsService as never,
       recordQueryService,
@@ -229,7 +229,7 @@ describe('AssistantToolService', () => {
         metricsService,
         recordQueryService,
         settingsProposalService,
-        userHealthContextService,
+        userContextService,
         userSettingsService,
       },
     };

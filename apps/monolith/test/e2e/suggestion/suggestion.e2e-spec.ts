@@ -14,7 +14,7 @@ import type {
   TestUser,
 } from '../../helpers/e2e-helpers.js';
 
-const BASE_PATH = '/api/v1/user/today/suggestions';
+const BASE_PATH = '/api/v1/user/suggestion';
 
 describe('Today Suggestion API (e2e)', () => {
   let ctx: E2eTestContext;
@@ -41,7 +41,7 @@ describe('Today Suggestion API (e2e)', () => {
     await app.close();
   });
 
-  describe('GET /today/suggestions', () => {
+  describe('GET /suggestion', () => {
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer()).get(BASE_PATH).expect(401);
     });
@@ -76,7 +76,7 @@ describe('Today Suggestion API (e2e)', () => {
     });
   });
 
-  describe('GET /today/suggestions/history', () => {
+  describe('GET /suggestion/history', () => {
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
         .get(`${BASE_PATH}/history`)
@@ -116,7 +116,7 @@ describe('Today Suggestion API (e2e)', () => {
     });
   });
 
-  describe('POST /today/suggestions/:id/feedback', () => {
+  describe('POST /suggestion/:id/feedback', () => {
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
         .post(`${BASE_PATH}/fake-id/feedback`)
@@ -153,7 +153,7 @@ describe('Today Suggestion API (e2e)', () => {
     });
   });
 
-  describe('POST /today/suggestions/:id/explain', () => {
+  describe('POST /suggestion/:id/explain', () => {
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
         .post(`${BASE_PATH}/fake-id/explain`)

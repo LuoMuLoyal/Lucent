@@ -122,7 +122,7 @@ describe('SuggestionController', () => {
     vi.restoreAllMocks();
   });
 
-  describe('GET /today/suggestions', () => {
+  describe('GET /suggestion', () => {
     it('returns suggestions resource with no excludeIds', async () => {
       suggestionService.readCurrent.mockResolvedValue(
         mockSuggestionsData as never,
@@ -170,7 +170,7 @@ describe('SuggestionController', () => {
     });
   });
 
-  describe('POST /today/suggestions/:id/feedback', () => {
+  describe('POST /suggestion/:id/feedback', () => {
     it('records feedback and returns a resource', async () => {
       recordFeedback.recordFeedback.mockReturnValue(
         okAsync(mockFeedbackResult),
@@ -223,7 +223,7 @@ describe('SuggestionController', () => {
     });
   });
 
-  describe('POST /today/suggestions/:id/explain', () => {
+  describe('POST /suggestion/:id/explain', () => {
     it('returns explanation resource with language header', async () => {
       explanationService.explain.mockReturnValue(
         okAsync(mockExplanationResult),
@@ -263,7 +263,7 @@ describe('SuggestionController', () => {
     });
   });
 
-  describe('POST /today/suggestions/:id/explain/async', () => {
+  describe('POST /suggestion/:id/explain/async', () => {
     const queueAccess = () =>
       (
         controller as unknown as {
@@ -333,7 +333,7 @@ describe('SuggestionController', () => {
     });
   });
 
-  describe('GET /today/suggestions/explain/status/:jobId', () => {
+  describe('GET /suggestion/explain/status/:jobId', () => {
     const queueAccess = () =>
       (
         controller as unknown as {
@@ -376,7 +376,7 @@ describe('SuggestionController', () => {
     });
   });
 
-  describe('GET /today/suggestions/history', () => {
+  describe('GET /suggestion/history', () => {
     it('returns history resource with defaults when no query provided', async () => {
       lifecycleService.getHistory.mockResolvedValue(mockHistoryResult as never);
 

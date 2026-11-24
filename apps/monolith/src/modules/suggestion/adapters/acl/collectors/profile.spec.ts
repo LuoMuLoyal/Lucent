@@ -1,7 +1,7 @@
 import { okAsync } from '../../../../../common/result/index.js';
 import type {
-  IUserHealthContextReader,
-  HealthContextResponseData,
+  IUserContextReader,
+  ContextResponseData,
 } from '../../../../context/index.js';
 import { ProfileCollectorService } from './profile.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
@@ -13,8 +13,8 @@ import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
  * context's tables directly, which is the coupling this port exists to remove.
  */
 function readerFor(
-  data: Partial<HealthContextResponseData>,
-): IUserHealthContextReader {
+  data: Partial<ContextResponseData>,
+): IUserContextReader {
   return {
     getForUser: () =>
       okAsync({
@@ -24,22 +24,22 @@ function readerFor(
         conditions: [],
         currentMedicines: [],
         ...data,
-      } as unknown as HealthContextResponseData),
-  } as unknown as IUserHealthContextReader;
+      } as unknown as ContextResponseData),
+  } as unknown as IUserContextReader;
 }
 
-function allergies(active: number): HealthContextResponseData['allergies'] {
+function allergies(active: number): ContextResponseData['allergies'] {
   return Array.from({ length: active }, (_, i) => ({
     id: `a-${String(i)}`,
     isActive: true,
-  })) as unknown as HealthContextResponseData['allergies'];
+  })) as unknown as ContextResponseData['allergies'];
 }
 
-function conditions(active: number): HealthContextResponseData['conditions'] {
+function conditions(active: number): ContextResponseData['conditions'] {
   return Array.from({ length: active }, (_, i) => ({
     id: `c-${String(i)}`,
     status: 'active',
-  })) as unknown as HealthContextResponseData['conditions'];
+  })) as unknown as ContextResponseData['conditions'];
 }
 
 describe('ProfileCollectorService', () => {
@@ -71,7 +71,7 @@ describe('ProfileCollectorService', () => {
         },
         allergies: allergies(2),
         conditions: conditions(1),
-      } as Partial<HealthContextResponseData>),
+      } as Partial<ContextResponseData>),
     );
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -93,7 +93,7 @@ describe('ProfileCollectorService', () => {
           sexAtBirth: null,
           heightCm: null,
         },
-      } as Partial<HealthContextResponseData>),
+      } as Partial<ContextResponseData>),
     );
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -108,7 +108,7 @@ describe('ProfileCollectorService', () => {
     const inactive = {
       id: 'a-x',
       isActive: false,
-    } as unknown as HealthContextResponseData['allergies'][number];
+    } as unknown as ContextResponseData['allergies'][number];
     const service = new ProfileCollectorService(
       readerFor({
         allergies: [...allergies(2), inactive],
@@ -117,7 +117,7 @@ describe('ProfileCollectorService', () => {
           {
             id: 'c-x',
             status: 'resolved',
-          } as unknown as HealthContextResponseData['conditions'][number],
+          } as unknown as ContextResponseData['conditions'][number],
         ],
       }),
     );

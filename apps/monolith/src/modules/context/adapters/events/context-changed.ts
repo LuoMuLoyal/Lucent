@@ -1,5 +1,5 @@
 /**
- * Event adapter: publishes `health-context.changed` via the shared publisher.
+ * Event adapter: publishes `context.changed` via the shared publisher.
  *
  * Best effort by design — the write is persisted before this runs, and a failure
  * only means derived suggestions go stale. Logged so a broker outage stays
@@ -16,19 +16,19 @@ import type {
 } from '../../../../common/result/index.js';
 import {
   HEALTH_CONTEXT_CHANGED,
-  type HealthContextChangedPayload,
+  type ContextChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { HealthContextEvents } from '../../application/ports/health-context-events.js';
+import { ContextEvents } from '../../application/ports/context-events.js';
 
 @Injectable()
-export class PublishedHealthContextEvents extends HealthContextEvents {
-  private readonly logger = new Logger(PublishedHealthContextEvents.name);
+export class PublishedContextEvents extends ContextEvents {
+  private readonly logger = new Logger(PublishedContextEvents.name);
 
   constructor(private readonly publisher: DomainEventPublisher) {
     super();
   }
 
-  healthContextChanged(userId: string): ResultAsync<void, DomainFailure> {
+  contextChanged(userId: string): ResultAsync<void, DomainFailure> {
     return fromPromise(this.publish(userId), (error) => {
       throw error;
     });
@@ -38,11 +38,11 @@ export class PublishedHealthContextEvents extends HealthContextEvents {
     try {
       await this.publisher.publish(HEALTH_CONTEXT_CHANGED, {
         userId,
-      } satisfies HealthContextChangedPayload);
+      } satisfies ContextChangedPayload);
     } catch (error) {
       this.logger.warn(
         { userId, error },
-        'Failed to publish health-context.changed event',
+        'Failed to publish context.changed event',
       );
     }
   }

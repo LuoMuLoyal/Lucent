@@ -7,7 +7,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { UserHealthContextRepositoryPort } from '../ports/health-context-repository.js';
+import { UserContextRepositoryPort } from '../ports/context-repository.js';
 
 /**
  * Ownership + existence guards for user health context.
@@ -19,8 +19,8 @@ import { UserHealthContextRepositoryPort } from '../ports/health-context-reposit
  * never returned to callers.
  */
 @Injectable()
-export class UserHealthContextOwnership {
-  constructor(private readonly repository: UserHealthContextRepositoryPort) {}
+export class UserContextOwnership {
+  constructor(private readonly repository: UserContextRepositoryPort) {}
 
   ensureActiveUserExists(userId: string): ResultAsync<void, DomainFailure> {
     return fromPromise(this.repository.findActiveUserById(userId), (error) => {

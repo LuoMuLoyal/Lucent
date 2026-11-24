@@ -7,7 +7,7 @@ const ACCESS_TOKEN = __ENV.ACCESS_TOKEN ?? '';
 
 const endpointFailures = new Rate('authenticated_endpoint_failures');
 const accountDuration = new Trend('account_duration', true);
-const healthContextDuration = new Trend('health_context_duration', true);
+const contextDuration = new Trend('context_duration', true);
 const dashboardDuration = new Trend('dashboard_duration', true);
 const suggestionsDuration = new Trend('suggestions_duration', true);
 
@@ -30,7 +30,7 @@ export const options = {
     http_req_failed: ['rate<0.02'],
     authenticated_endpoint_failures: ['rate<0.05'],
     account_duration: ['p(95)<200'],
-    health_context_duration: ['p(95)<300'],
+    context_duration: ['p(95)<300'],
     dashboard_duration: ['p(95)<800'],
     suggestions_duration: ['p(95)<1500'],
   },
@@ -73,18 +73,18 @@ export default function (): void {
 
   sleep(0.2);
 
-  // ── GET /api/v1/user/health-context ─────────────────────
-  group('health-context', () => {
-    const res = http.get(`${BASE_URL}/api/v1/user/health-context`, {
+  // ── GET /api/v1/user/context ─────────────────────
+  group('context', () => {
+    const res = http.get(`${BASE_URL}/api/v1/user/context`, {
       headers: authHeaders,
-      tags: { endpoint: 'health_context' },
+      tags: { endpoint: 'context' },
     });
 
-    healthContextDuration.add(res.timings.duration);
+    contextDuration.add(res.timings.duration);
 
     const ok = check(res, {
-      'health-context: status 200': (r) => r.status === 200,
-      'health-context: has summary': (r) => {
+      'context: status 200': (r) => r.status === 200,
+      'context: has summary': (r) => {
         try {
           const body = JSON.parse(r.body as string);
           return body.summary !== undefined;
@@ -125,9 +125,9 @@ export default function (): void {
 
   sleep(0.3);
 
-  // ── GET /api/v1/user/today/suggestions ──────────────────
+  // ── GET /api/v1/user/suggestion ──────────────────
   group('suggestions', () => {
-    const res = http.get(`${BASE_URL}/api/v1/user/today/suggestions`, {
+    const res = http.get(`${BASE_URL}/api/v1/user/suggestion`, {
       headers: authHeaders,
       tags: { endpoint: 'today_suggestions' },
     });

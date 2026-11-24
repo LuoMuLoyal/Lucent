@@ -122,7 +122,7 @@ describe('Security: Password Reauth, IDOR & Mass Assignment (e2e)', () => {
     beforeAll(async () => {
       // Create a current medicine for Alice first
       const medRes = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/current-medicines')
+        .post('/api/v1/user/context/current-medicines')
         .set('Authorization', bearer(alice.accessToken))
         .send({
           displayName: 'DoseLog Med',

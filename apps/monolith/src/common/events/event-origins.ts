@@ -49,7 +49,7 @@ export const EVENT_ORIGINS: Readonly<Record<string, EventOrigin>> = {
   },
   [HEALTH_CONTEXT_CHANGED]: {
     context: 'context',
-    aggregateType: 'health-context',
+    aggregateType: 'context',
     aggregateIdField: 'userId',
   },
   [SETTINGS_CHANGED]: {
