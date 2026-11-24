@@ -445,10 +445,7 @@ export class MedicationCollectorService {
 
     switch (outcome.status) {
       case 'noData':
-        // No half-life on record: leave the legacy fixed-duration behaviour
-        // exactly as it was. This is the case the TODO warned about — most
-        // catalogue rows have no half-life until the knowledge base is
-        // backfilled, so this branch is the common one today.
+        // No usable half-life: keep the fixed-duration behaviour unchanged.
         return { emit: true, outcome };
       case 'belowThreshold':
         return { emit: false, outcome };
