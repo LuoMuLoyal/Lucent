@@ -45,7 +45,7 @@ Each contract document defines:
   - API Surface: Mine/Settings overview and user settings
 - `app-info-contract.md`
   - API Surface: App metadata endpoint
-- `data-export-contract.md`
+- `export-contract.md`
   - API Surface: Data export request flow
 - `reminder-contract.md`
   - API Surface: Medicine reminder schedule, notification preferences, delivery audit

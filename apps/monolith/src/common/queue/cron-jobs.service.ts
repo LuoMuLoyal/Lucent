@@ -16,28 +16,28 @@ import {
   MealAnalysisSweeperService,
   MEAL_ANALYSIS_REAP_CRON,
   MEAL_ANALYSIS_REAP_JOB_NAME,
-} from '../../modules/daily-records/index.js';
+} from '../../modules/record/index.js';
 import {
-  DataRetentionService,
+  RetentionService,
   DATA_RETENTION_CRON,
-} from '../../modules/data-retention/index.js';
+} from '../../modules/retention/index.js';
 import {
   LifecycleService,
   LIFECYCLE_REFRESH_CRON,
-} from '../../modules/today-suggestion/index.js';
-import { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/index.js';
+} from '../../modules/suggestion/index.js';
+import { WeeklyInsightSchedulerService } from '../../modules/notification/index.js';
 
-/** BullMQ queue name for low-frequency cron jobs (lifecycle + data-retention). */
+/** BullMQ queue name for low-frequency cron jobs (lifecycle + retention). */
 export const CRON_QUEUE_NAME = QUEUE_NAMES.cron;
 
 /** Stable scheduler IDs — used by `upsertJobScheduler` for idempotent upsert. */
-const SCHEDULER_DATA_RETENTION = 'data-retention-cleanup';
+const SCHEDULER_DATA_RETENTION = 'retention-cleanup';
 const SCHEDULER_LIFECYCLE = 'lifecycle-refresh';
 const SCHEDULER_WEEKLY_INSIGHT = 'weekly-insight';
 const SCHEDULER_MEAL_ANALYSIS_REAP = 'meal-analysis-reap';
 
 /** Job names — the worker processor dispatches on these. */
-const JOB_DATA_RETENTION = 'data-retention-cleanup';
+const JOB_DATA_RETENTION = 'retention-cleanup';
 const JOB_LIFECYCLE = 'lifecycle-refresh';
 const JOB_WEEKLY_INSIGHT = 'weekly-insight';
 
@@ -51,9 +51,9 @@ const JOB_WEEKLY_INSIGHT = 'weekly-insight';
  *
  * **Only low-frequency jobs live here.** `reminder-dispatch` (every minute)
  * moved to its owning module
- * (`medicine-reminders/services/dispatch-queue.service.ts`) under ADR-0025:
+ * (`reminder/services/dispatch-queue.service.ts`) under ADR-0025:
  * it needs its own queue so a slow dispatch cannot delay `lifecycle-refresh`
- * or `data-retention-cleanup`, and keeping a business call in this leaf layer
+ * or `retention-cleanup`, and keeping a business call in this leaf layer
  * forced `common/` to import a business module.
  */
 @Injectable()
@@ -66,7 +66,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly factory: BullmqQueueFactory,
-    private readonly dataRetentionService: DataRetentionService,
+    private readonly retentionService: RetentionService,
     private readonly lifecycleService: LifecycleService,
     private readonly weeklyInsightSchedulerService: WeeklyInsightSchedulerService,
     private readonly mealAnalysisSweeperService: MealAnalysisSweeperService,
@@ -81,7 +81,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    // Low-frequency queue: data-retention (daily) + lifecycle (every 5 min)
+    // Low-frequency queue: retention (daily) + lifecycle (every 5 min)
     const cronHandle = this.factory.createQueue({
       name: CRON_QUEUE_NAME,
       runtimeKey: CRON_QUEUE_NAME,
@@ -89,7 +89,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
       processor: async (job) => {
         switch (job.name) {
           case JOB_DATA_RETENTION:
-            await this.dataRetentionService.cleanupExpiredData();
+            await this.retentionService.cleanupExpiredData();
             return;
           case JOB_LIFECYCLE:
             await this.lifecycleService.refreshLifecycleStates();
@@ -146,7 +146,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
       // 2026-07-29 queue split. BullMQ repeatable schedulers persist in Redis
       // until explicitly removed, so the old rule on this queue would keep
       // firing `reminder-dispatch` here even though the job now belongs to
-      // `medicine-reminders` (ADR-0025) and registers its own scheduler.
+      // `reminder` (ADR-0025) and registers its own scheduler.
       registrations.push(
         cronQueue.removeJobScheduler('reminder-dispatch'),
         cronQueue.upsertJobScheduler(

@@ -27,8 +27,8 @@ export type { NotificationScope };
  *
  * ## 为什么保留名字
  *
- * 6 个模块经 barrel 用它（`today-suggestion` / `today-analysis` / `auth` /
- * `medicine-reminders` / `data-export` / `notification-preferences`）。
+ * 6 个模块经 barrel 用它（`suggestion` / `analysis` / `auth` /
+ * `reminder` / `export` / `notification`）。
  * 四层化是内部结构调整，**不该传导成调用方的编译改动**。
  *
  * ## 分层

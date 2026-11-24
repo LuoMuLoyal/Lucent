@@ -8,8 +8,8 @@ import { AssistantQaChunksRepository } from './infrastructure/persistence/qa-chu
  * Content-admin capability of the assistant context, split out of
  * `AssistantModule` on purpose.
  *
- * `AssistantModule` imports `DailyRecordsModule` → `HealthEventsModule` →
- * `ProductEventsModule` → `AdminModule`. The admin console is the only
+ * `AssistantModule` imports `RecordModule` → `HealthEventsModule` →
+ * `ProductModule` → `AdminModule`. The admin console is the only
  * consumer of the QA-corpus editorial surface, so registering it in
  * `AssistantModule` made `admin` import a graph that imports `admin` back —
  * a genuine module cycle, not a theoretical one (it showed up as two new

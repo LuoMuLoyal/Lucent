@@ -157,7 +157,7 @@ describe('Domain events outbox (e2e)', () => {
     it('keeps one row when the same dedupeKey is appended twice', async () => {
       const outbox = app.get(DomainEventOutboxService);
       const input = {
-        context: 'user-settings',
+        context: 'settings',
         aggregateType: 'settings',
         aggregateId: userId,
         eventName: SETTINGS_CHANGED,
@@ -182,7 +182,7 @@ describe('Domain events outbox (e2e)', () => {
       // that path rather than the trivial sequential one.
       const outbox = app.get(DomainEventOutboxService);
       const input = {
-        context: 'user-settings',
+        context: 'settings',
         aggregateType: 'settings',
         aggregateId: userId,
         eventName: SETTINGS_CHANGED,
@@ -206,7 +206,7 @@ describe('Domain events outbox (e2e)', () => {
       // are two facts.
       const outbox = app.get(DomainEventOutboxService);
       const base = {
-        context: 'user-settings',
+        context: 'settings',
         aggregateType: 'settings',
         aggregateId: userId,
         eventName: SETTINGS_CHANGED,
@@ -231,7 +231,7 @@ describe('Domain events outbox (e2e)', () => {
       // up. Here "restart" is a fresh Nest application over the same database.
       const outbox = app.get(DomainEventOutboxService);
       const eventId = await outbox.append({
-        context: 'user-settings',
+        context: 'settings',
         aggregateType: 'settings',
         aggregateId: userId,
         eventName: SETTINGS_CHANGED,

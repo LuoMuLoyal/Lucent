@@ -13,9 +13,9 @@
 
 const SOFT_DELETE_MODELS = [
   'user',
-  'userDailyRecord',
-  'userMedicineReminder',
-  'userMedicineDoseLog',
+  'userRecord',
+  'userReminder',
+  'userDoseLog',
 ] as const;
 
 const NONDELETED_METHODS = [
@@ -42,9 +42,9 @@ interface MockModel {
 /** A mock PrismaClient with typed model delegates and $extends. */
 interface MockClient {
   user: MockModel;
-  userDailyRecord: MockModel;
-  userMedicineReminder: MockModel;
-  userMedicineDoseLog: MockModel;
+  userRecord: MockModel;
+  userReminder: MockModel;
+  userDoseLog: MockModel;
   $extends: (ext: unknown) => unknown;
 }
 
@@ -63,9 +63,9 @@ function makeModel(): MockModel {
 function createMockClient(): MockClient {
   const client: MockClient = {
     user: makeModel(),
-    userDailyRecord: makeModel(),
-    userMedicineReminder: makeModel(),
-    userMedicineDoseLog: makeModel(),
+    userRecord: makeModel(),
+    userReminder: makeModel(),
+    userDoseLog: makeModel(),
     $extends: (ext: unknown): unknown => {
       if (typeof ext === 'function') {
         return (ext as (c: MockClient) => unknown)(client);
@@ -74,9 +74,9 @@ function createMockClient(): MockClient {
       if (extObj.model) {
         const merged: MockClient = {
           user: { ...client.user },
-          userDailyRecord: { ...client.userDailyRecord },
-          userMedicineReminder: { ...client.userMedicineReminder },
-          userMedicineDoseLog: { ...client.userMedicineDoseLog },
+          userRecord: { ...client.userRecord },
+          userReminder: { ...client.userReminder },
+          userDoseLog: { ...client.userDoseLog },
           $extends: client.$extends,
         };
         for (const [modelName, overrides] of Object.entries(extObj.model)) {
@@ -115,12 +115,12 @@ function getModel(
   switch (model) {
     case 'user':
       return client.user;
-    case 'userDailyRecord':
-      return client.userDailyRecord;
-    case 'userMedicineReminder':
-      return client.userMedicineReminder;
-    case 'userMedicineDoseLog':
-      return client.userMedicineDoseLog;
+    case 'userRecord':
+      return client.userRecord;
+    case 'userReminder':
+      return client.userReminder;
+    case 'userDoseLog':
+      return client.userDoseLog;
   }
 }
 
@@ -278,11 +278,11 @@ describe('prisma.extension (soft-delete)', () => {
     });
 
     it('injects deletedAt: null alongside existing where conditions', async () => {
-      await extended.userMedicineDoseLog.nonDeleted.count({
+      await extended.userDoseLog.nonDeleted.count({
         where: { userId: 'user-1' },
       });
 
-      const spy = mockClient.userMedicineDoseLog.count;
+      const spy = mockClient.userDoseLog.count;
       const callArgs = spy.mock.calls[0]?.[0];
       expect(callArgs?.where).toEqual({ userId: 'user-1', deletedAt: null });
     });

@@ -24,12 +24,12 @@ ADR-0004 已规划"未来将 worker 拆到独立进程/容器"。本计划执行
 | 队列名                       | 并发     | Base 类                 | CPU 密集?             | 队列服务文件                                               |
 | ---------------------------- | -------- | ----------------------- | --------------------- | ---------------------------------------------------------- |
 | `lucent-mail`                | 3 (可配) | 直连                    | 否 (SMTP I/O)         | `mail/mail-queue.service.ts`                               |
-| `lucent-meal-analysis`       | 1        | 直连                    | 是 (LLM vision)       | `daily-records/services/meal-analysis/queue.service.ts`    |
-| `data-export`                | 1        | 直连                    | 中 (DB 查询 + 序列化) | `data-export/services/queue.service.ts`                    |
+| `lucent-meal-analysis`       | 1        | 直连                    | 是 (LLM vision)       | `record/services/meal-analysis/queue.service.ts`    |
+| `export`                | 1        | 直连                    | 中 (DB 查询 + 序列化) | `export/services/queue.service.ts`                    |
 | `medicine-recognition`       | 1        | `BaseAsyncQueueService` | 是 (LLM vision)       | `medicines/services/medicine-recognition-queue.service.ts` |
-| `today-analysis`             | 2        | `BaseAsyncQueueService` | 是 (LLM)              | `today-analysis/services/analysis-queue.service.ts`        |
-| `suggestion-explanation`     | 2        | `BaseAsyncQueueService` | 是 (LLM)              | `today-suggestion/services/explanation/queue.service.ts`   |
-| `suggestion-copy-generation` | 3        | `BaseAsyncQueueService` | 是 (LLM)              | `today-suggestion/services/copy/copy-queue.service.ts`     |
+| `analysis`             | 2        | `BaseAsyncQueueService` | 是 (LLM)              | `analysis/services/analysis-queue.service.ts`        |
+| `suggestion-explanation`     | 2        | `BaseAsyncQueueService` | 是 (LLM)              | `suggestion/services/explanation/queue.service.ts`   |
+| `suggestion-copy-generation` | 3        | `BaseAsyncQueueService` | 是 (LLM)              | `suggestion/services/copy/copy-queue.service.ts`     |
 | `report-summary`             | 2        | `BaseAsyncQueueService` | 是 (LLM)              | `reports/services/ai-summary/summary-queue.service.ts`     |
 | `clinic-summary-pdf`         | 1        | `BaseAsyncQueueService` | 是 (PDF)              | `reports/services/clinic-summary/pdf-queue.service.ts`     |
 

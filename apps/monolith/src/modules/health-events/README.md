@@ -14,16 +14,16 @@ owner: backend
 ## 边界
 
 - 管:健康事件与签到的全部读写、事件归属校验、对外只读 façade。
-- 不管:产品埋点上报通道(product-events,但签到成功后会经
+- 不管:产品埋点上报通道(product,但签到成功后会经
   `ProductEventsService.emitServerEvent` 写一条 `health_event_outcome_confirmed`
-  产品事件);事件数据的派生分析(reports / today-suggestion 自行消费)。
+  产品事件);事件数据的派生分析(reports / suggestion 自行消费)。
 
 ## 依赖方向
 
 - imports:`PrismaModule`、`ProductEventsModule`。
 - 被引用:exports `HealthEventsOwnershipService`;barrel 消费方
-  `daily-records`(校验事件归属)、`medicine-dose-logs`、`reports`
-  (event-review)、`today-suggestion`(collector)。
+  `record`(校验事件归属)、`dose`、`reports`
+  (event-review)、`suggestion`(collector)。
 
 ## 内部结构
 
@@ -41,7 +41,7 @@ owner: backend
   `ensureOwnedByUser` / `ensureActiveOwnedByUser`。
   **`ensure*` 仍是 `Promise` + `unwrapResult` 的兼容垫片**(会抛
   `DomainFailureException`,由全局 filter 转成 Problem Details),等 `reports`、
-  `medicine-dose-logs`、`daily-records` 迁到直接消费 `Result` 后删除;新调用方
+  `dose`、`record` 迁到直接消费 `Result` 后删除;新调用方
   请优先用已返回 `Promise` 的只读方法,不要把 `ensure*` 当作范例。
 - `repositories/event.repository.ts` — `HealthEventRepositoryPort`(业务形态的
   分页 `HealthEventPageQuery`/`HealthEventPage`,cursor 由调用方解码)与

@@ -38,31 +38,31 @@ import { BullmqModule } from './common/queue/queue.module.js';
 import { CronJobsModule } from './common/queue/cron-jobs.module.js';
 import { RedisModule } from './common/redis/redis.module.js';
 import { MedicinesModule } from './modules/medicines/medicines.module.js';
-import { DailyRecordsModule } from './modules/daily-records/daily-records.module.js';
-import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module.js';
+import { RecordModule } from './modules/record/record.module.js';
+import { DoseModule } from './modules/dose/dose.module.js';
 import { HealthEventsModule } from './modules/health-events/health-events.module.js';
-import { MedicineRemindersModule } from './modules/medicine-reminders/medicine-reminders.module.js';
-import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module.js';
+import { ReminderModule } from './modules/reminder/reminder.module.js';
+import { ContextModule } from './modules/context/context.module.js';
 import { AccountModule } from './modules/account/account.module.js';
 import { EnvironmentModule } from './modules/environment/environment.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
-import { UserSettingsModule } from './modules/user-settings/user-settings.module.js';
+import { SettingsModule } from './modules/settings/settings.module.js';
 import { AppInfoModule } from './modules/app-info/app-info.module.js';
-import { LegalDocumentsModule } from './modules/legal-documents/legal-documents.module.js';
-import { DataExportModule } from './modules/data-export/data-export.module.js';
+import { LegalModule } from './modules/legal/legal.module.js';
+import { ExportModule } from './modules/export/export.module.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
-import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module.js';
-import { ProductEventsModule } from './modules/product-events/product-events.module.js';
+import { NotificationModule } from './modules/notification/notification.module.js';
+import { ProductModule } from './modules/product/product.module.js';
 import { LayoutsModule } from './modules/layouts/layouts.module.js';
-import { TestingSupportModule } from './modules/testing-support/testing-support.module.js';
+import { TestingModule } from './modules/testing/testing.module.js';
 import { LlmRuntimeModule } from './llm-runtime/llm-runtime.module.js';
-import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module.js';
-import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module.js';
+import { AnalysisModule } from './modules/analysis/analysis.module.js';
+import { SuggestionModule } from './modules/suggestion/suggestion.module.js';
 import { AssistantModule } from './modules/assistant/assistant.module.js';
 import { McpModule } from './modules/assistant/adapters/mcp/mcp.module.js';
 import { AuditLogModule } from './modules/audit-log/audit-log.module.js';
-import { DataRetentionModule } from './modules/data-retention/data-retention.module.js';
+import { RetentionModule } from './modules/retention/retention.module.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
 import {
   RuntimeThrottlerGuard,
@@ -80,7 +80,7 @@ import {
  */
 
 // Bootstrap-stage env gate (ConfigService is not available before DI). The
-// testing-support module mounts only for an explicit test run AND while the
+// testing module mounts only for an explicit test run AND while the
 // process executes from source: a compiled image never mounts it, even
 // if NODE_ENV were misconfigured to "test" on a production host. Same
 // src-vs-dist signal i18n.module.ts uses for its dev-only typesOutputPath
@@ -137,18 +137,18 @@ const isTestRuntime =
     PrismaModule,
     TerminusModule,
     AuditLogModule,
-    DataRetentionModule,
+    RetentionModule,
     MailModule,
     AuthModule,
     AdminModule,
     AdminMetricsModule,
     AccountModule,
     MedicinesModule,
-    UserHealthContextModule,
-    DailyRecordsModule,
-    MedicineDoseLogsModule,
+    ContextModule,
+    RecordModule,
+    DoseModule,
     HealthEventsModule,
-    MedicineRemindersModule,
+    ReminderModule,
     EnvironmentModule,
     ReportsModule,
     LlmRuntimeModule,
@@ -156,40 +156,40 @@ const isTestRuntime =
     // MCP 是对外协议出口（`/api/v1/mcp`），与 assistant 的会话流程分开：
     // 由 MCP_ENABLED 独立开关，路由在它自己的 onModuleInit 里注册。
     McpModule,
-    TodayAnalysisModule,
-    TodaySuggestionModule,
-    UserSettingsModule,
+    AnalysisModule,
+    SuggestionModule,
+    SettingsModule,
     AppInfoModule,
-    LegalDocumentsModule,
-    DataExportModule,
+    LegalModule,
+    ExportModule,
     FilesModule,
     NotificationsModule,
-    ProductEventsModule,
+    ProductModule,
     // Mounted at the top level (not under the `user` prefix): layouts are their
     // own resource line, and `:surface` is already a path segment. See
     // `src/modules/layouts/README.md` for why this is not `/user/layouts`.
     LayoutsModule,
-    ...(isTestRuntime ? [TestingSupportModule] : []),
-    NotificationPreferencesModule,
+    ...(isTestRuntime ? [TestingModule] : []),
+    NotificationModule,
     RouterModule.register([
       {
         path: 'user',
         children: [
           AssistantModule,
-          DailyRecordsModule,
-          DataExportModule,
+          RecordModule,
+          ExportModule,
           FilesModule,
-          UserHealthContextModule,
-          MedicineDoseLogsModule,
+          ContextModule,
+          DoseModule,
           HealthEventsModule,
-          MedicineRemindersModule,
+          ReminderModule,
           NotificationsModule,
-          ProductEventsModule,
+          ProductModule,
           ReportsModule,
-          UserSettingsModule,
-          TodayAnalysisModule,
-          TodaySuggestionModule,
-          NotificationPreferencesModule,
+          SettingsModule,
+          AnalysisModule,
+          SuggestionModule,
+          NotificationModule,
         ],
       },
     ]),

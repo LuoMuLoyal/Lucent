@@ -13,13 +13,13 @@ import type {
   TestUser,
 } from '../../helpers/e2e-helpers.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventOutcome,
   MedicineSource,
 } from '#generated/prisma/client.js';
 
 const HEALTH_EVENTS_PATH = '/api/v1/user/health-events';
-const DAILY_RECORDS_PATH = '/api/v1/user/daily-records';
+const DAILY_RECORDS_PATH = '/api/v1/user/record';
 const CHECK_IN_DATE = '2026-08-09';
 
 interface HealthEventItem {
@@ -80,7 +80,7 @@ describe('Health Event Contract API (e2e)', () => {
       .post(DAILY_RECORDS_PATH)
       .set('Authorization', bearer(tokenA))
       .send({
-        kind: DailyRecordKind.symptom,
+        kind: RecordKind.symptom,
         occurredAt: CHECK_IN_DATE,
         title: '发热',
       })
@@ -136,7 +136,7 @@ describe('Health Event Contract API (e2e)', () => {
       .post(DAILY_RECORDS_PATH)
       .set('Authorization', bearer(tokenB))
       .send({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: CHECK_IN_DATE,
         value: '1',
         unit: '杯',
@@ -233,7 +233,7 @@ describe('Health Event Contract API (e2e)', () => {
       .send({ outcome: HealthEventOutcome.unchanged })
       .expect(201);
 
-    const events = await ctx.prisma.userProductEvent.findMany({
+    const events = await ctx.prisma.userProductEventLog.findMany({
       where: { userId: user.id },
       orderBy: { occurredAt: 'asc' },
     });

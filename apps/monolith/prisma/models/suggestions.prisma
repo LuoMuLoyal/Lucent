@@ -1,5 +1,5 @@
 // Domain: Suggestion Engine (Suggestions, Baselines, Materialization, Feedback)
-// Owning modules: today-suggestion, today-analysis
+// Owning modules: suggestion, analysis
 
 enum SuggestionType {
   confirmed_risk
@@ -50,7 +50,7 @@ enum SuggestionMaterializationStatus {
   failed
 }
 
-enum TodayAnalysisMaterializationStatus {
+enum AnalysisMaterializationStatus {
   pending
   ready
   failed
@@ -158,13 +158,13 @@ model UserSuggestionMaterialization {
 
 /// Versioned, bounded Today Analysis state. Summary history stores content;
 /// this row fences jobs and records the per-date generation budget.
-model UserTodayAnalysisMaterialization {
+model UserAnalysisMaterialization {
   id              String                           @id @default(uuid())
   userId          String                           @map("user_id")
   localDate       DateTime                         @map("local_date") @db.Date
   sourceVersion   Int                              @default(0) @map("source_version")
   computedVersion Int                              @default(0) @map("computed_version")
-  status          TodayAnalysisMaterializationStatus @default(pending)
+  status          AnalysisMaterializationStatus @default(pending)
   reasonCodes     String[]                         @map("reason_codes")
   generationCount Int                              @default(0) @map("generation_count")
   activeVersion   Int?                             @map("active_version")
@@ -180,7 +180,7 @@ model UserTodayAnalysisMaterialization {
 
   @@unique([userId, localDate])
   @@index([userId, status])
-  @@map("user_today_analysis_materializations")
+  @@map("analysis_materializations")
 }
 
 /// Feedback-driven suppression records.
@@ -220,5 +220,5 @@ model UserMedicineNotifyMark {
 
   @@unique([userId, currentMedicineId, notifyDate])
   @@index([userId, notifyDate])
-  @@map("user_medicine_notify_marks")
+  @@map("medicine_notify_marks")
 }

@@ -33,7 +33,7 @@ export interface AssistantCapabilitiesView {
   assistantMemoryEnabled: boolean;
   assistantContext: {
     healthProfile: boolean;
-    dailyRecords: boolean;
+    records: boolean;
     sleepRecords: boolean;
     currentMedicines: boolean;
   };

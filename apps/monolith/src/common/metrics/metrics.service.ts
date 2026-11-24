@@ -455,7 +455,7 @@ export class MetricsService implements OnApplicationBootstrap {
   /**
    * Records a server-side product event emission failure (event name only —
    * no userId, no event content). Called from the fire-and-forget emission
-   * path in `ProductEventsService.emitServerEvent`.
+   * path in `ProductEventLogService.emitServerEvent`.
    */
   recordProductEventEmissionFailure(eventName: string): void {
     if (!this.is_enabled()) return;

@@ -3,7 +3,7 @@ import { createDomainFailure } from '../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 
 import { HistoricalAiSummaryService } from '../../../assistant/index.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { IUserSettingsPort } from '../../../settings/index.js';
 import { BaseLlmSummaryService } from '../../../../common/llm/generators/base-llm-summary.service.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import type { PromptCopy } from '../../../../common/index.js';
@@ -127,7 +127,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
    * Template-method hook the base class asks about before generating.
    *
    * Reads through `IUserSettingsPort` rather than own Prisma: the setting is
-   * `user-settings`' data, and reaching into its table from `reports` would be
+   * `settings`' data, and reaching into its table from `reports` would be
    * a cross-context read outside ADR-0009 — invisible to the dependency rules
    * (a Prisma call is not an import) but still a boundary violation.
    */

@@ -81,7 +81,7 @@ describe('AdminController', () => {
   describe.each([
     {
       handlerName: 'listLegalDocuments' as const,
-      path: '/api/v1/admin/content/legal-documents',
+      path: '/api/v1/admin/content/legal',
       componentName: 'AdminLegalDocumentList',
     },
     {

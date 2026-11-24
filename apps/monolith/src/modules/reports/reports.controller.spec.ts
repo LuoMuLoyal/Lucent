@@ -1076,7 +1076,7 @@ function makeReview(
         windowStart: '2026-08-01T08:00:00.000Z',
         windowEnd: '2026-08-13T12:00:00.000Z',
       },
-      dailyRecords: {
+      records: {
         state: 'unknown',
         coverage: 'none',
         sources: [],
@@ -1097,7 +1097,7 @@ function makeReview(
     },
     sourceTimestamps: {
       checkIns: '2026-08-11',
-      dailyRecords: null,
+      records: null,
       doseLogs: null,
     },
     availableActions: ['check_in', 'end_event'],

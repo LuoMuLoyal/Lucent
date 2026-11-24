@@ -111,7 +111,7 @@
         "tags": ["Health"]
       }
     },
-    "/api/v1/user/daily-records": {
+    "/api/v1/user/record": {
       "get": {
         "operationId": "listDailyRecords",
         "parameters": [
@@ -256,7 +256,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/summary": {
+    "/api/v1/user/record/summary": {
       "get": {
         "operationId": "summary",
         "parameters": [
@@ -291,7 +291,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/symptom-catalog": {
+    "/api/v1/user/record/symptom-catalog": {
       "get": {
         "operationId": "getSymptomCatalog",
         "parameters": [],
@@ -316,7 +316,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/attachments/images/presign-upload": {
+    "/api/v1/user/record/attachments/images/presign-upload": {
       "post": {
         "operationId": "createImageUpload",
         "parameters": [],
@@ -351,7 +351,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/candidate-records/generate": {
+    "/api/v1/user/record/candidate-records/generate": {
       "post": {
         "operationId": "generateCandidates",
         "parameters": [],
@@ -386,7 +386,7 @@
         "tags": ["Daily Records"]
       }
     },
-    "/api/v1/user/daily-records/{id}": {
+    "/api/v1/user/record/{id}": {
       "get": {
         "operationId": "getDailyRecord",
         "parameters": [
@@ -923,7 +923,7 @@
         "tags": ["Health Events"]
       }
     },
-    "/api/v1/user/product-events": {
+    "/api/v1/user/product": {
       "post": {
         "description": "Write-only ingestion for product measurement. userId always comes from the session — a client-supplied userId is rejected by the whitelist. Raw events are retained 90 days, then deleted.",
         "operationId": "recordBatch",
@@ -962,7 +962,7 @@
         "tags": ["Product Events"]
       }
     },
-    "/api/v1/user/product-events/funnel": {
+    "/api/v1/user/product/funnel": {
       "get": {
         "description": "Internal admin surface: a valid JWT must belong to a user with an AdminUser role; regular users get 403. Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
         "operationId": "getFunnel",
@@ -1730,7 +1730,7 @@
         "tags": ["Admin"]
       }
     },
-    "/api/v1/admin/content/legal-documents": {
+    "/api/v1/admin/content/legal": {
       "get": {
         "operationId": "listAdminLegalDocuments",
         "parameters": [],
@@ -1755,7 +1755,7 @@
         "tags": ["Admin"]
       }
     },
-    "/api/v1/admin/content/legal-documents/{docType}": {
+    "/api/v1/admin/content/legal/{docType}": {
       "put": {
         "operationId": "updateAdminLegalDocument",
         "parameters": [
@@ -3991,7 +3991,7 @@
         "tags": ["Notifications"]
       }
     },
-    "/api/v1/legal-documents": {
+    "/api/v1/legal": {
       "get": {
         "operationId": "listLegalDocuments",
         "parameters": [
@@ -4013,7 +4013,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LegalDocumentListResponse"
+                  "$ref": "#/components/schemas/LegalDocListResponse"
                 }
               }
             }
@@ -4023,7 +4023,7 @@
         "tags": ["Legal Documents"]
       }
     },
-    "/api/v1/legal-documents/{docType}": {
+    "/api/v1/legal/{docType}": {
       "get": {
         "operationId": "getLegalDocument",
         "parameters": [
@@ -4053,7 +4053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LegalDocumentDetailResponse"
+                  "$ref": "#/components/schemas/LegalDocDetailResponse"
                 }
               }
             }
@@ -4873,7 +4873,7 @@
         "tags": ["Medicines"]
       }
     },
-    "/api/v1/user/today/suggestions": {
+    "/api/v1/user/suggestion": {
       "get": {
         "operationId": "getSuggestions",
         "parameters": [
@@ -4928,7 +4928,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/today/suggestions/{id}/feedback": {
+    "/api/v1/user/suggestion/{id}/feedback": {
       "post": {
         "operationId": "submitFeedback",
         "parameters": [
@@ -4972,7 +4972,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/today/suggestions/{id}/explain": {
+    "/api/v1/user/suggestion/{id}/explain": {
       "post": {
         "operationId": "explainSuggestion",
         "parameters": [
@@ -5014,7 +5014,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/today/suggestions/{id}/explain/async": {
+    "/api/v1/user/suggestion/{id}/explain/async": {
       "post": {
         "operationId": "enqueueSuggestionExplanation",
         "parameters": [
@@ -5056,7 +5056,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/today/suggestions/explain/status/{jobId}": {
+    "/api/v1/user/suggestion/explain/status/{jobId}": {
       "get": {
         "operationId": "explainSuggestionStatus",
         "parameters": [
@@ -5083,7 +5083,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/today/suggestions/history": {
+    "/api/v1/user/suggestion/history": {
       "get": {
         "operationId": "getHistory",
         "parameters": [
@@ -5170,7 +5170,7 @@
         "tags": ["Today Suggestion"]
       }
     },
-    "/api/v1/user/notification-preferences": {
+    "/api/v1/user/notification": {
       "get": {
         "operationId": "getNotificationPreferences",
         "parameters": [],
@@ -5180,7 +5180,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
                 }
               }
             }
@@ -5213,7 +5213,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
                 }
               }
             }
@@ -6243,17 +6243,17 @@
         "tags": ["User Settings"]
       }
     },
-    "/api/v1/user/health-context": {
+    "/api/v1/user/context": {
       "get": {
-        "operationId": "getUserHealthContext",
+        "operationId": "getUserContext",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The current user health-context aggregate.",
+            "description": "The current user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6278,27 +6278,27 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/profile": {
+    "/api/v1/user/context/profile": {
       "patch": {
-        "operationId": "updateUserHealthContextProfile",
+        "operationId": "updateUserContextProfile",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateUserHealthContextProfileRequest"
+                "$ref": "#/components/schemas/UpdateUserContextProfileRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6319,11 +6319,11 @@
             "access-token": []
           }
         ],
-        "summary": "Update the current user health-context profile",
+        "summary": "Update the current user context profile",
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/allergies": {
+    "/api/v1/user/context/allergies": {
       "post": {
         "operationId": "createAllergy",
         "parameters": [],
@@ -6339,11 +6339,11 @@
         },
         "responses": {
           "201": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6368,7 +6368,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/allergies/{id}": {
+    "/api/v1/user/context/allergies/{id}": {
       "patch": {
         "operationId": "updateAllergy",
         "parameters": [
@@ -6394,11 +6394,11 @@
         },
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6447,11 +6447,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6486,7 +6486,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/conditions": {
+    "/api/v1/user/context/conditions": {
       "post": {
         "operationId": "createCondition",
         "parameters": [],
@@ -6502,11 +6502,11 @@
         },
         "responses": {
           "201": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6531,7 +6531,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/conditions/{id}": {
+    "/api/v1/user/context/conditions/{id}": {
       "patch": {
         "operationId": "updateCondition",
         "parameters": [
@@ -6557,11 +6557,11 @@
         },
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6610,11 +6610,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6649,7 +6649,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/current-medicines": {
+    "/api/v1/user/context/current-medicines": {
       "post": {
         "operationId": "createCurrentMedicine",
         "parameters": [],
@@ -6665,11 +6665,11 @@
         },
         "responses": {
           "201": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6694,7 +6694,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/health-context/current-medicines/{id}": {
+    "/api/v1/user/context/current-medicines/{id}": {
       "patch": {
         "operationId": "updateCurrentMedicine",
         "parameters": [
@@ -6720,11 +6720,11 @@
         },
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6773,11 +6773,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The updated user health-context aggregate.",
+            "description": "The updated user context aggregate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthContextResponse"
+                  "$ref": "#/components/schemas/ContextResponse"
                 }
               }
             }
@@ -6812,7 +6812,7 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/medicine-reminders": {
+    "/api/v1/user/reminder": {
       "get": {
         "operationId": "listMedicineReminders",
         "parameters": [
@@ -6832,7 +6832,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                  "$ref": "#/components/schemas/ReminderEntryListResponse"
                 }
               }
             }
@@ -6865,7 +6865,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                  "$ref": "#/components/schemas/ReminderEntryResponse"
                 }
               }
             }
@@ -6900,7 +6900,7 @@
         "tags": ["Medicine Reminders"]
       }
     },
-    "/api/v1/user/medicine-reminders/{id}": {
+    "/api/v1/user/reminder/{id}": {
       "patch": {
         "operationId": "updateMedicineReminder",
         "parameters": [
@@ -6929,7 +6929,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                  "$ref": "#/components/schemas/ReminderEntryResponse"
                 }
               }
             }
@@ -7019,7 +7019,7 @@
         "tags": ["Medicine Reminders"]
       }
     },
-    "/api/v1/user/medicine-reminders/group": {
+    "/api/v1/user/reminder/group": {
       "put": {
         "operationId": "upsertGroup",
         "parameters": [],
@@ -7039,7 +7039,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                  "$ref": "#/components/schemas/ReminderEntryListResponse"
                 }
               }
             }
@@ -7220,7 +7220,7 @@
         "tags": ["Reminder Deliveries"]
       }
     },
-    "/api/v1/user/medicine-dose-logs": {
+    "/api/v1/user/dose": {
       "get": {
         "operationId": "listDoseLogs",
         "parameters": [
@@ -7317,7 +7317,7 @@
             }
           },
           "409": {
-            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)",
+            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT): another live row already occupies the slot the request targets.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7336,7 +7336,7 @@
         "tags": ["Medicine Dose Logs"]
       }
     },
-    "/api/v1/user/medicine-dose-logs/mark": {
+    "/api/v1/user/dose/mark": {
       "post": {
         "operationId": "mark",
         "parameters": [],
@@ -7380,16 +7380,6 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetailsDto"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -7401,7 +7391,7 @@
         "tags": ["Medicine Dose Logs"]
       }
     },
-    "/api/v1/user/medicine-dose-logs/{id}": {
+    "/api/v1/user/dose/{id}": {
       "patch": {
         "operationId": "updateDoseLog",
         "parameters": [
@@ -8276,7 +8266,7 @@
         "tags": ["Environment"]
       }
     },
-    "/api/v1/user/today-analysis": {
+    "/api/v1/user/analysis": {
       "get": {
         "operationId": "read",
         "parameters": [
@@ -8295,7 +8285,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisReadResponse"
+                  "$ref": "#/components/schemas/AnalysisReadResponse"
                 }
               }
             }
@@ -8310,7 +8300,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/refresh": {
+    "/api/v1/user/analysis/refresh": {
       "post": {
         "operationId": "refreshTodayAnalysis",
         "parameters": [],
@@ -8330,7 +8320,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisRefreshReadyData"
+                  "$ref": "#/components/schemas/AnalysisRefreshReadyData"
                 }
               }
             }
@@ -8345,7 +8335,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate": {
+    "/api/v1/user/analysis/generate": {
       "post": {
         "operationId": "generate",
         "parameters": [],
@@ -8367,10 +8357,10 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/TodayAnalysisData"
+                      "$ref": "#/components/schemas/AnalysisData"
                     },
                     {
-                      "$ref": "#/components/schemas/TodayAnalysisReadData"
+                      "$ref": "#/components/schemas/AnalysisReadData"
                     }
                   ]
                 }
@@ -8387,7 +8377,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate/async": {
+    "/api/v1/user/analysis/generate/async": {
       "post": {
         "operationId": "enqueueAnalysisGeneration",
         "parameters": [],
@@ -8407,7 +8397,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisAsyncStatusData"
+                  "$ref": "#/components/schemas/AnalysisAsyncStatusData"
                 }
               }
             }
@@ -8422,7 +8412,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate/status/{jobId}": {
+    "/api/v1/user/analysis/generate/status/{jobId}": {
       "get": {
         "operationId": "generateStatus",
         "parameters": [
@@ -8449,7 +8439,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/recommendations": {
+    "/api/v1/user/analysis/recommendations": {
       "get": {
         "operationId": "getRecommendations",
         "parameters": [
@@ -8487,7 +8477,7 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today-analysis/generate/stream": {
+    "/api/v1/user/analysis/generate/stream": {
       "post": {
         "operationId": "generateStream",
         "parameters": [],
@@ -8503,12 +8493,12 @@
         },
         "responses": {
           "200": {
-            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (summary | result | error | done) and a JSON \"data\" field. Parsed event data follows TodayAnalysisStreamResultDto.",
+            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (summary | result | error | done) and a JSON \"data\" field. Parsed event data follows AnalysisStreamResultDto.",
             "content": {
               "text/event-stream": {
                 "schema": {
                   "type": "string",
-                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisData; event=error data=TodayAnalysisStreamErrorDto; event=done data={}."
+                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=AnalysisData; event=error data=AnalysisStreamErrorDto; event=done data={}."
                 }
               }
             }
@@ -8543,7 +8533,7 @@
         "tags": ["App Info"]
       }
     },
-    "/api/v1/user/data-export-requests": {
+    "/api/v1/user/export-requests": {
       "post": {
         "operationId": "createRequest",
         "parameters": [],
@@ -8563,7 +8553,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataExportRequestResponse"
+                  "$ref": "#/components/schemas/ExportRequestResponse"
                 }
               }
             }
@@ -8618,7 +8608,7 @@
         "tags": ["Data Export"]
       }
     },
-    "/api/v1/user/data-export-requests/latest": {
+    "/api/v1/user/export-requests/latest": {
       "get": {
         "operationId": "getLatestRequest",
         "parameters": [],
@@ -8628,7 +8618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataExportRequestData"
+                  "$ref": "#/components/schemas/ExportRequestData"
                 }
               }
             }
@@ -9373,13 +9363,13 @@
         "required": ["user", "expiresIn"],
         "additionalProperties": false
       },
-      "LegalDocumentListResponse": {
+      "LegalDocListResponse": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LegalDocumentListResponseItems"
+              "$ref": "#/components/schemas/LegalDocListResponseItems"
             }
           },
           "updatedAt": {
@@ -9391,7 +9381,7 @@
         "required": ["items", "updatedAt"],
         "additionalProperties": false
       },
-      "LegalDocumentDetailResponse": {
+      "LegalDocDetailResponse": {
         "type": "object",
         "properties": {
           "docType": {
@@ -10197,14 +10187,14 @@
           "users": {
             "$ref": "#/components/schemas/AdminMetricsOverviewUsers"
           },
-          "productEventsLast24Hours": {
+          "productEventLogLast24Hours": {
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991,
             "example": 4820
           }
         },
-        "required": ["generatedAt", "users", "productEventsLast24Hours"],
+        "required": ["generatedAt", "users", "productEventLogLast24Hours"],
         "additionalProperties": false
       },
       "AdminDependencies": {
@@ -11393,13 +11383,13 @@
         ],
         "additionalProperties": false
       },
-      "MedicineReminderListResponse": {
+      "ReminderEntryListResponse": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/MedicineReminderListResponseItems"
+              "$ref": "#/components/schemas/ReminderEntryListResponseItems"
             },
             "description": "Medicine reminders."
           }
@@ -11407,7 +11397,7 @@
         "required": ["items"],
         "additionalProperties": false
       },
-      "MedicineReminderResponse": {
+      "ReminderEntryResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -11521,31 +11511,31 @@
         "required": ["state"],
         "additionalProperties": false
       },
-      "HealthContextResponse": {
+      "ContextResponse": {
         "type": "object",
         "properties": {
           "summary": {
-            "$ref": "#/components/schemas/HealthContextResponseSummary"
+            "$ref": "#/components/schemas/ContextResponseSummary"
           },
           "profile": {
-            "$ref": "#/components/schemas/HealthContextResponseProfile"
+            "$ref": "#/components/schemas/ContextResponseProfile"
           },
           "allergies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/HealthContextResponseAllergies"
+              "$ref": "#/components/schemas/ContextResponseAllergies"
             }
           },
           "conditions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/HealthContextResponseConditions"
+              "$ref": "#/components/schemas/ContextResponseConditions"
             }
           },
           "currentMedicines": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/HealthContextResponseCurrentMedicines"
+              "$ref": "#/components/schemas/ContextResponseCurrentMedicines"
             }
           }
         },
@@ -12252,7 +12242,7 @@
         ],
         "additionalProperties": false
       },
-      "NotificationPreferencesResponse": {
+      "NotificationSettingsResponse": {
         "type": "object",
         "properties": {
           "isHealthAlertsEnabled": {
@@ -12579,7 +12569,7 @@
         ],
         "additionalProperties": false
       },
-      "DataExportRequestResponse": {
+      "ExportRequestResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -12648,7 +12638,7 @@
         ],
         "additionalProperties": false
       },
-      "DataExportRequestData": {
+      "ExportRequestData": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -12903,12 +12893,12 @@
         "additionalProperties": false,
         "description": "One surface layout."
       },
-      "TodayAnalysisReadResponse": {
+      "AnalysisReadResponse": {
         "type": "object",
         "properties": {
           "analysis": {
             "nullable": true,
-            "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysis"
+            "$ref": "#/components/schemas/AnalysisReadResponseAnalysis"
           },
           "status": {
             "type": "string",
@@ -12953,7 +12943,7 @@
           }
         ]
       },
-      "TodayAnalysisData": {
+      "AnalysisData": {
         "type": "object",
         "properties": {
           "date": {
@@ -12971,7 +12961,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisDataBullets"
+              "$ref": "#/components/schemas/AnalysisDataBullets"
             }
           },
           "actionLabel": {
@@ -12989,7 +12979,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisDataMetrics"
+              "$ref": "#/components/schemas/AnalysisDataMetrics"
             }
           }
         },
@@ -13005,12 +12995,12 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadData": {
+      "AnalysisReadData": {
         "type": "object",
         "properties": {
           "analysis": {
             "nullable": true,
-            "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysis"
+            "$ref": "#/components/schemas/AnalysisReadDataAnalysis"
           },
           "status": {
             "type": "string",
@@ -13041,7 +13031,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshPendingData": {
+      "AnalysisRefreshPendingData": {
         "type": "object",
         "properties": {
           "status": {
@@ -13055,7 +13045,7 @@
         "required": ["status", "jobId"],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyData": {
+      "AnalysisRefreshReadyData": {
         "type": "object",
         "properties": {
           "status": {
@@ -13063,13 +13053,13 @@
             "enum": ["ready"]
           },
           "analysis": {
-            "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysis"
+            "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysis"
           }
         },
         "required": ["status", "analysis"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncJobData": {
+      "AnalysisAsyncJobData": {
         "type": "object",
         "properties": {
           "jobId": {
@@ -13079,7 +13069,7 @@
         "required": ["jobId"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultData": {
+      "AnalysisAsyncResultData": {
         "type": "object",
         "properties": {
           "result": {
@@ -13102,7 +13092,7 @@
                   "bullets": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataBullets"
+                      "$ref": "#/components/schemas/AnalysisAsyncResultDataBullets"
                     }
                   },
                   "actionLabel": {
@@ -13120,7 +13110,7 @@
                   "metrics": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataMetrics"
+                      "$ref": "#/components/schemas/AnalysisAsyncResultDataMetrics"
                     }
                   }
                 },
@@ -13141,7 +13131,7 @@
                 "properties": {
                   "analysis": {
                     "nullable": true,
-                    "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysis"
+                    "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysis"
                   },
                   "status": {
                     "type": "string",
@@ -13178,7 +13168,7 @@
         "required": ["result"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncStatusData": {
+      "AnalysisAsyncStatusData": {
         "type": "object",
         "properties": {
           "status": {
@@ -13281,7 +13271,7 @@
             "example": [
               {
                 "kind": "image",
-                "objectKey": "daily-records/user_1/2026-06-04/photo.jpg",
+                "objectKey": "record/user_1/2026-06-04/photo.jpg",
                 "contentType": "image/jpeg"
               }
             ]
@@ -13430,7 +13420,7 @@
             "example": [
               {
                 "kind": "image",
-                "objectKey": "daily-records/user_1/2026-06-04/photo.jpg",
+                "objectKey": "record/user_1/2026-06-04/photo.jpg",
                 "contentType": "image/jpeg"
               }
             ]
@@ -14431,7 +14421,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateUserHealthContextProfileRequest": {
+      "UpdateUserContextProfileRequest": {
         "type": "object",
         "properties": {
           "locale": {
@@ -15686,7 +15676,7 @@
         ],
         "additionalProperties": false
       },
-      "LegalDocumentListResponseItems": {
+      "LegalDocListResponseItems": {
         "type": "object",
         "properties": {
           "docType": {
@@ -18660,7 +18650,7 @@
         ],
         "additionalProperties": false
       },
-      "MedicineReminderListResponseItems": {
+      "ReminderEntryListResponseItems": {
         "type": "object",
         "properties": {
           "id": {
@@ -18852,7 +18842,7 @@
         "additionalProperties": false,
         "description": "The recorded delivery row."
       },
-      "HealthContextResponseSummary": {
+      "ContextResponseSummary": {
         "type": "object",
         "properties": {
           "age": {
@@ -18894,7 +18884,7 @@
         ],
         "additionalProperties": false
       },
-      "HealthContextResponseProfile": {
+      "ContextResponseProfile": {
         "type": "object",
         "properties": {
           "birthDate": {
@@ -18976,7 +18966,7 @@
         ],
         "additionalProperties": false
       },
-      "HealthContextResponseAllergies": {
+      "ContextResponseAllergies": {
         "type": "object",
         "properties": {
           "id": {
@@ -19044,7 +19034,7 @@
         ],
         "additionalProperties": false
       },
-      "HealthContextResponseConditions": {
+      "ContextResponseConditions": {
         "type": "object",
         "properties": {
           "id": {
@@ -19100,7 +19090,7 @@
         ],
         "additionalProperties": false
       },
-      "HealthContextResponseCurrentMedicines": {
+      "ContextResponseCurrentMedicines": {
         "type": "object",
         "properties": {
           "id": {
@@ -19192,7 +19182,7 @@
             "type": "boolean",
             "description": "Whether the assistant may read stored health profile, allergies, and conditions."
           },
-          "dailyRecords": {
+          "records": {
             "type": "boolean",
             "description": "Whether the assistant may read recent daily records."
           },
@@ -19207,7 +19197,7 @@
         },
         "required": [
           "healthProfile",
-          "dailyRecords",
+          "records",
           "sleepRecords",
           "currentMedicines"
         ],
@@ -19221,7 +19211,7 @@
             "type": "boolean",
             "description": "Whether the assistant may read stored health profile, allergies, and conditions."
           },
-          "dailyRecords": {
+          "records": {
             "type": "boolean",
             "description": "Whether the assistant may read recent daily records."
           },
@@ -19236,7 +19226,7 @@
         },
         "required": [
           "healthProfile",
-          "dailyRecords",
+          "records",
           "sleepRecords",
           "currentMedicines"
         ],
@@ -20604,14 +20594,14 @@
           "checkIns": {
             "$ref": "#/components/schemas/EventReviewDataCoverageCheckIns"
           },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewDataCoverageDailyRecords"
+          "records": {
+            "$ref": "#/components/schemas/EventReviewDataCoverageRecords"
           },
           "doseLogs": {
             "$ref": "#/components/schemas/EventReviewDataCoverageDoseLogs"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "EventReviewDataCoverageCheckIns": {
@@ -20699,7 +20689,7 @@
         "required": ["date", "outcome", "updatedAt"],
         "additionalProperties": false
       },
-      "EventReviewDataCoverageDailyRecords": {
+      "EventReviewDataCoverageRecords": {
         "type": "object",
         "properties": {
           "state": {
@@ -20803,7 +20793,7 @@
             "description": "Last check-in calendar date (YYYY-MM-DD), or null.",
             "type": "string"
           },
-          "dailyRecords": {
+          "records": {
             "nullable": true,
             "description": "Latest daily-record creation time in the event window (ISO 8601), or null.",
             "type": "string"
@@ -20814,7 +20804,7 @@
             "type": "string"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "EventReviewListResponseItems": {
@@ -21107,14 +21097,14 @@
           "checkIns": {
             "$ref": "#/components/schemas/EventReviewResponseCoverageCheckIns"
           },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewResponseCoverageDailyRecords"
+          "records": {
+            "$ref": "#/components/schemas/EventReviewResponseCoverageRecords"
           },
           "doseLogs": {
             "$ref": "#/components/schemas/EventReviewResponseCoverageDoseLogs"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "EventReviewResponseCoverageCheckIns": {
@@ -21202,7 +21192,7 @@
         "required": ["date", "outcome", "updatedAt"],
         "additionalProperties": false
       },
-      "EventReviewResponseCoverageDailyRecords": {
+      "EventReviewResponseCoverageRecords": {
         "type": "object",
         "properties": {
           "state": {
@@ -21306,7 +21296,7 @@
             "description": "Last check-in calendar date (YYYY-MM-DD), or null.",
             "type": "string"
           },
-          "dailyRecords": {
+          "records": {
             "nullable": true,
             "description": "Latest daily-record creation time in the event window (ISO 8601), or null.",
             "type": "string"
@@ -21317,7 +21307,7 @@
             "type": "string"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "TodaySuggestionsResponsePrimary": {
@@ -22267,7 +22257,7 @@
         "required": ["percent"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysis": {
+      "AnalysisReadResponseAnalysis": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -22286,7 +22276,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisReadResponseAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22304,7 +22294,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisReadResponseAnalysisMetrics"
             }
           }
         },
@@ -22320,7 +22310,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysisBullets": {
+      "AnalysisReadResponseAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22334,7 +22324,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysisMetrics": {
+      "AnalysisReadResponseAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22342,13 +22332,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisReadResponseAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysisMetricsObservedMetric": {
+      "AnalysisReadResponseAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22396,7 +22386,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisDataBullets": {
+      "AnalysisDataBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22410,7 +22400,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisDataMetrics": {
+      "AnalysisDataMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22418,13 +22408,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisDataMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisDataMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisDataMetricsObservedMetric": {
+      "AnalysisDataMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22472,7 +22462,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysis": {
+      "AnalysisReadDataAnalysis": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -22491,7 +22481,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisReadDataAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22509,7 +22499,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisReadDataAnalysisMetrics"
             }
           }
         },
@@ -22525,7 +22515,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysisBullets": {
+      "AnalysisReadDataAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22539,7 +22529,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysisMetrics": {
+      "AnalysisReadDataAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22547,13 +22537,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisReadDataAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysisMetricsObservedMetric": {
+      "AnalysisReadDataAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22601,7 +22591,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysis": {
+      "AnalysisRefreshReadyDataAnalysis": {
         "type": "object",
         "properties": {
           "date": {
@@ -22619,7 +22609,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22637,7 +22627,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysisMetrics"
             }
           }
         },
@@ -22653,7 +22643,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysisBullets": {
+      "AnalysisRefreshReadyDataAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22667,7 +22657,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysisMetrics": {
+      "AnalysisRefreshReadyDataAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22675,13 +22665,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysisMetricsObservedMetric": {
+      "AnalysisRefreshReadyDataAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22729,7 +22719,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataBullets": {
+      "AnalysisAsyncResultDataBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22743,7 +22733,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataMetrics": {
+      "AnalysisAsyncResultDataMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22751,13 +22741,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisAsyncResultDataMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataMetricsObservedMetric": {
+      "AnalysisAsyncResultDataMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22805,7 +22795,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysis": {
+      "AnalysisAsyncResultDataAnalysis": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -22824,7 +22814,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22842,7 +22832,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysisMetrics"
             }
           }
         },
@@ -22858,7 +22848,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysisBullets": {
+      "AnalysisAsyncResultDataAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22872,7 +22862,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysisMetrics": {
+      "AnalysisAsyncResultDataAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22880,13 +22870,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysisMetricsObservedMetric": {
+      "AnalysisAsyncResultDataAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22947,14 +22937,14 @@
             "type": "string",
             "maxLength": 500,
             "description": "Object storage key, stable across signed URL rotations.",
-            "example": "daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "record/user_1/2026-06-04/photo.jpg"
           },
           "bucket": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
             "description": "Object storage bucket.",
-            "example": "lumos-daily-records"
+            "example": "lumos-record"
           },
           "provider": {
             "nullable": true,
@@ -23006,7 +22996,7 @@
             "type": "string",
             "maxLength": 2000,
             "description": "Optional public or already-signed display URL.",
-            "example": "https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "https://cdn.example.com/record/user_1/2026-06-04/photo.jpg"
           }
         },
         "required": ["objectKey"],
@@ -23025,14 +23015,14 @@
             "type": "string",
             "maxLength": 500,
             "description": "Object storage key, stable across signed URL rotations.",
-            "example": "daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "record/user_1/2026-06-04/photo.jpg"
           },
           "bucket": {
             "nullable": true,
             "type": "string",
             "maxLength": 200,
             "description": "Object storage bucket.",
-            "example": "lumos-daily-records"
+            "example": "lumos-record"
           },
           "provider": {
             "nullable": true,
@@ -23084,7 +23074,7 @@
             "type": "string",
             "maxLength": 2000,
             "description": "Optional public or already-signed display URL.",
-            "example": "https://cdn.example.com/daily-records/user_1/2026-06-04/photo.jpg"
+            "example": "https://cdn.example.com/record/user_1/2026-06-04/photo.jpg"
           }
         },
         "required": ["objectKey"],
@@ -23230,7 +23220,7 @@
             "type": "boolean",
             "description": "Allow the assistant to read stored health profile, allergies, and conditions."
           },
-          "dailyRecords": {
+          "records": {
             "type": "boolean",
             "description": "Allow the assistant to read recent daily records."
           },

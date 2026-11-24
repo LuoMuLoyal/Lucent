@@ -129,7 +129,7 @@ operationId 在 `@ApiOperation` 上显式声明(`loginInBrowser` /
 - imports:`UserModule`、`NotificationsModule`、`MailModule`、Passport/Jwt;
   `AuditLogService` 与 `INotificationSender` 经 barrel 取。
 - 被引用:几乎所有模块经 barrel 取 `@Public()`/`@CurrentUser()`/`UserPayload`;
-  DI 层被 `account`、`assistant`、`data-export`、`files`、`user-settings`、`admin`
+  DI 层被 `account`、`assistant`、`export`、`files`、`settings`、`admin`
   导入。exports:`AuthService`、`AuthIdentityService`、`PasswordReauthService`、
   `AuthSessionAdminService`。
 

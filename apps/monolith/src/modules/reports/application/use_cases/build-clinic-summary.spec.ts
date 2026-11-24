@@ -2,9 +2,9 @@ import { DomainFailureException } from '../../../../common/result/domain-failure
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
   ClinicSummaryService,
@@ -17,7 +17,7 @@ import {
  * longer touches Prisma, so a spec under `application/` importing it would
  * reintroduce the very edge `ddd-application-no-direct-prisma` forbids.
  */
-/** The user row shape the doubles project into the health-context port. */
+/** The user row shape the doubles project into the context port. */
 type StubUserRow = {
   nickname: string | null;
   profile: { birthDate: Date | null; sexAtBirth: string | null } | null;
@@ -38,7 +38,7 @@ type MockFn<TResult> = ((...args: unknown[]) => Promise<TResult>) & {
 
 type PrismaStub = {
   user: { findFirstOrThrow: MockFn<StubUserRow> };
-  userDailyRecord: { findMany: MockFn<unknown[]> };
+  userRecord: { findMany: MockFn<unknown[]> };
   userClinicSummaryShare: {
     findFirst: MockFn<Record<string, unknown> | null>;
     updateMany: MockFn<{ count: number }>;
@@ -47,7 +47,7 @@ type PrismaStub = {
 
 import { okAsync } from '../../../../common/result/index.js';
 import type { ClinicSummaryPdf } from '../ports/clinic-summary-pdf.js';
-import type { ProductEventsService } from '../../../product-events/index.js';
+import type { ProductEventLogService } from '../../../product/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
@@ -95,9 +95,9 @@ function withEventReview(
   config: vi.Mocked<ConfigService>,
   eventReview: { buildCurrent: vi.Mock; buildForEvent?: vi.Mock },
 ): ClinicSummaryService {
-  const productEvents = {
+  const productEventLog = {
     emitServerEvent: vi.fn().mockResolvedValue(undefined),
-  } as unknown as ProductEventsService;
+  } as unknown as ProductEventLogService;
   const Ctor = ClinicSummaryService as unknown as new (
     ...args: unknown[]
   ) => ClinicSummaryService;
@@ -109,17 +109,17 @@ function withEventReview(
     recordAccess: () => Promise.resolve(null),
   };
   const records = {
-    listFactsInRange: async () => await prisma.userDailyRecord.findMany(),
+    listFactsInRange: async () => await prisma.userRecord.findMany(),
   };
   return new Ctor(
     shares,
     adapted.sources,
-    adapted.healthContext,
+    adapted.context,
     records,
     cache,
     config,
     i18nMock,
-    productEvents,
+    productEventLog,
     eventReview,
   );
 }
@@ -167,7 +167,7 @@ const mockEventReview = {
       windowStart: '2026-08-01T08:00:00.000Z',
       windowEnd: '2026-08-13T12:00:00.000Z',
     },
-    dailyRecords: {
+    records: {
       state: 'observed',
       coverage: 'partial',
       sources: ['manual'],
@@ -188,7 +188,7 @@ const mockEventReview = {
   },
   sourceTimestamps: {
     checkIns: '2026-08-11',
-    dailyRecords: '2026-08-10',
+    records: '2026-08-10',
     doseLogs: '2026-08-10',
   },
   availableActions: ['check_in'],
@@ -210,8 +210,8 @@ const i18nMock = {
  *
  * The use case stopped joining `user.profile`/`allergies`/`conditions`/
  * `currentMedicines` directly (that made `reports` a second reader of
- * `user-health-context`'s tables). It reads health data through
- * `IUserHealthContextReader` and only the nickname stays local. Keeping the
+ * `context`'s tables). It reads health data through
+ * `IUserContextReader` and only the nickname stays local. Keeping the
  * single `findFirstOrThrow` double and projecting it here means the ~25
  * existing scenarios still describe the same input data, while the assertion
  * surface is the port contract rather than an SQL select list.
@@ -222,7 +222,7 @@ function adaptUserRows(prisma: PrismaStub) {
     sources: {
       findDisplayName: async () => (await row()).nickname,
     },
-    healthContext: {
+    context: {
       getForUser: async () => {
         const user = await row();
         return okAsync({
@@ -329,14 +329,14 @@ describe('ClinicSummaryService', () => {
   let cacheManager: { get: vi.Mock; set: vi.Mock };
   let pdfService: vi.Mocked<ClinicSummaryPdf>;
   let configService: vi.Mocked<ConfigService>;
-  let productEvents: { emitServerEvent: vi.Mock };
+  let productEventLog: { emitServerEvent: vi.Mock };
 
   beforeEach(() => {
     prisma = {
       user: {
         findFirstOrThrow: vi.fn(),
       },
-      userDailyRecord: {
+      userRecord: {
         findMany: vi.fn().mockResolvedValue([]),
       },
       userClinicSummaryShare: {
@@ -358,7 +358,7 @@ describe('ClinicSummaryService', () => {
       get: vi.fn(),
     } as unknown as vi.Mocked<ConfigService>;
 
-    productEvents = { emitServerEvent: vi.fn().mockResolvedValue(undefined) };
+    productEventLog = { emitServerEvent: vi.fn().mockResolvedValue(undefined) };
 
     // Port doubles delegate to the same `prisma` object the scenarios mutate,
     // so replacing `prisma.userClinicSummaryShare` still drives the behaviour
@@ -380,19 +380,19 @@ describe('ClinicSummaryService', () => {
     };
     dailyRecordReader = {
       listFactsInRange: vi.fn(
-        async () => await prisma.userDailyRecord.findMany(),
+        async () => await prisma.userRecord.findMany(),
       ),
     };
     const adapted = adaptUserRows(prisma);
     service = new ClinicSummaryService(
       clinicShares as never,
       adapted.sources as never,
-      adapted.healthContext as never,
+      adapted.context as never,
       dailyRecordReader as never,
       cacheManager as never,
       configService,
       i18nMock,
-      productEvents as unknown as ProductEventsService,
+      productEventLog as unknown as ProductEventLogService,
     );
   });
 
@@ -1070,17 +1070,17 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('valid-token');
 
       expect(result).toEqual(cached);
-      expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
-      expect(productEvents.emitServerEvent).toHaveBeenCalledWith('owner-1', {
-        name: ProductEventName.visit_summary_share_opened,
-        surface: ProductEventSurface.system,
-        result: ProductEventResult.success,
+      expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
+      expect(productEventLog.emitServerEvent).toHaveBeenCalledWith('owner-1', {
+        name: ProductEventLogName.visit_summary_share_opened,
+        surface: ProductEventLogSurface.system,
+        result: ProductEventLogResult.success,
       });
       // Each successful open is a distinct event (accessCount increments per
       // open) — no deterministic clientEventId; the uuid default keeps opens
       // unique across reads.
       expect(
-        productEvents.emitServerEvent.mock.calls[0]![1],
+        productEventLog.emitServerEvent.mock.calls[0]![1],
       ).not.toHaveProperty('clientEventId');
     });
 
@@ -1096,7 +1096,7 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('legacy-token');
 
       expect(result).toEqual(cached);
-      expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+      expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
     });
 
     it('emits no open event when the guarded access write is denied', async () => {
@@ -1119,7 +1119,7 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('racing-token');
 
       expect(result).toBeNull();
-      expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+      expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
     });
   });
 

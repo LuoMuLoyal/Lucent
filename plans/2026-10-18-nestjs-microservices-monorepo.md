@@ -90,7 +90,7 @@ forward-fix 为主，旧库保留到 P9。
   把绝大多数用户域模块挂在 `user` 前缀下）；`sourceRoot: "src"`，构建产物扁平 `dist/main.js`。
 - **26 个业务模块** `src/modules/*` + `src/common` + 根级 `config/`、`prisma/`、`i18n/`、
   `mail/`、`llm-runtime/`、`admin-console/`；约 30 个 controller、168 个端点、非测试代码约 84k 行。
-- **公开路径是模块级的，不是服务级的**：`/api/v1/user/daily-records`、`/user/reports`、
+- **公开路径是模块级的，不是服务级的**：`/api/v1/user/record`、`/user/reports`、
   `/user/assistant` 同挂 `user` 前缀。因此**不能按 `/user` 前缀切服务**，边缘必须按
   「资源段」路由，见 §2.2。
 - **跨模块耦合已收敛为三种缝**：
@@ -98,7 +98,7 @@ forward-fix 为主，旧库保留到 P9。
      `MedicineReminderReaderPort` / `IUserSettingsPort` / `IUserHealthContextReader` /
      `IReportSummaryReader` / `INotificationSender`）；
   2. **领域事件**（`src/common/events/domain-events.ts` 7 个事件，跨模块 `emitAsync`/`@OnEvent`）；
-  3. **读模型直读**（`today-analysis`/`today-suggestion`/`reports` 直接 Prisma）。
+  3. **读模型直读**（`analysis`/`suggestion`/`reports` 直接 Prisma）。
 - **基础设施**：Prisma 7 + PostgreSQL（单库 `lucent`、单一 `public` schema）、Redis + BullMQ
   （12 个队列）、OTel/Winston/Prometheus、`nestjs-i18n`、zod 4。
 - **AI 面已经是异构的**：LightRAG 与 Semantica 均为独立 Python 服务（Neo4j 本体推理），
@@ -122,13 +122,13 @@ forward-fix 为主，旧库保留到 P9。
 | 服务              | 职责                                                                         | 归入的现有模块                                                                                            | 提取批次 | 实现语言      | 最终数据                  |
 | ----------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------- | ------------- | ------------------------- |
 | **Traefik**       | 边缘：路由、按资源重写、SSE/流式透传、限流、CORS；JWT 由服务本地校验         | 无数据库；file provider（Git 路由/中间件）+ Nomad provider（实例）                                        | P0       | Go（Traefik） | 无                        |
-| **content**       | 内容读面：平台信息、法务文档、环境说明、文件与流式下载                       | app-info、environment、legal-documents、files                                                             | P1       | TypeScript    | `lucent_content`          |
+| **content**       | 内容读面：平台信息、法务文档、环境说明、文件与流式下载                       | app-info、environment、legal、files                                                             | P1       | TypeScript    | `lucent_content`          |
 | **medicine**      | 药品知识：目录、说明书、风险规则、检索语料与索引重建、药品识别               | medicines（目录/数据导入/SafetyTip/RiskCheck/语料）                                                       | P3       | TypeScript    | `lucent_medicine`         |
-| **notifications** | 通知投递：偏好、模板、站内/邮件/推送、投递日志、重试                         | notifications、notification-preferences、mail                                                             | P4       | TypeScript    | `lucent_notifications`    |
-| **health**        | 健康写模型：上下文、记录、事件、剂量、提醒、保留                             | user-health-context、daily-records、health-events、medicine-dose-logs、medicine-reminders、data-retention | P5       | TypeScript    | `lucent_health`           |
-| **insights**      | 遥测 + 读模型：产品事件、今日分析/建议、报告、导出                           | product-events、today-analysis、today-suggestion、reports、data-export                                    | P2、P6   | TypeScript    | `lucent_insights`         |
+| **notifications** | 通知投递：偏好、模板、站内/邮件/推送、投递日志、重试                         | notifications、notification、mail                                                             | P4       | TypeScript    | `lucent_notifications`    |
+| **health**        | 健康写模型：上下文、记录、事件、剂量、提醒、保留                             | context、record、health-events、dose、reminder、retention | P5       | TypeScript    | `lucent_health`           |
+| **insights**      | 遥测 + 读模型：产品事件、今日分析/建议、报告、导出                           | product、analysis、suggestion、reports、export                                    | P2、P6   | TypeScript    | `lucent_insights`         |
 | **assistant**     | 对话式助手：会话、记忆、LLM runtime、工具路由、LightRAG/ontology 客户端、SSE | assistant、llm-runtime                                                                                    | P7       | TypeScript    | `lucent_assistant`        |
-| **identity**      | 身份与访问：auth、账户、用户、设置、RBAC、会话、审计落库                     | auth、account、user、user-settings、audit-log                                                             | P8       | TypeScript    | `lucent_identity`         |
+| **identity**      | 身份与访问：auth、账户、用户、设置、RBAC、会话、审计落库                     | auth、account、user、settings、audit-log                                                             | P8       | TypeScript    | `lucent_identity`         |
 | **admin BFF**     | 管理台后端：聚合读、运营写入口、队列面板、`/admin` 静态资源                  | admin、admin-console                                                                                      | P9       | TypeScript    | 无业务表                  |
 | **ontology**      | 推理支撑（非 bounded context）：本体/OAG 查询与推理、PROV-O 溯源             | 自建 `semantica-service`（FastAPI）；Neo4j 外置                                                           | P7       | Python        | `lucent_ontology` + Neo4j |
 | **monolith**      | 未提取能力的宿主；过渡期唯一全量实现                                         | 剩余模块 + 对外暴露临时 ACL 适配器                                                                        | P0–P9    | TypeScript    | `lucent`（P9 归档）       |
@@ -139,9 +139,9 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
 
 **为什么这样排序**：
 
-- **先读后写**：P1 的 content 读面（app-info/environment/legal-documents/files）几乎无状态、
+- **先读后写**：P1 的 content 读面（app-info/environment/legal/files）几乎无状态、
   无跨库写，用来验证 Traefik 路由、路径重写、文件流式与回滚机制。
-- **再做小写面**：P2 的 product-events 是 write-only、无读契约、失败可丢的遥测路径，
+- **再做小写面**：P2 的 product 是 write-only、无读契约、失败可丢的遥测路径，
   用来验证 outbox/MQ/幂等，而不拿核心健康数据冒险。
 - **medicine 先于 health/insights/assistant**：药品知识是只读、无用户数据的上游；
   health 的风险/提醒、insights 的建议、assistant 的检索都依赖它。先提取 medicine，
@@ -169,14 +169,14 @@ North–South 业务路由，只被 assistant（及离线重建任务）经内�
   identity 只保留用户联系方式与账号状态，不承担投递。
 - **assistant 独立**：会话、记忆、prompt、工具路由、`llm-runtime` 归 assistant；
   medicine 只提供检索/风险读接口，不拥有对话状态。
-- **content 独立**：app-info/environment/legal-documents/files 归 content；文件走对象存储/流式，
+- **content 独立**：app-info/environment/legal/files 归 content；文件走对象存储/流式，
   不与药品知识混部。
-- `data-export` 从 health 移到 **insights**（它读 `ReportsService`、产 PDF），消除 health↔insights 环。
+- `export` 从 health 移到 **insights**（它读 `ReportsService`、产 PDF），消除 health↔insights 环。
 - `platform.prisma` 按表拆：通知/偏好 → notifications；导出请求/分享/产品事件 → insights；
   法务/app-info/environment → content；文件元数据 → content。
 - `medicine-user.prisma` 按表拆：用户侧四表 + `UserReminderDelivery` → health；
   SafetyTip/RiskCheck/药品目录 → medicine。
-- `data-retention` 不再是一个跨库 cron：各服务只清自己的表。
+- `retention` 不再是一个跨库 cron：各服务只清自己的表。
 - `reports ↔ assistant` 双向环：`HistoricalAiSummaryService` 与 `llm-runtime` 归 **assistant**，
   assistant 经 insights 的单向 gRPC 读报告；insights 不调用 assistant，调用图保持 DAG；
   不建共享 `packages/ai`。
@@ -212,13 +212,13 @@ Traefik 从 P0 起就是唯一入口；初始 100% 流量回源到单体，行�
   CI 校验它覆盖 `docs/reference/generated/openapi.json` 的全部 operation，且一条路径只能有一个 owner。
 - **按资源段路由**：用户域都在 `/api/v1/user/*` 下，因此匹配第二段资源名；公开根路径按实际清单登记。
   例如：
-  `^/api/v1/user/(daily-records|medicine-dose-logs|health-events|medicine-reminders)(/|$)` → health；
+  `^/api/v1/user/(record|dose|health-events|reminder)(/|$)` → health；
   `^/api/v1/user/assistant(/|$)` → assistant；
   `^/api/v1/user/medicines(/|$)` → medicine；
-  `^/api/v1/user/(files|legal-documents|environment|app-info)(/|$)` → content；
-  `^/api/v1/user/(notifications|notification-preferences)(/|$)` → notifications；
-  `^/api/v1/user/(today-analysis|today-suggestion|reports|data-export|product-events)(/|$)` → insights；
-  `^/api/v1/user/(account|user|user-settings)(/|$)` → identity；
+  `^/api/v1/user/(files|legal|environment|app-info)(/|$)` → content；
+  `^/api/v1/user/(notifications|notification)(/|$)` → notifications；
+  `^/api/v1/user/(analysis|suggestion|reports|export|product)(/|$)` → insights；
+  `^/api/v1/user/(account|user|settings)(/|$)` → identity；
   `^/api/v1/auth(/|$)` → identity。
   用 `ReplacePathRegex` 中间件去掉公开的 `/user` 前缀，服务只实现内部规范路径。
 - **Nomad 侧**：每个可被边缘访问的服务在 job 里声明
@@ -383,7 +383,7 @@ Turbo 的 uv 支持是 **experimental**，启用需要四个条件**同时满足
 
 | 服务              | database               | 拥有的数据                                                                    |
 | ----------------- | ---------------------- | ----------------------------------------------------------------------------- |
-| **content**       | `lucent_content`       | app-info、environment、legal-documents、文件元数据/对象存储引用               |
+| **content**       | `lucent_content`       | app-info、environment、legal、文件元数据/对象存储引用               |
 | **medicine**      | `lucent_medicine`      | 药品目录、说明书/DrugBank 派生、SafetyTip/RiskCheck、语料/chunk/索引状态      |
 | **notifications** | `lucent_notifications` | 通知偏好、模板、投递任务/日志、渠道凭据引用                                   |
 | **health**        | `lucent_health`        | health context、daily records、health events、dose logs、reminders、retention |
@@ -578,19 +578,19 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 - **admin 通用数据层**：共存期 admin 仍在单体，但**不能跨库直读**；每迁一个域，
   admin 的对应读适配器就切到该域 `AdminResource` gRPC，未迁的才读 legacy 库。
   写一律走 owner 服务；脱敏与软删在每个 owner 服务内强制。
-- **product-events**：归 insights；记录路径改为 fire-and-forget 事件，读取走 gRPC。
-- **read-model（today-analysis/today-suggestion/reports）**：直读改为 **reader-port gRPC** +
+- **product**：归 insights；记录路径改为 fire-and-forget 事件，读取走 gRPC。
+- **read-model（analysis/suggestion/reports）**：直读改为 **reader-port gRPC** +
   事件增量重算；提取前读 health 的 legacy ACL。
 - **reports ↔ assistant**：`llm-runtime`/`HistoricalAiSummaryService` 归 assistant，
   assistant 经 insights 的单向 gRPC 读报告；insights 不反向同步调用 assistant，否则 gRPC 会成环。
   `report-summary` 由 assistant 执行，结果以 `REPORT_SUMMARY_GENERATED` 事件回写 insights。
-- **data-retention**：按服务拆散，各自清自己的表。
+- **retention**：按服务拆散，各自清自己的表。
 - **notifications**：独立服务；identity 只管用户联系方式，health/insights 只发投递命令、
   收投递结果事件。
 - **medicine ↔ assistant**：medicine 拥有目录、风险规则与检索语料；结构化药品数据由 assistant
   经 gRPC 读，中文散文检索走 assistant 自己的 LightRAG 客户端（语料由 medicine 重建）。
   不复制药品数据，也不把 prompt/会话写回 medicine。
-- **content**：独立服务；files 走对象存储/流式，app-info/environment/legal-documents 走只读内容接口。
+- **content**：独立服务；files 走对象存储/流式，app-info/environment/legal 走只读内容接口。
 - **事件桥**：只在共存期存在；P9 必须删除，不允许长期保留「单体 ↔ MQ」双栈。
 
 ---
@@ -666,13 +666,13 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ### P1 — content 读面（第一次绞杀）
 
-- 建 `apps/content` 骨架，迁 app-info、environment、legal-documents、files（只读 + 文件流）。
+- 建 `apps/content` 骨架，迁 app-info、environment、legal、files（只读 + 文件流）。
 - 影子读 → header 灰度 → 100%；旧路由从单体摘除。
 - 门禁：影子差异为零（允许白名单字段）；文件上传/下载/流式与签名 URL 一致；回滚演练通过。
 
 ### P2 — telemetry 写面与事件底座
 
-- 建 `apps/insights` 骨架，迁 product-events；引入 **RabbitMQ**、outbox、幂等消费、DLQ。
+- 建 `apps/insights` 骨架，迁 product；引入 **RabbitMQ**、outbox、幂等消费、DLQ。
 - legacy 加事件桥；事件契约与 `schemaVersion` 放 `packages/contracts`。
 - 门禁：重复投递无重复副作用；RabbitMQ 抖动/消费者重启不丢已确认事件；
   DLQ 可查看/重放；回滚后事件不双发。
@@ -687,7 +687,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ### P4 — notifications 投递域
 
-- 建 `apps/notifications` 骨架，迁 notifications、notification-preferences、mail；
+- 建 `apps/notifications` 骨架，迁 notifications、notification、mail；
   接管站内/邮件/推送三渠道与 `lucent-mail` 队列。
 - identity 提取前，经 monolith ACL 读用户联系方式；投递结果以事件回给调用方。
 - 门禁：三渠道投递与偏好一致；重试/DLQ/限流可用；供应商超时不拖垮调用方；
@@ -695,15 +695,15 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ### P5 — health 写模型
 
-- 迁 user-health-context、daily-records、health-events、medicine-dose-logs、medicine-reminders、
-  data-retention；写路径经 outbox 发领域事件。
+- 迁 context、record、health-events、dose、reminder、
+  retention；写路径经 outbox 发领域事件。
 - 依赖 P3 medicine 的目录/风险读接口与 P4 notifications 的投递命令。
 - 门禁：读写在影子期一致；跨用户 404、limit 上限等 e2e 全绿；数据对账零差异；
   admin 对应读适配器已切到 health gRPC；旧库对应表只读。
 
 ### P6 — insights 读模型
 
-- 迁 today-analysis、today-suggestion、reports、data-export；reader-port 改 gRPC/事件。
+- 迁 analysis、suggestion、reports、export；reader-port 改 gRPC/事件。
 - 门禁：读模型结果与旧栈逐条比对（含空数据、边界日期）；PDF/导出字节级或语义级一致；
   `reports ↔ assistant` 无环；P7 前 `report-summary` 仍由 legacy 提供，insights 不直接调用 assistant。
 
@@ -722,7 +722,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 ### P8 — identity 域
 
-- 迁 auth、account、user、user-settings、audit-log；notifications/mail 已在 P4 独立。
+- 迁 auth、account、user、settings、audit-log；notifications/mail 已在 P4 独立。
 - identity 成为唯一签发方；各服务切到统一本地验签模板（边缘仍不解析 JWT）；
   单体保留本地校验直到退役。
 - 门禁：登录/刷新/吊销/MFA/权限矩阵全绿；审计链路完整；notifications 读取联系方式
@@ -935,7 +935,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 1. **admin 读路径**：`AdminResource` gRPC 扇出（推荐）vs 事件维护的只读库。
 2. **会话吊销**：短 TTL access token + Redis 吊销集合（推荐）vs 全量 introspection。
-3. **首片选择**：content 读面（推荐）；product-events 作为第二片，先不并行。
+3. **首片选择**：content 读面（推荐）；product 作为第二片，先不并行。
 4. **service JWT 签发**：identity 作为内部 IdP、client credentials（推荐）vs 每服务自签。
 5. **outbox relay**：轮询 + `FOR UPDATE SKIP LOCKED`（推荐）vs CDC/Debezium。
 6. **事件顺序**：只保证 per-aggregate（推荐），不承诺全局有序。
@@ -955,7 +955,7 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 | `MedicineReminderReaderPort` | health → insights                                                                               |
 | `IUserSettingsPort`          | identity → insights、assistant                                                                  |
 | `IUserHealthContextReader`   | health → medicine(risk)、insights、assistant                                                    |
-| `INotificationSender`        | notifications 提供；identity(auth)、health(reminders)、insights(today-suggestion/analysis) 消费 |
+| `INotificationSender`        | notifications 提供；identity(auth)、health(reminders)、insights(suggestion/analysis) 消费 |
 | `IReportSummaryReader`       | insights → assistant                                                                            |
 | `MedicineCatalogPort`        | medicine → assistant、health(reminders/risk)                                                    |
 
@@ -963,31 +963,31 @@ Nomad provider 后，唯一剩下的缺口是 Nomad 不消费 Nacos，用应用�
 
 | 事件                                       | 发布方              | 订阅方                                     | 拆分后流向                     |
 | ------------------------------------------ | ------------------- | ------------------------------------------ | ------------------------------ |
-| `DAILY_RECORD_CHANGED`                     | daily-records       | today-analysis、reports、today-suggestion  | health → insights              |
-| `DOSE_LOG_CHANGED`                         | medicine-dose-logs  | 同上                                       | health → insights              |
-| `REMINDER_CHANGED`                         | medicine-reminders  | medicines(risk)、reports、today-suggestion | health → medicine、insights    |
-| `HEALTH_CONTEXT_CHANGED`                   | user-health-context | medicines(risk)、reports、today-suggestion | health → medicine、insights    |
-| `SETTINGS_CHANGED`                         | user-settings       | reports、today-suggestion、assistant       | identity → insights、assistant |
-| `HEALTH_EVENT_CHANGED`                     | health-events       | today-analysis、reports、today-suggestion  | health → insights              |
-| `TODAY_SUGGESTION_MATERIALIZATION_CHANGED` | today-suggestion    | today-analysis                             | insights → insights（服务内）  |
+| `DAILY_RECORD_CHANGED`                     | record       | analysis、reports、suggestion  | health → insights              |
+| `DOSE_LOG_CHANGED`                         | dose  | 同上                                       | health → insights              |
+| `REMINDER_CHANGED`                         | reminder  | medicines(risk)、reports、suggestion | health → medicine、insights    |
+| `HEALTH_CONTEXT_CHANGED`                   | context | medicines(risk)、reports、suggestion | health → medicine、insights    |
+| `SETTINGS_CHANGED`                         | settings       | reports、suggestion、assistant       | identity → insights、assistant |
+| `HEALTH_EVENT_CHANGED`                     | health-events       | analysis、reports、suggestion  | health → insights              |
+| `TODAY_SUGGESTION_MATERIALIZATION_CHANGED` | suggestion    | analysis                             | insights → insights（服务内）  |
 | `REPORT_SUMMARY_GENERATED`                 | assistant           | insights                                   | assistant → insights           |
 
 ### A.3 BullMQ 队列（按服务收口）
 
 `lucent-cron`（保留/生命周期/周报/餐食清扫按服务拆散）、`lucent-reminder-dispatch` → health；
-`lucent-mail` → notifications；`lucent-meal-analysis` → health；`data-export` → insights；
-`medicine-recognition` → medicine；`today-analysis`、`suggestion-*`、`clinic-summary-pdf` → insights；
+`lucent-mail` → notifications；`lucent-meal-analysis` → health；`export` → insights；
+`medicine-recognition` → medicine；`analysis`、`suggestion-*`、`clinic-summary-pdf` → insights；
 `report-summary`（AI 摘要）→ assistant。
 
 以上全部是**服务内** BullMQ 任务/定时队列，不跨服务；跨服务事件一律走 RabbitMQ。
 
 ### A.4 现有模块间 import 依赖（71 条边的聚集）
 
-密集/双向簇按 bounded context 重新归属：`reports`/`data-export` → insights；
+密集/双向簇按 bounded context 重新归属：`reports`/`export` → insights；
 `reports ↔ assistant` 改为 assistant 单向读 insights，去掉反向调用；`auth ↔ user` → identity；
-`admin` → admin BFF；`notifications` → notifications；`product-events` → insights；
-`user-settings` → identity；`user-health-context`/`daily-records`/`medicine-dose-logs`/
-`medicine-reminders` → health。原先的“共享缝”只说明旧代码耦合，不再作为合并理由。
+`admin` → admin BFF；`notifications` → notifications；`product` → insights；
+`settings` → identity；`context`/`record`/`dose`/
+`reminder` → health。原先的“共享缝”只说明旧代码耦合，不再作为合并理由。
 
 ### A.5 构建面断裂点
 

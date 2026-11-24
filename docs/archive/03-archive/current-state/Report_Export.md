@@ -9,7 +9,7 @@ Last updated: 2026-07-20
 - Report export uses a shared `DataExportProcessorService` for both async (BullMQ) and inline
   fallback paths so the two execution modes run the same status, PDF generation, upload, and
   notification logic.
-- When `REDIS_URL` is configured, `POST /api/v1/user/data-export-requests` enqueues a BullMQ job
+- When `REDIS_URL` is configured, `POST /api/v1/user/export-requests` enqueues a BullMQ job
   and immediately returns a `requested` row; otherwise it falls back to synchronous inline
   processing and returns the final state.
 - Async worker failures mark the request `failed`, log the error, and let BullMQ retry the job with
@@ -24,4 +24,4 @@ Last updated: 2026-07-20
   - Findings: insight blocks with title + body
   - Patterns: insight blocks with status badge, title, body, and sparkline sequence
 - `ClinicSummaryService.buildClinicSummary()` 用户查询已迁移到 `prisma.nonDeleted.user.findFirstOrThrow` API。
-- `GET /user/data-export-requests/latest` 只需 JWT 认证，不需要安全提权令牌。`POST /user/data-export-requests` 仍需提权。
+- `GET /user/export-requests/latest` 只需 JWT 认证，不需要安全提权令牌。`POST /user/export-requests` 仍需提权。

@@ -82,7 +82,7 @@ import type {
   AdminSafetyTipCreateDto,
   AdminSafetyTipUpdateDto,
 } from './adapters/http/dto/admin-content.js';
-import { LegalDocumentsAdminService } from '../legal-documents/index.js';
+import { LegalAdminService } from '../legal/index.js';
 import { SafetyTipsAdminService } from '../medicines/index.js';
 import { QaChunksAdminService } from '../assistant/index.js';
 import { adminIdentityResponseSchema } from './adapters/http/dto/admin-identity.js';
@@ -101,7 +101,7 @@ export class AdminController {
     private readonly authSessions: AuthSessionAdminService,
     private readonly shares: AdminSharesService,
     private readonly userRelated: AdminUserRelatedService,
-    private readonly legalDocuments: LegalDocumentsAdminService,
+    private readonly legal: LegalAdminService,
     private readonly safetyTips: SafetyTipsAdminService,
     private readonly qaChunks: QaChunksAdminService,
   ) {}
@@ -438,7 +438,7 @@ export class AdminController {
     return this.adminConsole.listAuditLogs(query);
   }
 
-  @Get('content/legal-documents')
+  @Get('content/legal')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:read')
   // NOTE: JSON array body. The global serializer validates array items one by
@@ -448,10 +448,10 @@ export class AdminController {
   @SerializeOptions({ schema: adminLegalDocumentSchema })
   @ApiOperation({ operationId: 'listAdminLegalDocuments', summary: 'List legal documents for administration' })
   async listLegalDocuments() {
-    return this.legalDocuments.list();
+    return this.legal.list();
   }
 
-  @Put('content/legal-documents/:docType')
+  @Put('content/legal/:docType')
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:write')
   @SerializeOptions({ schema: adminLegalDocumentSchema })
@@ -463,7 +463,7 @@ export class AdminController {
     @Body({ schema: adminLegalDocumentUpdateSchema })
     input: AdminLegalDocumentUpdateDto,
   ) {
-    const document = await this.legalDocuments.update(user.sub, docType, input);
+    const document = await this.legal.update(user.sub, docType, input);
     if (document === null) {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',
@@ -477,7 +477,7 @@ export class AdminController {
   @UseGuards(AdminPermissionGuard)
   @RequirePermission('content:read')
   // NOTE: JSON array body — item schema for outbound validation, array schema
-  // for OpenAPI. See the legal-documents list above.
+  // for OpenAPI. See the legal list above.
   @SerializeOptions({ schema: adminSafetyTipSchema })
   @ApiOperation({ operationId: 'listAdminSafetyTips', summary: 'List medication safety tips for administration' })
   async listSafetyTips() {
@@ -663,14 +663,14 @@ registerResponseSchema({
   description: 'Paginated security audit log entries.',
 });
 registerResponseSchema({
-  path: '/api/v1/admin/content/legal-documents',
+  path: '/api/v1/admin/content/legal',
   method: 'get',
   componentName: 'AdminLegalDocumentList',
   schema: adminLegalDocumentListSchema,
   description: 'Legal document administration list.',
 });
 registerResponseSchema({
-  path: '/api/v1/admin/content/legal-documents/{docType}',
+  path: '/api/v1/admin/content/legal/{docType}',
   method: 'put',
   componentName: 'AdminLegalDocument',
   schema: adminLegalDocumentSchema,

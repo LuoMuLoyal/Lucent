@@ -2,9 +2,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ClinicSummaryShareField,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import type { UserClinicSummaryShare } from '#generated/prisma/client.js';
 import { now } from '../../../../common/index.js';
@@ -14,7 +14,7 @@ import {
   CLINIC_SUMMARY_SHARES,
   type ClinicSummaryShares,
 } from '../ports/clinic-summary.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 import {
   CLINIC_SUMMARY_REASON,
   type ClinicSummaryReason,
@@ -116,7 +116,7 @@ export class ShareService {
   constructor(
     @Inject(CLINIC_SUMMARY_SHARES)
     private readonly shares: ClinicSummaryShares,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
   ) {}
 
   async createShare(
@@ -146,10 +146,10 @@ export class ShareService {
     // insert succeeded. Deterministic clientEventId: a retry that re-runs
     // this idempotent create (or the controller's best-effort cache-fallback
     // revoke) is deduped by the (userId, clientEventId) unique constraint.
-    await this.productEvents.emitServerEvent(userId, {
-      name: ProductEventName.visit_summary_share_created,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.success,
+    await this.productEventLog.emitServerEvent(userId, {
+      name: ProductEventLogName.visit_summary_share_created,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.success,
       clientEventId: `server-share-created-${record.id}`,
     });
 
@@ -221,10 +221,10 @@ export class ShareService {
     if (revoked) {
       // Server-authoritative lifecycle event — only after a real revocation.
       // Deterministic clientEventId dedupes retries of this idempotent revoke.
-      await this.productEvents.emitServerEvent(userId, {
-        name: ProductEventName.visit_summary_share_revoked,
-        surface: ProductEventSurface.review,
-        result: ProductEventResult.success,
+      await this.productEventLog.emitServerEvent(userId, {
+        name: ProductEventLogName.visit_summary_share_revoked,
+        surface: ProductEventLogSurface.review,
+        result: ProductEventLogResult.success,
         clientEventId: `server-share-revoked-${shareId}`,
       });
     }

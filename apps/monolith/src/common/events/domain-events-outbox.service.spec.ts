@@ -123,7 +123,7 @@ describe('DomainEventOutboxService', () => {
 
     it('writes dedupeKey with the row when supplied', async () => {
       await service.append({
-        context: 'daily-records',
+        context: 'record',
         aggregateType: 'daily-record',
         aggregateId: 'rec-1',
         eventName: 'daily-record.changed',
@@ -138,7 +138,7 @@ describe('DomainEventOutboxService', () => {
     it('returns the existing row id and writes nothing on a duplicate dedupeKey', async () => {
       prisma.domainEvent.findUnique.mockResolvedValue({ id: 'row-existing' });
       const id = await service.append({
-        context: 'daily-records',
+        context: 'record',
         aggregateType: 'daily-record',
         aggregateId: 'rec-1',
         eventName: 'daily-record.changed',
@@ -157,7 +157,7 @@ describe('DomainEventOutboxService', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ id: 'row-racer' });
       const id = await service.append({
-        context: 'daily-records',
+        context: 'record',
         aggregateType: 'daily-record',
         aggregateId: 'rec-1',
         eventName: 'daily-record.changed',
@@ -171,7 +171,7 @@ describe('DomainEventOutboxService', () => {
       prisma.domainEvent.create.mockRejectedValue(new Error('connection lost'));
       await expect(
         service.append({
-          context: 'daily-records',
+          context: 'record',
           aggregateType: 'daily-record',
           aggregateId: 'rec-1',
           eventName: 'daily-record.changed',

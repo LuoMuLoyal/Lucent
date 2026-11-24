@@ -6,7 +6,7 @@ const permissionsByResource: Record<string, Record<string, string>> = {
   metrics: { list: 'metrics:read', show: 'metrics:read' },
   users: { list: 'users:read', show: 'users:read' },
   'audit-logs': { list: 'audit:read' },
-  'legal-documents': {
+  legal: {
     list: 'content:read',
     show: 'content:read',
     edit: 'content:write',

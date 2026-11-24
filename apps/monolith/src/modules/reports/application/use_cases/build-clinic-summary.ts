@@ -7,14 +7,14 @@ import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
-  IUserHealthContextReader,
-  type HealthContextResponseData,
-} from '../../../user-health-context/index.js';
+  IUserContextReader,
+  type ContextResponseData,
+} from '../../../context/index.js';
 import {
   CLINIC_SUMMARY_SHARES,
   CLINIC_SUMMARY_SOURCES,
@@ -43,11 +43,11 @@ import type {
   EventReviewData,
 } from '../ports/event-review.js';
 import { EventReviewService } from '../../application/read_models/event-review/review.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
-} from '../../../daily-records/index.js';
+} from '../../../record/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
@@ -142,12 +142,12 @@ export class ClinicSummaryService {
     private readonly shares: ClinicSummaryShares,
     @Inject(CLINIC_SUMMARY_SOURCES)
     private readonly sources: ClinicSummarySources,
-    private readonly healthContext: IUserHealthContextReader,
+    private readonly context: IUserContextReader,
     private readonly dailyRecordReader: DailyRecordReaderPort,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
     @Optional() private readonly eventReview?: EventReviewService,
   ) {}
 
@@ -157,11 +157,11 @@ export class ClinicSummaryService {
     options: ClinicSummaryOptions = {},
   ): Promise<ClinicSummaryDto> {
     // Health data (allergies/conditions/medicines/profile) comes from its owner
-    // through `IUserHealthContextReader`; the nickname is `user`'s own column.
+    // through `IUserContextReader`; the nickname is `user`'s own column.
     // The previous implementation joined all four tables here, which made
     // `reports` a second reader of another context's schema.
     const [health, nickname] = await Promise.all([
-      this.unwrapHealthContext(userId),
+      this.unwrapContext(userId),
       this.sources.findDisplayName(userId),
     ]);
     const user = {
@@ -227,7 +227,7 @@ export class ClinicSummaryService {
 
     // Fetch daily records in the summary window for water/sleep/notes
     // entries. The window is defined by the resolved scope start/end.
-    const dailyRecords = await this.fetchDailyRecords(
+    const records = await this.fetchDailyRecords(
       userId,
       new Date(scope.start),
       new Date(scope.end),
@@ -246,9 +246,9 @@ export class ClinicSummaryService {
       currentMedicines,
       findings: this.buildFindings(scope.review),
       coverage: this.buildCoverage(scope.review),
-      waterEntries: this.buildWaterEntries(dailyRecords),
-      sleepEntries: this.buildSleepEntries(dailyRecords),
-      noteEntries: this.buildNoteEntries(dailyRecords),
+      waterEntries: this.buildWaterEntries(records),
+      sleepEntries: this.buildSleepEntries(records),
+      noteEntries: this.buildNoteEntries(records),
       disclaimer: this.i18n.t('reports-clinic-summary.disclaimer', {
         lang: locale,
       }),
@@ -320,10 +320,10 @@ export class ClinicSummaryService {
     // is no owner to attribute to. No deterministic clientEventId: each
     // successful open is a DISTINCT event (accessCount increments per open
     // too), so the per-emission `server-<uuid>` default is intentional.
-    await this.productEvents.emitServerEvent(record.userId, {
-      name: ProductEventName.visit_summary_share_opened,
-      surface: ProductEventSurface.system,
-      result: ProductEventResult.success,
+    await this.productEventLog.emitServerEvent(record.userId, {
+      name: ProductEventLogName.visit_summary_share_opened,
+      surface: ProductEventLogSurface.system,
+      result: ProductEventLogResult.success,
     });
     return cached;
   }
@@ -355,7 +355,7 @@ export class ClinicSummaryService {
   }
 
   /**
-   * Unwraps the health-context `ResultAsync` into a value or a domain failure.
+   * Unwraps the context `ResultAsync` into a value or a domain failure.
    *
    * `getForUser` returns `ResultAsync` because "this user has no health context
    * row" is a business outcome (`not_found`), not an exception. The summary is
@@ -364,10 +364,10 @@ export class ClinicSummaryService {
    * silently treated as "no allergies, no conditions, no medicines" — the
    * latter would print a clinically empty summary that looks complete.
    */
-  private async unwrapHealthContext(
+  private async unwrapContext(
     userId: string,
-  ): Promise<HealthContextResponseData> {
-    const result = await this.healthContext.getForUser(userId);
+  ): Promise<ContextResponseData> {
+    const result = await this.context.getForUser(userId);
     if (result.isErr()) {
       throw new DomainFailureException(result.error);
     }
@@ -517,8 +517,8 @@ export class ClinicSummaryService {
     return {
       checkIns: this.toCoverageEntry(review.coverage.checkIns),
       // water and sleep both derive from daily records.
-      water: this.toCoverageEntry(review.coverage.dailyRecords),
-      sleep: this.toCoverageEntry(review.coverage.dailyRecords),
+      water: this.toCoverageEntry(review.coverage.records),
+      sleep: this.toCoverageEntry(review.coverage.records),
       dose: this.toCoverageEntry(review.coverage.doseLogs),
     };
   }

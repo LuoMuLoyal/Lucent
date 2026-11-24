@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-10-27
+updated: 2026-11-24
 ---
 
 # How-To: 运行药品数据导入
@@ -36,17 +36,18 @@ pnpm import:medicine:all
 默认顺序：`drugbank-drugs` → `drugbank-links` → `drugbank-targets-all` → `drugbank-targets-active` → `drugbank-target-proteins` → `drugbank-target-genes` → `drugbank-drug-sequences` → `drugbank-structures` → `drugbank-patents` → `drugbank-experimental-properties` → `drugbank-calculated-properties` → `drugbank-pathways` → `drugbank-reactions` → `drugbank-snp-effects` → `drugbank-snp-adverse-effects` → `drugbank-fingerprints` → `drugbank-groups` → `drugbank-classification` → `drugbank-synonyms` → `drugbank-external-identifiers` → `drugbank-dosages` → `drugbank-manufacturers` → `drugbank-packagers` → `drugbank-products` → `drugbank-drug-interactions` → `cn-v3-leaflets` → `cn-v3-products` → `cn-v3-product-leaflet-links`。
 
 **按数据源分跑**（用 `--command` 指定）：
-| 数据源 | 命令 | 说明 |
-| -------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| 中国药品/说明书/链接 | `--command cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links` | V3 去重 Parquet，产品纯目录、正文在说明书表 |
-| DrugBank 药品 | `--command drugbank-drugs` | 全字段 Parquet 解析，含靶点 XML 动作富化 |
-| DrugBank 外部链接 | `--command drugbank-links` | drug links.csv |
-| DrugBank 靶点 | `--command drugbank-targets-all` / `drugbank-targets-active` | all.csv / pharmacologically_active.csv |
-| DrugBank 序列 | `--command drugbank-target-proteins` / `drugbank-target-genes` / `drugbank-drug-sequences` | FASTA 文件 |
-| DrugBank 结构描述符 | `--command drugbank-structures` | structures.sdf |
-| DrugBank 专利 | `--command drugbank-patents` | 按到期日可查 |
-| DrugBank 属性 | `--command drugbank-experimental-properties` / `drugbank-calculated-properties` | 键值对，保留来源 |
-| DrugBank 关系表 | `--command drugbank-groups` / `drugbank-classification` / `drugbank-synonyms` / `drugbank-external-identifiers` / `drugbank-dosages` / `drugbank-manufacturers` / `drugbank-packagers` / `drugbank-products` / `drugbank-drug-interactions` | 由 JsonB 提升而来，均对 `drugbank_drugs` 有外键 |
+
+| 数据源               | 命令                                                                                                                                                                                                                                        | 说明                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| 中国药品/说明书/链接 | `--command cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`                                                                                                                                                               | V3 去重 Parquet，产品纯目录、正文在说明书表     |
+| DrugBank 药品        | `--command drugbank-drugs`                                                                                                                                                                                                                  | 全字段 Parquet 解析，含靶点 XML 动作富化        |
+| DrugBank 外部链接    | `--command drugbank-links`                                                                                                                                                                                                                  | drug links.csv                                  |
+| DrugBank 靶点        | `--command drugbank-targets-all` / `drugbank-targets-active`                                                                                                                                                                                | all.csv / pharmacologically_active.csv          |
+| DrugBank 序列        | `--command drugbank-target-proteins` / `drugbank-target-genes` / `drugbank-drug-sequences`                                                                                                                                                  | FASTA 文件                                      |
+| DrugBank 结构描述符  | `--command drugbank-structures`                                                                                                                                                                                                             | structures.sdf                                  |
+| DrugBank 专利        | `--command drugbank-patents`                                                                                                                                                                                                                | 按到期日可查                                    |
+| DrugBank 属性        | `--command drugbank-experimental-properties` / `drugbank-calculated-properties`                                                                                                                                                             | 键值对，保留来源                                |
+| DrugBank 关系表      | `--command drugbank-groups` / `drugbank-classification` / `drugbank-synonyms` / `drugbank-external-identifiers` / `drugbank-dosages` / `drugbank-manufacturers` / `drugbank-packagers` / `drugbank-products` / `drugbank-drug-interactions` | 由 JsonB 提升而来，均对 `drugbank_drugs` 有外键 |
 
 可用命令完整列表见 `import-medicine-knowledge.ts` 的 `COMMANDS` 注册表。
 
@@ -85,7 +86,7 @@ pnpm import:medicine:all -- --command drugbank-synonyms --limit 100
 
 ```powershell
 # 只给已入库但还没有指纹的药算指纹（避免整份 SDF 重扫）
-psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -t -A -c `
+psql -h 127.0.0.1 -p 5432 -U postgres -d lucent -t -A -c `
   "SELECT drugbank_id FROM drugbank_drugs d WHERE NOT EXISTS (SELECT 1 FROM drugbank_fingerprints f WHERE f.drugbank_id=d.drugbank_id)" `
   | Set-Content $env:TEMP\missing-ids.txt
 $env:DRUGBANK_ONLY_IDS = "$env:TEMP\missing-ids.txt"
@@ -99,7 +100,7 @@ pnpm import:medicine:all -- --command drugbank-fingerprints
 
 ```bash
 # 检查导入行数（dev 库）
-psql -h 127.0.0.1 -p 15432 -U postgres -d lucent -c \
+psql -h 127.0.0.1 -p 5432 -U postgres -d lucent -c \
   "SELECT 'cn_products' AS t, count(*) FROM cn_medicine_products
    UNION ALL SELECT 'cn_leaflets', count(*) FROM cn_medicine_leaflets
    UNION ALL SELECT 'cn_links', count(*) FROM cn_medicine_product_leaflet_links

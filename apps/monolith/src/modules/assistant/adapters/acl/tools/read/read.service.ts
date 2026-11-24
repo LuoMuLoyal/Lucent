@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../../../prisma/index.js';
 import type { IMedicineReminderReader } from '../../../../application/ports/readers.js';
 import { MEDICINE_REMINDER_READER } from '../../../../application/ports/readers.js';
-import { IUserHealthContextReader } from '../../../../../user-health-context/index.js';
-import { IUserSettingsPort } from '../../../../../user-settings/index.js';
+import { IUserContextReader } from '../../../../../context/index.js';
+import { IUserSettingsPort } from '../../../../../settings/index.js';
 import { HistoricalAiSummaryService } from '../../../../application/use_cases/summaries.js';
 import type {
   AssistantReadResultEnvelope,
@@ -39,9 +39,9 @@ export class AssistantToolReadService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
-    private readonly userHealthContextService: IUserHealthContextReader,
+    private readonly userContextService: IUserContextReader,
     @Inject(MEDICINE_REMINDER_READER)
-    private readonly medicineRemindersService: IMedicineReminderReader,
+    private readonly remindersService: IMedicineReminderReader,
     private readonly userSettingsService: IUserSettingsPort,
     private readonly recordQueryService: AssistantToolRecordQueryService,
   ) {}
@@ -327,9 +327,9 @@ export class AssistantToolReadService {
   async getUserProfile(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    // Best-effort read tool: a failed health-context read degrades to an
+    // Best-effort read tool: a failed context read degrades to an
     // empty profile (logged) instead of aborting the agent turn.
-    const health = await this.userHealthContextService
+    const health = await this.userContextService
       .getForUser(context.userId)
       .match(
         (value) => value,
@@ -414,9 +414,9 @@ export class AssistantToolReadService {
   async getCurrentMedicines(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    // Best-effort read tool: a failed health-context read degrades to an
+    // Best-effort read tool: a failed context read degrades to an
     // empty medicine list (logged) instead of aborting the agent turn.
-    const health = await this.userHealthContextService
+    const health = await this.userContextService
       .getForUser(context.userId)
       .match(
         (value) => value,
@@ -427,7 +427,7 @@ export class AssistantToolReadService {
           return null;
         },
       );
-    const reminders = await this.medicineRemindersService.list(
+    const reminders = await this.remindersService.list(
       context.userId,
       true,
     );

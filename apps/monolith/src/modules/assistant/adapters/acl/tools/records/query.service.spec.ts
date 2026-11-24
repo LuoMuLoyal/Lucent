@@ -2,7 +2,7 @@ import { AssistantToolRecordQueryService } from './query.service.js';
 
 describe('AssistantToolRecordQueryService', () => {
   it('surfaces meal analysis status and keeps payload available for assistant reasoning', async () => {
-    const dailyRecordsService = {
+    const recordsService = {
       list: vi.fn().mockResolvedValue({
         items: [
           {
@@ -56,7 +56,7 @@ describe('AssistantToolRecordQueryService', () => {
       }),
     };
     const service = new AssistantToolRecordQueryService(
-      dailyRecordsService as never,
+      recordsService as never,
       { listFactsInRange: vi.fn().mockResolvedValue([]) } as never,
     );
 

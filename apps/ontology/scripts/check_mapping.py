@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # is the only writer now, so the single source is the Neo4j one.
 from load_graph_neo4j import ACTION_EDGE, KIND_EDGE  # noqa: E402
 
-DSN = "host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"
+DSN = "host=127.0.0.1 port=5432 dbname=lucent user=postgres password=postgres"
 DATA = Path(__file__).resolve().parent.parent / "data"
 
 

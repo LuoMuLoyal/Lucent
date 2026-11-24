@@ -20,10 +20,10 @@ updated: 2026-10-21
 | Medicine Catalog    | core       | `medicines`（目录/导入/安全贴士）          | `Medicine`、`ImportBatch`、`SafetyTip`                    |
 | Medication Safety   | supporting | `medicines`（风险检查）                    | `RiskAssessment`                                          |
 | AI Assistant        | core       | `assistant`                                | `Conversation`、`Memory`、`Proposal`、`Summary`           |
-| Daily Guidance      | core       | `today-suggestion`                         | `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` |
-| Health Log          | core       | `daily-records`                            | `DailyRecord`                                             |
-| Medication Tracking | core       | `medicine-dose-logs`、`medicine-reminders` | `DoseLog`、`Reminder`                                     |
-| User Profile        | supporting | `user-health-context`、`user-settings`     | `HealthProfile`、`UserSettings`                           |
+| Daily Guidance      | core       | `suggestion`                         | `DailySuggestion`、`SuggestionFeedback`、`RuleDefinition` |
+| Health Log          | core       | `record`                            | `DailyRecord`                                             |
+| Medication Tracking | core       | `dose`、`reminder` | `DoseLog`、`Reminder`                                     |
+| User Profile        | supporting | `context`、`settings`     | `HealthProfile`、`UserSettings`                           |
 | Notifications       | supporting | `notifications`                            | `Notification`（投递记录）                                |
 | Content/Ontology    | supporting | 检索语料、`deploy/semantica`               | `KnowledgeDocument`、`OntologyAssertion`                  |
 | Admin BFF           | generic    | `admin`                                    | 无（命令/查询编排）                                       |

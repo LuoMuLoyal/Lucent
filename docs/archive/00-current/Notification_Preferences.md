@@ -12,7 +12,7 @@ generic `{ code, message, data }` success envelope.
 
 Lucent stores user-scoped notification preferences in
 `UserNotificationPreference` and exposes them through
-`GET/PATCH /api/v1/user/notification-preferences`.
+`GET/PATCH /api/v1/user/notification`.
 
 The response DTOs are direct resources in the exported OpenAPI contract; no global success
 interceptor or `{ code, message, data }` wrapper is used.

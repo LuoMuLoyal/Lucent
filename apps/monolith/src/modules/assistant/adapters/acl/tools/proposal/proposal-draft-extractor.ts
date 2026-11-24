@@ -84,7 +84,7 @@ export function extractSettingsDraft(
   applyContextToggle(
     contextDraft,
     lowered,
-    'dailyRecords',
+    'records',
     /记录|daily record/,
   );
   applyContextToggle(contextDraft, lowered, 'sleepRecords', /睡眠|sleep/);
@@ -103,7 +103,7 @@ export function extractSettingsDraft(
 function applyContextToggle(
   output: Record<string, boolean>,
   lowered: string,
-  key: 'healthProfile' | 'dailyRecords' | 'sleepRecords' | 'currentMedicines',
+  key: 'healthProfile' | 'records' | 'sleepRecords' | 'currentMedicines',
   rule: RegExp,
 ): void {
   if (!rule.test(lowered)) {

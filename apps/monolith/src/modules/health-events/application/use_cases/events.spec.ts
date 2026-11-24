@@ -2,16 +2,16 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import type { DomainEventPublisher } from '../../../../common/index.js';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
 } from '../ports/health-events.js';
-import type { ProductEventsService } from '../../../product-events/index.js';
+import type { ProductEventLogService } from '../../../product/index.js';
 import type {
   DomainFailure,
   ResultAsync,
@@ -37,12 +37,12 @@ function buildPublisher() {
   } as unknown as DomainEventPublisher;
 }
 
-function buildProductEvents() {
+function buildProductEventLog() {
   return {
     emitServerEvent: vi.fn().mockResolvedValue(undefined),
     recordServerEvents: vi.fn().mockResolvedValue({ received: 1, recorded: 1 }),
     recordBatch: vi.fn().mockResolvedValue({ received: 1, recorded: 1 }),
-  } as unknown as ProductEventsService;
+  } as unknown as ProductEventLogService;
 }
 
 function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
@@ -87,7 +87,7 @@ function buildService(repository: ReturnType<typeof buildRepository>) {
   return new EventsService(
     repository as unknown as HealthEventRepositoryPort,
     buildPublisher(),
-    buildProductEvents(),
+    buildProductEventLog(),
   );
 }
 
@@ -124,7 +124,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await collectResult(service.create(USER_ID, { title: 'Headache' }));
@@ -246,7 +246,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -288,7 +288,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await expect(
@@ -308,7 +308,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await expect(
@@ -359,22 +359,22 @@ describe('EventsService', () => {
 
   it('emits health_event_started after the create write succeeds', async () => {
     const repository = buildRepository();
-    const productEvents = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     const startedAt = new Date('2026-07-20T00:30:00.000Z');
     repository.create.mockReturnValue(okAsync(event({ startedAt })));
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      productEvents,
+      productEventLog,
     );
 
     await collectResult(service.create(USER_ID, { title: 'Headache' }));
 
-    expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
-    expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
-      name: ProductEventName.health_event_started,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.success,
+    expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
+    expect(productEventLog.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
+      name: ProductEventLogName.health_event_started,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.success,
       eventStatus: HealthEventStatus.active,
       occurredAt: startedAt,
       clientEventId: `server-health-started-${EVENT_ID}`,
@@ -383,7 +383,7 @@ describe('EventsService', () => {
 
   it('emits health_event_ended with the chosen outcome as result', async () => {
     const repository = buildRepository();
-    const productEvents = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.update.mockReturnValue(
       okAsync(
         event({
@@ -396,7 +396,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      productEvents,
+      productEventLog,
     );
 
     await collectResult(
@@ -405,11 +405,11 @@ describe('EventsService', () => {
       }),
     );
 
-    expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
-    expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
-      name: ProductEventName.health_event_ended,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.improved,
+    expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
+    expect(productEventLog.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
+      name: ProductEventLogName.health_event_ended,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.improved,
       eventStatus: HealthEventStatus.ended,
       occurredAt: expect.any(Date),
       clientEventId: `server-health-ended-${EVENT_ID}`,
@@ -418,7 +418,7 @@ describe('EventsService', () => {
 
   it('does not emit product events when the create write fails', async () => {
     const repository = buildRepository();
-    const productEvents = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.create.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -427,18 +427,18 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      productEvents,
+      productEventLog,
     );
 
     await expect(
       service.create(USER_ID, { title: 'Headache' }),
     ).rejects.toThrow('write failed');
-    expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+    expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
   });
 
   it('does not emit product events when the end write fails', async () => {
     const repository = buildRepository();
-    const productEvents = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.update.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -447,7 +447,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      productEvents,
+      productEventLog,
     );
 
     await expect(
@@ -455,6 +455,6 @@ describe('EventsService', () => {
         outcome: HealthEventOutcome.improved,
       }),
     ).rejects.toThrow('write failed');
-    expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+    expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createDomainFailure } from '../../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 import {
@@ -23,8 +23,8 @@ import {
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
-} from '../../../../daily-records/index.js';
-import { MedicineDoseLogReaderPort } from '../../../../medicine-dose-logs/index.js';
+} from '../../../../record/index.js';
+import { DoseLogEntryReaderPort } from '../../../../dose/index.js';
 import { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import type {
   EventReviewData,
@@ -67,7 +67,7 @@ interface ReviewWindowFacts {
   /** Exact symptom-record count in the window (dedicated count query). */
   symptomRecordCount: number;
   /** Window records for trend computation (capped reader list). */
-  dailyRecords: DailyRecordFact[];
+  records: DailyRecordFact[];
   /** Exact daily-record count in the window (dedicated count query). */
   dailyRecordCount: number;
   latestDailyRecordCreatedAt: Date | null;
@@ -102,7 +102,7 @@ export class EventReviewService {
   constructor(
     private readonly healthEvents: HealthEventsOwnershipService,
     private readonly dailyRecordReader: DailyRecordReaderPort,
-    private readonly doseLogReader: MedicineDoseLogReaderPort,
+    private readonly doseLogReader: DoseLogEntryReaderPort,
     private readonly factsSection: EventReviewFactsService,
     private readonly changesSection: EventReviewChangesService,
     private readonly actionsSection: EventReviewActionsService,
@@ -128,7 +128,7 @@ export class EventReviewService {
       todayCheckIn,
       checkInCoverage,
       checkIns,
-      dailyRecords,
+      records,
       symptomRecordCount,
       dailyRecordCount,
       latestDailyRecordCreatedAt,
@@ -143,7 +143,7 @@ export class EventReviewService {
       this.healthEvents.findCheckIns(userId, eventId),
       this.dailyRecordReader.listFactsInRange(userId, windowStart, windowEnd),
       this.dailyRecordReader.countFactsInRange(userId, windowStart, windowEnd, [
-        DailyRecordKind.symptom,
+        RecordKind.symptom,
       ]),
       this.dailyRecordReader.countFactsInRange(userId, windowStart, windowEnd),
       this.dailyRecordReader.findLatestCreatedAtInRange(
@@ -170,7 +170,7 @@ export class EventReviewService {
         checkInCoverage,
         checkIns,
         symptomRecordCount,
-        dailyRecords,
+        records,
         dailyRecordCount,
         latestDailyRecordCreatedAt,
         doseLogs,
@@ -317,7 +317,7 @@ export class EventReviewService {
         }),
         keyChanges: this.changesSection.build({
           checkIns: facts.checkIns,
-          dailyRecords: facts.dailyRecords,
+          records: facts.records,
         }),
         completedActions: this.actionsSection.build({
           doseLogs: facts.doseLogs,
@@ -346,7 +346,7 @@ export class EventReviewService {
           windowStart: event.startedAt,
           windowEnd,
         },
-        dailyRecords: {
+        records: {
           state: facts.dailyRecordCount > 0 ? 'observed' : 'unknown',
           coverage: facts.dailyRecordCount > 0 ? 'partial' : 'none',
           sources: facts.dailyRecordCount > 0 ? ['manual'] : [],
@@ -367,7 +367,7 @@ export class EventReviewService {
       },
       sourceTimestamps: {
         checkIns: formatDateOnly(facts.checkInCoverage.lastCheckInDate),
-        dailyRecords: facts.latestDailyRecordCreatedAt?.toISOString() ?? null,
+        records: facts.latestDailyRecordCreatedAt?.toISOString() ?? null,
         doseLogs: facts.latestDoseLogScheduledFor?.toISOString() ?? null,
       },
       availableActions:

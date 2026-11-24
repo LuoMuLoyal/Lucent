@@ -8,23 +8,23 @@ import { matchesScope } from './notification.js';
  * - **太窄**：同一条通知反复堆叠，通知中心被同一件事刷满。
  */
 describe('matchesScope', () => {
-  const scope = { source: 'today-suggestion', date: '2026-10-25' };
+  const scope = { source: 'suggestion', date: '2026-10-25' };
 
   it('单个对象 payload：source 与 date 都相同才算同作用域', () => {
     expect(
-      matchesScope({ source: 'today-suggestion', date: '2026-10-25' }, scope),
+      matchesScope({ source: 'suggestion', date: '2026-10-25' }, scope),
     ).toBe(true);
   });
 
   it('source 不同 → 不是同作用域', () => {
     expect(
-      matchesScope({ source: 'today-analysis', date: '2026-10-25' }, scope),
+      matchesScope({ source: 'analysis', date: '2026-10-25' }, scope),
     ).toBe(false);
   });
 
   it('date 不同 → 不是同作用域（同来源不同天是两条通知）', () => {
     expect(
-      matchesScope({ source: 'today-suggestion', date: '2026-10-24' }, scope),
+      matchesScope({ source: 'suggestion', date: '2026-10-24' }, scope),
     ).toBe(false);
   });
 
@@ -33,7 +33,7 @@ describe('matchesScope', () => {
       matchesScope(
         [
           { source: 'other', date: '2026-10-25' },
-          { source: 'today-suggestion', date: '2026-10-25' },
+          { source: 'suggestion', date: '2026-10-25' },
         ],
         scope,
       ),
@@ -52,19 +52,19 @@ describe('matchesScope', () => {
   });
 
   it('payload 是标量 → 不是同作用域（历史列形状不确定）', () => {
-    expect(matchesScope('today-suggestion', scope)).toBe(false);
+    expect(matchesScope('suggestion', scope)).toBe(false);
     expect(matchesScope(42, scope)).toBe(false);
   });
 
   it('缺 source 或 date → 不是同作用域（不猜）', () => {
-    expect(matchesScope({ source: 'today-suggestion' }, scope)).toBe(false);
+    expect(matchesScope({ source: 'suggestion' }, scope)).toBe(false);
     expect(matchesScope({ date: '2026-10-25' }, scope)).toBe(false);
   });
 
   it('嵌套数组元素不算（只认顶层平铺的对象）', () => {
     expect(
       matchesScope(
-        [[{ source: 'today-suggestion', date: '2026-10-25' }]],
+        [[{ source: 'suggestion', date: '2026-10-25' }]],
         scope,
       ),
     ).toBe(false);

@@ -134,7 +134,7 @@ describe('DomainEventFanOutService', () => {
         add: vi.fn().mockResolvedValue({ id: 'job-2' }),
       },
       {
-        name: QUEUE_NAMES.todayAnalysis,
+        name: QUEUE_NAMES.analysis,
         add: vi.fn().mockResolvedValue({ id: 'job-3' }),
       },
     ];
@@ -151,7 +151,7 @@ describe('DomainEventFanOutService', () => {
         [EVENT]: [
           { queue: QUEUE_NAMES.reportCacheInvalidation, job: 'invalidate' },
           { queue: QUEUE_NAMES.suggestionRecompute, job: 'recompute' },
-          { queue: QUEUE_NAMES.todayAnalysis, job: 'generate' },
+          { queue: QUEUE_NAMES.analysis, job: 'generate' },
         ],
       };
     });
@@ -200,7 +200,7 @@ describe('DomainEventFanOutService', () => {
       expect(
         queueFor(QUEUE_NAMES.suggestionRecompute).add,
       ).toHaveBeenCalledTimes(1);
-      expect(queueFor(QUEUE_NAMES.todayAnalysis).add).toHaveBeenCalledTimes(1);
+      expect(queueFor(QUEUE_NAMES.analysis).add).toHaveBeenCalledTimes(1);
     });
 
     it('names the failing subscription in the error', async () => {

@@ -17,7 +17,7 @@ enum UserNotificationType {
 /// User-scoped notification controls. This is intentionally separate from
 /// generic user settings because server-side notification producers consume
 /// these values as delivery gates.
-model UserNotificationPreference {
+model UserNotificationSettings {
   userId                 String   @id @map("user_id")
   isHealthAlertsEnabled   Boolean  @default(true) @map("is_health_alerts_enabled")
   isWeeklyInsightEnabled  Boolean  @default(false) @map("is_weekly_insight_enabled")
@@ -29,7 +29,7 @@ model UserNotificationPreference {
   updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("user_notification_preferences")
+  @@map("notification_preferences")
 }
 
 model UserNotification {

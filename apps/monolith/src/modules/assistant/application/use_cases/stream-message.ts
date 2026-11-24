@@ -17,7 +17,7 @@ import {
   ASSISTANT_AGENT_RUNTIME,
   type AgentRuntimePort,
 } from '../ports/agent-runtime.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { IUserSettingsPort } from '../../../settings/index.js';
 import { AssistantPolicyService } from '../services/policy.js';
 
 /**

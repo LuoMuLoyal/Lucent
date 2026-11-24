@@ -15,7 +15,7 @@ User 表的 owner 模块(ADR-0009):为 auth 与 account 提供用户读写(创�
 - 管:User 记录的持久层操作(含 P2002 冲突 → RESOURCE_CONFLICT 映射;
   `create` 缺省建空 `UserProfile`)。
 - 不管:注册/登录流程与凭据(auth);账号自助端点(account);健康档案
-  (user-health-context)与偏好设置(user-settings)。
+  (context)与偏好设置(settings)。
 
 ## 分层形态（ADR-0024 判定）
 

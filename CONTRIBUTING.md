@@ -17,9 +17,42 @@ type(scope): 中文摘要
 ```
 
 - `type`: feat, fix, docs, refactor, test, chore
-- `scope`: 模块名（如 auth, medicines, assistant, daily-records）
+- `scope`: 模块名（如 auth, medicines, assistant, dose, record, analysis）
 - 摘要：中文，简洁描述变更内容
 - **只有存在破坏性变更或与之前行为不兼容时才写 commit body**；普通提交保持单行摘要即可
+
+## Pull Requests
+
+One PR does one thing. If two unrelated things need doing, open two PRs — reviewers
+budget attention by file count, and a wider scope is exactly what buries the handful
+of files that actually need reading.
+
+Use the same format for the PR title as for the commit subject
+(`type(scope): short summary`), adding `!` after the type for a breaking change.
+**The title is the only field that reaches `git log --oneline` and the release notes**,
+so "Fix bug" and "Update code" cannot be found later.
+
+Fill in the body following [.github/pull_request_template.md](.github/pull_request_template.md).
+Four points carry most of the value:
+
+1. **Summary answers "why" first.** The diff shows what changed; it cannot show why,
+   or which alternatives were rejected. That information exists only in the author's
+   head and is lost for good once the PR is stale.
+2. **List every breaking change old → new.** A change is breaking when downstream must
+   change code, configuration, data or deployment to upgrade safely: renamed public
+   functions/types/fields/packages/commands, changed signatures or config keys, changed
+   persistence or serialization behavior, and HTTP route changes where the old path no
+   longer exists. All four are required: old → new, who breaks, upgrade steps, rollback.
+3. **Add "How to review" for large diffs.** Above roughly 20 files, say which changes are
+   mechanical and which need real reading, and include any command that shrinks the diff
+   (`git diff --color-moved`).
+4. **Tick only the checks you actually ran.** Write "not run" plus how it will be covered
+   instead; marking an unverified check as verified is worse than leaving it unchecked.
+
+A cross-repo contract change (renamed backend route or field) must state the client
+regeneration steps and ship in the same release window: `contract/bootstrap.dart` on the
+Luminous side (see API Contract Changes below) and `pnpm contract` in
+`Luminary/apps/lumine`.
 
 ## Before Creating a PR
 
@@ -65,7 +98,14 @@ When controller or DTO code changes:
    dart run scripts/contract/bootstrap.dart
    dart run scripts/contract/verify_openapi.dart
    ```
-3. Append a dated entry to `docs/logs/migration-log/YYYY-MM-DD.md`.
+3. In `../Luminary/apps/lumine`, regenerate the TypeScript client:
+   ```bash
+   pnpm contract
+   ```
+4. Append a dated entry to `docs/logs/migration-log/YYYY-MM-DD.md`.
+
+路径或字段**改名**时，旧名字不会保留别名，上述两个客户端与后端必须在同一发布窗口内落地；
+PR 正文按模板的 Breaking changes 一节列出旧 → 新映射与回滚方式。
 
 ## Architecture Changes
 

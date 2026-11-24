@@ -52,22 +52,22 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
       create: vi.fn(),
       update: vi.fn(),
     },
-    userDailyRecord: {
+    userRecord: {
       findMany: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       findFirst: vi.fn(),
     },
-    userDailyRecordAttachment: { createMany: vi.fn(), deleteMany: vi.fn() },
-    userMedicineReminder: {
+    userRecordAttachment: { createMany: vi.fn(), deleteMany: vi.fn() },
+    userReminder: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
-    userMedicineDoseLog: {
+    userDoseLog: {
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -81,7 +81,7 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
-    dataExportRequest: {
+    ExportRequest: {
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -120,7 +120,7 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
 /**
  * Configure the PrismaService mock so that `$transaction(cb)` simply
  * invokes the callback with the same mock instance. This mirrors the
- * pattern used in daily-records.service.spec.ts and testing-support.service.spec.ts.
+ * pattern used in record.service.spec.ts and testing.service.spec.ts.
  *
  * Usage:
  *   const prisma = createPrismaServiceMock();

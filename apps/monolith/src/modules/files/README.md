@@ -15,7 +15,7 @@ common 存储基础设施面向客户端的薄封装。
 
 - 管:`/files` 上传凭证签发(类型/大小校验、presigned PUT)。
 - 不管:实际存储实现(common/storage 的 `ObjectStorageRuntime`);上传后文件的
-  业务消费(daily-records 等模块各自处理)。对象键虽由本模块调用
+  业务消费(record 等模块各自处理)。对象键虽由本模块调用
   `createFlatObjectKey` 生成,但键规则本身属 common。
 
 ## 依赖方向

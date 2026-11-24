@@ -1,11 +1,11 @@
-import { MEAL_ANALYSIS_ITEM_KINDS } from '../../src/modules/daily-records/domain/meal/meal-facets.js';
-import { DIET_FACET_KINDS } from '../../src/modules/today-suggestion/domain/signal/diet-facet.js';
+import { MEAL_ANALYSIS_ITEM_KINDS } from '../../src/modules/record/domain/meal/meal-facets.js';
+import { DIET_FACET_KINDS } from '../../src/modules/suggestion/domain/signal/diet-facet.js';
 
 /**
  * Guards the Daily Guidance ↔ Health Log facet vocabulary boundary.
  *
- * `today-suggestion` declares its own `DietFacetKind` (9 kinds) instead of
- * importing `daily-records`' `MealAnalysisItemKind` (11 kinds) — the consumer
+ * `suggestion` declares its own `DietFacetKind` (9 kinds) instead of
+ * importing `record`' `MealAnalysisItemKind` (11 kinds) — the consumer
  * owns the contract, so upstream can add a kind without downstream changing.
  * See `domain/signal/diet-facet.ts` for that reasoning.
  *
@@ -22,8 +22,8 @@ import { DIET_FACET_KINDS } from '../../src/modules/today-suggestion/domain/sign
  *
  * ## Why the guard lives in `scripts/`
  *
- * `domain/` may not import `daily-records` (`ddd-domain-purity`), and the
- * upstream vocabulary lives in `daily-records`' domain layer
+ * `domain/` may not import `record` (`ddd-domain-purity`), and the
+ * upstream vocabulary lives in `record`' domain layer
  * (`domain/meal/meal-facets.ts`) — so no in-`src` location can see both sides.
  * `depcruise` scans `src` only, so a test under `scripts/` can. Same
  * arrangement as `scripts/arch/risk-level-mirror.spec.ts`.
@@ -37,7 +37,7 @@ describe('diet facet vocabulary mirror', () => {
     const missing = DIET_FACET_KINDS.filter((kind) => !upstream.has(kind));
     expect(
       missing,
-      `today-suggestion consumes facet kind(s) that no longer exist upstream: ` +
+      `suggestion consumes facet kind(s) that no longer exist upstream: ` +
         `${missing.join(', ')}. If they were renamed, update ` +
         `domain/signal/diet-facet.ts (and the rule branches that use them).`,
     ).toEqual([]);

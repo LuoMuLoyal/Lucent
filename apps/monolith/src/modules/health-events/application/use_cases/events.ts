@@ -3,9 +3,9 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
@@ -30,23 +30,23 @@ import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 
 /**
- * `ProductEventResult` mirrors `HealthEventOutcome` string-for-string in the
+ * `ProductEventLogResult` mirrors `HealthEventOutcome` string-for-string in the
  * schema (improved/unchanged/worsened); the explicit switch keeps the link
  * visible and type-checked.
  */
 export function toProductEventResult(
   outcome: HealthEventOutcome,
-): ProductEventResult {
+): ProductEventLogResult {
   switch (outcome) {
     case HealthEventOutcome.improved:
-      return ProductEventResult.improved;
+      return ProductEventLogResult.improved;
     case HealthEventOutcome.unchanged:
-      return ProductEventResult.unchanged;
+      return ProductEventLogResult.unchanged;
     case HealthEventOutcome.worsened:
-      return ProductEventResult.worsened;
+      return ProductEventLogResult.worsened;
   }
 }
 
@@ -85,7 +85,7 @@ export class EventsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
     private readonly publisher: DomainEventPublisher,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
   ) {}
 
   create(
@@ -193,10 +193,10 @@ export class EventsService {
             // create is unaffected).
             .andThen(() =>
               fromPromise(
-                this.productEvents.emitServerEvent(userId, {
-                  name: ProductEventName.health_event_started,
-                  surface: ProductEventSurface.review,
-                  result: ProductEventResult.success,
+                this.productEventLog.emitServerEvent(userId, {
+                  name: ProductEventLogName.health_event_started,
+                  surface: ProductEventLogSurface.review,
+                  result: ProductEventLogResult.success,
                   eventStatus: HealthEventStatus.active,
                   occurredAt: created.startedAt,
                   clientEventId: `server-health-started-${created.id}`,
@@ -338,9 +338,9 @@ export class EventsService {
                 // end write.
                 .andThen(() =>
                   fromPromise(
-                    this.productEvents.emitServerEvent(userId, {
-                      name: ProductEventName.health_event_ended,
-                      surface: ProductEventSurface.review,
+                    this.productEventLog.emitServerEvent(userId, {
+                      name: ProductEventLogName.health_event_ended,
+                      surface: ProductEventLogSurface.review,
                       result: toProductEventResult(outcome),
                       eventStatus: HealthEventStatus.ended,
                       occurredAt: endedAt,

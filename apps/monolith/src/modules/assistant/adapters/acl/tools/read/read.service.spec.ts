@@ -2,9 +2,9 @@ import type { DeepMocked } from '../../../../../../common/types/deep-mocked.js';
 import { okAsync } from '../../../../../../common/result/index.js';
 import type { PrismaService } from '../../../../../../prisma/index.js';
 import type { HistoricalAiSummaryService } from '../../../../application/use_cases/summaries.js';
-import type { UserHealthContextService } from '../../../../../user-health-context/index.js';
+import type { UserContextService } from '../../../../../context/index.js';
 import type { IMedicineReminderReader } from '../../../../application/ports/readers.js';
-import type { UserSettingsService } from '../../../../../user-settings/index.js';
+import type { UserSettingsService } from '../../../../../settings/index.js';
 import type { AssistantToolRecordQueryService } from '../records/query.service.js';
 import type { AssistantToolExecutionContext } from '../../../../application/ports/assistant.js';
 import { AssistantToolReadService } from './read.service.js';
@@ -26,7 +26,7 @@ describe('AssistantToolReadService', () => {
   let service: AssistantToolReadService;
   let prisma: DeepMocked<PrismaService>;
   let aiSummary: vi.Mocked<HistoricalAiSummaryService>;
-  let healthContext: vi.Mocked<UserHealthContextService>;
+  let context: vi.Mocked<UserContextService>;
   let reminders: vi.Mocked<IMedicineReminderReader>;
   let userSettings: vi.Mocked<UserSettingsService>;
   let recordQuery: vi.Mocked<AssistantToolRecordQueryService>;
@@ -43,9 +43,9 @@ describe('AssistantToolReadService', () => {
       listRecentReportSummaries: vi.fn(),
     } as unknown as vi.Mocked<HistoricalAiSummaryService>;
 
-    healthContext = {
+    context = {
       getForUser: vi.fn(),
-    } as unknown as vi.Mocked<UserHealthContextService>;
+    } as unknown as vi.Mocked<UserContextService>;
 
     reminders = {
       list: vi.fn(),
@@ -65,7 +65,7 @@ describe('AssistantToolReadService', () => {
     service = new AssistantToolReadService(
       prisma,
       aiSummary,
-      healthContext,
+      context,
       reminders,
       userSettings,
       recordQuery,
@@ -256,7 +256,7 @@ describe('AssistantToolReadService', () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         nickname: 'TestUser',
       });
-      healthContext.getForUser.mockReturnValue(
+      context.getForUser.mockReturnValue(
         okAsync({
           profile: {
             sexAtBirth: 'male',
@@ -295,7 +295,7 @@ describe('AssistantToolReadService', () => {
         assistantMemoryEnabled: false,
         assistantContext: {
           healthProfile: true,
-          dailyRecords: true,
+          records: true,
           sleepRecords: false,
           currentMedicines: false,
         },
@@ -310,7 +310,7 @@ describe('AssistantToolReadService', () => {
 
   describe('getCurrentMedicines', () => {
     it('returns current medicines with reminder frequency', async () => {
-      healthContext.getForUser.mockReturnValue(
+      context.getForUser.mockReturnValue(
         okAsync({
           profile: {},
           summary: {},
@@ -349,7 +349,7 @@ describe('AssistantToolReadService', () => {
     });
 
     it('returns empty when no current medicines', async () => {
-      healthContext.getForUser.mockReturnValue(
+      context.getForUser.mockReturnValue(
         okAsync({
           profile: {},
           summary: {},

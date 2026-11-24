@@ -24,8 +24,8 @@ import {
  *
  * 1. **Soft-delete query variants** — the internal `_extended` client is
  *    created via `$extends` and exposes `nonDeleted` namespaces on the four
- *    models that carry a `deletedAt` column (User, UserDailyRecord,
- *    UserMedicineReminder, UserMedicineDoseLog).  Use
+ *    models that carry a `deletedAt` column (User, userRecord,
+ *    UserReminder, UserDoseLog).  Use
  *    `prisma.nonDeleted.user.findMany(...)` to automatically filter out
  *    soft-deleted rows without manually spreading `deletedAt: null`.
  *
@@ -35,7 +35,7 @@ import {
  *    SQL text (parameterised placeholders only — actual parameter values
  *    are never logged) and the current `traceId` for correlation.
  *
- * All existing model delegates (`this.user`, `this.userDailyRecord`, etc.)
+ * All existing model delegates (`this.user`, `this.userRecord`, etc.)
  * continue to work unchanged; the extension only adds new properties.
  */
 @Injectable()
@@ -137,9 +137,9 @@ export class PrismaService
   get nonDeleted() {
     return {
       user: this._extended.user.nonDeleted,
-      userDailyRecord: this._extended.userDailyRecord.nonDeleted,
-      userMedicineReminder: this._extended.userMedicineReminder.nonDeleted,
-      userMedicineDoseLog: this._extended.userMedicineDoseLog.nonDeleted,
+      userRecord: this._extended.userRecord.nonDeleted,
+      userReminder: this._extended.userReminder.nonDeleted,
+      userDoseLog: this._extended.userDoseLog.nonDeleted,
     };
   }
 

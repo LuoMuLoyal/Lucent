@@ -15,7 +15,7 @@ function knownRequestError(code: string): Error {
 
 const users = getAdminResource('users')!;
 const userSessions = getAdminResource('user-sessions')!;
-const userSettings = getAdminResource('user-settings')!;
+const userSettings = getAdminResource('settings')!;
 const auditLogs = getAdminResource('audit-logs')!;
 
 describe('AdminDataService', () => {

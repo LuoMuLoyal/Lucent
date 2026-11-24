@@ -15,14 +15,14 @@ import type {
   ObservedMetric,
   WaterMetricInput,
 } from '../../../../common/index.js';
-import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordReaderPort } from '../../../daily-records/index.js';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/index.js';
-import { IUserSettingsPort } from '../../../user-settings/index.js';
+import { DoseLogStatus, RecordKind } from '#generated/prisma/client.js';
+import { DailyRecordReaderPort } from '../../../record/index.js';
+import { DoseLogEntryReaderPort } from '../../../dose/index.js';
+import { IUserSettingsPort } from '../../../settings/index.js';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
-} from '../../../daily-records/index.js';
+} from '../../../record/index.js';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
@@ -48,7 +48,7 @@ export class ReportsContextService implements DashboardContextPort {
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
     private readonly dailyRecordReader: DailyRecordReaderPort,
-    private readonly doseLogReader: MedicineDoseLogReaderPort,
+    private readonly doseLogReader: DoseLogEntryReaderPort,
   ) {}
 
   async build(
@@ -59,19 +59,19 @@ export class ReportsContextService implements DashboardContextPort {
     const endDate = this.resolveEndDate(range, query);
     const startDate = this.resolveStartDate(endDate, range, query);
 
-    const [settings, doseLogs, dailyRecords] = await Promise.all([
+    const [settings, doseLogs, records] = await Promise.all([
       this.userSettingsService.getSettings(userId),
       this.doseLogReader.listFactsInRange(userId, startDate, endDate),
       this.dailyRecordReader.listFactsInRange(userId, startDate, endDate),
     ]);
 
     const mealEstimateFacts = this.buildMealEstimateFacts(
-      dailyRecords,
+      records,
       startDate,
       endDate,
     );
     const observedWaterSeries = this.buildObservedWaterSeries(
-      dailyRecords,
+      records,
       startDate,
       endDate,
     );
@@ -102,7 +102,7 @@ export class ReportsContextService implements DashboardContextPort {
         metric.value == null ? 0 : Number((metric.value / 1000).toFixed(2)),
       ),
       observedWaterSeries,
-      sleepSeries: this.buildSleepSeries(dailyRecords, startDate, endDate),
+      sleepSeries: this.buildSleepSeries(records, startDate, endDate),
       mealEstimateSeries: mealEstimateFacts.series,
       mealEstimateTrackedDays: mealEstimateFacts.series.filter(
         (value) => value > 0,
@@ -190,9 +190,9 @@ export class ReportsContextService implements DashboardContextPort {
   }
 
   private buildObservedWaterSeries(
-    dailyRecords: Array<{
+    records: Array<{
       occurredAt: Date;
-      kind: DailyRecordKind;
+      kind: RecordKind;
       value: string | null;
       unit: string | null;
     }>,
@@ -201,8 +201,8 @@ export class ReportsContextService implements DashboardContextPort {
   ): ObservedMetric<number>[] {
     const recordsByDay = new Map<string, WaterMetricInput[]>();
 
-    for (const record of dailyRecords) {
-      if (record.kind !== DailyRecordKind.water) {
+    for (const record of records) {
+      if (record.kind !== RecordKind.water) {
         continue;
       }
 
@@ -222,9 +222,9 @@ export class ReportsContextService implements DashboardContextPort {
   // Sleep date convention: `occurredAt` is the wake date. Each data point
   // in the sleep series represents the sleep the user woke up on that day.
   private buildSleepSeries(
-    dailyRecords: Array<{
+    records: Array<{
       occurredAt: Date;
-      kind: DailyRecordKind;
+      kind: RecordKind;
       payload: unknown;
     }>,
     startDate: Date,
@@ -232,8 +232,8 @@ export class ReportsContextService implements DashboardContextPort {
   ): number[] {
     const durationByDay = new Map<string, number>();
 
-    for (const record of dailyRecords) {
-      if (record.kind !== DailyRecordKind.sleep) {
+    for (const record of records) {
+      if (record.kind !== RecordKind.sleep) {
         continue;
       }
 
@@ -257,9 +257,9 @@ export class ReportsContextService implements DashboardContextPort {
   }
 
   private buildMealEstimateFacts(
-    dailyRecords: Array<{
+    records: Array<{
       occurredAt: Date;
-      kind: DailyRecordKind;
+      kind: RecordKind;
       payload: unknown;
     }>,
     startDate: Date,
@@ -274,8 +274,8 @@ export class ReportsContextService implements DashboardContextPort {
   } {
     const statusByDay = new Map<string, Set<MealAnalysisStatus>>();
 
-    for (const record of dailyRecords) {
-      if (record.kind !== DailyRecordKind.meal) {
+    for (const record of records) {
+      if (record.kind !== RecordKind.meal) {
         continue;
       }
 

@@ -257,7 +257,7 @@ export class MedicineRiskCheckService {
     medicineIds: readonly string[];
   }> {
     // 1. Get health context through the records port (bound to Prisma).
-    const user = await this.riskRecords.loadHealthContext(
+    const user = await this.riskRecords.loadContext(
       userId,
       RISK_CHECK_MAX_RELATED_RECORDS,
     );
@@ -504,7 +504,7 @@ export class MedicineRiskCheckService {
     staticResult: MedicineRiskCheckResult,
   ): Promise<MedicineRiskLlmContext> {
     const [user, reminders] = await Promise.all([
-      this.riskRecords.loadHealthContext(userId, LLM_CONTEXT_ROW_LIMIT),
+      this.riskRecords.loadContext(userId, LLM_CONTEXT_ROW_LIMIT),
       this.riskRecords.listReminders(userId),
     ]);
 

@@ -27,12 +27,12 @@
 | 表                                                                   | 归属模块            |
 | -------------------------------------------------------------------- | ------------------- |
 | `User`、`UserIdentity`、`UserSession`                                | user / auth 域      |
-| `UserProfile`、`UserAllergy`、`UserCondition`、`UserCurrentMedicine` | user-health-context |
-| `UserDailyRecord`（+Attachment）                                     | daily-records       |
-| `UserMedicineDoseLog`                                                | medicine-dose-logs  |
-| `UserMedicineReminder`、`UserReminderDelivery`                       | medicine-reminders  |
-| `UserSetting`                                                        | user-settings       |
-| `UserSuggestion*`                                                    | today-suggestion    |
+| `UserProfile`、`UserAllergy`、`UserCondition`、`UserCurrentMedicine` | context |
+| `UserDailyRecord`（+Attachment）                                     | record       |
+| `UserMedicineDoseLog`                                                | dose  |
+| `UserMedicineReminder`、`UserReminderDelivery`                       | reminder  |
+| `UserSetting`                                                        | settings       |
+| `UserSuggestion*`                                                    | suggestion    |
 | `Assistant*`                                                         | assistant           |
 | `UserNotification`                                                   | notifications       |
 | 药品知识库表（`CnMedicine*`、`Drugbank*`、`MedicineSafetyTip`）      | medicines           |
@@ -59,7 +59,7 @@
 跨模块**写**必须经过 owning module 导出的 service，不得直接 `prisma.<他模块表>.create/
 update/delete`。具名例外：
 
-- `testing-support` 夹具（仅 `NODE_ENV=test` 注册 + 共享密钥守卫，跨表重置测试数据）
+- `testing` 夹具（仅 `NODE_ENV=test` 注册 + 共享密钥守卫，跨表重置测试数据）
 - AdminJS 面板（整个 client 交给 `@sergiyiva/adminjs-prisma`，由资源配置受控）——该面板已退役，
   此例外随之消失；现管理面为 `src/modules/admin/` 的受权限保护 API 与独立 `admin/` SPA，
   写操作仍受本 ADR 治理。
@@ -100,8 +100,8 @@ MyRepository,                          // concrete class 作为 provider
 
 ### 过渡说明
 
-today-suggestion 的消费端 collectors 接入 reader 后，与 daily-records /
-medicine-dose-logs 之间存在 `forwardRef` 双向模块引用——反向边来自这两个模块对
+suggestion 的消费端 collectors 接入 reader 后，与 record /
+dose 之间存在 `forwardRef` 双向模块引用——反向边来自这两个模块对
 `TodaySuggestionModule` 的缓存失效调用。该 `forwardRef` 为临时手段，随架构审查计划
 #2（缓存失效改事件驱动）落地后移除。
 
@@ -109,7 +109,7 @@ medicine-dose-logs 之间存在 `forwardRef` 双向模块引用——反向边�
 
 | Option                                      | Pros                                               | Cons                                                                  |
 | ------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------- |
-| 提供方 reader port（本 ADR）                | 一份契约一份实现，多消费方复用；表语义变更只改一处 | owning module 需新增 exports；today-suggestion 引入临时 forwardRef    |
+| 提供方 reader port（本 ADR）                | 一份契约一份实现，多消费方复用；表语义变更只改一处 | owning module 需新增 exports；suggestion 引入临时 forwardRef    |
 | 消费方 port（assistant 模式推广）           | 契约贴合各消费方需求（ISP）                        | 同一张表 3 个消费方 = 3 份接口定义，查询实现仍重复在提供方 service 里 |
 | 全部收编到 owning service（禁一切直查）     | 边界最严                                           | 读模型模块（today-\*/reports）大量聚合查询被迫走窄接口，过度设计      |
 | Prisma client extension 全局强制 nonDeleted | 从机制上消灭漏写                                   | 改变全局查询默认行为，影响面大；留作计划 #3 单独评估                  |
@@ -120,7 +120,7 @@ medicine-dose-logs 之间存在 `forwardRef` 双向模块引用——反向边�
   除过滤与排序只维护一份
 - **变清晰**：写路径唯一入口（owning module service），User 表不再被随意 update
 - **新增约束**：新增跨模块查询需自查本 ADR 读/写规则；review 时以表归属表为准
-- **临时债**：today-suggestion ⇄ daily-records / medicine-dose-logs 的 `forwardRef`，
+- **临时债**：suggestion ⇄ record / dose 的 `forwardRef`，
   计划 #2 落地后移除（✅ 已于 2026-07-17 移除）
 - **不做**：reminder / currentMedicine / settings / allergy 的重复直查本次保留，由读
   规则约束，达到"高频"标准时再收敛

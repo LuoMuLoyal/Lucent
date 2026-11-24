@@ -1,14 +1,14 @@
-import type { MedicineReminderItemDto } from '../../../medicine-reminders/index.js';
-import type { DailyRecordCandidateData } from '../../../daily-records/index.js';
+import type { ReminderEntryItemDto } from '../../../reminder/index.js';
+import type { DailyRecordCandidateData } from '../../../record/index.js';
 
-import type { DailyRecordItemDto } from '../../../daily-records/index.js';
+import type { DailyRecordItemDto } from '../../../record/index.js';
 
-import type { GenerateDailyRecordCandidatesDto } from '../../../daily-records/index.js';
+import type { GenerateDailyRecordCandidatesDto } from '../../../record/index.js';
 
 /**
  * Minimal read-only view of user settings needed by the assistant policy layer.
  * This keeps assistant-policy.service.ts from depending on the concrete
- * UserSettingsDataDto class in the user-settings module.
+ * UserSettingsDataDto class in the settings module.
  */
 export interface IAssistantUserSettings {
   aiSummariesEnabled: boolean;
@@ -17,7 +17,7 @@ export interface IAssistantUserSettings {
   assistantMemoryEnabled: boolean;
   assistantContext: {
     healthProfile: boolean;
-    dailyRecords: boolean;
+    records: boolean;
     sleepRecords: boolean;
     currentMedicines: boolean;
   };
@@ -34,19 +34,19 @@ export type AssistantReportRange = 'last_7_days' | 'last_30_days' | 'custom';
 
 /**
  * Port for reading a user's medicine reminders. Implemented by the
- * medicine-reminders module and consumed by assistant tools.
+ * reminder module and consumed by assistant tools.
  */
 export interface IMedicineReminderReader {
   list(
     userId: string,
     activeOnly?: boolean,
-  ): Promise<{ items: MedicineReminderItemDto[] }>;
+  ): Promise<{ items: ReminderEntryItemDto[] }>;
 }
 
 export const MEDICINE_REMINDER_READER = Symbol('MEDICINE_REMINDER_READER');
 
 /**
- * Port for reading daily records. Implemented by the daily-records module and
+ * Port for reading daily records. Implemented by the record module and
  * consumed by assistant tools.
  */
 export interface IDailyRecordReader {
@@ -63,7 +63,7 @@ export const DAILY_RECORD_READER = Symbol('DAILY_RECORD_READER');
 
 /**
  * Port for generating daily-record candidates. Implemented by the
- * daily-records module and consumed by assistant proposal tools.
+ * record module and consumed by assistant proposal tools.
  */
 export interface IDailyRecordCandidateGenerator {
   generate(

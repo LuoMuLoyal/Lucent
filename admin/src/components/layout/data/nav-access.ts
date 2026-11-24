@@ -17,7 +17,7 @@ const accessRuleByUrl: Record<string, AccessRule> = {
   '/users': 'users:read',
   '/data': 'data:read',
   '/audit-logs': 'audit:read',
-  '/content/legal-documents': 'content:read',
+  '/content/legal': 'content:read',
   '/content/safety-tips': 'content:read',
   '/content/qa-chunks': 'content:read',
   '/dependencies': 'ops:read',

@@ -11,7 +11,7 @@ export const adminMetricsOverviewResponseSchema = z
       suspended: z.number().int().nonnegative(),
       newLast30Days: z.number().int().nonnegative(),
     }),
-    productEventsLast24Hours: z.number().int().nonnegative().meta({
+    productEventLogLast24Hours: z.number().int().nonnegative().meta({
       example: 4820,
     }),
   })

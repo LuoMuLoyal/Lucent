@@ -78,7 +78,7 @@ describe('QueueRuntimeRegistry', () => {
     const registry = new QueueRuntimeRegistry(port);
     const worker = fakeWorker(1);
 
-    registry.register(QUEUE_NAMES.todayAnalysis, worker);
+    registry.register(QUEUE_NAMES.analysis, worker);
 
     expect(worker.concurrency).toBe(4);
   });
@@ -119,8 +119,8 @@ describe('QueueRuntimeRegistry', () => {
     const registry = new QueueRuntimeRegistry(port);
     registry.onModuleInit();
     const worker = fakeWorker(1);
-    registry.register(QUEUE_NAMES.dataExport, worker);
-    registry.unregister(QUEUE_NAMES.dataExport);
+    registry.register(QUEUE_NAMES.exportQueue, worker);
+    registry.unregister(QUEUE_NAMES.exportQueue);
 
     publish({ [EnvKey.QUEUE_DATA_EXPORT_CONCURRENCY]: 7 });
 

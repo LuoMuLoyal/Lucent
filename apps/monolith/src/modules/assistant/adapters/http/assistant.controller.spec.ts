@@ -119,7 +119,7 @@ describe('AssistantController', () => {
       assistantMemoryEnabled: false,
       assistantContext: {
         healthProfile: true,
-        dailyRecords: true,
+        records: true,
         sleepRecords: false,
         currentMedicines: true,
       },
@@ -146,7 +146,7 @@ describe('AssistantController', () => {
       assistantMemoryEnabled: false,
       assistantContext: {
         healthProfile: true,
-        dailyRecords: true,
+        records: true,
         sleepRecords: false,
         currentMedicines: true,
       },

@@ -33,7 +33,7 @@ Last updated: 2026-07-20
   mapping will be built — the `drugbank_ids` field has been removed from `cn_medicine_products`.
 - Medicine dose logs now have a slot-aware contract: a single dose log can carry `reminderId` +
   `scheduledTime` to distinguish multiple reminder slots for the same medicine on the same day.
-  A new idempotent `POST /api/v1/user/medicine-dose-logs/mark` endpoint matches by
+  A new idempotent `POST /api/v1/user/dose/mark` endpoint matches by
   `reminderId + scheduledFor` (preferred), falling back to `currentMedicineId + scheduledFor +
 scheduledTime`, then to `currentMedicineId + scheduledFor`.
 - Today analysis water target is now read from the `user_settings` DB table (`waterTargetCount`,

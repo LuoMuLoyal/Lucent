@@ -10,9 +10,9 @@ import type {
 import type { DomainEventPublisher } from '../../../../common/index.js';
 import { RISK_ASSESSMENT_COMPLETED } from '../../../../common/events/domain-events.js';
 import type {
-  MedicineReminderRow,
+  ReminderEntryRow,
   MedicineRiskRecordsPort,
-  UserHealthContext,
+  UserContext,
 } from '../ports/risk-records.js';
 import type {
   MedicineRiskLlmContext,
@@ -39,7 +39,7 @@ function build() {
   const riskRecords = {
     listRecords: vi.fn(),
     markAllStale: vi.fn(),
-    loadHealthContext: vi.fn(),
+    loadContext: vi.fn(),
     listReminders: vi.fn(),
   } as unknown as MedicineRiskRecordsPort;
   const riskAssessments = {
@@ -125,7 +125,7 @@ const recordRow: RiskAssessmentRecord = {
 };
 
 /** A health snapshot with no related rows — the common "empty profile" case. */
-const emptyHealthContext: UserHealthContext = {
+const emptyContext: UserContext = {
   allergies: [],
   conditions: [],
   currentMedicines: [],
@@ -195,7 +195,7 @@ describe('MedicineRiskCheckService', () => {
 
   it('runStaticCheck returns a safe empty response when the user is missing', async () => {
     const { riskRecords, riskAssessments, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(null);
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(null);
     vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
 
     const result = await unwrap(svc.runStaticCheck('u1'));
@@ -212,7 +212,7 @@ describe('MedicineRiskCheckService', () => {
       riskDetection,
       svc,
     } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [
         { label: '青霉素', reaction: 'rash', severity: 'high', isActive: true },
       ],
@@ -301,7 +301,7 @@ describe('MedicineRiskCheckService', () => {
       riskDetection,
       svc,
     } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [
@@ -346,7 +346,7 @@ describe('MedicineRiskCheckService', () => {
 
   it('runStaticCheck tolerates cache invalidation failure during persist (retries then logs error)', async () => {
     const { riskRecords, riskAssessments, cache, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(null);
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(null);
     vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
     vi.mocked(cache.del).mockRejectedValue(new Error('redis down'));
     const errorSpy = vi
@@ -373,7 +373,7 @@ describe('MedicineRiskCheckService', () => {
       cache,
       svc,
     } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [
@@ -457,7 +457,7 @@ describe('MedicineRiskCheckService', () => {
 
   it('runStaticCheck does not re-add a candidate already in the box', async () => {
     const { riskRecords, medicinesService, riskDetection, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [
@@ -497,8 +497,8 @@ describe('MedicineRiskCheckService', () => {
 
   it('runStaticCheck propagates DomainFailureException when the candidate detail is missing', async () => {
     const { riskRecords, riskAssessments, medicinesService, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
-      emptyHealthContext,
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(
+      emptyContext,
     );
     vi.mocked(medicinesService.getWithCache).mockReturnValue(
       errAsync(
@@ -519,8 +519,8 @@ describe('MedicineRiskCheckService', () => {
 
   it('runStaticCheck wraps non-NotFound candidate resolution failures as DomainFailureException', async () => {
     const { riskRecords, riskAssessments, medicinesService, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
-      emptyHealthContext,
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(
+      emptyContext,
     );
     vi.mocked(medicinesService.getWithCache).mockReturnValue(
       errAsync(
@@ -571,8 +571,8 @@ describe('MedicineRiskCheckService', () => {
     // retryable outage must not be mapped to DEPENDENCY_UNAVAILABLE — that
     // would present a transient failure as a permanent configuration gap.
     const { riskRecords, llmGenerator, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
-      emptyHealthContext,
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(
+      emptyContext,
     );
     vi.mocked(riskRecords.listReminders).mockResolvedValue([]);
     vi.mocked(llmGenerator.generate).mockRejectedValue(
@@ -589,8 +589,8 @@ describe('MedicineRiskCheckService', () => {
 
   it('runLlmCheck builds context from the records port, generates output and persists', async () => {
     const { riskRecords, riskAssessments, llmGenerator, cache, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
-      emptyHealthContext,
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(
+      emptyContext,
     );
     vi.mocked(riskRecords.listReminders).mockResolvedValue([]);
     const llmRecord: RiskAssessmentRecord = {
@@ -643,7 +643,7 @@ describe('MedicineRiskCheckService', () => {
     // `RiskContextBuilderService` ACL is gone), so the assertion moves to the
     // generator hand-off: the health snapshot is fetched through the port and
     // the assembled context reaches the LLM.
-    expect(riskRecords.loadHealthContext).toHaveBeenCalled();
+    expect(riskRecords.loadContext).toHaveBeenCalled();
     expect(llmGenerator.generate).toHaveBeenCalledTimes(1);
     expect(vi.mocked(llmGenerator.generate).mock.calls[0]?.[0]).toMatchObject({
       medicines: [],
@@ -658,8 +658,8 @@ describe('MedicineRiskCheckService', () => {
 
   it('runLlmCheck maps llm findings without secondary medicine', async () => {
     const { riskRecords, riskAssessments, llmGenerator, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(
-      emptyHealthContext,
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(
+      emptyContext,
     );
     vi.mocked(riskRecords.listReminders).mockResolvedValue([]);
     const llmRecord: RiskAssessmentRecord = {
@@ -718,7 +718,7 @@ describe('MedicineRiskCheckService', () => {
       llmGenerator,
       svc,
     } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [
         { label: '青霉素', reaction: null, severity: null, isActive: true },
       ],
@@ -752,7 +752,7 @@ describe('MedicineRiskCheckService', () => {
         },
       } as never),
     );
-    const reminders: MedicineReminderRow[] = [
+    const reminders: ReminderEntryRow[] = [
       {
         currentMedicineId: 'm1',
         scheduledHour: 8,
@@ -842,7 +842,7 @@ describe('MedicineRiskCheckService', () => {
 
   it('publishes risk-assessment.completed with the aggregate level and the assessment id', async () => {
     const { riskRecords, riskAssessments, publisher, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue(null);
+    vi.mocked(riskRecords.loadContext).mockResolvedValue(null);
     vi.mocked(riskAssessments.save).mockResolvedValue(recordRow);
 
     await unwrap(svc.runStaticCheck('u1'));
@@ -871,7 +871,7 @@ describe('MedicineRiskCheckService', () => {
       riskDetection,
       svc,
     } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [],
@@ -903,7 +903,7 @@ describe('MedicineRiskCheckService', () => {
     // medicine: the medicine would silently vanish from the assessment. The
     // aggregate must reject it rather than store an over-confident result.
     const { riskRecords, riskAssessments, publisher, svc } = build();
-    vi.mocked(riskRecords.loadHealthContext).mockResolvedValue({
+    vi.mocked(riskRecords.loadContext).mockResolvedValue({
       allergies: [],
       conditions: [],
       currentMedicines: [

@@ -42,7 +42,7 @@
 - `01-reference/contracts/mine-settings-contract.md` — Mine/Settings API 总览
 - `01-reference/contracts/support-resources-contract.md` — Support Resources 边界
 - `01-reference/contracts/app-info-contract.md` — App Info 边界
-- `01-reference/contracts/data-export-contract.md` — Data Export 边界
+- `01-reference/contracts/export-contract.md` — Data Export 边界
 - `01-reference/contracts/assistant-contract.md` — 助手合同总览与边界
 - `01-reference/contracts/assistant-capabilities.md` — 助手能力/工具细节
 - `01-reference/contracts/assistant-rollout.md` — 助手 Rollout/Runtime Truth

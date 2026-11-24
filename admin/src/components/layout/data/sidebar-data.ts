@@ -37,7 +37,7 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'Legal documents',
-          url: '/content/legal-documents',
+          url: '/content/legal',
           icon: FileText,
         },
         { title: 'Safety tips', url: '/content/safety-tips', icon: Utensils },

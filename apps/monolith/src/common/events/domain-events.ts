@@ -13,7 +13,7 @@
 // ─── Event names ───
 
 import type {
-  DailyRecordKind,
+  RecordKind,
   HealthEventKind,
 } from '#generated/prisma/client.js';
 import type { RiskLevel } from '../risk/risk-level.js';
@@ -28,7 +28,7 @@ export const DOSE_LOG_CHANGED = 'dose-log.changed';
 export const REMINDER_CHANGED = 'reminder.changed';
 
 /** Emitted when the user health context (profile, allergy, condition, medicine) changes. */
-export const HEALTH_CONTEXT_CHANGED = 'health-context.changed';
+export const HEALTH_CONTEXT_CHANGED = 'context.changed';
 
 /** Emitted when user settings are updated. */
 export const SETTINGS_CHANGED = 'settings.changed';
@@ -38,7 +38,7 @@ export const HEALTH_EVENT_CHANGED = 'health-event.changed';
 
 /** Emitted when the server advances a Today Suggestion materialization version. */
 export const TODAY_SUGGESTION_MATERIALIZATION_CHANGED =
-  'today-suggestion.materialization.changed';
+  'suggestion.materialization.changed';
 
 /** Emitted when a risk assessment finishes and its result is persisted. */
 export const RISK_ASSESSMENT_COMPLETED = 'risk-assessment.completed';
@@ -50,7 +50,7 @@ export interface DailyRecordChangedPayload {
   /** ISO date string (YYYY-MM-DD) of the record's occurredAt date. */
   date: string;
   /** Persisted kind; consumers must not infer semantics from title text. */
-  kind?: DailyRecordKind;
+  kind?: RecordKind;
   recordId?: string;
   triggerKey?: string;
 }
@@ -67,7 +67,7 @@ export interface ReminderChangedPayload {
   userId: string;
 }
 
-export interface HealthContextChangedPayload {
+export interface ContextChangedPayload {
   userId: string;
 }
 

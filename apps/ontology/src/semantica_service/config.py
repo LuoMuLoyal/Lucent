@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     # read both. This store is independent of the graph backend, so the
     # AGE -> Neo4j migration does not touch it.
     provenance_dsn: str = Field(
-        default=("host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"),
+        default=("host=127.0.0.1 port=5432 dbname=lucent user=postgres password=postgres"),
         description="libpq connection string for the provenance store.",
     )
     provenance_table: str = Field(
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     # Read-only, and used by the import and verification scripts only: the
     # service never reads the DrugBank source tables at request time.
     source_dsn: str = Field(
-        default=("host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"),
+        default=("host=127.0.0.1 port=5432 dbname=lucent user=postgres password=postgres"),
         description="libpq connection string for Lucent's DrugBank source tables.",
     )
 

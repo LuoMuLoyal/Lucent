@@ -28,7 +28,7 @@ from semantica_service.config import get_settings
 from semantica_service.graph.adapter import Neo4jGraphStore
 from semantica_service.graph.pool import StorePool
 
-SOURCE_DSN = "host=127.0.0.1 port=15432 dbname=lucent user=postgres password=postgres"
+SOURCE_DSN = "host=127.0.0.1 port=5432 dbname=lucent user=postgres password=postgres"
 
 
 def pg() -> psycopg2.extensions.connection:

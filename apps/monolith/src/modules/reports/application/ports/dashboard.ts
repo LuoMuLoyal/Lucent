@@ -23,7 +23,7 @@ import type { ReportRange } from '../read_models/dashboard/report-range.js';
  *
  * Explicit `| undefined` on every key because `z.infer` of an optional key is
  * `T | undefined`, which `exactOptionalPropertyTypes` distinguishes from a bare
- * optional `T` (same resolution as `user-settings`' `UpdateUserSettingsCommand`).
+ * optional `T` (same resolution as `settings`' `UpdateUserSettingsCommand`).
  */
 export interface ReportDashboardQuery {
   range?: ReportRange | undefined;
@@ -39,7 +39,7 @@ export const REPORT_DASHBOARD_CONTEXT = Symbol('ReportDashboardContext');
  * daily-record facts, aggregated into one facts object.
  *
  * Implemented by `adapters/acl/dashboard-context.ts`, which reaches each source
- * through its *reader port* (`IUserSettingsPort`, `MedicineDoseLogReaderPort`,
+ * through its *reader port* (`IUserSettingsPort`, `DoseLogEntryReaderPort`,
  * `DailyRecordReaderPort`) — never through another context's tables.
  */
 export interface DashboardContextPort {

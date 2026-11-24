@@ -14,7 +14,7 @@ owner: backend
 ## 边界
 
 - 管:站内通知 CRUD 与已读、推送投递(push 审计行区分"未配置"与"真失败")。
-- 不管:通知偏好设置(notification-preferences 模块);何时发通知的业务决策
+- 不管:通知偏好设置(notification 模块);何时发通知的业务决策
   (由调用方模块通过 port 触发)。
 
 ## 依赖方向
@@ -23,11 +23,11 @@ owner: backend
   (`JpushPushProvider` / `PushDeliveryService` 都由 `useFactory` 装配)。
 - 被引用:exports `NotificationsService`、`PushDeliveryService`、
   `INotificationSender`;经 barrel 消费方 `auth`(安全通知、密码变更)、
-  `medicine-reminders`(提醒派发)、`notification-preferences`(周报)、
-  `data-export`(导出完成)、`today-analysis`、`today-suggestion`(升级通知)。
+  `reminder`(提醒派发)、`notification`(周报)、
+  `export`(导出完成)、`analysis`、`suggestion`(升级通知)。
   `PushDeliveryService.sendToUser` 的全量 caller 恰为
-  `medicine-reminders`、`notification-preferences`、`today-analysis`、
-  `today-suggestion` 四处。
+  `reminder`、`notification`、`analysis`、
+  `suggestion` 四处。
 
 ## 内部结构
 

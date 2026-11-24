@@ -100,22 +100,22 @@ export async function cleanupDatabase(prisma: PrismaService): Promise<void> {
   await prisma.userSuggestionFeedback.deleteMany();
   await prisma.userSuggestion.deleteMany();
   await prisma.userSuggestionBaseline.deleteMany();
-  await prisma.userDailyRecordAttachment.deleteMany();
+  await prisma.userRecordAttachment.deleteMany();
   await prisma.assistantMessage.deleteMany();
   await prisma.userReminderDelivery.deleteMany();
 
   // 2. Tables that depend on other user-tables
-  await prisma.userMedicineReminder.deleteMany();
-  await prisma.userMedicineDoseLog.deleteMany();
+  await prisma.userReminder.deleteMany();
+  await prisma.userDoseLog.deleteMany();
 
   // 3. Direct user-child tables
   await prisma.userNotification.deleteMany();
-  await prisma.dataExportRequest.deleteMany();
+  await prisma.exportRequest.deleteMany();
   await prisma.userSetting.deleteMany();
   await prisma.userAllergy.deleteMany();
   await prisma.userCondition.deleteMany();
   await prisma.userCurrentMedicine.deleteMany();
-  await prisma.userDailyRecord.deleteMany();
+  await prisma.userRecord.deleteMany();
   await prisma.assistantSummaryHistory.deleteMany();
   await prisma.assistantConversation.deleteMany();
   await prisma.userSession.deleteMany();

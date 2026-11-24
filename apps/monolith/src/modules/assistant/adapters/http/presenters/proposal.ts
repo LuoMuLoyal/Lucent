@@ -6,7 +6,7 @@ import type {
   AssistantUpdateUserSettingsProposalPayload,
 } from '../../../application/ports/assistant.js';
 import type { ToolName } from '../../../domain/policies/tool-permission.js';
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import { nowIsoString } from '../../../../../common/index.js';
 import {
   RANGE_TRUNCATED_MESSAGE,
@@ -89,7 +89,7 @@ export function buildDailyRecordRangeCoverage(input: {
     };
     if (!input.sleepIncluded) {
       coverage.omittedContextSources = ['sleep_records'];
-      coverage.omittedKinds = [DailyRecordKind.sleep];
+      coverage.omittedKinds = [RecordKind.sleep];
     }
     return coverage;
   }
@@ -120,7 +120,7 @@ export function buildProposalExpiryIso(ttlMinutes: number): string {
 // Preview field builders
 export function buildCreateRecordPreviewFields(
   item: {
-    kind: DailyRecordKind;
+    kind: RecordKind;
     occurredAt: string;
     title: string | null;
     value: string | null;
@@ -223,7 +223,7 @@ export function contextPreviewLabel(
   switch (key) {
     case 'healthProfile':
       return t('preview.health_profile');
-    case 'dailyRecords':
+    case 'records':
       return t('preview.daily_records');
     case 'sleepRecords':
       return t('preview.sleep_records');
@@ -240,7 +240,7 @@ export function contextPreviewLabel(
 // Summary descriptions
 export function describeCreateRecordSummary(
   item: {
-    kind: DailyRecordKind;
+    kind: RecordKind;
     occurredAt: string;
     value: string | null;
     unit: string | null;
@@ -258,7 +258,7 @@ export function describeCreateRecordSummary(
 }
 
 export function describeUpdateRecordSummary(
-  target: { kind: DailyRecordKind; occurredAt: string },
+  target: { kind: RecordKind; occurredAt: string },
   t: AssistantTranslator,
 ): string {
   return t('proposal.summary.update_record', {
@@ -268,7 +268,7 @@ export function describeUpdateRecordSummary(
 }
 
 export function describeDeleteRecordSummary(
-  target: { kind: DailyRecordKind; occurredAt: string },
+  target: { kind: RecordKind; occurredAt: string },
   t: AssistantTranslator,
 ): string {
   return t('proposal.summary.delete_record', {
@@ -279,7 +279,7 @@ export function describeDeleteRecordSummary(
 
 export function describeRecordTargetLabel(
   item: {
-    kind: DailyRecordKind;
+    kind: RecordKind;
     occurredAt: string;
     value?: string | null;
     unit?: string | null;

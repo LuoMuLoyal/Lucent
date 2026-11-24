@@ -1,0 +1,116 @@
+import { type Prisma } from '#generated/prisma/client.js';
+import type {
+  DomainFailure,
+  ResultAsync,
+} from '../../../../common/result/index.js';
+
+/**
+ * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
+ * reminder fields only — no Prisma query DSL. Canonical order is
+ * `scheduledHour asc, scheduledMinute asc, createdAt asc`.
+ *
+ * ## `id` is part of the contract, not an accident
+ *
+ * Consumers (`suggestion`'s medication collector) use the reminder id as
+ * the **slot key**: two reminders for the same medicine can share a time, so the
+ * `(reminderId, date, time)` triple is what makes a slot unique. Without `id`
+ * a consumer would have to fall back to positional keys, which drift whenever
+ * the reminder list is reordered — so the id is read here deliberately.
+ */
+export interface ReminderEntryFact {
+  id: string;
+  currentMedicineId: string | null;
+  scheduledHour: number;
+  scheduledMinute: number;
+  daysOfWeek: Prisma.JsonValue;
+  startDate: Date | null;
+  endDate: Date | null;
+  createdAt: Date;
+}
+
+/**
+ * A current-medicine entry as seen from outside the Medication Tracking
+ * context: identity plus the display label, nothing else.
+ *
+ * Exists so `suggestion`'s medication collector can build reminder slots
+ * from the owning context instead of querying `user_current_medicines` directly
+ * — direct table reads across contexts are what ADR-0024 §3 forbids.
+ */
+export interface CurrentMedicineFact {
+  id: string;
+  displayName: string;
+  /**
+   * The drug's `half_life` text as the knowledge base stores it, or `null`.
+   *
+   * Carried here rather than read by the consumer because
+   * `user_current_medicines` and the DrugBank table live in different contexts:
+   * a consumer joining them directly would be the cross-context table read
+   * ADR-0024 §3 forbids. Resolution happens in this context's own query.
+   *
+   * `null` is a normal value — a manual entry has no DrugBank counterpart, and
+   * a catalogue row may simply not record one. Consumers must treat it as
+   * "unknown", never as "no half-life".
+   */
+  halfLife: string | null;
+}
+
+/**
+ * Read-only port for cross-module reads of this context's tables (ADR-0009).
+ *
+ * Implemented by `PrismaReminders` and exported from `ReminderModule`;
+ * write paths stay behind `RemindersService` / `ReminderRepositoryPort`.
+ */
+export abstract class ReminderEntryReaderPort {
+  /** Lists non-deleted, active reminders for the user. */
+  abstract listActiveFacts(userId: string): Promise<ReminderEntryFact[]>;
+
+  /**
+   * Lists the user's current medicines (identity + label only).
+   *
+   * Ordered oldest-first so a consumer's slot numbering is stable across calls.
+   */
+  abstract listCurrentMedicines(userId: string): Promise<CurrentMedicineFact[]>;
+}
+
+/**
+ * Abstract port for medicine-reminder data access.
+ *
+ * Allows `RemindersService` and `RemindersOwnership`
+ * to depend on an interface rather than `PrismaService` directly.
+ */
+export abstract class ReminderRepositoryPort {
+  abstract findManyReminders(
+    where: Prisma.UserReminderWhereInput,
+    orderBy?: Prisma.UserReminderOrderByWithRelationInput[],
+  ): Promise<Prisma.UserReminderGetPayload<object>[]>;
+  abstract createReminder(
+    data: Prisma.UserReminderUncheckedCreateInput,
+  ): ResultAsync<Prisma.UserReminderGetPayload<object>, DomainFailure>;
+
+  abstract updateReminder(
+    where: Prisma.UserReminderWhereUniqueInput,
+    data:
+      | Prisma.UserReminderUpdateInput
+      | Prisma.UserReminderUncheckedUpdateInput,
+  ): ResultAsync<Prisma.UserReminderGetPayload<object>, DomainFailure>;
+
+  abstract findManyDeliveries(
+    where: Prisma.UserReminderDeliveryWhereInput,
+    orderBy?: Prisma.UserReminderDeliveryOrderByWithRelationInput[],
+    take?: number,
+  ): Promise<Prisma.UserReminderDeliveryGetPayload<object>[]>;
+
+  abstract findReminderById(
+    id: string,
+    select: Prisma.UserReminderSelect,
+  ): Promise<unknown>;
+
+  abstract findCurrentMedicine(
+    id: string,
+    userId: string,
+  ): Promise<{ id: string; userId: string } | null>;
+
+  abstract transaction<T>(
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T>;
+}

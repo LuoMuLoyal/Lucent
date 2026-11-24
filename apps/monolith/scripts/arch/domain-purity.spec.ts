@@ -27,7 +27,7 @@ const PROBE_DIR = join(
   REPO_ROOT,
   'src',
   'modules',
-  'user-settings',
+  'settings',
   'domain',
   'settings',
 );
@@ -46,7 +46,7 @@ function cruisDomain(): DepcruiseViolation[] {
     [
       'exec',
       'depcruise',
-      join('src', 'modules', 'user-settings', 'domain'),
+      join('src', 'modules', 'settings', 'domain'),
       '--config',
       '.dependency-cruiser.json',
       '--output-type',

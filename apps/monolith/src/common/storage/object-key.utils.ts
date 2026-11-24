@@ -15,7 +15,7 @@ import { now } from '../helpers/format/date-time.utils.js';
  *
  * Format: `{prefix}/{userId}/{YYYY}/{MM}/{DD}/{uuid}{extension}`
  *
- * @param prefix   Path prefix (e.g. `'daily-records'`, `'exports'`).
+ * @param prefix   Path prefix (e.g. `'record'`, `'exports'`).
  * @param userId   The owner user ID.
  * @param extension File extension including the dot (e.g. `'.jpg'`,
  *                  `'.pdf'`), or empty string if none.

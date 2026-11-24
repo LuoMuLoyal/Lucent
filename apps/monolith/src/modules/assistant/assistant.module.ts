@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
-import { DailyRecordCandidatesService } from '../daily-records/index.js';
-import { DailyRecordsService } from '../daily-records/index.js';
-import { DailyRecordsModule } from '../daily-records/daily-records.module.js';
+import { DailyRecordCandidatesService } from '../record/index.js';
+import { RecordsService } from '../record/index.js';
+import { RecordModule } from '../record/record.module.js';
 import { LlmCommonModule } from '../../common/index.js';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
-import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module.js';
-import { MedicineRemindersService } from '../medicine-reminders/index.js';
+import { ReminderModule } from '../reminder/reminder.module.js';
+import { RemindersService } from '../reminder/index.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
-import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
-import { UserSettingsModule } from '../user-settings/user-settings.module.js';
+import { ContextModule } from '../context/context.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
 import { AssistantRuntimeService } from './adapters/agent/runtime.js';
 import { AssistantStreamService } from './application/services/stream.js';
 import { AssistantCheckpointerService } from './infrastructure/agent/checkpointer.js';
@@ -83,10 +83,10 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     LlmCommonModule,
     LlmRuntimeModule,
     MedicinesModule,
-    UserSettingsModule,
-    UserHealthContextModule,
-    DailyRecordsModule,
-    MedicineRemindersModule,
+    SettingsModule,
+    ContextModule,
+    RecordModule,
+    ReminderModule,
   ],
   controllers: [AssistantController],
   providers: [
@@ -138,11 +138,11 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     AssistantService,
     {
       provide: MEDICINE_REMINDER_READER,
-      useExisting: MedicineRemindersService,
+      useExisting: RemindersService,
     },
     {
       provide: DAILY_RECORD_READER,
-      useExisting: DailyRecordsService,
+      useExisting: RecordsService,
     },
     {
       provide: DAILY_RECORD_CANDIDATE_GENERATOR,

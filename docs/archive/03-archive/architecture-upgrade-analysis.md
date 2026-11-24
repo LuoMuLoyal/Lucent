@@ -10,7 +10,7 @@ Last updated: 2026-07-10
 
 ### 现状
 
-跨模块通信完全依赖直接服务注入。`today-suggestion` 模块的三个 Collector
+跨模块通信完全依赖直接服务注入。`suggestion` 模块的三个 Collector
 （`MedicationCollectorService`、`RecordCollectorService`、`ProfileCollectorService`）
 全部直接注入 `PrismaService` 并查询其他模块的表（`userMedicineReminder`、
 `userMedicineDoseLog`、`userDailyRecord`、`userAllergy`、`userCondition`、`userProfile`）。
@@ -25,13 +25,13 @@ suggestion 引擎与 5+ 个模块的数据模型产生了直接耦合。
 - `ReminderUpdatedEvent`
 - `HealthContextChangedEvent`
 
-`today-suggestion` 模块订阅这些事件维护自己的读模型投影（read model projection），
+`suggestion` 模块订阅这些事件维护自己的读模型投影（read model projection），
 而不是每次生成建议时跨表查询。这也为未来的实时建议推送（WebSocket/SSE push）奠定基础。
 
 ### 影响范围
 
-`daily-records`、`medicine-dose-logs`、`medicine-reminders`、`user-health-context`、
-`today-suggestion` 五个模块。
+`record`、`dose`、`reminder`、`context`、
+`suggestion` 五个模块。
 
 ---
 
@@ -44,7 +44,7 @@ suggestion 引擎与 5+ 个模块的数据模型产生了直接耦合。
 - AI 端点仅有零散的 per-controller `@Throttle` 装饰器（如 `explain` 端点 5/min、
   `feedback` 20/min），没有基于 Redis 的 per-user AI 配额管理
 
-一个用户可以通过 `today-analysis/generate`、`reports/summary/generate`、
+一个用户可以通过 `analysis/generate`、`reports/summary/generate`、
 `assistant/stream` 等端点消耗大量 LLM token 而不受限制。
 
 ### 升级方向
@@ -62,24 +62,24 @@ suggestion 引擎与 5+ 个模块的数据模型产生了直接耦合。
 
 已有 6 个模块完成了 Repository Port 抽象：
 
-- `daily-records`：`DailyRecordRepositoryPort`
+- `record`：`DailyRecordRepositoryPort`
 - `assistant`：`AssistantConversationRepositoryPort` + `AssistantSummaryRepositoryPort`
 - `auth`：`AuthSessionRepositoryPort` + `AuthAccountRepositoryPort`
-- `user-health-context`：`UserHealthContextRepositoryPort`
-- `medicine-dose-logs`：`MedicineDoseLogRepositoryPort`
-- `medicine-reminders`：`MedicineReminderRepositoryPort`
+- `context`：`UserHealthContextRepositoryPort`
+- `dose`：`MedicineDoseLogRepositoryPort`
+- `reminder`：`MedicineReminderRepositoryPort`
 
-但 `medicines`、`reports`、`today-suggestion`、`today-analysis`、`files`、
-`notifications`、`data-export` 等模块仍然直接注入 `PrismaService`。
+但 `medicines`、`reports`、`suggestion`、`analysis`、`files`、
+`notifications`、`export` 等模块仍然直接注入 `PrismaService`。
 
-特别是 `today-suggestion` 模块的 12+ 个 service 全部直接依赖 `PrismaService`，
+特别是 `suggestion` 模块的 12+ 个 service 全部直接依赖 `PrismaService`，
 包括 `FeedbackService`、`LifecycleService`、`BaselineService`、
 `SuggestionCacheService`、`EscalationService` 等核心业务服务。单元测试需要 mock
 整个 `PrismaService` 接口，且业务逻辑与 Prisma 查询逻辑混在同一层。
 
 ### 升级方向
 
-为 `today-suggestion` 和 `reports` 这类业务逻辑复杂的模块补充 Repository Port。
+为 `suggestion` 和 `reports` 这类业务逻辑复杂的模块补充 Repository Port。
 不需要一刀切——简单的 CRUD 模块（`files`、`environment`）可以保持直接注入。
 
 ---

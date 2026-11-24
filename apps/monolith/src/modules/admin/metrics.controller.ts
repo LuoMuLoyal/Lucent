@@ -15,18 +15,18 @@ import {
   ProductFunnelService,
   funnelResponseSchema,
   productFunnelQuerySchema,
-} from '../product-events/index.js';
-import type { FunnelDataDto, FunnelQueryDto } from '../product-events/index.js';
+} from '../product/index.js';
+import type { FunnelDataDto, FunnelQueryDto } from '../product/index.js';
 
 /**
  * `GET /admin/metrics/funnel` — the management-console view of the product
- * loop. The aggregation itself belongs to `product-events`
+ * loop. The aggregation itself belongs to `product`
  * (`ProductFunnelService`) and is reused verbatim from the pre-existing
- * `/user/product-events/funnel` endpoint; only the surface (path and
+ * `/user/product/funnel` endpoint; only the surface (path and
  * `metrics:read` permission) is admin-owned.
  *
  * This lives in its own module rather than `AdminModule` because
- * `ProductEventsModule` already imports `AdminModule` (its controller uses
+ * `ProductModule` already imports `AdminModule` (its controller uses
  * `AdminGuard`) — putting the endpoint in `AdminModule` would make the two
  * modules import each other, and the repo currently has no module cycle.
  */

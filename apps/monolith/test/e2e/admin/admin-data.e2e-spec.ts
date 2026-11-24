@@ -159,7 +159,7 @@ describe('Admin data API (e2e)', () => {
   describe('writes', () => {
     it('returns 403 for an admin without data:write', async () => {
       await request(app.getHttpServer())
-        .post(`${DATA_PATH}/user-settings`)
+        .post(`${DATA_PATH}/settings`)
         .set('Authorization', bearer(opsToken))
         .send({ userId: settingsUser.id, key: 'theme', value: 'dark' })
         .expect(403);
@@ -169,7 +169,7 @@ describe('Admin data API (e2e)', () => {
       const key = `pref-${randomUUID()}`;
 
       const created = await request(app.getHttpServer())
-        .post(`${DATA_PATH}/user-settings`)
+        .post(`${DATA_PATH}/settings`)
         .set('Authorization', bearer(superToken))
         .send({ userId: settingsUser.id, key, value: 'dark' })
         .expect(201);
@@ -178,24 +178,24 @@ describe('Admin data API (e2e)', () => {
       expect(created.body).toMatchObject({ userId: settingsUser.id, key });
 
       await request(app.getHttpServer())
-        .get(`${DATA_PATH}/user-settings/${id}`)
+        .get(`${DATA_PATH}/settings/${id}`)
         .set('Authorization', bearer(superToken))
         .expect(200);
 
       const updated = await request(app.getHttpServer())
-        .put(`${DATA_PATH}/user-settings/${id}`)
+        .put(`${DATA_PATH}/settings/${id}`)
         .set('Authorization', bearer(superToken))
         .send({ value: 'light' })
         .expect(200);
       expect(updated.body.value).toBe('light');
 
       await request(app.getHttpServer())
-        .delete(`${DATA_PATH}/user-settings/${id}`)
+        .delete(`${DATA_PATH}/settings/${id}`)
         .set('Authorization', bearer(superToken))
         .expect(204);
 
       await request(app.getHttpServer())
-        .get(`${DATA_PATH}/user-settings/${id}`)
+        .get(`${DATA_PATH}/settings/${id}`)
         .set('Authorization', bearer(superToken))
         .expect(404);
     });
@@ -204,7 +204,7 @@ describe('Admin data API (e2e)', () => {
       const key = `audit-${randomUUID()}`;
 
       const created = await request(app.getHttpServer())
-        .post(`${DATA_PATH}/user-settings`)
+        .post(`${DATA_PATH}/settings`)
         .set('Authorization', bearer(superToken))
         .send({ userId: settingsUser.id, key, value: 1 })
         .expect(201);
@@ -216,7 +216,7 @@ describe('Admin data API (e2e)', () => {
       const audit = await ctx.prisma.auditLog.findFirst({
         where: {
           action: 'admin.data.create',
-          resourceType: 'user-settings',
+          resourceType: 'settings',
           resourceId: created.body.id as string,
         },
       });
@@ -233,7 +233,7 @@ describe('Admin data API (e2e)', () => {
 
     it('rejects a field outside the writable allowlist', async () => {
       await request(app.getHttpServer())
-        .post(`${DATA_PATH}/user-settings`)
+        .post(`${DATA_PATH}/settings`)
         .set('Authorization', bearer(superToken))
         .send({ userId: settingsUser.id, key: 'x', secret: 'y' })
         .expect(400);
@@ -244,13 +244,13 @@ describe('Admin data API (e2e)', () => {
       const payload = { userId: settingsUser.id, key, value: 'a' };
 
       await request(app.getHttpServer())
-        .post(`${DATA_PATH}/user-settings`)
+        .post(`${DATA_PATH}/settings`)
         .set('Authorization', bearer(superToken))
         .send(payload)
         .expect(201);
 
       await request(app.getHttpServer())
-        .post(`${DATA_PATH}/user-settings`)
+        .post(`${DATA_PATH}/settings`)
         .set('Authorization', bearer(superToken))
         .send(payload)
         .expect(409);
@@ -258,7 +258,7 @@ describe('Admin data API (e2e)', () => {
 
     it('returns 404 when updating a missing row', async () => {
       await request(app.getHttpServer())
-        .put(`${DATA_PATH}/user-settings/${randomUUID()}`)
+        .put(`${DATA_PATH}/settings/${randomUUID()}`)
         .set('Authorization', bearer(superToken))
         .send({ value: 'z' })
         .expect(404);

@@ -1,5 +1,5 @@
 // Domain: User Profile (Profile, Settings)
-// Owning modules: user, user-settings
+// Owning modules: user, settings
 
 enum SexAtBirth {
   female

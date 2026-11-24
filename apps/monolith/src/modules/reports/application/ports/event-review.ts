@@ -123,14 +123,14 @@ export interface EventReviewObservedSource {
 /** Coverage summary across every source the review reads. */
 export interface EventReviewCoverageSummary {
   checkIns: EventReviewCheckInCoverage;
-  dailyRecords: EventReviewObservedSource;
+  records: EventReviewObservedSource;
   doseLogs: EventReviewObservedSource;
 }
 
 /** Last-known timestamp per source, used to explain staleness. */
 export interface EventReviewSourceTimestamps {
   checkIns: string | null;
-  dailyRecords: string | null;
+  records: string | null;
   doseLogs: string | null;
 }
 
@@ -157,7 +157,7 @@ export interface EventReviewListData {
  * Explicit `| undefined` on every key: the HTTP layer parses with zod, and
  * `z.infer` of an optional key is `T | undefined`, which
  * `exactOptionalPropertyTypes` distinguishes from a bare optional `T`. Same
- * resolution as `user-settings`' `UpdateUserSettingsCommand`.
+ * resolution as `settings`' `UpdateUserSettingsCommand`.
  */
 export interface EventReviewListQuery {
   status?: HealthEventStatus | undefined;

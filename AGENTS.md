@@ -108,7 +108,8 @@ Lucent 是 **pnpm workspace + Turborepo 多语言仓库**，不是一个单独�
   `admin-console` 模块在进程内提供 `/admin` 静态托管与权限门禁，前端产物来自 `admin/`。
 - 请求/响应校验与序列化走 zod 4 + Standard Schema(`@Body/@Query/@Param({ schema })` 与
   `@SerializeOptions({ schema })`;DTO 为 `z.infer` 类型导出),不引入 class-validator。
-- Dev DB: `postgres/postgres@127.0.0.1:15432/lucent`. Test DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
+- Dev DB: `postgres/postgres@127.0.0.1:5432/lucent`. Test DB: `postgres/postgres@127.0.0.1:5432/test`
+  (same instance, separate database).
 - Redis: `redis://127.0.0.1:6379`.
 - Response: controllers return resources directly (no envelope); errors use RFC 9457
   Problem Details — [ADR-0012](docs/reference/adr/0012-error-contract-and-result-boundary.md)

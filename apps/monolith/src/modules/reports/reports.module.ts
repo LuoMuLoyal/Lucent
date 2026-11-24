@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AssistantModule } from '../assistant/assistant.module.js';
-import { DailyRecordsModule } from '../daily-records/daily-records.module.js';
+import { RecordModule } from '../record/record.module.js';
 import { HealthEventsModule } from '../health-events/health-events.module.js';
 import { LlmCommonModule } from '../../common/index.js';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
 import { MedicinesModule } from '../medicines/medicines.module.js';
-import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module.js';
-import { UserSettingsModule } from '../user-settings/user-settings.module.js';
-import { UserHealthContextModule } from '../user-health-context/user-health-context.module.js';
-import { ProductEventsModule } from '../product-events/product-events.module.js';
+import { DoseModule } from '../dose/dose.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
+import { ContextModule } from '../context/context.module.js';
+import { ProductModule } from '../product/product.module.js';
 import { ReportsAiSummaryContextService } from './application/read_models/ai-summary/summary-context.js';
 
 import { ReportsLlmSummaryCopyService } from './application/services/summary-copy.js';
@@ -52,13 +52,13 @@ import { CLINIC_SUMMARY_PROVIDERS } from './infrastructure/persistence/clinic-su
     LlmRuntimeModule,
     LlmCommonModule,
     AssistantModule,
-    DailyRecordsModule,
+    RecordModule,
     HealthEventsModule,
     MedicinesModule,
-    MedicineDoseLogsModule,
-    UserSettingsModule,
-    UserHealthContextModule,
-    ProductEventsModule,
+    DoseModule,
+    SettingsModule,
+    ContextModule,
+    ProductModule,
   ],
   controllers: [
     ReportsController,

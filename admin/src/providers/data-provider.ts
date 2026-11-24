@@ -91,10 +91,8 @@ export const dataProvider: DataProvider = {
         total: response.data.total,
       }
     }
-    if (resource === 'legal-documents') {
-      const response = await api.get<RecordData[]>(
-        '/admin/content/legal-documents'
-      )
+    if (resource === 'legal') {
+      const response = await api.get<RecordData[]>('/admin/content/legal')
       const data = response.data.map((item) => ({ ...item, id: item.docType }))
       return { data: data as never[], total: data.length }
     }
@@ -141,10 +139,8 @@ export const dataProvider: DataProvider = {
       const { data } = await api.get<RecordData>(`/admin/users/${id}`)
       return { data: data as never }
     }
-    if (resource === 'legal-documents') {
-      const { data } = await api.get<RecordData[]>(
-        '/admin/content/legal-documents'
-      )
+    if (resource === 'legal') {
+      const { data } = await api.get<RecordData[]>('/admin/content/legal')
       const document = data.find((item) => item.docType === id)
       if (!document) throw new Error('Legal document not found')
       return { data: { ...document, id: document.docType } as never }
@@ -182,9 +178,9 @@ export const dataProvider: DataProvider = {
     throw new Error(`Create is not supported for ${resource}`)
   },
   update: async ({ resource, id, variables }) => {
-    if (resource === 'legal-documents') {
+    if (resource === 'legal') {
       const { data } = await api.put<RecordData>(
-        `/admin/content/legal-documents/${id}`,
+        `/admin/content/legal/${id}`,
         variables
       )
       return { data: { ...data, id: data.id ?? id } as never }

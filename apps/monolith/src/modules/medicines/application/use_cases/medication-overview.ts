@@ -53,7 +53,7 @@ export class MedicationOverviewService {
    *   是一个有效答案，不是错误）。
    */
   async build(userId: string): Promise<MedicationOverview> {
-    const context = await this.riskRecords.loadHealthContext(
+    const context = await this.riskRecords.loadContext(
       userId,
       OVERVIEW_MAX_MEDICINES,
     );

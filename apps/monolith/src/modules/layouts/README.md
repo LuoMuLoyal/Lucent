@@ -95,7 +95,7 @@ infrastructure/persistence/
 ```
 
 无缓存层：布局在应用启动时读一次、用户显式操作时写一次，加缓存只会引入失效问题。
-（`user-settings` 有缓存是因为它几乎出现在每个请求路径上，布局不是。）
+（`settings` 有缓存是因为它几乎出现在每个请求路径上，布局不是。）
 
 ## 实现时踩到的两个坑（都不是显而易见的）
 
@@ -150,7 +150,7 @@ POST /layouts/:surface/generate
 ### 为什么在 layouts 而不是 assistant
 
 判据是**产物归属**，不是实现手段。产物是一份可持久化的界面文档（与 `PUT` 存的
-`payload` 同性质），不是对话消息。`today-analysis` 同样调 LLM 却自成模块 ——
+`payload` 同性质），不是对话消息。`analysis` 同样调 LLM 却自成模块 ——
 「要调模型」不等于「属于 assistant 域」。
 
 ### 三条安全边界

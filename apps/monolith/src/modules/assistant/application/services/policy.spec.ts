@@ -81,7 +81,7 @@ describe('AssistantPolicyService', () => {
         assistantMemoryEnabled: false,
         assistantContext: {
           healthProfile: true,
-          dailyRecords: false,
+          records: false,
           sleepRecords: true,
           currentMedicines: true,
         },
@@ -392,14 +392,14 @@ describe('AssistantPolicyService', () => {
       assistantEnabled: boolean;
       assistantMemoryEnabled: boolean;
       healthProfile: boolean;
-      dailyRecords: boolean;
+      records: boolean;
       sleepRecords: boolean;
       currentMedicines: boolean;
     }> = {},
   ) {
     const {
       healthProfile,
-      dailyRecords,
+      records,
       sleepRecords,
       currentMedicines,
       ...rest
@@ -411,7 +411,7 @@ describe('AssistantPolicyService', () => {
       assistantMemoryEnabled: false,
       assistantContext: {
         healthProfile: healthProfile ?? true,
-        dailyRecords: dailyRecords ?? true,
+        records: records ?? true,
         sleepRecords: sleepRecords ?? true,
         currentMedicines: currentMedicines ?? true,
       },
@@ -443,7 +443,7 @@ describe('AssistantPolicyService', () => {
       buildFoundation(),
       buildSettings({
         healthProfile: false,
-        dailyRecords: false,
+        records: false,
         sleepRecords: false,
         currentMedicines: false,
       }),
@@ -547,7 +547,7 @@ describe('AssistantPolicyService', () => {
         ],
       }),
       buildSettings({
-        dailyRecords: false, // disables get_today_records
+        records: false, // disables get_today_records
       }),
     );
 
@@ -572,7 +572,7 @@ describe('AssistantPolicyService', () => {
       buildFoundation(),
       buildSettings({
         healthProfile: false,
-        dailyRecords: false,
+        records: false,
         sleepRecords: true,
         currentMedicines: false,
       }),

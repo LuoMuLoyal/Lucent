@@ -186,7 +186,7 @@ export type EventReviewObservedSourceDto = z.infer<
 /** Replaces `EventReviewCoverageSummaryDto`. */
 export const eventReviewCoverageSummarySchema = z.object({
   checkIns: eventReviewCheckInCoverageSchema,
-  dailyRecords: eventReviewObservedSourceSchema,
+  records: eventReviewObservedSourceSchema,
   doseLogs: eventReviewObservedSourceSchema,
 });
 
@@ -201,7 +201,7 @@ export const eventReviewSourceTimestampsSchema = z.object({
     .string()
     .nullable()
     .describe('Last check-in calendar date (YYYY-MM-DD), or null.'),
-  dailyRecords: z
+  records: z
     .string()
     .nullable()
     .describe(

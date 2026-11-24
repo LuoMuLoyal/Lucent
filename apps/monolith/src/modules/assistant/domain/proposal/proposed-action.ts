@@ -79,7 +79,7 @@ export interface UpdateUserSettingsPayload {
     assistantMemoryEnabled?: boolean;
     assistantContext?: {
       healthProfile?: boolean;
-      dailyRecords?: boolean;
+      records?: boolean;
       sleepRecords?: boolean;
       currentMedicines?: boolean;
     };
@@ -136,7 +136,7 @@ export interface ProposedAction {
  * Settings keys touched by an `update_user_settings` draft, in stable order.
  *
  * Context switches are reported as `assistantContext.<key>` rather than bare keys:
- * the client renders them next to the two top-level switches, and `dailyRecords`
+ * the client renders them next to the two top-level switches, and `records`
  * without its parent path reads like a daily-record operation.
  */
 export function collectSettingsDraftKeys(

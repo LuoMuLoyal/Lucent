@@ -4,8 +4,8 @@ describe('buildAccessLogEntry', () => {
   it('prefers the route pattern over the raw URL', () => {
     const entry = buildAccessLogEntry({
       method: 'GET',
-      routeUrl: '/api/v1/user/daily-records/:id',
-      rawUrl: '/api/v1/user/daily-records/123?verbose=true',
+      routeUrl: '/api/v1/user/record/:id',
+      rawUrl: '/api/v1/user/record/123?verbose=true',
       statusCode: 200,
       elapsedMs: 12.4,
     });
@@ -14,7 +14,7 @@ describe('buildAccessLogEntry', () => {
       level: 'info',
       message: 'HTTP request completed',
       method: 'GET',
-      url: '/api/v1/user/daily-records/:id',
+      url: '/api/v1/user/record/:id',
       statusCode: 200,
       durationMs: 12,
     });

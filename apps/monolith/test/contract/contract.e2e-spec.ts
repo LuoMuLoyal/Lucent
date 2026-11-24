@@ -272,17 +272,17 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/legal-documents — contract', () => {
-    it('should match LegalDocumentListResponse shape', async () => {
+  describe('GET /api/v1/legal — contract', () => {
+    it('should match LegalDocListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/legal-documents')
+        .get('/api/v1/legal')
         .expect(200);
 
       assertDirectResourceShape(res.body);
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/LegalDocumentListResponse',
+        '#/components/schemas/LegalDocListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
@@ -321,10 +321,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/health-context — contract', () => {
-    it('should match HealthContextResponse shape', async () => {
+  describe('GET /api/v1/user/context — contract', () => {
+    it('should match ContextResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/health-context')
+        .get('/api/v1/user/context')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -332,7 +332,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/HealthContextResponse',
+        '#/components/schemas/ContextResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
@@ -372,10 +372,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/daily-records — contract', () => {
+  describe('GET /api/v1/user/record — contract', () => {
     it('should match DailyRecordListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records')
+        .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
@@ -390,10 +390,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/medicine-reminders — contract', () => {
-    it('should match MedicineReminderListResponse shape', async () => {
+  describe('GET /api/v1/user/reminder — contract', () => {
+    it('should match ReminderEntryListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/medicine-reminders')
+        .get('/api/v1/user/reminder')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -401,16 +401,16 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/MedicineReminderListResponse',
+        '#/components/schemas/ReminderEntryListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
-  describe('GET /api/v1/user/medicine-dose-logs — contract', () => {
+  describe('GET /api/v1/user/dose — contract', () => {
     it('should match DoseLogListResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/medicine-dose-logs')
+        .get('/api/v1/user/dose')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
@@ -442,10 +442,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/today/suggestions — contract', () => {
+  describe('GET /api/v1/user/suggestion — contract', () => {
     it('should match TodaySuggestionsResponse shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/today/suggestions')
+        .get('/api/v1/user/suggestion')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -534,10 +534,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/daily-records/summary — contract', () => {
+  describe('GET /api/v1/user/record/summary — contract', () => {
     it('should match daily record summary shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records/summary')
+        .get('/api/v1/user/record/summary')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
@@ -546,10 +546,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/today/suggestions/history — contract', () => {
+  describe('GET /api/v1/user/suggestion/history — contract', () => {
     it('should match suggestion history shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/today/suggestions/history')
+        .get('/api/v1/user/suggestion/history')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -557,10 +557,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/user/today-analysis/recommendations — contract', () => {
+  describe('GET /api/v1/user/analysis/recommendations — contract', () => {
     it('should match recommendations shape', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/today-analysis/recommendations')
+        .get('/api/v1/user/analysis/recommendations')
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
@@ -581,10 +581,10 @@ describe('API Contract Tests (e2e)', () => {
 
   // ── POST response shape contracts ──────────────────────────
 
-  describe('POST /api/v1/user/daily-records — response contract', () => {
+  describe('POST /api/v1/user/record — response contract', () => {
     it('should return created record with id in envelope', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/daily-records')
+        .post('/api/v1/user/record')
         .set('Authorization', bearer(accessToken))
         .send({
           occurredAt: '2026-07-12',
@@ -600,10 +600,10 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('POST /api/v1/user/health-context/allergies — response contract', () => {
+  describe('POST /api/v1/user/context/allergies — response contract', () => {
     it('should return updated allergies list in envelope', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/user/health-context/allergies')
+        .post('/api/v1/user/context/allergies')
         .set('Authorization', bearer(accessToken))
         .send({ kind: 'drug', label: 'ContractAllergy', severity: 'mild' })
         .expect(201);
@@ -663,15 +663,15 @@ describe('API Contract Tests (e2e)', () => {
       expect(res.body.pagination).toHaveProperty('total');
     });
 
-    it('GET /api/v1/user/daily-records should return items array', async () => {
+    it('GET /api/v1/user/record should return items array', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/user/daily-records')
+        .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
       assertDirectResourceShape(res.body);
-      // daily-records list returns data.items
+      // record list returns data.items
       if (res.body && typeof res.body === 'object') {
         const data = res.body as Record<string, unknown>;
         if (data['items'] !== undefined) {

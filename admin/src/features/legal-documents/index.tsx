@@ -55,7 +55,7 @@ const emptyFields: LegalDocumentFields = {
 
 export function LegalDocuments() {
   const { result, query } = useList<LegalDocument>({
-    resource: 'legal-documents',
+    resource: 'legal',
     queryOptions: { retry: false },
   })
   const updateDocument = useUpdate<
@@ -82,7 +82,7 @@ export function LegalDocuments() {
     event.preventDefault()
     if (!selected) return
     updateDocument.mutate(
-      { resource: 'legal-documents', id: selected.id, values: fields },
+      { resource: 'legal', id: selected.id, values: fields },
       {
         onSuccess: () => {
           toast.success('Legal document updated')

@@ -183,7 +183,7 @@ export interface AssistantUpdateUserSettingsProposalPayload {
     assistantMemoryEnabled?: boolean;
     assistantContext?: {
       healthProfile?: boolean;
-      dailyRecords?: boolean;
+      records?: boolean;
       sleepRecords?: boolean;
       currentMedicines?: boolean;
     };

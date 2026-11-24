@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import {
   HealthEventKind,
   HealthEventStatus,
-  ProductEventName,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
@@ -33,7 +33,7 @@ import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../../product-events/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 
 export type UpsertCheckInInput = EndHealthEventInput;
 
@@ -42,7 +42,7 @@ export class CheckInsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
     private readonly publisher: DomainEventPublisher,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
   ) {}
 
   upsert(
@@ -117,9 +117,9 @@ export class CheckInsService {
               // the unique constraint dedupes it.
               .andThen(() =>
                 fromPromise(
-                  this.productEvents.emitServerEvent(userId, {
-                    name: ProductEventName.health_event_outcome_confirmed,
-                    surface: ProductEventSurface.review,
+                  this.productEventLog.emitServerEvent(userId, {
+                    name: ProductEventLogName.health_event_outcome_confirmed,
+                    surface: ProductEventLogSurface.review,
                     result: toProductEventResult(outcome),
                     occurredAt: now(),
                     clientEventId: `server-checkin-${eventId}-${date}`,

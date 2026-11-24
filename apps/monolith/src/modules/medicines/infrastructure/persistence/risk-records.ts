@@ -4,9 +4,9 @@ import { nonDeleted } from '../../../../common/index.js';
 import {
   type MedicineRiskCheckRecordRow,
   type MedicineRiskCheckType,
-  type MedicineReminderRow,
+  type ReminderEntryRow,
   type MedicineRiskRecordsPort,
-  type UserHealthContext,
+  type UserContext,
 } from '../../application/ports/risk-records.js';
 
 /** Prisma's `check_type` column is a free string; the port narrows it. */
@@ -59,10 +59,10 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
     });
   }
 
-  async loadHealthContext(
+  async loadContext(
     userId: string,
     limit: number,
-  ): Promise<UserHealthContext | null> {
+  ): Promise<UserContext | null> {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, ...nonDeleted },
       include: {
@@ -112,8 +112,8 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
     };
   }
 
-  async listReminders(userId: string): Promise<MedicineReminderRow[]> {
-    const reminders = await this.prisma.userMedicineReminder.findMany({
+  async listReminders(userId: string): Promise<ReminderEntryRow[]> {
+    const reminders = await this.prisma.userReminder.findMany({
       where: { userId, isActive: true, ...nonDeleted },
       orderBy: [{ scheduledHour: 'asc' }, { scheduledMinute: 'asc' }],
     });

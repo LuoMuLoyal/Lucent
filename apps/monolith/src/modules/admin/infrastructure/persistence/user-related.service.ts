@@ -72,7 +72,7 @@ export class AdminUserRelatedService {
     userId: string,
     limit: number,
   ): Promise<AdminUserRelatedSection> {
-    // One-to-one tables (UserProfile, UserNotificationPreference) are keyed by
+    // One-to-one tables (UserProfile, UserNotificationSettings) are keyed by
     // `userId`, so they are fetched directly rather than listed.
     if (resource.idField === 'userId') {
       const row = await this.data.getOne(resource, userId);
