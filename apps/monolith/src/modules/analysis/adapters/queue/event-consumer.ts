@@ -8,7 +8,7 @@ import {
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { QUEUE_NAMES } from '../../../../common/queue/queue-names.js';
 import { TRIGGER_DIMENSIONS } from '../../domain/analysis/trigger-gate.js';
-import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
+import { RecordKind, HealthEventKind } from '#generated/prisma/client.js';
 import {
   ANALYSIS_MATERIALIZATION,
   type AnalysisMaterialization,
@@ -152,7 +152,7 @@ export class AnalysisEventConsumerService implements OnModuleInit {
     await this.contextService.invalidateContext(userId, date);
     const kind = data['kind'];
 
-    if (kind === DailyRecordKind.symptom) {
+    if (kind === RecordKind.symptom) {
       await this.trigger(
         userId,
         date,

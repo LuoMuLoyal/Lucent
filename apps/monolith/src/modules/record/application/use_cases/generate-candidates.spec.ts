@@ -1,9 +1,9 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { RecordEntryCandidatesService } from './generate-candidates.js';
-import type { RecordEntryCandidatesCopyService } from '../services/candidate-copy.js';
+import { DailyRecordCandidatesService } from './generate-candidates.js';
+import type { DailyRecordCandidatesCopyService } from '../services/candidate-copy.js';
 import type { CandidateGenerator } from '../ports/candidate-generator.js';
 
-describe('RecordEntryCandidatesService', () => {
+describe('DailyRecordCandidatesService', () => {
   it('returns generated candidates when language model is configured', async () => {
     const service = createService();
 
@@ -110,7 +110,7 @@ describe('RecordEntryCandidatesService', () => {
           ],
         }),
       ),
-    } as unknown as RecordEntryCandidatesCopyService;
+    } as unknown as DailyRecordCandidatesCopyService;
 
     const generatorService = {
       isConfigured: vi.fn().mockReturnValue(options?.hasAnalysisModel ?? true),
@@ -142,6 +142,6 @@ describe('RecordEntryCandidatesService', () => {
         }),
     } as unknown as CandidateGenerator;
 
-    return new RecordEntryCandidatesService(copyService, generatorService);
+    return new DailyRecordCandidatesService(copyService, generatorService);
   }
 });

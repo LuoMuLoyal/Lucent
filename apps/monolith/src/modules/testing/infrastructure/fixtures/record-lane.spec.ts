@@ -43,11 +43,11 @@ describe('TestingService', () => {
             account: {
               upsert: vi.fn(),
             },
-            userDailyRecord: {
+            userRecord: {
               findMany: vi.fn(),
               deleteMany: vi.fn(),
             },
-            userDailyRecordAttachment: {
+            userRecordAttachment: {
               deleteMany: vi.fn(),
             },
             userSession: {
@@ -77,7 +77,7 @@ describe('TestingService', () => {
       id: 'user-1',
       nickname: 'Record Lane User',
     });
-    (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([]);
+    (prisma.userRecord.findMany as vi.Mock).mockResolvedValue([]);
 
     const result = await service.prepareFullstackRecordLane({
       email: 'RecordLane@example.com',
@@ -116,7 +116,7 @@ describe('TestingService', () => {
     expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
-    expect(prisma.userDailyRecord.findMany).toHaveBeenCalledWith({
+    expect(prisma.userRecord.findMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
         occurredAt: new Date('2026-06-12T00:00:00.000Z'),
@@ -178,7 +178,7 @@ describe('TestingService', () => {
       id: 'user-1',
       nickname: 'Record Lane User',
     });
-    (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
+    (prisma.userRecord.findMany as vi.Mock).mockResolvedValue([
       { id: 'record-1' },
       { id: 'record-2' },
     ]);
@@ -222,19 +222,19 @@ describe('TestingService', () => {
         password: '$argon2id$e2e',
       },
     });
-    expect(prisma.userDailyRecordAttachment.deleteMany).toHaveBeenCalledWith({
+    expect(prisma.userRecordAttachment.deleteMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
         recordId: { in: ['record-1', 'record-2'] },
       },
     });
-    expect(prisma.userDailyRecord.deleteMany).toHaveBeenCalledWith({
+    expect(prisma.userRecord.deleteMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
         id: { in: ['record-1', 'record-2'] },
       },
     });
-    expect(prisma.userDailyRecord.findMany).toHaveBeenCalledWith({
+    expect(prisma.userRecord.findMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
         occurredAt: new Date('2026-06-12T00:00:00.000Z'),

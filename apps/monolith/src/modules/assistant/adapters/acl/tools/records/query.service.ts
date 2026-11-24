@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import {
-  RecordEntryReaderPort,
+  DailyRecordReaderPort,
   parseMealRecordPayload,
 } from '../../../../../record/index.js';
 import {
@@ -66,7 +66,7 @@ export class AssistantToolRecordQueryService {
   constructor(
     @Inject(DAILY_RECORD_READER)
     private readonly recordsService: IDailyRecordReader,
-    private readonly dailyRecordReaderPort: RecordEntryReaderPort,
+    private readonly dailyRecordReaderPort: DailyRecordReaderPort,
   ) {}
 
   async listToolRecords(
@@ -84,9 +84,9 @@ export class AssistantToolRecordQueryService {
     return result.items
       .filter((item) => {
         if (options.sleepOnly) {
-          return item.kind === DailyRecordKind.sleep;
+          return item.kind === RecordKind.sleep;
         }
-        if (!options.includeSleep && item.kind === DailyRecordKind.sleep) {
+        if (!options.includeSleep && item.kind === RecordKind.sleep) {
           return false;
         }
         return true;
@@ -118,7 +118,7 @@ export class AssistantToolRecordQueryService {
    * the model asked for, newest meal first.
    *
    * 为什么读投影列而不是逐条解析 payload：`analyzed` 判定、一行结论（`mealHeadline`）
-   * 与热量区间都在 `UserDailyRecord` 的投影列上，跨 15 天的窗口只需一条范围查询；
+   * 与热量区间都在 `userRecord` 的投影列上，跨 15 天的窗口只需一条范围查询；
    * 没有分析结果的餐食（`analyzing` / `analysis_failed`）直接被列过滤掉，其 payload
    * 从不解析。只有进入结果的 ≤`limit` 条餐食才回读 payload 取 `items` / `dishes` 明细。
    *
@@ -146,7 +146,7 @@ export class AssistantToolRecordQueryService {
       userId,
       parseDateOnly(startDate),
       parseDateOnly(endDate),
-      [DailyRecordKind.meal],
+      [RecordKind.meal],
     );
 
     const analyzed = facts
@@ -427,19 +427,19 @@ export class AssistantToolRecordQueryService {
 
   private extractDailyRecordKindHint(userMessage: string): string | null {
     if (/喝水|饮水|water/i.test(userMessage)) {
-      return DailyRecordKind.water;
+      return RecordKind.water;
     }
     if (/吃饭|饮食|meal/i.test(userMessage)) {
-      return DailyRecordKind.meal;
+      return RecordKind.meal;
     }
     if (/症状|头痛|不舒服|symptom/i.test(userMessage)) {
-      return DailyRecordKind.symptom;
+      return RecordKind.symptom;
     }
     if (/备注|自定义|note/i.test(userMessage)) {
-      return DailyRecordKind.note;
+      return RecordKind.note;
     }
     if (/睡眠|睡觉|sleep/i.test(userMessage)) {
-      return DailyRecordKind.sleep;
+      return RecordKind.sleep;
     }
     return null;
   }
@@ -470,10 +470,10 @@ export class AssistantToolRecordQueryService {
   }
 
   private buildTags(item: {
-    kind: DailyRecordKind;
+    kind: RecordKind;
     mealAnalysisStatus?: string | null;
   }): string[] {
-    if (item.kind !== DailyRecordKind.meal) {
+    if (item.kind !== RecordKind.meal) {
       return [];
     }
 

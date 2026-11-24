@@ -13,7 +13,7 @@ import type {
   TestUser,
 } from '../../helpers/e2e-helpers.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventOutcome,
   MedicineSource,
 } from '#generated/prisma/client.js';
@@ -80,7 +80,7 @@ describe('Health Event Contract API (e2e)', () => {
       .post(DAILY_RECORDS_PATH)
       .set('Authorization', bearer(tokenA))
       .send({
-        kind: DailyRecordKind.symptom,
+        kind: RecordKind.symptom,
         occurredAt: CHECK_IN_DATE,
         title: '发热',
       })
@@ -136,7 +136,7 @@ describe('Health Event Contract API (e2e)', () => {
       .post(DAILY_RECORDS_PATH)
       .set('Authorization', bearer(tokenB))
       .send({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: CHECK_IN_DATE,
         value: '1',
         unit: '杯',
@@ -233,7 +233,7 @@ describe('Health Event Contract API (e2e)', () => {
       .send({ outcome: HealthEventOutcome.unchanged })
       .expect(201);
 
-    const events = await ctx.prisma.userProductEvent.findMany({
+    const events = await ctx.prisma.userProductEventLog.findMany({
       where: { userId: user.id },
       orderBy: { occurredAt: 'asc' },
     });

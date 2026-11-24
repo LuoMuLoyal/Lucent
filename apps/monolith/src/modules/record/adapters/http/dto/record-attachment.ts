@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
-import { DailyRecordAttachmentKind } from '#generated/prisma/client.js';
+import { RecordAttachmentKind } from '#generated/prisma/client.js';
 
 const DAILY_RECORD_ATTACHMENT_KIND_VALUES = Object.values(
-  DailyRecordAttachmentKind,
-) as [DailyRecordAttachmentKind, ...DailyRecordAttachmentKind[]];
+  RecordAttachmentKind,
+) as [RecordAttachmentKind, ...RecordAttachmentKind[]];
 
 /**
  * Standard Schema (zod 4) for one `attachments` entry of the daily-record
  * create/update payloads.
  *
- * Replaces the former class-validator `RecordEntryAttachmentInputDto`:
+ * Replaces the former class-validator `DailyRecordAttachmentInputDto`:
  * - `@IsOptional` → `.optional()` (absent keys stay `undefined`);
  * - nullable optionals (`@ApiPropertyOptional nullable: true`) → `.nullish()`
  *   (absent stays `undefined`, an explicit `null` is still accepted);
@@ -93,7 +93,7 @@ export const dailyRecordAttachmentInputSchema = z
   .strict();
 
 /** Strongly typed attachment metadata entry of record create/update payloads. */
-export type RecordEntryAttachmentInputDto = z.infer<
+export type DailyRecordAttachmentInputDto = z.infer<
   typeof dailyRecordAttachmentInputSchema
 >;
 
@@ -101,7 +101,7 @@ export type RecordEntryAttachmentInputDto = z.infer<
  * Standard Schema (zod 4) for one `attachments` entry of daily-record read
  * responses (list/detail/create/update).
  *
- * Replaces the former `@ApiProperty` response class `RecordEntryAttachmentDto`.
+ * Replaces the former `@ApiProperty` response class `DailyRecordAttachmentDto`.
  * The mapper always emits every key, so nullable storage columns surface as an
  * explicit `null` (no `.optional()`/`.default()` on the response side).
  */
@@ -121,6 +121,6 @@ export const dailyRecordAttachmentSchema = z.object({
 });
 
 /** Strongly typed attachment metadata of daily-record read responses. */
-export type RecordEntryAttachmentDto = z.infer<
+export type DailyRecordAttachmentDto = z.infer<
   typeof dailyRecordAttachmentSchema
 >;

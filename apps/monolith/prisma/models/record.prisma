@@ -1,7 +1,7 @@
 // Domain: Daily Records (User Daily Records, Attachments, Meal Analysis)
 // Owning module: record
 
-enum DailyRecordKind {
+enum RecordKind {
   water
   meal
   vital
@@ -12,7 +12,7 @@ enum DailyRecordKind {
   sleep
 }
 
-enum DailyRecordAttachmentKind {
+enum RecordAttachmentKind {
   image
 }
 
@@ -29,10 +29,10 @@ enum MealCalorieBucket {
   high
 }
 
-model UserDailyRecord {
+model UserRecord {
   id                        String                      @id @default(uuid())
   userId                    String                      @map("user_id")
-  kind                      DailyRecordKind
+  kind                      RecordKind
   occurredAt                DateTime                    @map("occurred_at") @db.Date
   occurredTime              String?                     @map("occurred_time") @db.VarChar(5)
   title                     String?
@@ -57,7 +57,7 @@ model UserDailyRecord {
   user                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   healthEvent               HealthEvent?                @relation("HealthEventDailyRecords", fields: [healthEventId], references: [id], onDelete: SetNull)
   reasonForHealthEvents     HealthEvent[]                @relation("HealthEventReasonRecord")
-  attachments               UserDailyRecordAttachment[]
+  attachments               UserRecordAttachment[]
 
   // userId+occurredAt index removed — redundant prefix of (userId, occurredAt, occurredTime)
   @@index([userId, occurredAt, occurredTime])
@@ -69,11 +69,11 @@ model UserDailyRecord {
   @@map("records")
 }
 
-model UserDailyRecordAttachment {
+model UserRecordAttachment {
   id          String                    @id @default(uuid())
   userId      String                    @map("user_id")
   recordId    String                    @map("record_id")
-  kind        DailyRecordAttachmentKind @default(image)
+  kind        RecordAttachmentKind @default(image)
   objectKey   String                    @map("object_key")
   bucket      String?
   provider    String?
@@ -85,7 +85,7 @@ model UserDailyRecordAttachment {
   publicUrl   String?                   @map("public_url")
   createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
   user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  record      UserDailyRecord           @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  record      UserRecord           @relation(fields: [recordId], references: [id], onDelete: Cascade)
 
   @@index([userId, recordId])
   @@map("record_attachments")

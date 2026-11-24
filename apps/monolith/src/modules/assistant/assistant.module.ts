@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
-import { RecordEntryCandidatesService } from '../record/index.js';
+import { DailyRecordCandidatesService } from '../record/index.js';
 import { RecordsService } from '../record/index.js';
 import { RecordModule } from '../record/record.module.js';
 import { LlmCommonModule } from '../../common/index.js';
@@ -146,7 +146,7 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     },
     {
       provide: DAILY_RECORD_CANDIDATE_GENERATOR,
-      useExisting: RecordEntryCandidatesService,
+      useExisting: DailyRecordCandidatesService,
     },
   ],
   // `AssistantToolService` 的导出是给 `McpModule` 的：MCP 执行适配器把调用转发给

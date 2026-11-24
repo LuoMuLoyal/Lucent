@@ -4,7 +4,7 @@
  * ## 为什么需要先按 id 读一行
  *
  * 不能 id+userId 一起查：那样分不清「不存在」与「别人的」。先按 id 取归属投影，
- * 再在内存里判定——`RecordEntry.ownershipFor` 是这个判定的领域版本，这里直接用它，
+ * 再在内存里判定——`DailyRecord.ownershipFor` 是这个判定的领域版本，这里直接用它，
  * 保证「什么算归属」只有一处定义。
  *
  * ## 对外语义
@@ -20,7 +20,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { RecordEntry } from '../../domain/record/daily-record.js';
+import { DailyRecord } from '../../domain/record/daily-record.js';
 import { Records } from '../../domain/record/records.js';
 import { recordNotFound } from './domain-failures.js';
 
@@ -47,7 +47,7 @@ export class RecordOwnership {
         return errAsync(recordNotFound());
       }
 
-      const record = RecordEntry.from({
+      const record = DailyRecord.from({
         id,
         userId: row.userId,
         kind: row.kind,

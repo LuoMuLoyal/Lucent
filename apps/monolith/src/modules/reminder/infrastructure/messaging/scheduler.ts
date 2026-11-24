@@ -152,7 +152,7 @@ export class ReminderSchedulerService extends ReminderDispatcher {
     let cursor: string | undefined;
 
     for (;;) {
-      const rows = await this.prisma.userMedicineReminder.findMany({
+      const rows = await this.prisma.userReminder.findMany({
         where: { isActive: true, deletedAt: null },
         take: REMINDER_QUERY_BATCH_SIZE,
         ...(cursor !== undefined ? { cursor: { id: cursor }, skip: 1 } : {}),

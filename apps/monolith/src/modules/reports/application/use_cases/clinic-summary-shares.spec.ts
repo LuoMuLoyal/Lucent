@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import type { ClinicSummaryShares } from '../ports/clinic-summary.js';
 import type { ProductEventLogService } from '../../../product/index.js';
@@ -656,9 +656,9 @@ describe('ShareService', () => {
 
       expect(emitServerEvent).toHaveBeenCalledTimes(1);
       expect(emitServerEvent).toHaveBeenCalledWith('user-1', {
-        name: ProductEventName.visit_summary_share_created,
-        surface: ProductEventSurface.review,
-        result: ProductEventResult.success,
+        name: ProductEventLogName.visit_summary_share_created,
+        surface: ProductEventLogSurface.review,
+        result: ProductEventLogResult.success,
         clientEventId: 'server-share-created-share-1',
       });
     });
@@ -680,9 +680,9 @@ describe('ShareService', () => {
       expect(revoked).toBe(true);
       expect(emitServerEvent).toHaveBeenCalledTimes(1);
       expect(emitServerEvent).toHaveBeenCalledWith('user-1', {
-        name: ProductEventName.visit_summary_share_revoked,
-        surface: ProductEventSurface.review,
-        result: ProductEventResult.success,
+        name: ProductEventLogName.visit_summary_share_revoked,
+        surface: ProductEventLogSurface.review,
+        result: ProductEventLogResult.success,
         clientEventId: 'server-share-revoked-share-1',
       });
     });

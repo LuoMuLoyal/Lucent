@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import {
   AdminRole,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
   type Prisma,
 } from '#generated/prisma/client.js';
 
@@ -45,9 +45,9 @@ function validEvent(overrides: Record<string, unknown> = {}) {
 }
 
 interface SeedEvent {
-  name: ProductEventName;
-  surface: ProductEventSurface;
-  result: ProductEventResult;
+  name: ProductEventLogName;
+  surface: ProductEventLogSurface;
+  result: ProductEventLogResult;
   occurredAt: string;
   clientEventId: string;
 }
@@ -58,7 +58,7 @@ function seedEvents(
   targetUser: TestUser,
   events: SeedEvent[],
 ): Promise<unknown> {
-  const data: Prisma.UserProductEventCreateManyInput[] = events.map(
+  const data: Prisma.UserProductEventLogCreateManyInput[] = events.map(
     (event) => ({
       userId: targetUser.id,
       clientEventId: event.clientEventId,
@@ -72,7 +72,7 @@ function seedEvents(
       occurredAt: new Date(event.occurredAt),
     }),
   );
-  return ctx.prisma.userProductEvent.createMany({ data });
+  return ctx.prisma.userProductEventLog.createMany({ data });
 }
 
 describe('Product Events API (e2e)', () => {
@@ -168,7 +168,7 @@ describe('Product Events API (e2e)', () => {
       .send({ events: [event] })
       .expect(201);
 
-    const row = await ctx.prisma.userProductEvent.findUnique({
+    const row = await ctx.prisma.userProductEventLog.findUnique({
       where: {
         userId_clientEventId: {
           userId: user.id,
@@ -212,7 +212,7 @@ describe('Product Events API (e2e)', () => {
       recorded: 0,
     });
 
-    const count = await ctx.prisma.userProductEvent.count({
+    const count = await ctx.prisma.userProductEventLog.count({
       where: {
         userId: user.id,
         clientEventId: event.clientEventId as string,
@@ -255,7 +255,7 @@ describe('Product Events API (e2e)', () => {
   });
 
   it('rejects an unknown suggestion rule code with 400 and writes nothing', async () => {
-    const before = await ctx.prisma.userProductEvent.count({
+    const before = await ctx.prisma.userProductEventLog.count({
       where: { userId: user.id },
     });
 
@@ -273,7 +273,7 @@ describe('Product Events API (e2e)', () => {
       })
       .expect(400);
 
-    const after = await ctx.prisma.userProductEvent.count({
+    const after = await ctx.prisma.userProductEventLog.count({
       where: { userId: user.id },
     });
     expect(after).toBe(before);
@@ -536,88 +536,88 @@ describe('Product Events API (e2e)', () => {
       );
       await seedEvents(ctx, user, [
         {
-          name: ProductEventName.health_event_started,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.health_event_started,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T02:00:00.000Z`,
           clientEventId: 'funnel-a-start-1',
         },
         {
-          name: ProductEventName.health_event_started,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.health_event_started,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T03:00:00.000Z`,
           clientEventId: 'funnel-a-start-2',
         },
         {
-          name: ProductEventName.suggestion_impression,
-          surface: ProductEventSurface.today,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.suggestion_impression,
+          surface: ProductEventLogSurface.today,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T04:00:00.000Z`,
           clientEventId: 'funnel-a-imp-1',
         },
         {
-          name: ProductEventName.suggestion_actioned,
-          surface: ProductEventSurface.today,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.suggestion_actioned,
+          surface: ProductEventLogSurface.today,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T05:00:00.000Z`,
           clientEventId: 'funnel-a-act-1',
         },
         {
-          name: ProductEventName.health_event_ended,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.improved,
+          name: ProductEventLogName.health_event_ended,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.improved,
           occurredAt: `${FUNNEL_DATE}T06:00:00.000Z`,
           clientEventId: 'funnel-a-ended-1',
         },
         {
-          name: ProductEventName.visit_summary_previewed,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.visit_summary_previewed,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T07:00:00.000Z`,
           clientEventId: 'funnel-a-preview-1',
         },
       ]);
       await seedEvents(ctx, secondUser, [
         {
-          name: ProductEventName.health_event_started,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.health_event_started,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T02:30:00.000Z`,
           clientEventId: 'funnel-b-start-1',
         },
         {
-          name: ProductEventName.health_event_started,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.health_event_started,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T02:45:00.000Z`,
           clientEventId: 'funnel-b-start-2',
         },
         {
-          name: ProductEventName.suggestion_impression,
-          surface: ProductEventSurface.today,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.suggestion_impression,
+          surface: ProductEventLogSurface.today,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T04:30:00.000Z`,
           clientEventId: 'funnel-b-imp-1',
         },
         {
-          name: ProductEventName.suggestion_impression,
-          surface: ProductEventSurface.today,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.suggestion_impression,
+          surface: ProductEventLogSurface.today,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T04:45:00.000Z`,
           clientEventId: 'funnel-b-imp-2',
         },
         {
-          name: ProductEventName.suggestion_actioned,
-          surface: ProductEventSurface.today,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.suggestion_actioned,
+          surface: ProductEventLogSurface.today,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T05:30:00.000Z`,
           clientEventId: 'funnel-b-act-1',
         },
         {
-          name: ProductEventName.review_opened,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.review_opened,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE}T08:00:00.000Z`,
           clientEventId: 'funnel-b-review-1',
         },
@@ -685,16 +685,16 @@ describe('Product Events API (e2e)', () => {
     it('suppresses daily details below the small-sample threshold', async () => {
       await seedEvents(ctx, user, [
         {
-          name: ProductEventName.health_event_started,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.health_event_started,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE_SMALL_SAMPLE}T02:00:00.000Z`,
           clientEventId: 'funnel-small-1',
         },
         {
-          name: ProductEventName.review_opened,
-          surface: ProductEventSurface.review,
-          result: ProductEventResult.success,
+          name: ProductEventLogName.review_opened,
+          surface: ProductEventLogSurface.review,
+          result: ProductEventLogResult.success,
           occurredAt: `${FUNNEL_DATE_SMALL_SAMPLE}T03:00:00.000Z`,
           clientEventId: 'funnel-small-2',
         },

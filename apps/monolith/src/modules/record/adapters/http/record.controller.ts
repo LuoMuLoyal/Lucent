@@ -49,8 +49,8 @@ import type { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate
 
 import { queryDailyRecordSchema } from './dto/query-record.js';
 import type { QueryDailyRecordDto } from './dto/query-record.js';
-import { RecordEntryCandidatesService } from '../../application/use_cases/generate-candidates.js';
-import { RecordEntryImageUploadService } from './image-upload.service.js';
+import { DailyRecordCandidatesService } from '../../application/use_cases/generate-candidates.js';
+import { DailyRecordImageUploadService } from './image-upload.service.js';
 import { RecordsService } from '../../application/services/records-facade.service.js';
 import { I18nLang } from 'nestjs-i18n';
 import { symptomCatalogResponseSchema } from './dto/symptom-catalog.js';
@@ -63,8 +63,8 @@ import { SymptomCatalogService } from './symptom-catalog.service.js';
 export class RecordController {
   constructor(
     private readonly recordsService: RecordsService,
-    private readonly dailyRecordCandidatesService: RecordEntryCandidatesService,
-    private readonly imageUploadService: RecordEntryImageUploadService,
+    private readonly dailyRecordCandidatesService: DailyRecordCandidatesService,
+    private readonly imageUploadService: DailyRecordImageUploadService,
     private readonly symptomCatalogService: SymptomCatalogService,
   ) {}
 
@@ -286,7 +286,7 @@ export class RecordController {
 registerResponseSchema({
   path: '/api/v1/user/record',
   method: 'get',
-  componentName: 'RecordEntryListResponse',
+  componentName: 'DailyRecordListResponse',
   schema: dailyRecordListResponseSchema,
   description: 'Daily records for the date.',
 });
@@ -294,7 +294,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/summary',
   method: 'get',
-  componentName: 'RecordEntrySummaryResponse',
+  componentName: 'DailyRecordSummaryResponse',
   schema: dailyRecordSummaryResponseSchema,
   description: 'Daily record counts grouped by kind for the date.',
 });
@@ -311,7 +311,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/attachments/images/presign-upload',
   method: 'post',
-  componentName: 'RecordEntryImageUploadResponse',
+  componentName: 'DailyRecordImageUploadResponse',
   schema: dailyRecordImageUploadResponseSchema,
   description: 'Presigned upload metadata for direct object storage upload.',
 });
@@ -319,7 +319,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/candidate-records/generate',
   method: 'post',
-  componentName: 'RecordEntryCandidateResponse',
+  componentName: 'DailyRecordCandidateResponse',
   schema: dailyRecordCandidateResponseSchema,
   description: 'Generated candidate daily records (not saved yet).',
 });
@@ -327,7 +327,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/{id}',
   method: 'get',
-  componentName: 'RecordEntryResponse',
+  componentName: 'DailyRecordResponse',
   schema: dailyRecordResponseSchema,
   description: 'The daily record.',
 });
@@ -335,7 +335,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record',
   method: 'post',
-  componentName: 'RecordEntryResponse',
+  componentName: 'DailyRecordResponse',
   schema: dailyRecordResponseSchema,
   description: 'The created daily record.',
 });
@@ -343,7 +343,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/{id}',
   method: 'patch',
-  componentName: 'RecordEntryResponse',
+  componentName: 'DailyRecordResponse',
   schema: dailyRecordResponseSchema,
   description: 'The updated daily record.',
 });

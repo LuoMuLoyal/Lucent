@@ -2,9 +2,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ClinicSummaryShareField,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import type { UserClinicSummaryShare } from '#generated/prisma/client.js';
 import { now } from '../../../../common/index.js';
@@ -147,9 +147,9 @@ export class ShareService {
     // this idempotent create (or the controller's best-effort cache-fallback
     // revoke) is deduped by the (userId, clientEventId) unique constraint.
     await this.productEventLog.emitServerEvent(userId, {
-      name: ProductEventName.visit_summary_share_created,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.success,
+      name: ProductEventLogName.visit_summary_share_created,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.success,
       clientEventId: `server-share-created-${record.id}`,
     });
 
@@ -222,9 +222,9 @@ export class ShareService {
       // Server-authoritative lifecycle event — only after a real revocation.
       // Deterministic clientEventId dedupes retries of this idempotent revoke.
       await this.productEventLog.emitServerEvent(userId, {
-        name: ProductEventName.visit_summary_share_revoked,
-        surface: ProductEventSurface.review,
-        result: ProductEventResult.success,
+        name: ProductEventLogName.visit_summary_share_revoked,
+        surface: ProductEventLogSurface.review,
+        result: ProductEventLogResult.success,
         clientEventId: `server-share-revoked-${shareId}`,
       });
     }

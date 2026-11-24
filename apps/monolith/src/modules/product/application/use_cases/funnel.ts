@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ProductEventName } from '#generated/prisma/client.js';
+import { ProductEventLogName } from '#generated/prisma/client.js';
 import { now } from '../../../../common/index.js';
 import {
   createDomainFailure,
@@ -67,7 +67,7 @@ interface CoreCounts {
  * outcome per calendar day — both are the same user-visible "ended/outcome"
  * step, so the funnel counts them together.
  *
- * DEV NOTE: every new `ProductEventName` enum value MUST be mapped here or in
+ * DEV NOTE: every new `ProductEventLogName` enum value MUST be mapped here or in
  * `OPTIONAL_COUNT_BY_EVENT_NAME`, or explicitly declared uncounted in
  * `INTENTIONALLY_UNCOUNTED_EVENT_NAMES` — the raw query counts all names, but
  * the fold below ignores unmapped ones, so an unmapped name silently drops
@@ -75,14 +75,14 @@ interface CoreCounts {
  * spec (`isFunnelEventNameAccountedFor` iterates the enum).
  */
 const CORE_STAGE_BY_EVENT_NAME: Readonly<
-  Partial<Record<ProductEventName, keyof CoreCounts>>
+  Partial<Record<ProductEventLogName, keyof CoreCounts>>
 > = {
-  [ProductEventName.health_event_started]: 'eventStarted',
-  [ProductEventName.suggestion_impression]: 'suggestionImpression',
-  [ProductEventName.suggestion_actioned]: 'suggestionActioned',
-  [ProductEventName.health_event_ended]: 'eventEndedOrOutcome',
-  [ProductEventName.health_event_outcome_confirmed]: 'eventEndedOrOutcome',
-  [ProductEventName.review_opened]: 'reviewOpened',
+  [ProductEventLogName.health_event_started]: 'eventStarted',
+  [ProductEventLogName.suggestion_impression]: 'suggestionImpression',
+  [ProductEventLogName.suggestion_actioned]: 'suggestionActioned',
+  [ProductEventLogName.health_event_ended]: 'eventEndedOrOutcome',
+  [ProductEventLogName.health_event_outcome_confirmed]: 'eventEndedOrOutcome',
+  [ProductEventLogName.review_opened]: 'reviewOpened',
 };
 
 /**
@@ -93,12 +93,12 @@ const CORE_STAGE_BY_EVENT_NAME: Readonly<
  * `INTENTIONALLY_UNCOUNTED_EVENT_NAMES`).
  */
 const OPTIONAL_COUNT_BY_EVENT_NAME: Readonly<
-  Partial<Record<ProductEventName, keyof FunnelOptionalCounts>>
+  Partial<Record<ProductEventLogName, keyof FunnelOptionalCounts>>
 > = {
-  [ProductEventName.visit_summary_previewed]: 'visitSummaryPreviewed',
-  [ProductEventName.visit_summary_exported]: 'visitSummaryExported',
-  [ProductEventName.visit_summary_share_created]: 'visitSummaryShareCreated',
-  [ProductEventName.visit_summary_share_opened]: 'visitSummaryShareOpened',
+  [ProductEventLogName.visit_summary_previewed]: 'visitSummaryPreviewed',
+  [ProductEventLogName.visit_summary_exported]: 'visitSummaryExported',
+  [ProductEventLogName.visit_summary_share_created]: 'visitSummaryShareCreated',
+  [ProductEventLogName.visit_summary_share_opened]: 'visitSummaryShareOpened',
 };
 
 /**
@@ -106,16 +106,16 @@ const OPTIONAL_COUNT_BY_EVENT_NAME: Readonly<
  * still be declared here so the completeness spec can distinguish an
  * intentional exclusion from a forgotten mapping.
  */
-const INTENTIONALLY_UNCOUNTED_EVENT_NAMES: ReadonlySet<ProductEventName> =
-  new Set([ProductEventName.visit_summary_share_revoked]);
+const INTENTIONALLY_UNCOUNTED_EVENT_NAMES: ReadonlySet<ProductEventLogName> =
+  new Set([ProductEventLogName.visit_summary_share_revoked]);
 
 /**
- * Whether a `ProductEventName` is accounted for by the funnel fold: mapped to
+ * Whether a `ProductEventLogName` is accounted for by the funnel fold: mapped to
  * a core stage, an optional count, or explicitly declared uncounted. The
  * completeness spec iterates the enum and fails when a new value is added
  * without being mapped or declared — no silent metric dropouts.
  */
-export function isFunnelEventNameAccountedFor(name: ProductEventName): boolean {
+export function isFunnelEventNameAccountedFor(name: ProductEventLogName): boolean {
   return (
     CORE_STAGE_BY_EVENT_NAME[name] != null ||
     OPTIONAL_COUNT_BY_EVENT_NAME[name] != null ||
@@ -167,7 +167,7 @@ export class ProductFunnelService {
 
       for (const row of rows) {
         const coreStage =
-          CORE_STAGE_BY_EVENT_NAME[row.name as ProductEventName];
+          CORE_STAGE_BY_EVENT_NAME[row.name as ProductEventLogName];
         if (coreStage != null) {
           totals[coreStage] += row.count;
           let daily = byDay.get(row.day);
@@ -179,7 +179,7 @@ export class ProductFunnelService {
           continue;
         }
         const optionalKey =
-          OPTIONAL_COUNT_BY_EVENT_NAME[row.name as ProductEventName];
+          OPTIONAL_COUNT_BY_EVENT_NAME[row.name as ProductEventLogName];
         if (optionalKey != null) {
           optional[optionalKey] += row.count;
         }

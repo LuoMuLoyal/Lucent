@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import { formatDateOnly } from '../../../../common/index.js';
 import {
@@ -144,9 +144,9 @@ export class RecordFeedbackUseCase {
     //    retry would legitimately produce a second action — a fresh
     //    per-emission id counts each action exactly once.
     await this.productEventLog.emitServerEvent(userId, {
-      name: ProductEventName.suggestion_actioned,
-      surface: ProductEventSurface.today,
-      result: ProductEventResult.success,
+      name: ProductEventLogName.suggestion_actioned,
+      surface: ProductEventLogSurface.today,
+      result: ProductEventLogResult.success,
       suggestionRuleCode: suggestion.ruleId,
     });
 

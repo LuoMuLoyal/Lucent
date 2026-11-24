@@ -68,7 +68,7 @@ export class PrismaRecords implements Records {
    */
   private get db(): Pick<
     PrismaService | TransactionClient,
-    'userDailyRecord' | 'userDailyRecordAttachment'
+    'userRecord' | 'userRecordAttachment'
   > {
     return this.tx ?? this.prisma;
   }
@@ -77,7 +77,7 @@ export class PrismaRecords implements Records {
     filter: RecordListFilter,
     page: RecordPage,
   ): Promise<RecordPageResult> {
-    const where: Prisma.UserDailyRecordWhereInput = {
+    const where: Prisma.UserRecordWhereInput = {
       userId: filter.userId,
       occurredAt: filter.occurredAt,
       ...nonDeleted,
@@ -85,7 +85,7 @@ export class PrismaRecords implements Records {
     };
 
     const [rows, total] = await Promise.all([
-      this.db.userDailyRecord.findMany({
+      this.db.userRecord.findMany({
         where,
         include: recordWithAttachments,
         orderBy: [
@@ -95,14 +95,14 @@ export class PrismaRecords implements Records {
         skip: (page.page - 1) * page.pageSize,
         take: page.pageSize,
       }),
-      this.db.userDailyRecord.count({ where }),
+      this.db.userRecord.count({ where }),
     ]);
 
     return { items: rows.map(toRecordRow), total };
   }
 
   async listByDay(userId: string, occurredAt: Date): Promise<RecordRow[]> {
-    const rows = await this.db.userDailyRecord.findMany({
+    const rows = await this.db.userRecord.findMany({
       where: { userId, occurredAt, ...nonDeleted },
       include: recordWithAttachments,
       orderBy: [
@@ -114,7 +114,7 @@ export class PrismaRecords implements Records {
   }
 
   async findById(id: string): Promise<RecordRow | null> {
-    const row = await this.db.userDailyRecord.findFirst({
+    const row = await this.db.userRecord.findFirst({
       where: { id, ...nonDeleted },
       include: recordWithAttachments,
     });
@@ -122,7 +122,7 @@ export class PrismaRecords implements Records {
   }
 
   async findOwnership(id: string): Promise<RecordOwnershipRow | null> {
-    const row = await this.db.userDailyRecord.findFirst({
+    const row = await this.db.userRecord.findFirst({
       where: { id, ...nonDeleted },
       select: { userId: true, kind: true, payload: true, occurredAt: true },
     });
@@ -138,15 +138,15 @@ export class PrismaRecords implements Records {
   }
 
   async insert(values: RecordWriteValues): Promise<RecordRow> {
-    const row = await this.db.userDailyRecord.create({
-      data: values as Prisma.UserDailyRecordUncheckedCreateInput,
+    const row = await this.db.userRecord.create({
+      data: values as Prisma.UserRecordUncheckedCreateInput,
       include: recordWithAttachments,
     });
     return toRecordRow(row);
   }
 
   async update(id: string, values: RecordWriteValues): Promise<RecordRow> {
-    const row = await this.db.userDailyRecord.update({
+    const row = await this.db.userRecord.update({
       where: { id },
       data: values,
       include: recordWithAttachments,
@@ -159,13 +159,13 @@ export class PrismaRecords implements Records {
     recordId: string,
     attachments: AttachmentWriteValues[],
   ): Promise<void> {
-    await this.db.userDailyRecordAttachment.deleteMany({
+    await this.db.userRecordAttachment.deleteMany({
       where: { userId, recordId },
     });
     if (attachments.length === 0) {
       return;
     }
-    await this.db.userDailyRecordAttachment.createMany({
+    await this.db.userRecordAttachment.createMany({
       data: attachments.map((attachment) => ({
         ...attachment,
         kind: toDbAttachmentKind(attachment.kind),
@@ -178,7 +178,7 @@ export class PrismaRecords implements Records {
    * 调用方按成功处理即可——目标状态已经成立。
    */
   async softDelete(id: string, deletedAt: Date): Promise<boolean> {
-    const { count } = await this.db.userDailyRecord.updateMany({
+    const { count } = await this.db.userRecord.updateMany({
       where: { id, ...nonDeleted },
       data: { deletedAt },
     });

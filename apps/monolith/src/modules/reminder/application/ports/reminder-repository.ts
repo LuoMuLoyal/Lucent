@@ -80,19 +80,19 @@ export abstract class ReminderEntryReaderPort {
  */
 export abstract class ReminderRepositoryPort {
   abstract findManyReminders(
-    where: Prisma.UserMedicineReminderWhereInput,
-    orderBy?: Prisma.UserMedicineReminderOrderByWithRelationInput[],
-  ): Promise<Prisma.UserMedicineReminderGetPayload<object>[]>;
+    where: Prisma.UserReminderWhereInput,
+    orderBy?: Prisma.UserReminderOrderByWithRelationInput[],
+  ): Promise<Prisma.UserReminderGetPayload<object>[]>;
   abstract createReminder(
-    data: Prisma.UserMedicineReminderUncheckedCreateInput,
-  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure>;
+    data: Prisma.UserReminderUncheckedCreateInput,
+  ): ResultAsync<Prisma.UserReminderGetPayload<object>, DomainFailure>;
 
   abstract updateReminder(
-    where: Prisma.UserMedicineReminderWhereUniqueInput,
+    where: Prisma.UserReminderWhereUniqueInput,
     data:
-      | Prisma.UserMedicineReminderUpdateInput
-      | Prisma.UserMedicineReminderUncheckedUpdateInput,
-  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure>;
+      | Prisma.UserReminderUpdateInput
+      | Prisma.UserReminderUncheckedUpdateInput,
+  ): ResultAsync<Prisma.UserReminderGetPayload<object>, DomainFailure>;
 
   abstract findManyDeliveries(
     where: Prisma.UserReminderDeliveryWhereInput,
@@ -102,7 +102,7 @@ export abstract class ReminderRepositoryPort {
 
   abstract findReminderById(
     id: string,
-    select: Prisma.UserMedicineReminderSelect,
+    select: Prisma.UserReminderSelect,
   ): Promise<unknown>;
 
   abstract findCurrentMedicine(

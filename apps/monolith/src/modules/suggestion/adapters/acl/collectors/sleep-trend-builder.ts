@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { now } from '../../../../../common/index.js';
-import type { RecordEntryFact } from '../../../../record/index.js';
+import type { DailyRecordFact } from '../../../../record/index.js';
 import type { ObservedMetric } from '../../../../../common/index.js';
 
 /** Length of a `YYYY-MM-DD` prefix when slicing an ISO timestamp to its date. */
@@ -41,7 +41,7 @@ export interface SleepSummary {
  */
 @Injectable()
 export class SleepTrendBuilderService {
-  buildSleepSummary(records: RecordEntryFact[]): SleepSummary {
+  buildSleepSummary(records: DailyRecordFact[]): SleepSummary {
     const parsedEpisodes = records
       .map((record) => this.parseSleepEpisode(record))
       .filter((episode): episode is ParsedSleepEpisode => episode != null);
@@ -102,9 +102,9 @@ export class SleepTrendBuilderService {
   }
 
   buildSleepTrend(
-    records: RecordEntryFact[],
+    records: DailyRecordFact[],
   ): Array<{ date: string; durationMinutes: number }> {
-    const byDate = new Map<string, RecordEntryFact[]>();
+    const byDate = new Map<string, DailyRecordFact[]>();
     for (const record of records) {
       const date = record.occurredAt.toISOString().slice(0, DATE_ONLY_LENGTH);
       const dayRecords = byDate.get(date) ?? [];
@@ -122,7 +122,7 @@ export class SleepTrendBuilderService {
   }
 
   private parseSleepEpisode(
-    record: RecordEntryFact,
+    record: DailyRecordFact,
   ): ParsedSleepEpisode | null {
     const payload = record.payload as Record<string, unknown> | null;
     if (payload == null) return null;

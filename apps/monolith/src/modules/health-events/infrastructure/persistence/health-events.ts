@@ -209,7 +209,7 @@ export class PrismaHealthEvents extends HealthEventRepositoryPort {
     userId: string,
     recordId: string,
   ): Promise<boolean> {
-    const row = await this.prisma.userDailyRecord.findFirst({
+    const row = await this.prisma.userRecord.findFirst({
       where: { id: recordId, userId, deletedAt: null },
       select: { id: true },
     });

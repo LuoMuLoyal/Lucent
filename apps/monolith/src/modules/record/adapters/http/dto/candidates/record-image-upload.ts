@@ -42,8 +42,8 @@ export type CreateDailyRecordImageUploadDto = z.infer<
  * Standard Schema (zod 4) for the presigned image-upload response
  * (`POST /record/attachments/images/presign-upload`, 201).
  *
- * Replaces the former `@ApiProperty` class `RecordEntryImageUploadDto`
- * (`RecordEntryImageUploadResponseDto` extended it without adding fields).
+ * Replaces the former `@ApiProperty` class `DailyRecordImageUploadDto`
+ * (`DailyRecordImageUploadResponseDto` extended it without adding fields).
  * The service always emits every key; `publicUrl` is `null` when no public
  * base URL is configured.
  */
@@ -69,19 +69,19 @@ export const dailyRecordImageUploadSchema = z.object({
 });
 
 /** Strongly typed presigned image-upload response payload. */
-export type RecordEntryImageUploadDto = z.infer<
+export type DailyRecordImageUploadDto = z.infer<
   typeof dailyRecordImageUploadSchema
 >;
 
 /**
  * Standard Schema (zod 4) for the presign-upload (201) response body.
  *
- * Replaces the former response class `RecordEntryImageUploadResponseDto`.
+ * Replaces the former response class `DailyRecordImageUploadResponseDto`.
  */
 export const dailyRecordImageUploadResponseSchema =
   dailyRecordImageUploadSchema;
 
 /** Strongly typed response body of the presign-upload endpoint. */
-export type RecordEntryImageUploadResponseDto = z.infer<
+export type DailyRecordImageUploadResponseDto = z.infer<
   typeof dailyRecordImageUploadResponseSchema
 >;

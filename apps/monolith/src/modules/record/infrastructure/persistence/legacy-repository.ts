@@ -1,5 +1,5 @@
 /**
- * Repository abstraction for UserDailyRecord data access.
+ * Repository abstraction for userRecord data access.
  *
  * Decouples business logic in RecordsService from direct PrismaService
  * usage, making queries reusable and testable without mocking the full
@@ -9,7 +9,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   Prisma,
-  type DailyRecordKind,
+  type RecordKind,
   type MealAnalysisStatus,
   type MealCalorieBucket,
 } from '#generated/prisma/client.js';
@@ -21,15 +21,15 @@ import type {
 } from '../../../../common/result/index.js';
 import {
   dailyRecordWithAttachments,
-  type RecordEntryShape,
+  type DailyRecordShape,
   type OwnedRecordSnapshot,
 } from './record.types.js';
 
 /** Query filters for listing daily records. */
-export interface RecordEntryListFilter {
+export interface DailyRecordListFilter {
   userId: string;
   occurredAt: Date;
-  kind?: DailyRecordKind;
+  kind?: RecordKind;
 }
 
 /** Pagination parameters. */
@@ -55,9 +55,9 @@ export interface PaginatedResult<T> {
  * 不必为每一行解析 `payload` JSONB。只有需要 `items` / `dishes` 明细时才读 `payload`
  * （它与列同源，写入路径见 `toMealAnalysisHotFields`）。非餐食记录这些字段恒为 null。
  */
-export interface RecordEntryFact {
+export interface DailyRecordFact {
   id: string;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   occurredAt: Date;
   occurredTime: string | null;
   title: string | null;
@@ -100,14 +100,14 @@ const dailyRecordFactSelect = {
   mealCalorieMax: true,
   mealCalorieBucket: true,
   createdAt: true,
-} satisfies Prisma.UserDailyRecordSelect;
+} satisfies Prisma.UserRecordSelect;
 
 /**
- * Read-only port for cross-module reads of UserDailyRecord (ADR-0009).
- * Implemented by RecordEntryRepository and exported from RecordModule;
- * write paths stay behind RecordsService / RecordEntryRepositoryPort.
+ * Read-only port for cross-module reads of userRecord (ADR-0009).
+ * Implemented by DailyRecordRepository and exported from RecordModule;
+ * write paths stay behind RecordsService / DailyRecordRepositoryPort.
  */
-export abstract class RecordEntryReaderPort {
+export abstract class DailyRecordReaderPort {
   /**
    * Lists non-deleted records with `occurredAt` in [from, to] (inclusive).
    * Capped at MAX_READER_FACTS — use {@link countFactsInRange} /
@@ -117,15 +117,15 @@ export abstract class RecordEntryReaderPort {
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
-  ): Promise<RecordEntryFact[]>;
+    kinds?: RecordKind[],
+  ): Promise<DailyRecordFact[]>;
 
   /** Exact count of non-deleted records with `occurredAt` in [from, to]. */
   abstract countFactsInRange(
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
+    kinds?: RecordKind[],
   ): Promise<number>;
 
   /**
@@ -147,7 +147,7 @@ export abstract class RecordEntryReaderPort {
   abstract findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<RecordEntryShape | null>;
+  ): Promise<DailyRecordShape | null>;
 }
 
 /**
@@ -156,16 +156,16 @@ export abstract class RecordEntryReaderPort {
  * Services depend on this interface rather than PrismaService directly,
  * enabling easier unit testing and future data source swaps.
  */
-export abstract class RecordEntryRepositoryPort {
+export abstract class DailyRecordRepositoryPort {
   abstract findManyWithAttachments(
-    filter: RecordEntryListFilter,
+    filter: DailyRecordListFilter,
     pagination: PaginationParams,
-  ): Promise<PaginatedResult<RecordEntryShape>>;
+  ): Promise<PaginatedResult<DailyRecordShape>>;
 
   abstract findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<RecordEntryShape | null>;
+  ): Promise<DailyRecordShape | null>;
 
   /** Fetch only the ownership-relevant fields (userId, kind, payload). */
   abstract findOwnershipData(
@@ -175,16 +175,16 @@ export abstract class RecordEntryRepositoryPort {
   abstract findManyByDateWithAttachments(
     userId: string,
     occurredAt: Date,
-  ): Promise<RecordEntryShape[]>;
+  ): Promise<DailyRecordShape[]>;
 
   abstract create(
-    data: Prisma.UserDailyRecordUncheckedCreateInput,
-  ): ResultAsync<RecordEntryShape, DomainFailure>;
+    data: Prisma.UserRecordUncheckedCreateInput,
+  ): ResultAsync<DailyRecordShape, DomainFailure>;
 
   abstract update(
     id: string,
-    data: Prisma.UserDailyRecordUpdateInput,
-  ): ResultAsync<RecordEntryShape, DomainFailure>;
+    data: Prisma.UserRecordUpdateInput,
+  ): ResultAsync<DailyRecordShape, DomainFailure>;
 
   abstract softDelete(
     id: string,
@@ -206,10 +206,10 @@ export abstract class RecordEntryRepositoryPort {
 }
 
 @Injectable()
-export class RecordEntryRepository
-  implements RecordEntryRepositoryPort, RecordEntryReaderPort
+export class DailyRecordRepository
+  implements DailyRecordRepositoryPort, DailyRecordReaderPort
 {
-  private readonly logger = new Logger(RecordEntryRepository.name);
+  private readonly logger = new Logger(DailyRecordRepository.name);
 
   /**
    * Tracks whether the current async context is already inside a
@@ -225,9 +225,9 @@ export class RecordEntryRepository
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
-  ): Promise<RecordEntryFact[]> {
-    return this.prisma.userDailyRecord.findMany({
+    kinds?: RecordKind[],
+  ): Promise<DailyRecordFact[]> {
+    return this.prisma.userRecord.findMany({
       where: {
         userId,
         ...nonDeleted,
@@ -244,9 +244,9 @@ export class RecordEntryRepository
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
+    kinds?: RecordKind[],
   ): Promise<number> {
-    return this.prisma.userDailyRecord.count({
+    return this.prisma.userRecord.count({
       where: {
         userId,
         ...nonDeleted,
@@ -261,7 +261,7 @@ export class RecordEntryRepository
     from: Date,
     to: Date,
   ): Promise<Date | null> {
-    const row = await this.prisma.userDailyRecord.findFirst({
+    const row = await this.prisma.userRecord.findFirst({
       where: {
         userId,
         ...nonDeleted,
@@ -274,10 +274,10 @@ export class RecordEntryRepository
   }
 
   async findManyWithAttachments(
-    filter: RecordEntryListFilter,
+    filter: DailyRecordListFilter,
     pagination: PaginationParams,
-  ): Promise<PaginatedResult<RecordEntryShape>> {
-    const where: Prisma.UserDailyRecordWhereInput = {
+  ): Promise<PaginatedResult<DailyRecordShape>> {
+    const where: Prisma.UserRecordWhereInput = {
       userId: filter.userId,
       occurredAt: filter.occurredAt,
       ...nonDeleted,
@@ -285,7 +285,7 @@ export class RecordEntryRepository
     };
 
     const [items, total] = await Promise.all([
-      this.prisma.userDailyRecord.findMany({
+      this.prisma.userRecord.findMany({
         where,
         include: dailyRecordWithAttachments,
         orderBy: [
@@ -295,7 +295,7 @@ export class RecordEntryRepository
         skip: (pagination.page - 1) * pagination.pageSize,
         take: pagination.pageSize,
       }),
-      this.prisma.userDailyRecord.count({ where }),
+      this.prisma.userRecord.count({ where }),
     ]);
 
     return { items, total };
@@ -304,8 +304,8 @@ export class RecordEntryRepository
   async findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<RecordEntryShape | null> {
-    return this.prisma.userDailyRecord.findFirst({
+  ): Promise<DailyRecordShape | null> {
+    return this.prisma.userRecord.findFirst({
       where: { id, userId, deletedAt: null },
       include: dailyRecordWithAttachments,
     });
@@ -314,7 +314,7 @@ export class RecordEntryRepository
   async findOwnershipData(
     id: string,
   ): Promise<(OwnedRecordSnapshot & { userId: string }) | null> {
-    return this.prisma.userDailyRecord.findFirst({
+    return this.prisma.userRecord.findFirst({
       where: { id, deletedAt: null },
       select: { userId: true, kind: true, payload: true, occurredAt: true },
     });
@@ -323,8 +323,8 @@ export class RecordEntryRepository
   async findManyByDateWithAttachments(
     userId: string,
     occurredAt: Date,
-  ): Promise<RecordEntryShape[]> {
-    return this.prisma.userDailyRecord.findMany({
+  ): Promise<DailyRecordShape[]> {
+    return this.prisma.userRecord.findMany({
       where: { userId, occurredAt, ...nonDeleted },
       include: dailyRecordWithAttachments,
       orderBy: [
@@ -335,10 +335,10 @@ export class RecordEntryRepository
   }
 
   create(
-    data: Prisma.UserDailyRecordUncheckedCreateInput,
-  ): ResultAsync<RecordEntryShape, DomainFailure> {
+    data: Prisma.UserRecordUncheckedCreateInput,
+  ): ResultAsync<DailyRecordShape, DomainFailure> {
     return fromPrismaResult(
-      this.prisma.userDailyRecord.create({
+      this.prisma.userRecord.create({
         data,
         include: dailyRecordWithAttachments,
       }),
@@ -347,10 +347,10 @@ export class RecordEntryRepository
 
   update(
     id: string,
-    data: Prisma.UserDailyRecordUpdateInput,
-  ): ResultAsync<RecordEntryShape, DomainFailure> {
+    data: Prisma.UserRecordUpdateInput,
+  ): ResultAsync<DailyRecordShape, DomainFailure> {
     return fromPrismaResult(
-      this.prisma.userDailyRecord.update({
+      this.prisma.userRecord.update({
         where: { id },
         data,
         include: dailyRecordWithAttachments,
@@ -360,7 +360,7 @@ export class RecordEntryRepository
 
   softDelete(id: string, deletedAt: Date): ResultAsync<void, DomainFailure> {
     return fromPrismaResult(
-      this.prisma.userDailyRecord.update({
+      this.prisma.userRecord.update({
         where: { id },
         data: { deletedAt },
       }),
@@ -370,7 +370,7 @@ export class RecordEntryRepository
   async transaction<T>(
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
-    const isNested = RecordEntryRepository.transactionAls.getStore() === true;
+    const isNested = DailyRecordRepository.transactionAls.getStore() === true;
     if (isNested) {
       this.logger.warn(
         'Nested Prisma transaction detected — Prisma will silently degrade ' +
@@ -381,7 +381,7 @@ export class RecordEntryRepository
     }
 
     return this.prisma.$transaction(async (tx) => {
-      return RecordEntryRepository.transactionAls.run(true, () => fn(tx));
+      return DailyRecordRepository.transactionAls.run(true, () => fn(tx));
     });
   }
 }

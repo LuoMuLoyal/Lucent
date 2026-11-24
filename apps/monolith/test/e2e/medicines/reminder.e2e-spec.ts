@@ -237,7 +237,7 @@ describe('Medicine Reminders API (e2e)', () => {
     const body = listRes.body as { items: any[] };
     expect(body!.items).toHaveLength(0);
 
-    const stored = await ctx.prisma.userMedicineReminder.findUniqueOrThrow({
+    const stored = await ctx.prisma.userReminder.findUniqueOrThrow({
       where: { id },
     });
     expect(stored.deletedAt).not.toBeNull();
@@ -359,7 +359,7 @@ describe('Medicine Reminders API (e2e)', () => {
       expect(kept!.scheduledHour).toBe(9);
       expect(kept!.scheduledMinute).toBe(15);
 
-      const removed = await ctx.prisma.userMedicineReminder.findUniqueOrThrow({
+      const removed = await ctx.prisma.userReminder.findUniqueOrThrow({
         where: { id: removedId },
       });
       expect(removed.deletedAt).not.toBeNull();
@@ -372,7 +372,7 @@ describe('Medicine Reminders API (e2e)', () => {
       const { user: otherUser } = await createUserWithToken();
       const otherMedicine = await createCurrentMedicine(otherUser.id);
 
-      const foreign = await ctx.prisma.userMedicineReminder.create({
+      const foreign = await ctx.prisma.userReminder.create({
         data: {
           userId: otherUser.id,
           currentMedicineId: otherMedicine.id,
@@ -458,7 +458,7 @@ describe('Medicine Reminders API (e2e)', () => {
       expect(secondBody!.items.map((i) => i.id).sort()).toEqual(firstIds);
       expect(secondBody!.items).toHaveLength(2);
 
-      const rows = await ctx.prisma.userMedicineReminder.findMany({
+      const rows = await ctx.prisma.userReminder.findMany({
         where: { userId: user.id, currentMedicineId: medicine.id },
       });
       const activeRows = rows.filter((r) => r.deletedAt === null);
@@ -490,7 +490,7 @@ describe('Medicine Reminders API (e2e)', () => {
 
       // Seed a reminder and a delivery log
       const medicine = await createCurrentMedicine(user.id);
-      const reminder = await ctx.prisma.userMedicineReminder.create({
+      const reminder = await ctx.prisma.userReminder.create({
         data: {
           userId: user.id,
           currentMedicineId: medicine.id,
@@ -623,7 +623,7 @@ describe('Medicine Reminders API (e2e)', () => {
     it('should record a local delivery receipt idempotently', async () => {
       const { user, token } = await createUserWithToken();
       const medicine = await createCurrentMedicine(user.id);
-      const reminder = await ctx.prisma.userMedicineReminder.create({
+      const reminder = await ctx.prisma.userReminder.create({
         data: {
           userId: user.id,
           currentMedicineId: medicine.id,
@@ -680,7 +680,7 @@ describe('Medicine Reminders API (e2e)', () => {
         data: { userId: user.id, timezone: 'America/New_York' },
       });
       const medicine = await createCurrentMedicine(user.id);
-      const reminder = await ctx.prisma.userMedicineReminder.create({
+      const reminder = await ctx.prisma.userReminder.create({
         data: {
           userId: user.id,
           currentMedicineId: medicine.id,
@@ -708,7 +708,7 @@ describe('Medicine Reminders API (e2e)', () => {
       const { token } = await createUserWithToken();
       const { user: otherUser } = await createUserWithToken();
       const medicine = await createCurrentMedicine(otherUser.id);
-      const foreignReminder = await ctx.prisma.userMedicineReminder.create({
+      const foreignReminder = await ctx.prisma.userReminder.create({
         data: {
           userId: otherUser.id,
           currentMedicineId: medicine.id,
@@ -731,7 +731,7 @@ describe('Medicine Reminders API (e2e)', () => {
     it('should reject a receipt with an invalid scheduledTime', async () => {
       const { user, token } = await createUserWithToken();
       const medicine = await createCurrentMedicine(user.id);
-      const reminder = await ctx.prisma.userMedicineReminder.create({
+      const reminder = await ctx.prisma.userReminder.create({
         data: {
           userId: user.id,
           currentMedicineId: medicine.id,
@@ -754,7 +754,7 @@ describe('Medicine Reminders API (e2e)', () => {
     it('should reject a receipt with an invalid scheduledDate', async () => {
       const { user, token } = await createUserWithToken();
       const medicine = await createCurrentMedicine(user.id);
-      const reminder = await ctx.prisma.userMedicineReminder.create({
+      const reminder = await ctx.prisma.userReminder.create({
         data: {
           userId: user.id,
           currentMedicineId: medicine.id,

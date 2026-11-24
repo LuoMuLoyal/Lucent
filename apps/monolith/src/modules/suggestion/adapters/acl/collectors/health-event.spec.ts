@@ -1,9 +1,9 @@
 import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventOutcome,
 } from '#generated/prisma/client.js';
-import type { RecordEntryReaderPort } from '../../../../record/index.js';
+import type { DailyRecordReaderPort } from '../../../../record/index.js';
 import type {
   HealthEventsOwnershipService,
   HealthEventRecord,
@@ -14,7 +14,7 @@ import { HealthEventCollectorService } from './health-event.js';
 describe('HealthEventCollectorService', () => {
   let service: HealthEventCollectorService;
   let healthEvents: DeepMocked<HealthEventsOwnershipService>;
-  let dailyRecordReader: DeepMocked<RecordEntryReaderPort>;
+  let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
 
   beforeEach(() => {
     healthEvents = {
@@ -23,7 +23,7 @@ describe('HealthEventCollectorService', () => {
     } as unknown as DeepMocked<HealthEventsOwnershipService>;
     dailyRecordReader = {
       countFactsInRange: vi.fn(),
-    } as unknown as DeepMocked<RecordEntryReaderPort>;
+    } as unknown as DeepMocked<DailyRecordReaderPort>;
     service = new HealthEventCollectorService(healthEvents, dailyRecordReader);
   });
 
@@ -108,7 +108,7 @@ describe('HealthEventCollectorService', () => {
       'user-1',
       event.startedAt,
       event.endedAt,
-      [DailyRecordKind.symptom],
+      [RecordKind.symptom],
     );
   });
 

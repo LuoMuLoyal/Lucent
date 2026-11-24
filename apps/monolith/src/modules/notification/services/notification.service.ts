@@ -35,7 +35,7 @@ export class NotificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async get(userId: string): Promise<NotificationSettingsDataDto> {
-    const row = await this.prisma.userNotificationPreference.findUnique({
+    const row = await this.prisma.userNotificationSettings.findUnique({
       where: { userId },
     });
 
@@ -91,7 +91,7 @@ export class NotificationService {
     }
 
     return fromPrismaResult(
-      this.prisma.userNotificationPreference.upsert({
+      this.prisma.userNotificationSettings.upsert({
         where: { userId },
         create: {
           userId,
@@ -117,8 +117,8 @@ export class NotificationService {
 
   private buildUpdateData(
     dto: UpdateNotificationPreferencesDto,
-  ): Prisma.UserNotificationPreferenceUpdateInput {
-    const data: Prisma.UserNotificationPreferenceUpdateInput = {};
+  ): Prisma.UserNotificationSettingsUpdateInput {
+    const data: Prisma.UserNotificationSettingsUpdateInput = {};
     if (dto.isHealthAlertsEnabled !== undefined) {
       data.isHealthAlertsEnabled = dto.isHealthAlertsEnabled;
     }

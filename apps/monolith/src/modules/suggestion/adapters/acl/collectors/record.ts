@@ -8,15 +8,15 @@ import {
   WATER_TARGET_ML_PER_COUNT,
 } from '../../../../../common/index.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   MealAnalysisStatus,
 } from '#generated/prisma/client.js';
 import {
-  RecordEntryReaderPort,
+  DailyRecordReaderPort,
   parseMealRecordPayload,
 } from '../../../../record/index.js';
 
-import type { RecordEntryFact } from '../../../../record/index.js';
+import type { DailyRecordFact } from '../../../../record/index.js';
 import type { SuggestionSignal } from '../../../domain/signal/signal.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
 import { IUserSettingsPort } from '../../../../settings/index.js';
@@ -78,7 +78,7 @@ export class RecordCollectorService {
 
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
-    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly sleepTrendBuilder: SleepTrendBuilderService,
   ) {}
 
@@ -105,7 +105,7 @@ export class RecordCollectorService {
 
     // Water signal
     const waterRecords = todayRecords.filter(
-      (r) => r.kind === DailyRecordKind.water,
+      (r) => r.kind === RecordKind.water,
     );
     const waterSummary = summarizeWaterMetrics(waterRecords);
     const observedWaterMetric = toObservedWaterMetric(waterSummary, day);
@@ -139,7 +139,7 @@ export class RecordCollectorService {
     const multiDayWater = this.buildDailyCounts(
       multiDayRecords.filter(
         (r) =>
-          r.kind === DailyRecordKind.water &&
+          r.kind === RecordKind.water &&
           parseWaterMetric({ value: r.value, unit: r.unit }) != null,
       ),
     );
@@ -161,7 +161,7 @@ export class RecordCollectorService {
 
     // Sleep signal. Keep every episode; a nap must not replace night sleep.
     const sleepRecords = todayRecords.filter(
-      (r) => r.kind === DailyRecordKind.sleep,
+      (r) => r.kind === RecordKind.sleep,
     );
     if (sleepRecords.length > 0) {
       const sleepSummary =
@@ -201,7 +201,7 @@ export class RecordCollectorService {
 
     // Multi-day sleep trend signal
     const multiDaySleep = this.sleepTrendBuilder.buildSleepTrend(
-      multiDayRecords.filter((r) => r.kind === DailyRecordKind.sleep),
+      multiDayRecords.filter((r) => r.kind === RecordKind.sleep),
     );
 
     if (multiDaySleep.length > 0) {
@@ -221,7 +221,7 @@ export class RecordCollectorService {
 
     // Symptom trend signal (for deteriorating_trend rule)
     const symptomRecords = multiDayRecords.filter(
-      (r) => r.kind === DailyRecordKind.symptom,
+      (r) => r.kind === RecordKind.symptom,
     );
     if (symptomRecords.length > 0) {
       const symptomByDate = this.buildSymptomTrend(symptomRecords);
@@ -259,7 +259,7 @@ export class RecordCollectorService {
     // 严重度启发式同病——换语言、换说法、模型改名都会让信号凭空消失或误报。
     const analyzedMealFacts = multiDayRecords.filter(
       (r) =>
-        r.kind === DailyRecordKind.meal &&
+        r.kind === RecordKind.meal &&
         r.mealAnalysisStatus === MealAnalysisStatus.analyzed,
     );
     if (analyzedMealFacts.length > 0) {
@@ -300,7 +300,7 @@ export class RecordCollectorService {
 
     // Mood trend signal (for mood-sleep correlation rule)
     const moodRecords = multiDayRecords.filter(
-      (r) => r.kind === DailyRecordKind.mood,
+      (r) => r.kind === RecordKind.mood,
     );
     if (moodRecords.length > 0) {
       const moodByDate = this.buildMoodTrend(moodRecords);
@@ -338,7 +338,7 @@ export class RecordCollectorService {
   }
 
   private buildDailyCounts(
-    records: RecordEntryFact[],
+    records: DailyRecordFact[],
   ): Array<{ date: string; count: number }> {
     const byDate = new Map<string, number>();
     for (const record of records) {
@@ -353,7 +353,7 @@ export class RecordCollectorService {
     }));
   }
 
-  private buildSymptomTrend(records: RecordEntryFact[]): Array<{
+  private buildSymptomTrend(records: DailyRecordFact[]): Array<{
     date: string;
     symptom: string | null;
     severity: string | null;
@@ -403,7 +403,7 @@ export class RecordCollectorService {
    * 遇到不认识的 key **不静默跳过**——按日期汇总成一条 debug 日志。静默过滤意味着
    * 上游改了 kind 名我们永远不知道；而日志按日期去重，不会一餐一条刷屏。
    */
-  private buildDailyFacets(records: RecordEntryFact[]): Array<{
+  private buildDailyFacets(records: DailyRecordFact[]): Array<{
     date: string;
     analyzedMeals: number;
     facets: Partial<Record<DietFacetKind, DietFacetLevel>>;
@@ -457,7 +457,7 @@ export class RecordCollectorService {
    * Builds a per-date summary of mood from mood records.
    * Maps mood title/value to a numeric scale (1–5).
    */
-  private buildMoodTrend(records: RecordEntryFact[]): Array<{
+  private buildMoodTrend(records: DailyRecordFact[]): Array<{
     date: string;
     moodScore: number;
     label: string;

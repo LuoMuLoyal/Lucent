@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { dateOnlySchema } from '../../../../../common/validators/iso-datetime.schema.js';
 
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import { dailyRecordAttachmentInputSchema } from './record-attachment.js';
 
-const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
-  DailyRecordKind,
-  ...DailyRecordKind[],
+const DAILY_RECORD_KIND_VALUES = Object.values(RecordKind) as [
+  RecordKind,
+  ...RecordKind[],
 ];
 
 const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;

@@ -28,7 +28,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
     userId: string,
     localDate: string,
   ): Promise<AnalysisMaterializationView> {
-    const row = (await this.prisma.userTodayAnalysisMaterialization.findUnique({
+    const row = (await this.prisma.userAnalysisMaterialization.findUnique({
       where: {
         userId_localDate: { userId, localDate: parseDateOnly(localDate) },
       },
@@ -64,7 +64,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
   ): Promise<AnalysisPendingResult> {
     const localDate = parseDateOnly(input.localDate);
     const result = await this.runSerializableTransaction(async (tx) => {
-      const current = (await tx.userTodayAnalysisMaterialization.findUnique({
+      const current = (await tx.userAnalysisMaterialization.findUnique({
         where: { userId_localDate: { userId: input.userId, localDate } },
       })) as AnalysisMaterializationRow | null;
       const queuedAt = new Date();
@@ -105,7 +105,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
 
       const row =
         current == null
-          ? await tx.userTodayAnalysisMaterialization.create({
+          ? await tx.userAnalysisMaterialization.create({
               data: {
                 userId: input.userId,
                 localDate,
@@ -122,7 +122,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
                 queuedAt,
               },
             })
-          : await tx.userTodayAnalysisMaterialization.update({
+          : await tx.userAnalysisMaterialization.update({
               where: { id: current.id },
               data,
             });
@@ -158,7 +158,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
       return { claimed: false, status: 'stale' };
     }
     if (current.generationCount >= TODAY_ANALYSIS_MAX_GENERATIONS_PER_DATE) {
-      await this.prisma.userTodayAnalysisMaterialization.updateMany({
+      await this.prisma.userAnalysisMaterialization.updateMany({
         where: {
           userId,
           localDate: parseDateOnly(localDate),
@@ -172,7 +172,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
     if (current.activeVersion != null) {
       const expiredAt = new Date(Date.now() - TODAY_ANALYSIS_CLAIM_TIMEOUT_MS);
       const reclaimed =
-        await this.prisma.userTodayAnalysisMaterialization.updateMany({
+        await this.prisma.userAnalysisMaterialization.updateMany({
           where: {
             userId,
             localDate: parseDateOnly(localDate),
@@ -189,7 +189,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
     }
 
     const result =
-      await this.prisma.userTodayAnalysisMaterialization.updateMany({
+      await this.prisma.userAnalysisMaterialization.updateMany({
         where: {
           userId,
           localDate: parseDateOnly(localDate),
@@ -240,7 +240,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
 
   async markReady(input: MarkTodayAnalysisReadyInput): Promise<boolean> {
     const result =
-      await this.prisma.userTodayAnalysisMaterialization.updateMany({
+      await this.prisma.userAnalysisMaterialization.updateMany({
         where: {
           userId: input.userId,
           localDate: parseDateOnly(input.localDate),
@@ -262,7 +262,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
 
   async markFailed(input: MarkTodayAnalysisFailedInput): Promise<boolean> {
     const result =
-      await this.prisma.userTodayAnalysisMaterialization.updateMany({
+      await this.prisma.userAnalysisMaterialization.updateMany({
         where: {
           userId: input.userId,
           localDate: parseDateOnly(input.localDate),
@@ -286,7 +286,7 @@ export class AnalysisMaterializationStore implements AnalysisMaterialization {
     sourceVersion: number,
     activeVersion: number,
   ): Promise<void> {
-    await this.prisma.userTodayAnalysisMaterialization.updateMany({
+    await this.prisma.userAnalysisMaterialization.updateMany({
       where: {
         userId,
         localDate: parseDateOnly(localDate),

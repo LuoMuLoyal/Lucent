@@ -9,26 +9,26 @@ import { dailyRecordItemSchema } from './record-item.js';
 /**
  * Standard Schema (zod 4) for `GET /record` (200).
  *
- * Replaces the former response class `RecordEntryListResponseDto` (which
- * extended `RecordEntryListDataDto` without adding fields).
+ * Replaces the former response class `DailyRecordListResponseDto` (which
+ * extended `DailyRecordListDataDto` without adding fields).
  */
 export const dailyRecordListResponseSchema = dailyRecordListDataSchema;
 
 /** Strongly typed response body of `GET /record`. */
-export type RecordEntryListResponseDto = z.infer<
+export type DailyRecordListResponseDto = z.infer<
   typeof dailyRecordListResponseSchema
 >;
 
 /**
  * Standard Schema (zod 4) for `GET /record/summary` (200).
  *
- * Replaces the former response class `RecordEntrySummaryResponseDto` (which
- * extended `RecordEntrySummaryDataDto` without adding fields).
+ * Replaces the former response class `DailyRecordSummaryResponseDto` (which
+ * extended `DailyRecordSummaryDataDto` without adding fields).
  */
 export const dailyRecordSummaryResponseSchema = dailyRecordSummaryDataSchema;
 
 /** Strongly typed response body of `GET /record/summary`. */
-export type RecordEntrySummaryResponseDto = z.infer<
+export type DailyRecordSummaryResponseDto = z.infer<
   typeof dailyRecordSummaryResponseSchema
 >;
 
@@ -36,10 +36,10 @@ export type RecordEntrySummaryResponseDto = z.infer<
  * Standard Schema (zod 4) for the single-record responses
  * (`GET/POST/PATCH /record`).
  *
- * Replaces the former response class `RecordEntryResponseDto` (which extended
- * `RecordEntryItemDto` without adding fields).
+ * Replaces the former response class `DailyRecordResponseDto` (which extended
+ * `DailyRecordItemDto` without adding fields).
  */
 export const dailyRecordResponseSchema = dailyRecordItemSchema;
 
 /** Strongly typed single-record response body of the record endpoints. */
-export type RecordEntryResponseDto = z.infer<typeof dailyRecordResponseSchema>;
+export type DailyRecordResponseDto = z.infer<typeof dailyRecordResponseSchema>;

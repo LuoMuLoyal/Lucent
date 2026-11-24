@@ -22,12 +22,12 @@ export const DAILY_RECORD_CANDIDATE_KINDS = [
   'activity',
 ] as const;
 
-export type RecordEntryCandidateKind =
+export type DailyRecordCandidateKind =
   (typeof DAILY_RECORD_CANDIDATE_KINDS)[number];
 
 /** 一条候选记录（尚未保存，等用户确认）。 */
-export interface RecordEntryCandidateItem {
-  kind: RecordEntryCandidateKind;
+export interface DailyRecordCandidateItem {
+  kind: DailyRecordCandidateKind;
   occurredAt: string;
   title: string | null;
   value: string | null;
@@ -38,11 +38,11 @@ export interface RecordEntryCandidateItem {
 }
 
 /** 候选生成的结果（`POST /record/candidate-records/generate` 的响应体）。 */
-export interface RecordEntryCandidateData {
+export interface DailyRecordCandidateData {
   locale: string;
   generatedAt: string;
   confirmationHint: string;
-  items: RecordEntryCandidateItem[];
+  items: DailyRecordCandidateItem[];
 }
 
 /** 候选生成的入参（HTTP DTO 结构上兼容，控制器直接透传）。 */

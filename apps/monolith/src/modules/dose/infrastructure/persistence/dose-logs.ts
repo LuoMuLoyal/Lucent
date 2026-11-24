@@ -11,7 +11,7 @@
  * ## Prisma types stop here
  *
  * The domain ports speak `DoseLogRecord` / `NewDoseLog` / `DoseLogPatch`, never
- * `Prisma.UserMedicineDoseLog*`. Mapping happens in `toRecord`.
+ * `Prisma.UserDoseLog*`. Mapping happens in `toRecord`.
  *
  * ## Errors
  *
@@ -104,7 +104,7 @@ const doseLogFactSelect = {
   status: true,
   scheduledTime: true,
   scheduledFor: true,
-} satisfies Prisma.UserMedicineDoseLogSelect;
+} satisfies Prisma.UserDoseLogSelect;
 
 @Injectable()
 export class PrismaDoseLogs
@@ -122,19 +122,19 @@ export class PrismaDoseLogs
     date: Date,
     pagination: { page: number; pageSize: number },
   ): Promise<{ items: DoseLogRecord[]; total: number }> {
-    const where: Prisma.UserMedicineDoseLogWhereInput = {
+    const where: Prisma.UserDoseLogWhereInput = {
       userId,
       scheduledFor: date,
       ...nonDeleted,
     };
     const [items, total] = await Promise.all([
-      this.prisma.userMedicineDoseLog.findMany({
+      this.prisma.userDoseLog.findMany({
         where,
         orderBy: [{ scheduledTime: 'asc' }, { createdAt: 'desc' }],
         skip: (pagination.page - 1) * pagination.pageSize,
         take: pagination.pageSize,
       }),
-      this.prisma.userMedicineDoseLog.count({ where }),
+      this.prisma.userDoseLog.count({ where }),
     ]);
     return { items: items.map(toRecord), total };
   }
@@ -147,7 +147,7 @@ export class PrismaDoseLogs
       scheduledTime: string | null;
     },
   ): Promise<DoseLogRecord | null> {
-    const row = await this.prisma.userMedicineDoseLog.findFirst({
+    const row = await this.prisma.userDoseLog.findFirst({
       where: {
         userId,
         reminderId: slot.reminderId,
@@ -164,7 +164,7 @@ export class PrismaDoseLogs
     userId: string,
     id: string,
   ): Promise<{ userId: string; scheduledFor: Date } | null> {
-    return await this.prisma.userMedicineDoseLog.findFirst({
+    return await this.prisma.userDoseLog.findFirst({
       where: { id, userId, ...nonDeleted },
       select: { userId: true, scheduledFor: true },
     });
@@ -181,7 +181,7 @@ export class PrismaDoseLogs
    * needs the constraint name) while `create` still gets the mapped form.
    */
   private async insertRaw(input: NewDoseLog): Promise<DoseLogRecord> {
-    const row = await this.prisma.userMedicineDoseLog.create({
+    const row = await this.prisma.userDoseLog.create({
       data: {
         userId: input.userId,
         currentMedicineId: input.currentMedicineId,
@@ -261,7 +261,7 @@ export class PrismaDoseLogs
   }
 
   async update(id: string, patch: DoseLogPatch): Promise<DoseLogRecord> {
-    const data: Prisma.UserMedicineDoseLogUncheckedUpdateInput = {};
+    const data: Prisma.UserDoseLogUncheckedUpdateInput = {};
     if (patch.status !== undefined) data.status = patch.status as DoseLogStatus;
     if (patch.scheduledTime !== undefined) {
       data.scheduledTime = patch.scheduledTime;
@@ -277,14 +277,14 @@ export class PrismaDoseLogs
     }
     if (patch.reminderId !== undefined) data.reminderId = patch.reminderId;
     const row = await this.lift(
-      this.prisma.userMedicineDoseLog.update({ where: { id }, data }),
+      this.prisma.userDoseLog.update({ where: { id }, data }),
     );
     return toRecord(row);
   }
 
   async softDelete(id: string, at: Date): Promise<void> {
     await this.lift(
-      this.prisma.userMedicineDoseLog.update({
+      this.prisma.userDoseLog.update({
         where: { id },
         data: { deletedAt: at },
       }),
@@ -295,7 +295,7 @@ export class PrismaDoseLogs
     userId: string,
     reminderId: string,
   ): Promise<ReminderSchedule | null> {
-    return this.prisma.nonDeleted.userMedicineReminder.findFirst({
+    return this.prisma.nonDeleted.userReminder.findFirst({
       where: { id: reminderId, userId },
       select: {
         userId: true,
@@ -323,7 +323,7 @@ export class PrismaDoseLogs
     from: Date,
     to: Date,
   ): Promise<DoseLogFact[]> {
-    return this.prisma.userMedicineDoseLog.findMany({
+    return this.prisma.userDoseLog.findMany({
       where: {
         userId,
         ...nonDeleted,
@@ -336,7 +336,7 @@ export class PrismaDoseLogs
   }
 
   countFactsInRange(userId: string, from: Date, to: Date): Promise<number> {
-    return this.prisma.userMedicineDoseLog.count({
+    return this.prisma.userDoseLog.count({
       where: {
         userId,
         ...nonDeleted,
@@ -350,7 +350,7 @@ export class PrismaDoseLogs
     from: Date,
     to: Date,
   ): Promise<Date | null> {
-    const row = await this.prisma.userMedicineDoseLog.findFirst({
+    const row = await this.prisma.userDoseLog.findFirst({
       where: {
         userId,
         ...nonDeleted,
@@ -380,7 +380,7 @@ export class PrismaDoseLogs
 }
 
 function toRecord(
-  row: Prisma.UserMedicineDoseLogGetPayload<object>,
+  row: Prisma.UserDoseLogGetPayload<object>,
 ): DoseLogRecord {
   return {
     id: row.id,

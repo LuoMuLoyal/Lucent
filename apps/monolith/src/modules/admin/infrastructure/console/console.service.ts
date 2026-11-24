@@ -49,7 +49,7 @@ export class AdminConsoleService {
             createdAt: { gte: newUserSince },
           },
         }),
-        this.prisma.userProductEvent.count({
+        this.prisma.userProductEventLog.count({
           where: { occurredAt: { gte: productEventLogSince } },
         }),
       ]);

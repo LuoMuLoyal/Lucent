@@ -1,8 +1,8 @@
 import {
   HealthEventStatus,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
 import { isoDateOrDatetimeSchema as isoDateOrOffsetDatetimeSchema } from '../../../../../common/validators/iso-datetime.schema.js';
@@ -40,15 +40,15 @@ export const MAX_PRODUCT_EVENTS_PER_REQUEST = 50;
 export const createProductEventSchema = z
   .object({
     name: z
-      .enum(ProductEventName)
+      .enum(ProductEventLogName)
       .describe('Fixed product event name — enums only, no free text.'),
     surface: z
-      .enum(ProductEventSurface)
+      .enum(ProductEventLogSurface)
       .describe(
         "In-app surface where the event occurred; 'system' marks server-initiated events.",
       ),
     result: z
-      .enum(ProductEventResult)
+      .enum(ProductEventLogResult)
       .describe(
         'Health-event lifecycle events report the outcome semantics (improved/unchanged/worsened), all other events report success/failure.',
       ),

@@ -1,8 +1,8 @@
 /**
  * Prisma client extension providing soft-delete-aware query variants.
  *
- * Models with a `deletedAt` column (User, UserDailyRecord,
- * UserMedicineReminder, UserMedicineDoseLog) gain a `nonDeleted` namespace
+ * Models with a `deletedAt` column (User, userRecord,
+ * UserReminder, UserDoseLog) gain a `nonDeleted` namespace
  * on their delegate.  Every method in that namespace automatically injects
  * `deletedAt: null` into the `where` clause, so callers no longer need to
  * remember the manual `{ deletedAt: null }` spread.
@@ -84,27 +84,27 @@ export const softDeleteExtension = Prisma.defineExtension((client) => {
             }),
         },
       },
-      userDailyRecord: {
+      userRecord: {
         nonDeleted: {
-          findMany: (args?: Prisma.UserDailyRecordFindManyArgs) =>
-            client.userDailyRecord.findMany({
+          findMany: (args?: Prisma.UserRecordFindManyArgs) =>
+            client.userRecord.findMany({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
-          findFirst: (args?: Prisma.UserDailyRecordFindFirstArgs) =>
-            client.userDailyRecord.findFirst({
+          findFirst: (args?: Prisma.UserRecordFindFirstArgs) =>
+            client.userRecord.findFirst({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
           findFirstOrThrow: (
-            args?: Prisma.UserDailyRecordFindFirstOrThrowArgs,
+            args?: Prisma.UserRecordFindFirstOrThrowArgs,
           ) =>
-            client.userDailyRecord.findFirstOrThrow({
+            client.userRecord.findFirstOrThrow({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
-          findUnique: (args: Prisma.UserDailyRecordFindUniqueArgs) =>
-            client.userDailyRecord.findUnique({
+          findUnique: (args: Prisma.UserRecordFindUniqueArgs) =>
+            client.userRecord.findUnique({
               ...args,
               where: {
                 ...args.where,
@@ -112,43 +112,43 @@ export const softDeleteExtension = Prisma.defineExtension((client) => {
               },
             }),
           findUniqueOrThrow: (
-            args: Prisma.UserDailyRecordFindUniqueOrThrowArgs,
+            args: Prisma.UserRecordFindUniqueOrThrowArgs,
           ) =>
-            client.userDailyRecord.findUniqueOrThrow({
+            client.userRecord.findUniqueOrThrow({
               ...args,
               where: {
                 ...args.where,
                 deletedAt: null,
               },
             }),
-          count: (args?: Prisma.UserDailyRecordCountArgs) =>
-            client.userDailyRecord.count({
+          count: (args?: Prisma.UserRecordCountArgs) =>
+            client.userRecord.count({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
         },
       },
-      userMedicineReminder: {
+      userReminder: {
         nonDeleted: {
-          findMany: (args?: Prisma.UserMedicineReminderFindManyArgs) =>
-            client.userMedicineReminder.findMany({
+          findMany: (args?: Prisma.UserReminderFindManyArgs) =>
+            client.userReminder.findMany({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
-          findFirst: (args?: Prisma.UserMedicineReminderFindFirstArgs) =>
-            client.userMedicineReminder.findFirst({
+          findFirst: (args?: Prisma.UserReminderFindFirstArgs) =>
+            client.userReminder.findFirst({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
           findFirstOrThrow: (
-            args?: Prisma.UserMedicineReminderFindFirstOrThrowArgs,
+            args?: Prisma.UserReminderFindFirstOrThrowArgs,
           ) =>
-            client.userMedicineReminder.findFirstOrThrow({
+            client.userReminder.findFirstOrThrow({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
-          findUnique: (args: Prisma.UserMedicineReminderFindUniqueArgs) =>
-            client.userMedicineReminder.findUnique({
+          findUnique: (args: Prisma.UserReminderFindUniqueArgs) =>
+            client.userReminder.findUnique({
               ...args,
               where: {
                 ...args.where,
@@ -156,43 +156,43 @@ export const softDeleteExtension = Prisma.defineExtension((client) => {
               },
             }),
           findUniqueOrThrow: (
-            args: Prisma.UserMedicineReminderFindUniqueOrThrowArgs,
+            args: Prisma.UserReminderFindUniqueOrThrowArgs,
           ) =>
-            client.userMedicineReminder.findUniqueOrThrow({
+            client.userReminder.findUniqueOrThrow({
               ...args,
               where: {
                 ...args.where,
                 deletedAt: null,
               },
             }),
-          count: (args?: Prisma.UserMedicineReminderCountArgs) =>
-            client.userMedicineReminder.count({
+          count: (args?: Prisma.UserReminderCountArgs) =>
+            client.userReminder.count({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
         },
       },
-      userMedicineDoseLog: {
+      userDoseLog: {
         nonDeleted: {
-          findMany: (args?: Prisma.UserMedicineDoseLogFindManyArgs) =>
-            client.userMedicineDoseLog.findMany({
+          findMany: (args?: Prisma.UserDoseLogFindManyArgs) =>
+            client.userDoseLog.findMany({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
-          findFirst: (args?: Prisma.UserMedicineDoseLogFindFirstArgs) =>
-            client.userMedicineDoseLog.findFirst({
+          findFirst: (args?: Prisma.UserDoseLogFindFirstArgs) =>
+            client.userDoseLog.findFirst({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
           findFirstOrThrow: (
-            args?: Prisma.UserMedicineDoseLogFindFirstOrThrowArgs,
+            args?: Prisma.UserDoseLogFindFirstOrThrowArgs,
           ) =>
-            client.userMedicineDoseLog.findFirstOrThrow({
+            client.userDoseLog.findFirstOrThrow({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),
-          findUnique: (args: Prisma.UserMedicineDoseLogFindUniqueArgs) =>
-            client.userMedicineDoseLog.findUnique({
+          findUnique: (args: Prisma.UserDoseLogFindUniqueArgs) =>
+            client.userDoseLog.findUnique({
               ...args,
               where: {
                 ...args.where,
@@ -200,17 +200,17 @@ export const softDeleteExtension = Prisma.defineExtension((client) => {
               },
             }),
           findUniqueOrThrow: (
-            args: Prisma.UserMedicineDoseLogFindUniqueOrThrowArgs,
+            args: Prisma.UserDoseLogFindUniqueOrThrowArgs,
           ) =>
-            client.userMedicineDoseLog.findUniqueOrThrow({
+            client.userDoseLog.findUniqueOrThrow({
               ...args,
               where: {
                 ...args.where,
                 deletedAt: null,
               },
             }),
-          count: (args?: Prisma.UserMedicineDoseLogCountArgs) =>
-            client.userMedicineDoseLog.count({
+          count: (args?: Prisma.UserDoseLogCountArgs) =>
+            client.userDoseLog.count({
               ...args,
               where: withNonDeletedFilter(args?.where),
             }),

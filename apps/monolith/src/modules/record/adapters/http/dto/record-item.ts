@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import { dailyRecordAttachmentSchema } from './record-attachment.js';
 
 /**
  * Standard Schema (zod 4) for one daily-record read item — the wire shape of
  * `GET/POST/PATCH /record` responses.
  *
- * Replaces the former `@ApiProperty` response class `RecordEntryItemDto`. The
+ * Replaces the former `@ApiProperty` response class `DailyRecordItemDto`. The
  * mapper always emits every key (nullable columns become an explicit `null`),
  * so fields are required and `.nullable()` marks null-capable columns only.
  *
@@ -18,7 +18,7 @@ import { dailyRecordAttachmentSchema } from './record-attachment.js';
  */
 export const dailyRecordItemSchema = z.object({
   id: z.string().describe('Record id.'),
-  kind: z.enum(DailyRecordKind),
+  kind: z.enum(RecordKind),
   healthEventId: z.string().describe('Linked health event id.').nullable(),
   occurredAt: z.string().describe('Date in YYYY-MM-DD format.'),
   occurredTime: z
@@ -74,4 +74,4 @@ export const dailyRecordItemSchema = z.object({
 });
 
 /** Strongly typed daily-record read item returned by record endpoints. */
-export type RecordEntryItemDto = z.infer<typeof dailyRecordItemSchema>;
+export type DailyRecordItemDto = z.infer<typeof dailyRecordItemSchema>;

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { dateOnlySchema } from '../../../../../common/validators/iso-datetime.schema.js';
 
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 
-const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
-  DailyRecordKind,
-  ...DailyRecordKind[],
+const DAILY_RECORD_KIND_VALUES = Object.values(RecordKind) as [
+  RecordKind,
+  ...RecordKind[],
 ];
 
 /**
@@ -16,7 +16,7 @@ const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
  *   (query values arrive as strings; numeric strings are coerced, malformed
  *   ones fail);
  * - `@IsDateString` (YYYY-MM-DD docs) → `z.iso.date()`;
- * - `@IsEnum(DailyRecordKind)` → `z.enum(Object.values(...))`;
+ * - `@IsEnum(RecordKind)` → `z.enum(Object.values(...))`;
  * - the global `forbidNonWhitelisted` posture is preserved with `.strict()`
  *   (unknown query keys are rejected).
  */

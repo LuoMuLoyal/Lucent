@@ -1,4 +1,4 @@
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import type {
   AssistantToolCall,
   AssistantToolExecutionContext,
@@ -267,7 +267,7 @@ describe('AssistantToolService', () => {
     deps.dailyRecordReaderPort.listFactsInRange.mockResolvedValue([
       {
         id: 'meal-1',
-        kind: DailyRecordKind.meal,
+        kind: RecordKind.meal,
         occurredAt: new Date('2026-06-18T00:00:00.000Z'),
         occurredTime: '12:30',
         title: '午饭',
@@ -421,7 +421,7 @@ describe('AssistantToolService', () => {
       items: [
         {
           id: 'water-1',
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-06-19',
           title: null,
           value: '300',
@@ -433,7 +433,7 @@ describe('AssistantToolService', () => {
         },
         {
           id: 'water-2',
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-06-19',
           title: null,
           value: '200',
@@ -494,7 +494,7 @@ describe('AssistantToolService', () => {
       items: [
         {
           id: 'water-1',
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-06-19',
           title: null,
           value: '300',
@@ -506,7 +506,7 @@ describe('AssistantToolService', () => {
         },
         {
           id: 'water-2',
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-06-19',
           title: null,
           value: '200',

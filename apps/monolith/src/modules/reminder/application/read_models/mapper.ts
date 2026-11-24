@@ -34,14 +34,14 @@ export class RemindersMapper {
       endDate,
       isActive: dto.isActive ?? true,
       note: normalizeNullableText(dto.note),
-    } satisfies Prisma.UserMedicineReminderUncheckedCreateInput;
+    } satisfies Prisma.UserReminderUncheckedCreateInput;
   }
 
   toUpdateData(
     dto: UpdateMedicineReminderDto,
     existing: OwnedMedicineReminderRecord,
   ) {
-    const data: Prisma.UserMedicineReminderUpdateInput = {};
+    const data: Prisma.UserReminderUpdateInput = {};
 
     if (dto.currentMedicineId !== undefined) {
       data.currentMedicine = dto.currentMedicineId
@@ -95,13 +95,13 @@ export class RemindersMapper {
       ...shared,
       scheduledHour: slot.scheduledHour,
       scheduledMinute: slot.scheduledMinute,
-    })) satisfies Prisma.UserMedicineReminderUncheckedCreateInput[];
+    })) satisfies Prisma.UserReminderUncheckedCreateInput[];
   }
 
   toGroupUpdateData(dto: UpsertMedicineReminderGroupDto) {
     return this.toGroupSharedData(
       dto,
-    ) satisfies Prisma.UserMedicineReminderUncheckedUpdateInput;
+    ) satisfies Prisma.UserReminderUncheckedUpdateInput;
   }
 
   toDeliveryWhere(userId: string, date?: string) {

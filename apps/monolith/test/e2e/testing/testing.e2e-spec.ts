@@ -7,7 +7,7 @@ import request from 'supertest';
 import { AppModule } from '../../../src/app.module.js';
 import { setupApp } from '../../../src/setup-app.js';
 import { EnvKey } from '../../../src/config/env/env-keys.enum.js';
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';
 const LOGIN_PATH = '/api/v1/auth/login';
@@ -114,7 +114,7 @@ describe('Testing Support API (e2e)', () => {
       .post(DAILY_RECORDS_PATH)
       .set(AUTHORIZATION_HEADER, bearer(accessToken))
       .send({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: TEST_DATE,
         value: '2',
         unit: 'cups',

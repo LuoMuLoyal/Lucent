@@ -15,7 +15,7 @@ import {
   describeDeleteRecordSummary,
   describeRecordTargetLabel,
 } from './proposal.js';
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import { createTestTranslator } from '../../acl/tools/shared/test-translator.js';
 
 describe('presenters', () => {
@@ -130,7 +130,7 @@ describe('presenters', () => {
       });
       expect(coverage.status).toBe('partial');
       expect(coverage.omittedContextSources).toEqual(['sleep_records']);
-      expect(coverage.omittedKinds).toEqual([DailyRecordKind.sleep]);
+      expect(coverage.omittedKinds).toEqual([RecordKind.sleep]);
     });
 
     it('combines reasons when both truncated and sleep excluded', () => {
@@ -255,7 +255,7 @@ describe('presenters', () => {
     it('builds fields with value and unit in zh-CN', () => {
       const fields = buildCreateRecordPreviewFields(
         {
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-07-11',
           title: '喝水',
           value: '500',
@@ -289,7 +289,7 @@ describe('presenters', () => {
     it('omits value field when null', () => {
       const fields = buildCreateRecordPreviewFields(
         {
-          kind: DailyRecordKind.note,
+          kind: RecordKind.note,
           occurredAt: '2026-07-11',
           title: null,
           value: null,
@@ -306,7 +306,7 @@ describe('presenters', () => {
     it('shows value without unit when unit is null', () => {
       const fields = buildCreateRecordPreviewFields(
         {
-          kind: DailyRecordKind.symptom,
+          kind: RecordKind.symptom,
           occurredAt: '2026-07-11',
           title: null,
           value: '3/5',
@@ -479,7 +479,7 @@ describe('presenters', () => {
     it('includes value in zh-CN summary', () => {
       const summary = describeCreateRecordSummary(
         {
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-07-11',
           value: '500',
           unit: 'ml',
@@ -493,7 +493,7 @@ describe('presenters', () => {
     it('omits value in zh-CN summary when null', () => {
       const summary = describeCreateRecordSummary(
         {
-          kind: DailyRecordKind.note,
+          kind: RecordKind.note,
           occurredAt: '2026-07-11',
           value: null,
           unit: null,
@@ -507,7 +507,7 @@ describe('presenters', () => {
     it('builds English summary', () => {
       const summary = describeCreateRecordSummary(
         {
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-07-11',
           value: '500',
           unit: 'ml',
@@ -522,7 +522,7 @@ describe('presenters', () => {
   describe('describeUpdateRecordSummary', () => {
     it('builds zh-CN summary', () => {
       const summary = describeUpdateRecordSummary(
-        { kind: DailyRecordKind.water, occurredAt: '2026-07-11' },
+        { kind: RecordKind.water, occurredAt: '2026-07-11' },
         createTestTranslator('zh-CN'),
       );
       expect(summary).toContain('water');
@@ -531,7 +531,7 @@ describe('presenters', () => {
 
     it('builds English summary', () => {
       const summary = describeUpdateRecordSummary(
-        { kind: DailyRecordKind.symptom, occurredAt: '2026-07-11' },
+        { kind: RecordKind.symptom, occurredAt: '2026-07-11' },
         createTestTranslator('en'),
       );
       expect(summary).toContain('symptom');
@@ -542,7 +542,7 @@ describe('presenters', () => {
   describe('describeDeleteRecordSummary', () => {
     it('builds zh-CN summary', () => {
       const summary = describeDeleteRecordSummary(
-        { kind: DailyRecordKind.note, occurredAt: '2026-07-11' },
+        { kind: RecordKind.note, occurredAt: '2026-07-11' },
         createTestTranslator('zh-CN'),
       );
       expect(summary).toContain('删除');
@@ -551,7 +551,7 @@ describe('presenters', () => {
 
     it('builds English summary', () => {
       const summary = describeDeleteRecordSummary(
-        { kind: DailyRecordKind.note, occurredAt: '2026-07-11' },
+        { kind: RecordKind.note, occurredAt: '2026-07-11' },
         createTestTranslator('en'),
       );
       expect(summary).toContain('delete');
@@ -563,7 +563,7 @@ describe('presenters', () => {
     it('builds label with value and unit', () => {
       const label = describeRecordTargetLabel(
         {
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           occurredAt: '2026-07-11',
           value: '500',
           unit: 'ml',
@@ -576,7 +576,7 @@ describe('presenters', () => {
     it('builds label without value when null', () => {
       const label = describeRecordTargetLabel(
         {
-          kind: DailyRecordKind.note,
+          kind: RecordKind.note,
           occurredAt: '2026-07-11',
           value: null,
           unit: null,

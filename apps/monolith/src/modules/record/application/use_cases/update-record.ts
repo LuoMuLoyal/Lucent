@@ -25,11 +25,11 @@ import {
 } from '../../../../common/result/index.js';
 import type { UpdateRecordInput } from '../services/write-input.js';
 import { formatOccurredAt } from '../../domain/record/occurred-at.js';
-import { RecordEntry } from '../../domain/record/daily-record.js';
+import { DailyRecord } from '../../domain/record/daily-record.js';
 import { getMealSourceRevision } from '../../domain/meal/meal-analysis.js';
 import {
   asDailyRecordKind,
-  type DailyRecordKind,
+  type RecordKind,
 } from '../../domain/record/record-kind.js';
 import type { RecordRow } from '../../domain/record/record-row.js';
 import { Records } from '../../domain/record/records.js';
@@ -60,7 +60,7 @@ export class UpdateRecord {
     dto: UpdateRecordInput,
   ): ResultAsync<RecordItem, DomainFailure> {
     return this.ownership.ensure(userId, id).andThen((existing) => {
-      const targetKind: DailyRecordKind =
+      const targetKind: RecordKind =
         (dto.kind != null ? asDailyRecordKind(dto.kind) : null) ??
         asDailyRecordKind(existing.kind) ??
         'note';
@@ -68,7 +68,7 @@ export class UpdateRecord {
       return this.healthEvents
         .requireActive(userId, dto.healthEventId ?? null)
         .andThen(() => {
-          const problem = RecordEntry.validateFinalState({
+          const problem = DailyRecord.validateFinalState({
             kind: targetKind,
             payload: dto.payload !== undefined ? dto.payload : existing.payload,
           });

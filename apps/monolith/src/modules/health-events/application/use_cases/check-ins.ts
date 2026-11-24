@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import {
   HealthEventKind,
   HealthEventStatus,
-  ProductEventName,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
   DEFAULT_USER_TIMEZONE,
@@ -118,8 +118,8 @@ export class CheckInsService {
               .andThen(() =>
                 fromPromise(
                   this.productEventLog.emitServerEvent(userId, {
-                    name: ProductEventName.health_event_outcome_confirmed,
-                    surface: ProductEventSurface.review,
+                    name: ProductEventLogName.health_event_outcome_confirmed,
+                    surface: ProductEventLogSurface.review,
                     result: toProductEventResult(outcome),
                     occurredAt: now(),
                     clientEventId: `server-checkin-${eventId}-${date}`,

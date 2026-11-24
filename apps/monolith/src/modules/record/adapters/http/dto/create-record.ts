@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import { dateOnlySchema } from '../../../../../common/validators/iso-datetime.schema.js';
 import { dailyRecordAttachmentInputSchema } from './record-attachment.js';
 
-const DAILY_RECORD_KIND_VALUES = Object.values(DailyRecordKind) as [
-  DailyRecordKind,
-  ...DailyRecordKind[],
+const DAILY_RECORD_KIND_VALUES = Object.values(RecordKind) as [
+  RecordKind,
+  ...RecordKind[],
 ];
 
 const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -22,7 +22,7 @@ const TIME_24H_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
  * - `@IsDateString` (YYYY-MM-DD docs) → `dateOnlySchema()` (calendar-valid
  *   date-only strings);
  * - `@Matches` time pattern → `z.string().regex(...)`;
- * - `@IsEnum(DailyRecordKind)` → `z.enum(Object.values(...))`;
+ * - `@IsEnum(RecordKind)` → `z.enum(Object.values(...))`;
  * - `@IsUUID` → `z.uuid()`, nullable via `.nullish()`;
  * - `@IsObject` payload → `z.record(z.string(), z.unknown())` (rejects
  *   arrays/null, keeps nested payload keys free-form);

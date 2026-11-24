@@ -373,7 +373,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/user/record — contract', () => {
-    it('should match RecordEntryListResponse shape', async () => {
+    it('should match DailyRecordListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
@@ -384,7 +384,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/RecordEntryListResponse',
+        '#/components/schemas/DailyRecordListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });

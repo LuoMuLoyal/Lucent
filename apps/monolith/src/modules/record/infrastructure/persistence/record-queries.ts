@@ -12,10 +12,10 @@ import { Injectable } from '@nestjs/common';
 import { nonDeleted, toInputJsonValue } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
-  RecordEntryReaderPort,
+  DailyRecordReaderPort,
   MAX_READER_FACTS,
-  type RecordEntryFact,
-  type RecordEntrySummaryFact,
+  type DailyRecordFact,
+  type DailyRecordSummaryFact,
 } from '../../application/ports/records-query.js';
 import {
   toDailyRecordFact,
@@ -32,7 +32,7 @@ import type {
   MealAnalyses,
   StaleMealAnalysisCandidate,
 } from '../../domain/meal/meal-analyses.js';
-import type { DailyRecordKind } from '../../domain/record/record-kind.js';
+import type { RecordKind } from '../../domain/record/record-kind.js';
 import {
   recordWithAttachments,
   toDbKind,
@@ -67,7 +67,7 @@ const factSelect = {
 
 @Injectable()
 export class PrismaRecordQueries
-  extends RecordEntryReaderPort
+  extends DailyRecordReaderPort
   implements MealAnalyses
 {
   constructor(private readonly prisma: PrismaService) {
@@ -102,7 +102,7 @@ export class PrismaRecordQueries
     sourceRevision: number,
     analysis: MealAnalysisPayload,
   ): Promise<boolean> {
-    const { count } = await this.prisma.userDailyRecord.updateMany({
+    const { count } = await this.prisma.userRecord.updateMany({
       where: {
         id: recordId,
         ...nonDeleted,
@@ -120,9 +120,9 @@ export class PrismaRecordQueries
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
-  ): Promise<RecordEntryFact[]> {
-    const rows = await this.prisma.userDailyRecord.findMany({
+    kinds?: RecordKind[],
+  ): Promise<DailyRecordFact[]> {
+    const rows = await this.prisma.userRecord.findMany({
       where: {
         userId,
         ...nonDeleted,
@@ -143,9 +143,9 @@ export class PrismaRecordQueries
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
+    kinds?: RecordKind[],
   ): Promise<number> {
-    return this.prisma.userDailyRecord.count({
+    return this.prisma.userRecord.count({
       where: {
         userId,
         ...nonDeleted,
@@ -162,7 +162,7 @@ export class PrismaRecordQueries
     from: Date,
     to: Date,
   ): Promise<Date | null> {
-    const row = await this.prisma.userDailyRecord.findFirst({
+    const row = await this.prisma.userRecord.findFirst({
       where: { userId, ...nonDeleted, occurredAt: { gte: from, lte: to } },
       select: { createdAt: true },
       orderBy: [{ createdAt: 'desc' }],
@@ -173,8 +173,8 @@ export class PrismaRecordQueries
   async findById(
     userId: string,
     id: string,
-  ): Promise<RecordEntrySummaryFact | null> {
-    const row = await this.prisma.userDailyRecord.findFirst({
+  ): Promise<DailyRecordSummaryFact | null> {
+    const row = await this.prisma.userRecord.findFirst({
       where: { id, userId, ...nonDeleted },
       include: recordWithAttachments,
     });
@@ -184,8 +184,8 @@ export class PrismaRecordQueries
   async findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<RecordEntryFact | null> {
-    const row = await this.prisma.userDailyRecord.findFirst({
+  ): Promise<DailyRecordFact | null> {
+    const row = await this.prisma.userRecord.findFirst({
       where: { id, userId, ...nonDeleted },
       include: recordWithAttachments,
     });
@@ -199,7 +199,7 @@ export class PrismaRecordQueries
    * 查询带上 profile，而不是让应用层再发一次跨表查询。
    */
   async findCandidate(recordId: string): Promise<MealAnalysisCandidate | null> {
-    const row = await this.prisma.userDailyRecord.findFirst({
+    const row = await this.prisma.userRecord.findFirst({
       where: { id: recordId, kind: toDbKind('meal'), ...nonDeleted },
       include: {
         attachments: { orderBy: { createdAt: 'asc' } },
@@ -227,7 +227,7 @@ export class PrismaRecordQueries
     staleBefore: Date,
     batchSize: number,
   ): Promise<StaleMealAnalysisCandidate[]> {
-    const rows = await this.prisma.userDailyRecord.findMany({
+    const rows = await this.prisma.userRecord.findMany({
       where: {
         kind: toDbKind('meal'),
         ...nonDeleted,

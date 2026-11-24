@@ -1,9 +1,9 @@
 import request from 'supertest';
 import {
   AdminRole,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
   type Prisma,
 } from '#generated/prisma/client.js';
 import {
@@ -29,7 +29,7 @@ const WINDOW_DATE = '2026-03-05';
 const SECOND_WINDOW_DATE = '2026-03-06';
 
 interface SeedEvent {
-  name: ProductEventName;
+  name: ProductEventLogName;
   occurredAt: string;
   clientEventId: string;
 }
@@ -40,13 +40,13 @@ function seedEvents(
   targetUser: TestUser,
   events: SeedEvent[],
 ): Promise<unknown> {
-  const data: Prisma.UserProductEventCreateManyInput[] = events.map(
+  const data: Prisma.UserProductEventLogCreateManyInput[] = events.map(
     (event) => ({
       userId: targetUser.id,
       clientEventId: event.clientEventId,
       name: event.name,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.success,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.success,
       eventStatus: null,
       suggestionRuleCode: null,
       appVersion: '1.2.0',
@@ -54,7 +54,7 @@ function seedEvents(
       occurredAt: new Date(event.occurredAt),
     }),
   );
-  return ctx.prisma.userProductEvent.createMany({ data });
+  return ctx.prisma.userProductEventLog.createMany({ data });
 }
 
 async function adminTokenFor(
@@ -106,27 +106,27 @@ describe('Admin metrics API (e2e)', () => {
 
     await seedEvents(ctx, opsAdmin, [
       {
-        name: ProductEventName.health_event_started,
+        name: ProductEventLogName.health_event_started,
         occurredAt: `${WINDOW_DATE}T02:00:00.000Z`,
         clientEventId: 'admin-metrics-start-1',
       },
       {
-        name: ProductEventName.health_event_started,
+        name: ProductEventLogName.health_event_started,
         occurredAt: `${WINDOW_DATE}T02:30:00.000Z`,
         clientEventId: 'admin-metrics-start-2',
       },
       {
-        name: ProductEventName.suggestion_impression,
+        name: ProductEventLogName.suggestion_impression,
         occurredAt: `${WINDOW_DATE}T04:00:00.000Z`,
         clientEventId: 'admin-metrics-imp-1',
       },
       {
-        name: ProductEventName.review_opened,
+        name: ProductEventLogName.review_opened,
         occurredAt: `${WINDOW_DATE}T08:00:00.000Z`,
         clientEventId: 'admin-metrics-review-1',
       },
       {
-        name: ProductEventName.review_opened,
+        name: ProductEventLogName.review_opened,
         occurredAt: `${SECOND_WINDOW_DATE}T08:00:00.000Z`,
         clientEventId: 'admin-metrics-review-2',
       },

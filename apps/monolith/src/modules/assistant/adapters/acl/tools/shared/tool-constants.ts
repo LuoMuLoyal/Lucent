@@ -1,4 +1,4 @@
-import type { DailyRecordKind } from '#generated/prisma/client.js';
+import type { RecordKind } from '#generated/prisma/client.js';
 import type { AssistantReadConfidence } from '../../../../application/ports/assistant.js';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ export const MAX_TOOL_LOOPS = 8;
  * Daily record kinds the assistant write path can create (F-16). Mirrors the
  * union of `AssistantCreateDailyRecordProposalPayload.draft.kind`: the
  * candidate generator may emit exactly these kinds, and the server-side write
- * path (`DailyRecordKind` enum) accepts them. Any candidate kind outside this
+ * path (`RecordKind` enum) accepts them. Any candidate kind outside this
  * list is rejected at generation time instead of being silently downgraded.
  */
 export const ASSISTANT_CREATE_RECORD_KINDS = [
@@ -180,7 +180,7 @@ export type ToolDateRange = {
 
 export type ToolRecordItem = {
   id: string;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   occurredAt: string;
   title: string | null;
   value: string | null;
@@ -209,7 +209,7 @@ export type ToolSingleDateResolution = {
  * One analyzed meal in the meal-analysis digest.
  *
  * 读侧来源刻意分层：`analyzed` 判定、`headline` 与 `calorieRange` 全部取**投影列**
- * （`UserDailyRecord.mealHeadline` / `mealCalorie*`），只有 `items` / `dishes` 明细
+ * （`userRecord.mealHeadline` / `mealCalorie*`），只有 `items` / `dishes` 明细
  * 才回到 `payload.mealAnalysis`；没有分析结果（`analyzing` / `analysis_failed`）的
  * 餐食不进 digest，其 payload 也从不解析。
  *

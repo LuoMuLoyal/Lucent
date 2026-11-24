@@ -29,7 +29,7 @@ const medicineReminderFactSelect = {
   startDate: true,
   endDate: true,
   createdAt: true,
-} satisfies Prisma.UserMedicineReminderSelect;
+} satisfies Prisma.UserReminderSelect;
 
 /**
  * Prisma implementation of the reminder repository + reader ports.
@@ -50,7 +50,7 @@ export class PrismaReminders
   }
 
   async listActiveFacts(userId: string): Promise<ReminderEntryFact[]> {
-    return this.prisma.userMedicineReminder.findMany({
+    return this.prisma.userReminder.findMany({
       where: { userId, isActive: true, ...nonDeleted },
       select: medicineReminderFactSelect,
       orderBy: [
@@ -126,30 +126,30 @@ export class PrismaReminders
   }
 
   override findManyReminders(
-    where: Prisma.UserMedicineReminderWhereInput,
-    orderBy?: Prisma.UserMedicineReminderOrderByWithRelationInput[],
+    where: Prisma.UserReminderWhereInput,
+    orderBy?: Prisma.UserReminderOrderByWithRelationInput[],
   ) {
     const args: Parameters<
-      PrismaService['userMedicineReminder']['findMany']
+      PrismaService['userReminder']['findMany']
     >[0] = { where };
     if (orderBy !== undefined) args.orderBy = orderBy;
-    return this.prisma.userMedicineReminder.findMany(args);
+    return this.prisma.userReminder.findMany(args);
   }
 
   override createReminder(
-    data: Prisma.UserMedicineReminderUncheckedCreateInput,
-  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure> {
-    return fromPrismaResult(this.prisma.userMedicineReminder.create({ data }));
+    data: Prisma.UserReminderUncheckedCreateInput,
+  ): ResultAsync<Prisma.UserReminderGetPayload<object>, DomainFailure> {
+    return fromPrismaResult(this.prisma.userReminder.create({ data }));
   }
 
   override updateReminder(
-    where: Prisma.UserMedicineReminderWhereUniqueInput,
+    where: Prisma.UserReminderWhereUniqueInput,
     data:
-      | Prisma.UserMedicineReminderUpdateInput
-      | Prisma.UserMedicineReminderUncheckedUpdateInput,
-  ): ResultAsync<Prisma.UserMedicineReminderGetPayload<object>, DomainFailure> {
+      | Prisma.UserReminderUpdateInput
+      | Prisma.UserReminderUncheckedUpdateInput,
+  ): ResultAsync<Prisma.UserReminderGetPayload<object>, DomainFailure> {
     return fromPrismaResult(
-      this.prisma.userMedicineReminder.update({ where, data }),
+      this.prisma.userReminder.update({ where, data }),
     );
   }
 
@@ -168,9 +168,9 @@ export class PrismaReminders
 
   override findReminderById(
     id: string,
-    select: Prisma.UserMedicineReminderSelect,
+    select: Prisma.UserReminderSelect,
   ) {
-    return this.prisma.nonDeleted.userMedicineReminder.findFirst({
+    return this.prisma.nonDeleted.userReminder.findFirst({
       where: { id },
       select,
     });

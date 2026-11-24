@@ -34,9 +34,9 @@ export interface ReminderGroupWrite {
   /** Ids of the slots the request kept; everything else is soft-deleted. */
   incomingIds: string[];
   /** Columns shared by every slot in the group (label, window, flags, ...). */
-  updateData: Prisma.UserMedicineReminderUncheckedUpdateManyInput;
+  updateData: Prisma.UserReminderUncheckedUpdateManyInput;
   /** Per-slot rows to create, in request order. */
-  createData: Prisma.UserMedicineReminderUncheckedCreateInput[];
+  createData: Prisma.UserReminderUncheckedCreateInput[];
   /** Per-slot schedule overrides keyed by slot id. */
   slots: ReadonlyArray<{
     id: string | null;
@@ -61,7 +61,7 @@ export class ReminderGroupWriter {
     try {
       return await this.prisma.$transaction(async (tx) => {
         if (write.incomingIds.length > 0) {
-          const owned = await tx.userMedicineReminder.findMany({
+          const owned = await tx.userReminder.findMany({
             where: {
               id: { in: write.incomingIds },
               userId: write.userId,
@@ -77,7 +77,7 @@ export class ReminderGroupWriter {
 
         // Soft-delete stale rows before writing, so newly created rows are not
         // swept up by the same filter. Kept rows are excluded by id.
-        const staleWhere: Prisma.UserMedicineReminderWhereInput = {
+        const staleWhere: Prisma.UserReminderWhereInput = {
           userId: write.userId,
           currentMedicineId: write.currentMedicineId,
           ...nonDeleted,
@@ -85,14 +85,14 @@ export class ReminderGroupWriter {
         if (write.incomingIds.length > 0) {
           staleWhere.id = { notIn: write.incomingIds };
         }
-        await tx.userMedicineReminder.updateMany({
+        await tx.userReminder.updateMany({
           where: staleWhere,
           data: { deletedAt: write.deletedAt, isActive: false },
         });
 
         for (const slot of write.slots) {
           if (slot.id != null) {
-            await tx.userMedicineReminder.update({
+            await tx.userReminder.update({
               where: { id: slot.id },
               data: {
                 ...write.updateData,
@@ -103,10 +103,10 @@ export class ReminderGroupWriter {
           }
         }
         for (const data of write.createData) {
-          await tx.userMedicineReminder.create({ data });
+          await tx.userReminder.create({ data });
         }
 
-        return await tx.userMedicineReminder.findMany({
+        return await tx.userReminder.findMany({
           where: {
             userId: write.userId,
             currentMedicineId: write.currentMedicineId,
@@ -140,4 +140,4 @@ export class ReminderGroupWriter {
 }
 
 /** A reminder row as returned by the writer (shape the mapper consumes). */
-export type ReminderRow = Prisma.UserMedicineReminderGetPayload<object>;
+export type ReminderRow = Prisma.UserReminderGetPayload<object>;

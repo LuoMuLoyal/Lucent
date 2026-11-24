@@ -10,7 +10,7 @@
  * ## 为什么用 `RecordRow` 而不是 Prisma 类型
  *
  * `ddd-application-no-direct-prisma` 禁止 `application/**` import Prisma；
- * 若端口签名里出现 `Prisma.UserDailyRecordCreateInput`，应用层就会被迫 import
+ * 若端口签名里出现 `Prisma.UserRecordCreateInput`，应用层就会被迫 import
  * 生成物。这里给出一个**只含数据列**的结构（`RecordRow`），Prisma 实现负责把它
  * 与生成类型互转（`infrastructure/persistence/` 是唯一知道 Prisma 形状的地方）。
  *
@@ -20,14 +20,14 @@
  * 端口把「写什么」与「回读什么」分开：`input` 是数据列，读回的方法都返回
  * `RecordRow`。领域层不解释 payload，只当不透明值透传。
  */
-import type { DailyRecordKind } from '../record/record-kind.js';
+import type { RecordKind } from '../record/record-kind.js';
 import type { RecordRow } from './record-row.js';
 
 /** 列表 / 汇总读需要的过滤条件。 */
 export interface RecordListFilter {
   userId: string;
   occurredAt: Date;
-  kind?: DailyRecordKind;
+  kind?: RecordKind;
 }
 
 /** 分页参数。 */
@@ -45,7 +45,7 @@ export interface RecordPageResult {
 /** 归属判定只需要这几个字段。 */
 export interface RecordOwnershipRow {
   userId: string;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   payload: unknown;
   occurredAt: Date;
 }

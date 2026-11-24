@@ -13,8 +13,8 @@
  * 这修掉了原先用例直接 import `adapters/http/dto/candidates/*` 的反向依赖。
  */
 import type {
-  RecordEntryCandidateData,
-  RecordEntryCandidateItem,
+  DailyRecordCandidateData,
+  DailyRecordCandidateItem,
 } from './record-candidates.js';
 
 export interface CandidateGenerationContext {
@@ -24,7 +24,7 @@ export interface CandidateGenerationContext {
 }
 
 export interface CandidateGenerationResult {
-  items: RecordEntryCandidateItem[];
+  items: DailyRecordCandidateItem[];
 }
 
 export abstract class CandidateGenerator {
@@ -47,5 +47,5 @@ export abstract class CandidateCopyPort {
     text: string,
     occurredAt: string,
     locale: string,
-  ): RecordEntryCandidateData;
+  ): DailyRecordCandidateData;
 }

@@ -413,7 +413,7 @@ describe('RemindersService', () => {
   describe('upsertGroup', () => {
     function transactionClient() {
       return {
-        userMedicineReminder: {
+        userReminder: {
           findMany: vi.fn(),
           create: vi.fn(),
           update: vi.fn(),
@@ -433,7 +433,7 @@ describe('RemindersService', () => {
         (fn as (txArg: unknown) => Promise<unknown>)(tx),
       );
 
-      tx.userMedicineReminder.findMany
+      tx.userReminder.findMany
         .mockResolvedValueOnce([{ id: 'slot-1' }])
         .mockResolvedValueOnce([
           reminderRecord({
@@ -447,13 +447,13 @@ describe('RemindersService', () => {
             scheduledMinute: 5,
           }),
         ]);
-      tx.userMedicineReminder.update.mockResolvedValue(
+      tx.userReminder.update.mockResolvedValue(
         reminderRecord({ id: 'slot-1' }),
       );
-      tx.userMedicineReminder.create.mockResolvedValue(
+      tx.userReminder.create.mockResolvedValue(
         reminderRecord({ id: 'slot-2' }),
       );
-      tx.userMedicineReminder.updateMany.mockResolvedValue({ count: 1 });
+      tx.userReminder.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await unwrapOk(
         service.upsertGroup('user-1', {
@@ -465,7 +465,7 @@ describe('RemindersService', () => {
         }),
       );
 
-      expect(tx.userMedicineReminder.findMany).toHaveBeenNthCalledWith(1, {
+      expect(tx.userReminder.findMany).toHaveBeenNthCalledWith(1, {
         where: {
           id: { in: ['slot-1'] },
           userId: 'user-1',
@@ -475,8 +475,8 @@ describe('RemindersService', () => {
         select: { id: true },
       });
 
-      expect(tx.userMedicineReminder.update).toHaveBeenCalledTimes(1);
-      expect(tx.userMedicineReminder.update).toHaveBeenCalledWith({
+      expect(tx.userReminder.update).toHaveBeenCalledTimes(1);
+      expect(tx.userReminder.update).toHaveBeenCalledWith({
         where: { id: 'slot-1' },
         data: expect.objectContaining({
           scheduledHour: 8,
@@ -484,8 +484,8 @@ describe('RemindersService', () => {
         }),
       });
 
-      expect(tx.userMedicineReminder.create).toHaveBeenCalledTimes(1);
-      expect(tx.userMedicineReminder.create).toHaveBeenCalledWith({
+      expect(tx.userReminder.create).toHaveBeenCalledTimes(1);
+      expect(tx.userReminder.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           userId: 'user-1',
           scheduledHour: 20,
@@ -493,7 +493,7 @@ describe('RemindersService', () => {
         }),
       });
 
-      expect(tx.userMedicineReminder.updateMany).toHaveBeenCalledWith({
+      expect(tx.userReminder.updateMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           currentMedicineId: 'medicine-1',
@@ -522,7 +522,7 @@ describe('RemindersService', () => {
       repository.transaction.mockImplementation((fn) =>
         (fn as (txArg: unknown) => Promise<unknown>)(tx),
       );
-      tx.userMedicineReminder.findMany.mockResolvedValueOnce([]);
+      tx.userReminder.findMany.mockResolvedValueOnce([]);
 
       const result = await collectResult(
         service.upsertGroup('user-1', {
@@ -535,7 +535,7 @@ describe('RemindersService', () => {
         ok: false,
         error: { kind: 'not_found', code: 'RESOURCE_NOT_FOUND' },
       });
-      expect(tx.userMedicineReminder.updateMany).not.toHaveBeenCalled();
+      expect(tx.userReminder.updateMany).not.toHaveBeenCalled();
       expect(publisher.publish).not.toHaveBeenCalled();
     });
 
@@ -589,13 +589,13 @@ describe('RemindersService', () => {
       repository.transaction.mockImplementation((fn) =>
         (fn as (txArg: unknown) => Promise<unknown>)(tx),
       );
-      tx.userMedicineReminder.findMany.mockResolvedValueOnce([
+      tx.userReminder.findMany.mockResolvedValueOnce([
         reminderRecord({ id: 'slot-1' }),
       ]);
-      tx.userMedicineReminder.create.mockResolvedValue(
+      tx.userReminder.create.mockResolvedValue(
         reminderRecord({ id: 'slot-1' }),
       );
-      tx.userMedicineReminder.updateMany.mockResolvedValue({ count: 0 });
+      tx.userReminder.updateMany.mockResolvedValue({ count: 0 });
 
       await unwrapOk(
         service.upsertGroup('user-1', {
@@ -622,7 +622,7 @@ describe('RemindersService', () => {
       // the transaction: the append runs against the same tx client, so a
       // rollback discards the outbox row with the reminder writes (ADR-0025 E0).
       const tx = transactionClient();
-      tx.userMedicineReminder.findMany.mockResolvedValue([]);
+      tx.userReminder.findMany.mockResolvedValue([]);
       repository.transaction.mockImplementation(async (fn) => {
         await (fn as (txArg: unknown) => Promise<unknown>)(tx);
         throw new Error('boom');
@@ -636,8 +636,8 @@ describe('RemindersService', () => {
       ).rejects.toThrow('boom');
 
       expect(repository.transaction).toHaveBeenCalledTimes(1);
-      expect(tx.userMedicineReminder.updateMany).toHaveBeenCalled();
-      expect(tx.userMedicineReminder.create).toHaveBeenCalled();
+      expect(tx.userReminder.updateMany).toHaveBeenCalled();
+      expect(tx.userReminder.create).toHaveBeenCalled();
       // The append happens inside the callback (not after it), so it shares the
       // transaction's fate. Its own failure must surface, not be swallowed.
       expect(publisher.publish).toHaveBeenCalledTimes(1);

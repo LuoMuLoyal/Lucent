@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { LlmRuntimeService } from '../../../../llm-runtime/index.js';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circuit-breaker.service.js';
-import { RecordEntryCandidatesGeneratorService } from './candidate-generator.js';
+import { DailyRecordCandidatesGeneratorService } from './candidate-generator.js';
 
 interface GeneratorInternals {
   modelRole: string;
@@ -11,14 +11,14 @@ interface GeneratorInternals {
   buildUserPrompt(context: unknown, copy: { language: string }): string;
 }
 
-describe('RecordEntryCandidatesGeneratorService', () => {
-  let service: RecordEntryCandidatesGeneratorService;
+describe('DailyRecordCandidatesGeneratorService', () => {
+  let service: DailyRecordCandidatesGeneratorService;
   let internals: GeneratorInternals;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
-        RecordEntryCandidatesGeneratorService,
+        DailyRecordCandidatesGeneratorService,
         {
           provide: LlmRuntimeService,
           useValue: {
@@ -37,7 +37,7 @@ describe('RecordEntryCandidatesGeneratorService', () => {
       ],
     }).compile();
 
-    service = module.get(RecordEntryCandidatesGeneratorService);
+    service = module.get(DailyRecordCandidatesGeneratorService);
     internals = service as unknown as GeneratorInternals;
   });
 
@@ -46,7 +46,7 @@ describe('RecordEntryCandidatesGeneratorService', () => {
   });
 
   it('configures the tool naming options', () => {
-    expect(internals.options.toolName).toBe('RecordEntryCandidates');
+    expect(internals.options.toolName).toBe('DailyRecordCandidates');
     expect(internals.options.streamName).toBe('Daily record candidates');
   });
 

@@ -2,9 +2,9 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import type { DomainEventPublisher } from '../../../../common/index.js';
 import type {
@@ -337,9 +337,9 @@ describe('CheckInsService', () => {
 
     expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
     expect(productEventLog.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
-      name: ProductEventName.health_event_outcome_confirmed,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.worsened,
+      name: ProductEventLogName.health_event_outcome_confirmed,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.worsened,
       occurredAt: expect.any(Date),
       clientEventId: `server-checkin-${EVENT_ID}-2026-07-20`,
     });

@@ -15,7 +15,7 @@ function buildPrisma() {
         findFirst: vi.fn(),
       },
     },
-    userProductEvent: { count: vi.fn() },
+    userProductEventLog: { count: vi.fn() },
     adminUser: {
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null),
@@ -98,7 +98,7 @@ describe('AdminConsoleService', () => {
       .mockResolvedValueOnce(8)
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(3);
-    prisma.userProductEvent.count.mockResolvedValue(17);
+    prisma.userProductEventLog.count.mockResolvedValue(17);
 
     const result = await service.getOverview();
 

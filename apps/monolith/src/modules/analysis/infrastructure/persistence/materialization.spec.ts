@@ -4,7 +4,7 @@ describe('AnalysisMaterializationStore', () => {
   let store: AnalysisMaterializationStore;
   let prisma: {
     $transaction: vi.Mock;
-    userTodayAnalysisMaterialization: {
+    userAnalysisMaterialization: {
       findUnique: vi.Mock;
       create: vi.Mock;
       update: vi.Mock;
@@ -15,7 +15,7 @@ describe('AnalysisMaterializationStore', () => {
   beforeEach(() => {
     prisma = {
       $transaction: vi.fn(),
-      userTodayAnalysisMaterialization: {
+      userAnalysisMaterialization: {
         findUnique: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({
           id: 'analysis-mat-1',
@@ -56,7 +56,7 @@ describe('AnalysisMaterializationStore', () => {
   });
 
   it('does not queue once the daily generation cap is reached', async () => {
-    prisma.userTodayAnalysisMaterialization.findUnique.mockResolvedValue({
+    prisma.userAnalysisMaterialization.findUnique.mockResolvedValue({
       sourceVersion: 3,
       computedVersion: 2,
       status: 'pending',
@@ -95,8 +95,8 @@ describe('AnalysisMaterializationStore', () => {
       computedAt: null,
       updatedAt: new Date('2026-08-10T08:00:00.000Z'),
     };
-    prisma.userTodayAnalysisMaterialization.findUnique.mockResolvedValue(row);
-    prisma.userTodayAnalysisMaterialization.update.mockImplementation(
+    prisma.userAnalysisMaterialization.findUnique.mockResolvedValue(row);
+    prisma.userAnalysisMaterialization.update.mockImplementation(
       ({ data }: { data: Record<string, unknown> }) => {
         Object.assign(row, data);
         return row;
@@ -146,8 +146,8 @@ describe('AnalysisMaterializationStore', () => {
       computedAt: null,
       updatedAt: new Date('2026-08-10T08:00:00.000Z'),
     };
-    prisma.userTodayAnalysisMaterialization.findUnique.mockResolvedValue(row);
-    prisma.userTodayAnalysisMaterialization.update.mockImplementation(
+    prisma.userAnalysisMaterialization.findUnique.mockResolvedValue(row);
+    prisma.userAnalysisMaterialization.update.mockImplementation(
       ({ data }: { data: Record<string, unknown> }) => {
         Object.assign(row, data);
         return row;
@@ -169,7 +169,7 @@ describe('AnalysisMaterializationStore', () => {
 
   it('reclaims an expired active claim before claiming without incrementing during reclaim', async () => {
     const expiredAt = new Date(Date.now() - 16 * 60 * 1000);
-    prisma.userTodayAnalysisMaterialization.findUnique.mockResolvedValue({
+    prisma.userAnalysisMaterialization.findUnique.mockResolvedValue({
       id: 'analysis-mat-1',
       userId: 'user-1',
       localDate: new Date('2026-08-10T00:00:00.000Z'),
@@ -187,7 +187,7 @@ describe('AnalysisMaterializationStore', () => {
       computedAt: null,
       updatedAt: new Date(),
     });
-    prisma.userTodayAnalysisMaterialization.updateMany
+    prisma.userAnalysisMaterialization.updateMany
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 1 });
 
@@ -200,7 +200,7 @@ describe('AnalysisMaterializationStore', () => {
     });
 
     expect(
-      prisma.userTodayAnalysisMaterialization.updateMany.mock.calls[0]?.[0],
+      prisma.userAnalysisMaterialization.updateMany.mock.calls[0]?.[0],
     ).toEqual(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -211,7 +211,7 @@ describe('AnalysisMaterializationStore', () => {
       }),
     );
     expect(
-      prisma.userTodayAnalysisMaterialization.updateMany.mock.calls[1]?.[0],
+      prisma.userAnalysisMaterialization.updateMany.mock.calls[1]?.[0],
     ).toEqual(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -242,8 +242,8 @@ describe('AnalysisMaterializationStore', () => {
       computedAt: null,
       updatedAt: new Date(),
     };
-    prisma.userTodayAnalysisMaterialization.findUnique.mockResolvedValue(row);
-    prisma.userTodayAnalysisMaterialization.updateMany.mockImplementation(
+    prisma.userAnalysisMaterialization.findUnique.mockResolvedValue(row);
+    prisma.userAnalysisMaterialization.updateMany.mockImplementation(
       ({
         where,
         data,
@@ -311,7 +311,7 @@ describe('AnalysisMaterializationStore', () => {
   });
 
   it('does not let an expired claim bypass the daily generation cap', async () => {
-    prisma.userTodayAnalysisMaterialization.findUnique.mockResolvedValue({
+    prisma.userAnalysisMaterialization.findUnique.mockResolvedValue({
       id: 'analysis-mat-1',
       userId: 'user-1',
       localDate: new Date('2026-08-10T00:00:00.000Z'),
@@ -335,7 +335,7 @@ describe('AnalysisMaterializationStore', () => {
     ).resolves.toEqual({ claimed: false, status: 'capped' });
 
     expect(
-      prisma.userTodayAnalysisMaterialization.updateMany,
+      prisma.userAnalysisMaterialization.updateMany,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ sourceVersion: 4 }),
@@ -343,7 +343,7 @@ describe('AnalysisMaterializationStore', () => {
       }),
     );
     expect(
-      prisma.userTodayAnalysisMaterialization.updateMany,
+      prisma.userAnalysisMaterialization.updateMany,
     ).toHaveBeenCalledTimes(1);
   });
 
@@ -356,7 +356,7 @@ describe('AnalysisMaterializationStore', () => {
     });
 
     expect(
-      prisma.userTodayAnalysisMaterialization.updateMany,
+      prisma.userAnalysisMaterialization.updateMany,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -372,7 +372,7 @@ describe('AnalysisMaterializationStore', () => {
     await store.releaseClaim('user-1', '2026-08-10', 4, 5);
 
     expect(
-      prisma.userTodayAnalysisMaterialization.updateMany,
+      prisma.userAnalysisMaterialization.updateMany,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({

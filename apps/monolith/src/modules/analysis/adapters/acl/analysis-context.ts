@@ -12,10 +12,10 @@ import {
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
+import { DoseLogStatus, RecordKind } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import { RecordEntryReaderPort } from '../../../record/index.js';
-import type { RecordEntryFact } from '../../../record/index.js';
+import { DailyRecordReaderPort } from '../../../record/index.js';
+import type { DailyRecordFact } from '../../../record/index.js';
 import { DoseLogEntryReaderPort } from '../../../dose/index.js';
 import { ReminderEntryReaderPort } from '../../../reminder/index.js';
 import type { ReminderEntryFact } from '../../../reminder/index.js';
@@ -103,7 +103,7 @@ export class AnalysisContextService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly doseLogReader: DoseLogEntryReaderPort,
     private readonly reminderReader: ReminderEntryReaderPort,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
@@ -231,7 +231,7 @@ export class AnalysisContextService {
 
     const waterSummary = summarizeWaterMetrics(
       records
-        .filter((record) => record.kind === DailyRecordKind.water)
+        .filter((record) => record.kind === RecordKind.water)
         .map((record) => ({ value: record.value, unit: record.unit })),
     );
     const waterTarget =
@@ -292,7 +292,7 @@ export class AnalysisContextService {
     };
   }
 
-  private buildRecordSummary(records: RecordEntryFact[]) {
+  private buildRecordSummary(records: DailyRecordFact[]) {
     const counts = new Map<string, number>();
     for (const record of records) {
       counts.set(record.kind, (counts.get(record.kind) ?? 0) + 1);
@@ -322,7 +322,7 @@ export class AnalysisContextService {
   // Sleep date convention: a sleep record's `occurredAt` is the wake date
   // (the morning the user wakes up). Querying by `occurredAt = day` returns
   // the sleep the user woke up on that calendar day.
-  private buildSleepContext(records: RecordEntryFact[]): {
+  private buildSleepContext(records: DailyRecordFact[]): {
     status: 'ok' | 'insufficient_data';
     durationMinutes: number | null;
     quality: string | null;
@@ -344,7 +344,7 @@ export class AnalysisContextService {
     };
 
     const sleepRecord = records.find(
-      (record) => record.kind === DailyRecordKind.sleep,
+      (record) => record.kind === RecordKind.sleep,
     );
 
     if (sleepRecord == null) {
@@ -392,7 +392,7 @@ export class AnalysisContextService {
     };
   }
 
-  private toRecentRecord(record: RecordEntryFact) {
+  private toRecentRecord(record: DailyRecordFact) {
     const mealPresentation = this.toMealRecentRecord(record);
     if (mealPresentation != null) {
       return mealPresentation;
@@ -408,8 +408,8 @@ export class AnalysisContextService {
     };
   }
 
-  private toMealRecentRecord(record: RecordEntryFact) {
-    if (record.kind !== DailyRecordKind.meal) {
+  private toMealRecentRecord(record: DailyRecordFact) {
+    if (record.kind !== RecordKind.meal) {
       return null;
     }
 

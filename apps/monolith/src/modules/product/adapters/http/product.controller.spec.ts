@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
 import { errAsync, okAsync } from '../../../../common/result/index.js';
@@ -37,9 +37,9 @@ function validationFailure(): DomainFailure {
 
 function validEvent(overrides: Record<string, unknown> = {}) {
   return {
-    name: ProductEventName.review_opened,
-    surface: ProductEventSurface.review,
-    result: ProductEventResult.success,
+    name: ProductEventLogName.review_opened,
+    surface: ProductEventLogSurface.review,
+    result: ProductEventLogResult.success,
     appVersion: '1.2.0',
     platform: UserDevicePlatform.ios,
     occurredAt: '2026-08-14T02:00:00.000Z',

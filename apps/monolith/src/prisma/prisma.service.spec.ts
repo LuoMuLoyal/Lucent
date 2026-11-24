@@ -74,9 +74,9 @@ const mockWarn = vi
 
 const mockExtendedClient = {
   user: { nonDeleted: { findMany: vi.fn(), findFirst: vi.fn() } },
-  userDailyRecord: { nonDeleted: { findMany: vi.fn() } },
-  userMedicineReminder: { nonDeleted: { findMany: vi.fn() } },
-  userMedicineDoseLog: { nonDeleted: { findMany: vi.fn() } },
+  userRecord: { nonDeleted: { findMany: vi.fn() } },
+  userReminder: { nonDeleted: { findMany: vi.fn() } },
+  userDoseLog: { nonDeleted: { findMany: vi.fn() } },
 };
 
 // Import after mocks are set up
@@ -153,9 +153,9 @@ describe('PrismaService', () => {
       const service = new PrismaService(configService);
 
       expect(service.nonDeleted.user).toBeDefined();
-      expect(service.nonDeleted.userDailyRecord).toBeDefined();
-      expect(service.nonDeleted.userMedicineReminder).toBeDefined();
-      expect(service.nonDeleted.userMedicineDoseLog).toBeDefined();
+      expect(service.nonDeleted.userRecord).toBeDefined();
+      expect(service.nonDeleted.userReminder).toBeDefined();
+      expect(service.nonDeleted.userDoseLog).toBeDefined();
     });
   });
 

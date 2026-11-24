@@ -228,7 +228,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-reminder',
-    model: 'userMedicineReminder',
+    model: 'userReminder',
     softDelete: true,
     searchFields: ['label', 'note'],
     filterFields: ['userId', 'isActive', 'currentMedicineId'],
@@ -263,7 +263,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-dose',
-    model: 'userMedicineDoseLog',
+    model: 'userDoseLog',
     softDelete: true,
     searchFields: ['doseText', 'note'],
     filterFields: ['userId', 'status'],
@@ -297,7 +297,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-record',
-    model: 'userDailyRecord',
+    model: 'userRecord',
     softDelete: true,
     searchFields: ['title', 'value', 'note'],
     filterFields: ['userId', 'kind', 'mealAnalysisStatus'],
@@ -325,7 +325,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-daily-record-attachments',
-    model: 'userDailyRecordAttachment',
+    model: 'userRecordAttachment',
     searchFields: ['fileName', 'objectKey'],
     filterFields: ['userId', 'recordId'],
     writableFields: [
@@ -444,7 +444,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-analysis-materializations',
-    model: 'userTodayAnalysisMaterialization',
+    model: 'userAnalysisMaterialization',
     filterFields: ['userId', 'status'],
     writableFields: [
       'userId',
@@ -533,7 +533,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-notification',
-    model: 'userNotificationPreference',
+    model: 'userNotificationSettings',
     idField: 'userId',
     filterFields: ['userId'],
     writableFields: [
@@ -565,7 +565,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'export-requests',
-    model: 'DataExportRequest',
+    model: 'ExportRequest',
     searchFields: ['kind', 'status'],
     filterFields: ['userId', 'status', 'kind'],
     writableFields: [
@@ -604,7 +604,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'user-product',
-    model: 'userProductEvent',
+    model: 'userProductEventLog',
     readOnly: true,
     filterFields: ['userId', 'name', 'surface'],
   }),

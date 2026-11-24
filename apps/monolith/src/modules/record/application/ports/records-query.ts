@@ -10,17 +10,17 @@
  *
  * ## 形状约束
  *
- * - 返回**轻量事实**（`RecordEntryFact`），只有数据列，没有 Prisma 查询 DSL。
+ * - 返回**轻量事实**（`DailyRecordFact`），只有数据列，没有 Prisma 查询 DSL。
  * - 规范顺序 `occurredAt asc, createdAt asc`；需要别的顺序由消费方在内存里重排。
  * - 一次最多 `MAX_READER_FACTS` 条：上下文查询不能随用户数据无限增长。
  *   要精确总数 / 最新时间请用专门的计数方法。
  */
-import type { DailyRecordKind } from '../../domain/record/record-kind.js';
+import type { RecordKind } from '../../domain/record/record-kind.js';
 
 /** 跨模块可见的记录事实（ADR-0009）。 */
-export interface RecordEntryFact {
+export interface DailyRecordFact {
   id: string;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   occurredAt: Date;
   occurredTime: string | null;
   title: string | null;
@@ -45,9 +45,9 @@ export interface RecordEntryFact {
 export const MAX_READER_FACTS = 500;
 
 /** 按 id 读单条记录的最小投影（事件复查解析触发记录标题等场景）。 */
-export interface RecordEntrySummaryFact {
+export interface DailyRecordSummaryFact {
   id: string;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   occurredAt: Date;
   occurredTime: string | null;
   title: string | null;
@@ -59,7 +59,7 @@ export interface RecordEntrySummaryFact {
   createdAt: Date;
 }
 
-export abstract class RecordEntryReaderPort {
+export abstract class DailyRecordReaderPort {
   /**
    * 列出 `occurredAt` 落在 [from, to] 的非删除记录，最多 `MAX_READER_FACTS` 条。
    *
@@ -69,15 +69,15 @@ export abstract class RecordEntryReaderPort {
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
-  ): Promise<RecordEntryFact[]>;
+    kinds?: RecordKind[],
+  ): Promise<DailyRecordFact[]>;
 
   /** `occurredAt` 落在 [from, to] 的非删除记录精确条数。 */
   abstract countFactsInRange(
     userId: string,
     from: Date,
     to: Date,
-    kinds?: DailyRecordKind[],
+    kinds?: RecordKind[],
   ): Promise<number>;
 
   /** [from, to] 内非删除记录的最新 `createdAt`；没有记录时返回 `null`。 */
@@ -96,7 +96,7 @@ export abstract class RecordEntryReaderPort {
   abstract findById(
     userId: string,
     id: string,
-  ): Promise<RecordEntrySummaryFact | null>;
+  ): Promise<DailyRecordSummaryFact | null>;
 
   /**
    * 按 id 读单条（含附件明细）。
@@ -107,5 +107,5 @@ export abstract class RecordEntryReaderPort {
   abstract findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<RecordEntryFact | null>;
+  ): Promise<DailyRecordFact | null>;
 }

@@ -27,7 +27,7 @@ const ROW_SELECT = {
   fileName: true,
   fileSizeBytes: true,
   errorMessage: true,
-} satisfies Prisma.DataExportRequestSelect;
+} satisfies Prisma.ExportRequestSelect;
 
 /**
  * `ExportRequests` 端口的 Prisma 实现。
@@ -47,7 +47,7 @@ export class PrismaExportRequests extends ExportRequests {
 
   async create(input: NewExportRequest): Promise<ExportRequestRow> {
     try {
-      return await this.prisma.dataExportRequest.create({
+      return await this.prisma.exportRequest.create({
         data: {
           userId: input.userId,
           kind: input.kind,
@@ -67,7 +67,7 @@ export class PrismaExportRequests extends ExportRequests {
 
   async findById(id: string): Promise<ExportRequestRow | null> {
     try {
-      return await this.prisma.dataExportRequest.findUnique({
+      return await this.prisma.exportRequest.findUnique({
         where: { id },
         select: ROW_SELECT,
       });
@@ -78,7 +78,7 @@ export class PrismaExportRequests extends ExportRequests {
 
   async findLatestByUser(userId: string): Promise<ExportRequestRow | null> {
     try {
-      return await this.prisma.dataExportRequest.findFirst({
+      return await this.prisma.exportRequest.findFirst({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         select: ROW_SELECT,
@@ -90,7 +90,7 @@ export class PrismaExportRequests extends ExportRequests {
 
   async markProcessing(id: string): Promise<void> {
     try {
-      await this.prisma.dataExportRequest.update({
+      await this.prisma.exportRequest.update({
         where: { id },
         data: { status: 'processing', errorMessage: null },
       });
@@ -101,7 +101,7 @@ export class PrismaExportRequests extends ExportRequests {
 
   async complete(id: string, patch: ExportRequestCompletion): Promise<void> {
     try {
-      await this.prisma.dataExportRequest.update({
+      await this.prisma.exportRequest.update({
         where: { id },
         data: {
           status: patch.status,

@@ -3,7 +3,7 @@
  *
  * ## 聚合边界
  *
- * `RecordEntry` 拥有的是 `user_daily_records` 一行 + 它的附件行
+ * `DailyRecord` 拥有的是 `user_daily_records` 一行 + 它的附件行
  * （`user_daily_record_attachments`）：附件没有独立生命周期，删记录即删附件，
  * 所以它们在**同一个**聚合里。餐食分析结果不是独立聚合——它是记录的 payload
  * 与投影列，写它也是一次记录更新（见 `domain/meal/meal-analysis.ts`）。
@@ -21,13 +21,13 @@
  * 行为返回领域词汇（`null` / `RecordPayloadProblem`），由应用层映射成
  * `DomainFailure`。
  */
-import { isMeal, type DailyRecordKind } from './record-kind.js';
+import { isMeal, type RecordKind } from './record-kind.js';
 
 /** 记录的一次加载快照（写侧需要的字段）。 */
-export interface RecordEntryState {
+export interface DailyRecordState {
   id: string;
   userId: string;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   occurredAt: Date;
   payload: unknown;
   deletedAt: Date | null;
@@ -70,11 +70,11 @@ function asPlainRecord(raw: unknown): PlainRecord | null {
     : null;
 }
 
-export class RecordEntry {
-  private constructor(private readonly state: RecordEntryState) {}
+export class DailyRecord {
+  private constructor(private readonly state: DailyRecordState) {}
 
-  static from(state: RecordEntryState): RecordEntry {
-    return new RecordEntry(state);
+  static from(state: DailyRecordState): DailyRecord {
+    return new DailyRecord(state);
   }
 
   get id(): string {
@@ -85,7 +85,7 @@ export class RecordEntry {
     return this.state.userId;
   }
 
-  get kind(): DailyRecordKind {
+  get kind(): RecordKind {
     return this.state.kind;
   }
 
@@ -126,7 +126,7 @@ export class RecordEntry {
    * `domain/meal/meal-analysis.ts` 与写侧完成。
    */
   static validatePayload(
-    kind: DailyRecordKind,
+    kind: RecordKind,
     payload: Record<string, unknown> | undefined,
   ): RecordPayloadProblem | null {
     switch (kind) {
@@ -150,7 +150,7 @@ export class RecordEntry {
    * 不再需要满足睡眠约束。
    */
   static validateFinalState(input: {
-    kind: DailyRecordKind;
+    kind: RecordKind;
     payload: unknown;
   }): RecordPayloadProblem | null {
     if (input.kind !== 'sleep') {

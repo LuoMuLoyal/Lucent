@@ -2,9 +2,9 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import type { DomainEventPublisher } from '../../../../common/index.js';
 import type {
@@ -372,9 +372,9 @@ describe('EventsService', () => {
 
     expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
     expect(productEventLog.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
-      name: ProductEventName.health_event_started,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.success,
+      name: ProductEventLogName.health_event_started,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.success,
       eventStatus: HealthEventStatus.active,
       occurredAt: startedAt,
       clientEventId: `server-health-started-${EVENT_ID}`,
@@ -407,9 +407,9 @@ describe('EventsService', () => {
 
     expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
     expect(productEventLog.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
-      name: ProductEventName.health_event_ended,
-      surface: ProductEventSurface.review,
-      result: ProductEventResult.improved,
+      name: ProductEventLogName.health_event_ended,
+      surface: ProductEventLogSurface.review,
+      result: ProductEventLogResult.improved,
       eventStatus: HealthEventStatus.ended,
       occurredAt: expect.any(Date),
       clientEventId: `server-health-ended-${EVENT_ID}`,

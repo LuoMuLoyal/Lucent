@@ -13,7 +13,7 @@
 // ─── Event names ───
 
 import type {
-  DailyRecordKind,
+  RecordKind,
   HealthEventKind,
 } from '#generated/prisma/client.js';
 import type { RiskLevel } from '../risk/risk-level.js';
@@ -45,12 +45,12 @@ export const RISK_ASSESSMENT_COMPLETED = 'risk-assessment.completed';
 
 // ─── Event payloads ───
 
-export interface RecordEntryChangedPayload {
+export interface DailyRecordChangedPayload {
   userId: string;
   /** ISO date string (YYYY-MM-DD) of the record's occurredAt date. */
   date: string;
   /** Persisted kind; consumers must not infer semantics from title text. */
-  kind?: DailyRecordKind;
+  kind?: RecordKind;
   recordId?: string;
   triggerKey?: string;
 }

@@ -15,8 +15,8 @@ import type {
   ObservedMetric,
   WaterMetricInput,
 } from '../../../../common/index.js';
-import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
-import { RecordEntryReaderPort } from '../../../record/index.js';
+import { DoseLogStatus, RecordKind } from '#generated/prisma/client.js';
+import { DailyRecordReaderPort } from '../../../record/index.js';
 import { DoseLogEntryReaderPort } from '../../../dose/index.js';
 import { IUserSettingsPort } from '../../../settings/index.js';
 import {
@@ -47,7 +47,7 @@ export class ReportsContextService implements DashboardContextPort {
 
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
-    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly doseLogReader: DoseLogEntryReaderPort,
   ) {}
 
@@ -192,7 +192,7 @@ export class ReportsContextService implements DashboardContextPort {
   private buildObservedWaterSeries(
     records: Array<{
       occurredAt: Date;
-      kind: DailyRecordKind;
+      kind: RecordKind;
       value: string | null;
       unit: string | null;
     }>,
@@ -202,7 +202,7 @@ export class ReportsContextService implements DashboardContextPort {
     const recordsByDay = new Map<string, WaterMetricInput[]>();
 
     for (const record of records) {
-      if (record.kind !== DailyRecordKind.water) {
+      if (record.kind !== RecordKind.water) {
         continue;
       }
 
@@ -224,7 +224,7 @@ export class ReportsContextService implements DashboardContextPort {
   private buildSleepSeries(
     records: Array<{
       occurredAt: Date;
-      kind: DailyRecordKind;
+      kind: RecordKind;
       payload: unknown;
     }>,
     startDate: Date,
@@ -233,7 +233,7 @@ export class ReportsContextService implements DashboardContextPort {
     const durationByDay = new Map<string, number>();
 
     for (const record of records) {
-      if (record.kind !== DailyRecordKind.sleep) {
+      if (record.kind !== RecordKind.sleep) {
         continue;
       }
 
@@ -259,7 +259,7 @@ export class ReportsContextService implements DashboardContextPort {
   private buildMealEstimateFacts(
     records: Array<{
       occurredAt: Date;
-      kind: DailyRecordKind;
+      kind: RecordKind;
       payload: unknown;
     }>,
     startDate: Date,
@@ -275,7 +275,7 @@ export class ReportsContextService implements DashboardContextPort {
     const statusByDay = new Map<string, Set<MealAnalysisStatus>>();
 
     for (const record of records) {
-      if (record.kind !== DailyRecordKind.meal) {
+      if (record.kind !== RecordKind.meal) {
         continue;
       }
 

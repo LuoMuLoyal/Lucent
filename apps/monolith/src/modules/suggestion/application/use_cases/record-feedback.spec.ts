@@ -1,7 +1,7 @@
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import { RecordFeedbackUseCase } from './record-feedback.js';
 import { SuggestionFeedback } from '../../domain/suggestion/suggestion.types.js';
@@ -204,9 +204,9 @@ describe('RecordFeedbackUseCase', () => {
 
       expect(emitServerEvent).toHaveBeenCalledTimes(1);
       expect(emitServerEvent).toHaveBeenCalledWith('user-1', {
-        name: ProductEventName.suggestion_actioned,
-        surface: ProductEventSurface.today,
-        result: ProductEventResult.success,
+        name: ProductEventLogName.suggestion_actioned,
+        surface: ProductEventLogSurface.today,
+        result: ProductEventLogResult.success,
         suggestionRuleCode: 'water_behind_target',
       });
     });

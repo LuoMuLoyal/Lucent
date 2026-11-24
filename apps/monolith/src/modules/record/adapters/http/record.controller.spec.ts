@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 import { RecordController } from './record.controller.js';
-import { RecordEntryCandidatesService } from '../../application/use_cases/generate-candidates.js';
-import { RecordEntryImageUploadService } from './image-upload.service.js';
+import { DailyRecordCandidatesService } from '../../application/use_cases/generate-candidates.js';
+import { DailyRecordImageUploadService } from './image-upload.service.js';
 import { RecordsService } from '../../application/services/records-facade.service.js';
 import { SymptomCatalogService } from './symptom-catalog.service.js';
 import type { UserPayload } from '../../../auth/index.js';
@@ -14,8 +14,8 @@ import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-r
 describe('RecordController', () => {
   let controller: RecordController;
   let recordsService: vi.Mocked<RecordsService>;
-  let candidatesService: vi.Mocked<RecordEntryCandidatesService>;
-  let imageUploadService: vi.Mocked<RecordEntryImageUploadService>;
+  let candidatesService: vi.Mocked<DailyRecordCandidatesService>;
+  let imageUploadService: vi.Mocked<DailyRecordImageUploadService>;
   let symptomCatalogService: vi.Mocked<SymptomCatalogService>;
 
   const mockUser: UserPayload = {
@@ -47,11 +47,11 @@ describe('RecordController', () => {
 
     candidatesService = {
       generate: vi.fn(),
-    } as unknown as vi.Mocked<RecordEntryCandidatesService>;
+    } as unknown as vi.Mocked<DailyRecordCandidatesService>;
 
     imageUploadService = {
       createPresignedUpload: vi.fn(),
-    } as unknown as vi.Mocked<RecordEntryImageUploadService>;
+    } as unknown as vi.Mocked<DailyRecordImageUploadService>;
 
     symptomCatalogService = {
       list: vi.fn().mockReturnValue({ items: [] }),
@@ -61,9 +61,9 @@ describe('RecordController', () => {
       controllers: [RecordController],
       providers: [
         { provide: RecordsService, useValue: recordsService },
-        { provide: RecordEntryCandidatesService, useValue: candidatesService },
+        { provide: DailyRecordCandidatesService, useValue: candidatesService },
         {
-          provide: RecordEntryImageUploadService,
+          provide: DailyRecordImageUploadService,
           useValue: imageUploadService,
         },
         { provide: SymptomCatalogService, useValue: symptomCatalogService },
@@ -298,13 +298,13 @@ describe('Daily record HTTP DTO validation', () => {
   it('accepts YYYY-MM-DD and rejects ISO datetime strings for create occurredAt', () => {
     expect(
       createDailyRecordSchema.safeParse({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: '2026-09-03',
       }).success,
     ).toBe(true);
     expect(
       createDailyRecordSchema.safeParse({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: '2026-09-03T00:00:00.000Z',
       }).success,
     ).toBe(false);
@@ -313,14 +313,14 @@ describe('Daily record HTTP DTO validation', () => {
   it('keeps occurredTime as a separate HH:mm field', () => {
     expect(
       createDailyRecordSchema.safeParse({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: '2026-09-03',
         occurredTime: '08:30',
       }).success,
     ).toBe(true);
     expect(
       createDailyRecordSchema.safeParse({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: '2026-09-03',
         occurredTime: '08:30:00',
       }).success,

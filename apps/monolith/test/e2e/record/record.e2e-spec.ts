@@ -8,9 +8,9 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module.js';
 import { setupApp } from '../../../src/setup-app.js';
-import { RecordEntryCandidatesService } from '../../../src/modules/record/index.js';
+import { DailyRecordCandidatesService } from '../../../src/modules/record/index.js';
 import { PrismaService } from '../../../src/prisma/index.js';
-import { DailyRecordKind, UserStatus } from '#generated/prisma/client.js';
+import { RecordKind, UserStatus } from '#generated/prisma/client.js';
 import { ConfigKey } from '../../../src/config/env/config-keys.enum.js';
 
 const BASE_PATH = '/api/v1/user/record';
@@ -47,7 +47,7 @@ describe('Daily Records API (e2e)', () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let configService: ConfigService;
-  let candidateService: vi.Mocked<RecordEntryCandidatesService>;
+  let candidateService: vi.Mocked<DailyRecordCandidatesService>;
 
   beforeAll(async () => {
     const candidateServiceMock = {
@@ -57,7 +57,7 @@ describe('Daily Records API (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(RecordEntryCandidatesService)
+      .overrideProvider(DailyRecordCandidatesService)
       .useValue(candidateServiceMock)
       .compile();
 
@@ -72,10 +72,10 @@ describe('Daily Records API (e2e)', () => {
     prisma = app.get(PrismaService);
     jwtService = app.get(JwtService);
     configService = app.get(ConfigService);
-    candidateService = moduleFixture.get(RecordEntryCandidatesService);
+    candidateService = moduleFixture.get(DailyRecordCandidatesService);
 
-    await prisma.userDailyRecordAttachment.deleteMany();
-    await prisma.userDailyRecord.deleteMany();
+    await prisma.userRecordAttachment.deleteMany();
+    await prisma.userRecord.deleteMany();
     await prisma.userCurrentMedicine.deleteMany();
     await prisma.userCondition.deleteMany();
     await prisma.userAllergy.deleteMany();
@@ -84,8 +84,8 @@ describe('Daily Records API (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.userDailyRecordAttachment.deleteMany();
-    await prisma.userDailyRecord.deleteMany();
+    await prisma.userRecordAttachment.deleteMany();
+    await prisma.userRecord.deleteMany();
     await prisma.userCurrentMedicine.deleteMany();
     await prisma.userCondition.deleteMany();
     await prisma.userAllergy.deleteMany();
@@ -136,7 +136,7 @@ describe('Daily Records API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: '2026-06-04',
         value: '3',
         unit: 'cups',
@@ -175,7 +175,7 @@ describe('Daily Records API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        kind: DailyRecordKind.mood,
+        kind: RecordKind.mood,
         occurredAt: '2026-06-04',
         note: 'good',
       })
@@ -190,7 +190,7 @@ describe('Daily Records API (e2e)', () => {
       .send({ note: null })
       .expect(200);
 
-    const stored = await prisma.userDailyRecord.findUniqueOrThrow({
+    const stored = await prisma.userRecord.findUniqueOrThrow({
       where: { id },
     });
     expect(stored.note).toBeNull();
@@ -213,7 +213,7 @@ describe('Daily Records API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        kind: DailyRecordKind.meal,
+        kind: RecordKind.meal,
         occurredAt: '2026-06-04',
         title: 'Breakfast',
         attachments: [
@@ -269,7 +269,7 @@ describe('Daily Records API (e2e)', () => {
       .send({ attachments: [] })
       .expect(200);
 
-    const storedAttachments = await prisma.userDailyRecordAttachment.findMany({
+    const storedAttachments = await prisma.userRecordAttachment.findMany({
       where: { recordId: id },
     });
     expect(storedAttachments).toHaveLength(0);
@@ -291,7 +291,7 @@ describe('Daily Records API (e2e)', () => {
     const createRes = await request(app.getHttpServer())
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
-      .send({ kind: DailyRecordKind.note, occurredAt: '2026-06-04' })
+      .send({ kind: RecordKind.note, occurredAt: '2026-06-04' })
       .expect(201);
 
     const id = expectData(createRes.body as { id: string }).id;
@@ -333,7 +333,7 @@ describe('Daily Records API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        kind: DailyRecordKind.water,
+        kind: RecordKind.water,
         occurredAt: '2026-06-04',
         value: '3',
       })
@@ -343,7 +343,7 @@ describe('Daily Records API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        kind: DailyRecordKind.mood,
+        kind: RecordKind.mood,
         occurredAt: '2026-06-04',
         note: 'ok',
       })
@@ -374,7 +374,7 @@ describe('Daily Records API (e2e)', () => {
     const createRes = await request(app.getHttpServer())
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token1))
-      .send({ kind: DailyRecordKind.note, occurredAt: '2026-06-04' })
+      .send({ kind: RecordKind.note, occurredAt: '2026-06-04' })
       .expect(201);
 
     const id = expectData(createRes.body as { id: string }).id;

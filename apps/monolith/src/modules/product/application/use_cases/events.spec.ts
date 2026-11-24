@@ -1,9 +1,9 @@
 import {
   HealthEventStatus,
   Prisma,
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
 import type { ProductEventLog } from '../ports/product-event.js';
@@ -57,9 +57,9 @@ function event(
   overrides: Partial<CreateProductEventDto> = {},
 ): CreateProductEventDto {
   return {
-    name: ProductEventName.review_opened,
-    surface: ProductEventSurface.review,
-    result: ProductEventResult.success,
+    name: ProductEventLogName.review_opened,
+    surface: ProductEventLogSurface.review,
+    result: ProductEventLogResult.success,
     appVersion: '1.2.0',
     platform: UserDevicePlatform.ios,
     occurredAt: '2026-08-14T02:00:00.000Z',
@@ -72,9 +72,9 @@ function serverEvent(
   overrides: Partial<ServerProductEventInput> = {},
 ): ServerProductEventInput {
   return {
-    name: ProductEventName.health_event_started,
-    surface: ProductEventSurface.review,
-    result: ProductEventResult.success,
+    name: ProductEventLogName.health_event_started,
+    surface: ProductEventLogSurface.review,
+    result: ProductEventLogResult.success,
     ...overrides,
   };
 }
@@ -132,8 +132,8 @@ describe('ProductEventLogService', () => {
     await unwrapOk(
       service.recordBatch(USER_ID, [
         event({
-          name: ProductEventName.suggestion_actioned,
-          surface: ProductEventSurface.today,
+          name: ProductEventLogName.suggestion_actioned,
+          surface: ProductEventLogSurface.today,
           eventStatus: HealthEventStatus.active,
           suggestionRuleCode: 'water_behind_target',
           platform: UserDevicePlatform.android,
@@ -145,9 +145,9 @@ describe('ProductEventLogService', () => {
       {
         userId: USER_ID,
         clientEventId: 'client-1',
-        name: ProductEventName.suggestion_actioned,
-        surface: ProductEventSurface.today,
-        result: ProductEventResult.success,
+        name: ProductEventLogName.suggestion_actioned,
+        surface: ProductEventLogSurface.today,
+        result: ProductEventLogResult.success,
         eventStatus: HealthEventStatus.active,
         suggestionRuleCode: 'water_behind_target',
         appVersion: '1.2.0',
@@ -289,7 +289,7 @@ describe('ProductEventLogService', () => {
       expect(events.insertBatch).toHaveBeenCalledWith([
         expect.objectContaining({
           userId: USER_ID,
-          name: ProductEventName.health_event_started,
+          name: ProductEventLogName.health_event_started,
           appVersion: 'server',
           platform: UserDevicePlatform.web,
           clientEventId: expect.stringMatching(/^server-[0-9a-f-]{36}$/),
@@ -319,8 +319,8 @@ describe('ProductEventLogService', () => {
       await unwrapOk(
         service.recordServerEvents(USER_ID, [
           serverEvent({
-            name: ProductEventName.health_event_ended,
-            result: ProductEventResult.improved,
+            name: ProductEventLogName.health_event_ended,
+            result: ProductEventLogResult.improved,
             eventStatus: HealthEventStatus.ended,
             suggestionRuleCode: 'water_behind_target',
             occurredAt: new Date('2026-08-14T08:30:00.000Z'),
@@ -333,7 +333,7 @@ describe('ProductEventLogService', () => {
         unknown
       >[];
       expect(data[0]).toMatchObject({
-        result: ProductEventResult.improved,
+        result: ProductEventLogResult.improved,
         eventStatus: HealthEventStatus.ended,
         suggestionRuleCode: 'water_behind_target',
       });
@@ -359,10 +359,10 @@ describe('ProductEventLogService', () => {
       await unwrapOk(
         service.recordServerEvents(USER_ID, [
           serverEvent({
-            name: ProductEventName.health_event_started,
+            name: ProductEventLogName.health_event_started,
             clientEventId: 'server-health-started-evt-1',
           }),
-          serverEvent({ name: ProductEventName.health_event_ended }),
+          serverEvent({ name: ProductEventLogName.health_event_ended }),
         ]),
       );
 
@@ -417,7 +417,7 @@ describe('ProductEventLogService', () => {
         expect.not.stringContaining(USER_ID),
       );
       expect(metrics.recordProductEventEmissionFailure).toHaveBeenCalledWith(
-        ProductEventName.health_event_started,
+        ProductEventLogName.health_event_started,
       );
       loggerSpy.mockRestore();
     });

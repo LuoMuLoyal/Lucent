@@ -31,11 +31,11 @@ model HealthEvent {
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reasonRecord   UserDailyRecord?      @relation("HealthEventReasonRecord", fields: [reasonRecordId], references: [id], onDelete: SetNull)
+  reasonRecord   UserRecord?      @relation("HealthEventReasonRecord", fields: [reasonRecordId], references: [id], onDelete: SetNull)
   checkIns       HealthEventCheckIn[]
   medicines      HealthEventMedicine[]
-  dailyRecords   UserDailyRecord[]     @relation("HealthEventDailyRecords")
-  doseLogs       UserMedicineDoseLog[] @relation("HealthEventDoseLogs")
+  dailyRecords   UserRecord[]     @relation("HealthEventDailyRecords")
+  doseLogs       UserDoseLog[] @relation("HealthEventDoseLogs")
 
   @@index([userId, status, startedAt])
   @@index([userId, deletedAt])

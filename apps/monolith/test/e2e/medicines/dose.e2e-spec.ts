@@ -67,7 +67,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
     scheduledHour = 8,
     scheduledMinute = 30,
   ) {
-    return ctx.prisma.userMedicineReminder.create({
+    return ctx.prisma.userReminder.create({
       data: {
         userId,
         currentMedicineId,
@@ -178,7 +178,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
     expect(second.status).toBe('taken');
     expect(second.note).toBe('after breakfast');
 
-    const stored = await ctx.prisma.userMedicineDoseLog.findMany({
+    const stored = await ctx.prisma.userDoseLog.findMany({
       where: {
         userId: user.id,
         reminderId: reminder.id,
@@ -248,7 +248,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .send({ doseText: null, note: null })
       .expect(200);
 
-    const stored = await ctx.prisma.userMedicineDoseLog.findUniqueOrThrow({
+    const stored = await ctx.prisma.userDoseLog.findUniqueOrThrow({
       where: { id },
     });
     expect(stored.doseText).toBeNull();

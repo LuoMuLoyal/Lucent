@@ -13,9 +13,9 @@ const _reminderSelect = {
   note: true,
   createdAt: true,
   updatedAt: true,
-} satisfies Prisma.UserMedicineReminderSelect;
+} satisfies Prisma.UserReminderSelect;
 
-export type ReminderEntryRecord = Prisma.UserMedicineReminderGetPayload<{
+export type ReminderEntryRecord = Prisma.UserReminderGetPayload<{
   select: typeof _reminderSelect;
 }>;
 
@@ -39,9 +39,9 @@ const _ownedReminderSelect = {
   userId: true,
   startDate: true,
   endDate: true,
-} satisfies Prisma.UserMedicineReminderSelect;
+} satisfies Prisma.UserReminderSelect;
 
 export type OwnedMedicineReminderRecord =
-  Prisma.UserMedicineReminderGetPayload<{
+  Prisma.UserReminderGetPayload<{
     select: typeof _ownedReminderSelect;
   }>;

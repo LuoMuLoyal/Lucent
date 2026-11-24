@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventOutcome,
 } from '#generated/prisma/client.js';
 import {
@@ -20,7 +20,7 @@ export interface ReviewChangeCheckIn {
 /** Daily-record facts inside the event window (reader-port shape). */
 export interface ReviewChangeDailyRecord {
   occurredAt: Date;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   value: string | null;
   unit: string | null;
   payload: unknown;
@@ -167,7 +167,7 @@ export class EventReviewChangesService {
   ): Array<{ date: string; value: number }> {
     const byDay = new Map<string, WaterMetricInput[]>();
     for (const record of records) {
-      if (record.kind !== DailyRecordKind.water) {
+      if (record.kind !== RecordKind.water) {
         continue;
       }
       const day = formatDateOnly(record.occurredAt);
@@ -198,7 +198,7 @@ export class EventReviewChangesService {
   ): Array<{ date: string; value: number }> {
     const hoursByDay = new Map<string, number>();
     for (const record of records) {
-      if (record.kind !== DailyRecordKind.sleep) {
+      if (record.kind !== RecordKind.sleep) {
         continue;
       }
       const payload = record.payload as Record<string, unknown> | null;

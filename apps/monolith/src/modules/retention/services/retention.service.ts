@@ -17,7 +17,7 @@ const SOFT_DELETED_ACCOUNT_RETENTION_DAYS = 30;
  * receipt time): an offline client buffer could otherwise push receipt far
  * later than the event itself, extending raw retention past the contract.
  * Account hard-delete removes a user's raw events immediately via the FK
- * cascade on `UserProductEvent.userId`.
+ * cascade on `UserProductEventLog.userId`.
  */
 const RAW_PRODUCT_EVENT_RETENTION_DAYS = 90;
 
@@ -126,7 +126,7 @@ export class RetentionService {
         threshold.getUTCDate() - RAW_PRODUCT_EVENT_RETENTION_DAYS,
       );
 
-      const result = await this.prisma.userProductEvent.deleteMany({
+      const result = await this.prisma.userProductEventLog.deleteMany({
         where: { occurredAt: { lt: threshold } },
       });
 

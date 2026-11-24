@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RecordEntryReaderPort } from '../../../record/index.js';
+import { DailyRecordReaderPort } from '../../../record/index.js';
 import {
   aggregateDimension as aggregateInDomain,
   type TriggerDimension,
@@ -19,7 +19,7 @@ import { TriggerGateService } from '../../application/services/trigger-gate.js';
 export class TriggerEvaluatorService {
   private readonly gate: TriggerGateService;
 
-  constructor(dailyRecordReader: RecordEntryReaderPort) {
+  constructor(dailyRecordReader: DailyRecordReaderPort) {
     this.gate = new TriggerGateService(dailyRecordReader);
   }
 

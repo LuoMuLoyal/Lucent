@@ -4,7 +4,7 @@
  * ## Why the port speaks whole rows, not raw Prisma filters
  *
  * The previous port (`DoseLogEntryRepositoryPort`) exposed
- * `Prisma.UserMedicineDoseLogWhereInput` / `OrderBy` / `UncheckedCreateInput` to
+ * `Prisma.UserDoseLogWhereInput` / `OrderBy` / `UncheckedCreateInput` to
  * the application layer. That made every caller speak Prisma, so the layer
  * boundary existed only on paper and the service could not be tested without
  * Prisma shapes. This port names the three queries the context actually runs

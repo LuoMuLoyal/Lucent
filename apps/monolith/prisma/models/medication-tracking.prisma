@@ -31,8 +31,8 @@ model UserCurrentMedicine {
   createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  doseLogs      UserMedicineDoseLog[]
-  reminders     UserMedicineReminder[]
+  doseLogs      UserDoseLog[]
+  reminders     UserReminder[]
   healthEventMedicines HealthEventMedicine[]
   notifyMarks          UserMedicineNotifyMark[]
 
@@ -41,7 +41,7 @@ model UserCurrentMedicine {
   @@map("user_current_medicines")
 }
 
-model UserMedicineReminder {
+model UserReminder {
   id                String               @id @default(uuid())
   userId            String               @map("user_id")
   currentMedicineId String?              @map("current_medicine_id")
@@ -59,7 +59,7 @@ model UserMedicineReminder {
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
   deliveries        UserReminderDelivery[]
-  doseLogs          UserMedicineDoseLog[]
+  doseLogs          UserDoseLog[]
 
   // isActive index replaced by partial index in migration (WHERE is_active = true AND deleted_at IS NULL)
   @@index([userId, currentMedicineId])
@@ -80,7 +80,7 @@ model UserReminderDelivery {
   errorMessage String?               @map("error_message")
   createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reminder     UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  reminder     UserReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
   // 一个提醒事件（userId+reminderId+scheduledFor）允许 in_app/local/push 各一行，
   // 三通道各自落审计行；同一通道同一事件最多一行（见 ADR-0013）。
@@ -92,7 +92,7 @@ model UserReminderDelivery {
   @@map("reminder_deliveries")
 }
 
-model UserMedicineDoseLog {
+model UserDoseLog {
   id                String               @id @default(uuid())
   userId            String               @map("user_id")
   currentMedicineId String?              @map("current_medicine_id")
@@ -110,7 +110,7 @@ model UserMedicineDoseLog {
   updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
-  reminder          UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  reminder          UserReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
   healthEvent       HealthEvent?         @relation("HealthEventDoseLogs", fields: [healthEventId], references: [id], onDelete: SetNull)
 
   @@index([userId, scheduledFor])

@@ -23,7 +23,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import type { CreateRecordInput } from '../services/write-input.js';
-import { RecordEntry } from '../../domain/record/daily-record.js';
+import { DailyRecord } from '../../domain/record/daily-record.js';
 import { asDailyRecordKind } from '../../domain/record/record-kind.js';
 import type { RecordRow } from '../../domain/record/record-row.js';
 import { Records } from '../../domain/record/records.js';
@@ -51,7 +51,7 @@ export class CreateRecord {
     dto: CreateRecordInput,
   ): ResultAsync<RecordItem, DomainFailure> {
     const kind = asDailyRecordKind(dto.kind) ?? 'note';
-    const problem = RecordEntry.validatePayload(kind, dto.payload);
+    const problem = DailyRecord.validatePayload(kind, dto.payload);
     if (problem != null) {
       return errAsync(validationFailed());
     }

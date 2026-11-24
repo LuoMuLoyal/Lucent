@@ -155,7 +155,7 @@ export class RemindersService {
             // Slots carrying an id must belong to this user + medicine and not
             // be soft-deleted; otherwise the whole group upsert fails with 404.
             if (incomingIds.length > 0) {
-              const owned = await tx.userMedicineReminder.findMany({
+              const owned = await tx.userReminder.findMany({
                 where: {
                   id: { in: incomingIds },
                   userId,
@@ -172,7 +172,7 @@ export class RemindersService {
             // Soft-delete stale group rows before writing, so newly created
             // rows are not swept up by the same filter. Rows kept for update
             // are excluded via the incoming id set.
-            const staleWhere: Prisma.UserMedicineReminderWhereInput = {
+            const staleWhere: Prisma.UserReminderWhereInput = {
               userId,
               currentMedicineId: dto.currentMedicineId,
               ...nonDeleted,
@@ -180,14 +180,14 @@ export class RemindersService {
             if (incomingIds.length > 0) {
               staleWhere.id = { notIn: incomingIds };
             }
-            await tx.userMedicineReminder.updateMany({
+            await tx.userReminder.updateMany({
               where: staleWhere,
               data: { deletedAt: now(), isActive: false },
             });
 
             for (const [index, slot] of dto.slots.entries()) {
               if (slot.id != null) {
-                await tx.userMedicineReminder.update({
+                await tx.userReminder.update({
                   where: { id: slot.id },
                   data: {
                     ...updateData,
@@ -198,12 +198,12 @@ export class RemindersService {
               } else {
                 const data = createData[index];
                 if (data !== undefined) {
-                  await tx.userMedicineReminder.create({ data });
+                  await tx.userReminder.create({ data });
                 }
               }
             }
 
-            const rows = await tx.userMedicineReminder.findMany({
+            const rows = await tx.userReminder.findMany({
               where: {
                 userId,
                 currentMedicineId: dto.currentMedicineId,

@@ -1,11 +1,11 @@
 /**
  * 一条日报记录的行投影（含附件），领域与应用层共用的数据形状。
  *
- * 这里刻意**不是** Prisma 的 `UserDailyRecordGetPayload`：读模型、presenter 与
+ * 这里刻意**不是** Prisma 的 `userRecordGetPayload`：读模型、presenter 与
  * 端口都在用这个形状，而只有 `infrastructure/persistence/` 允许知道 Prisma 的
  * 生成类型。日期保持 `Date`（而不是字符串），格式化成 wire 形状是 presenter 的事。
  */
-import type { DailyRecordKind } from './record-kind.js';
+import type { RecordKind } from './record-kind.js';
 
 /** 附件行（全部列都是展示用，没有领域行为）。 */
 export interface RecordAttachmentRow {
@@ -34,7 +34,7 @@ export interface RecordRow {
   id: string;
   userId: string;
   healthEventId: string | null;
-  kind: DailyRecordKind;
+  kind: RecordKind;
   occurredAt: Date;
   occurredTime: string | null;
   title: string | null;

@@ -113,7 +113,7 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
   }
 
   async listReminders(userId: string): Promise<ReminderEntryRow[]> {
-    const reminders = await this.prisma.userMedicineReminder.findMany({
+    const reminders = await this.prisma.userReminder.findMany({
       where: { userId, isActive: true, ...nonDeleted },
       orderBy: [{ scheduledHour: 'asc' }, { scheduledMinute: 'asc' }],
     });

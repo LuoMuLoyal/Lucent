@@ -16,7 +16,7 @@ async function unwrapOk<T>(
 describe('NotificationService', () => {
   it('returns default values and configured=false when the row is missing', async () => {
     const prisma = {
-      userNotificationPreference: {
+      userNotificationSettings: {
         findUnique: vi.fn().mockResolvedValue(null),
       },
     };
@@ -37,7 +37,7 @@ describe('NotificationService', () => {
   it('patches only supplied fields and returns the configured row', async () => {
     const updatedAt = new Date('2026-08-20T01:02:03.000Z');
     const prisma = {
-      userNotificationPreference: {
+      userNotificationSettings: {
         findUnique: vi.fn(),
         upsert: vi.fn().mockResolvedValue({
           isHealthAlertsEnabled: false,
@@ -71,7 +71,7 @@ describe('NotificationService', () => {
       updatedAt: updatedAt.toISOString(),
     });
 
-    expect(prisma.userNotificationPreference.upsert).toHaveBeenCalledWith(
+    expect(prisma.userNotificationSettings.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: 'user-1' },
         update: {
@@ -87,7 +87,7 @@ describe('NotificationService', () => {
     'rejects sleep time minute %s outside 0..1439 with VALIDATION_FAILED',
     async (minutes) => {
       const prisma = {
-        userNotificationPreference: { upsert: vi.fn() },
+        userNotificationSettings: { upsert: vi.fn() },
       };
       const service = new NotificationService(prisma as never);
 
@@ -102,13 +102,13 @@ describe('NotificationService', () => {
         ok: false,
         error: { kind: 'validation', code: 'VALIDATION_FAILED' },
       });
-      expect(prisma.userNotificationPreference.upsert).not.toHaveBeenCalled();
+      expect(prisma.userNotificationSettings.upsert).not.toHaveBeenCalled();
     },
   );
 
   it('returns the current row without writing when the payload is empty', async () => {
     const prisma = {
-      userNotificationPreference: {
+      userNotificationSettings: {
         findUnique: vi.fn().mockResolvedValue(null),
         upsert: vi.fn(),
       },
@@ -118,14 +118,14 @@ describe('NotificationService', () => {
     await expect(unwrapOk(service.patch('user-1', {}))).resolves.toMatchObject({
       configured: false,
     });
-    expect(prisma.userNotificationPreference.upsert).not.toHaveBeenCalled();
+    expect(prisma.userNotificationSettings.upsert).not.toHaveBeenCalled();
   });
 
   it.each(['sleep_shortfall', 'event_check_in_trend', 'deteriorating_symptom'])(
     'maps %s to isHealthAlertsEnabled',
     async (ruleId) => {
       const prisma = {
-        userNotificationPreference: {
+        userNotificationSettings: {
           findUnique: vi.fn().mockResolvedValue({
             ...{
               isHealthAlertsEnabled: false,
@@ -149,7 +149,7 @@ describe('NotificationService', () => {
 
   it('maps water_behind_target only to isWaterRemindersEnabled', async () => {
     const prisma = {
-      userNotificationPreference: {
+      userNotificationSettings: {
         findUnique: vi.fn().mockResolvedValue({
           isHealthAlertsEnabled: false,
           isWeeklyInsightEnabled: false,
@@ -170,19 +170,19 @@ describe('NotificationService', () => {
 
   it('does not gate missed_dose_pending with notification preferences', async () => {
     const prisma = {
-      userNotificationPreference: { findUnique: vi.fn() },
+      userNotificationSettings: { findUnique: vi.fn() },
     };
     const service = new NotificationService(prisma as never);
 
     await expect(
       service.isRuleEnabled('user-1', 'missed_dose_pending'),
     ).resolves.toBe(true);
-    expect(prisma.userNotificationPreference.findUnique).not.toHaveBeenCalled();
+    expect(prisma.userNotificationSettings.findUnique).not.toHaveBeenCalled();
   });
 
   it('fails closed when a gated-rule preference read fails', async () => {
     const prisma = {
-      userNotificationPreference: {
+      userNotificationSettings: {
         findUnique: vi
           .fn()
           .mockRejectedValue(new Error('database unavailable')),

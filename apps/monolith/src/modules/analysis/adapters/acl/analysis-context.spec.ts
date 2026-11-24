@@ -1,6 +1,6 @@
 import { AnalysisContextService } from './analysis-context.js';
 import { TriggerEvaluatorService } from '../../application/services/trigger-evaluator.js';
-import { DailyRecordKind } from '#generated/prisma/client.js';
+import { RecordKind } from '#generated/prisma/client.js';
 
 function createMockCache() {
   return {
@@ -990,7 +990,7 @@ describe('AnalysisContextService', () => {
       const result = await service.shouldTriggerForDimension(
         'u1',
         '2026-07-03',
-        DailyRecordKind.water,
+        RecordKind.water,
       );
 
       expect(result).toBe(true);
@@ -1029,7 +1029,7 @@ describe('AnalysisContextService', () => {
       const result = await service.shouldTriggerForDimension(
         'u1',
         '2026-07-01',
-        DailyRecordKind.water,
+        RecordKind.water,
       );
 
       expect(result).toBe(false);
@@ -1068,7 +1068,7 @@ describe('AnalysisContextService', () => {
       const result = await service.shouldTriggerForDimension(
         'u1',
         '2026-07-01',
-        DailyRecordKind.water,
+        RecordKind.water,
       );
 
       expect(result).toBe(true);
@@ -1107,7 +1107,7 @@ describe('AnalysisContextService', () => {
       const result = await service.shouldTriggerForDimension(
         'u1',
         '2026-07-01',
-        DailyRecordKind.sleep,
+        RecordKind.sleep,
       );
 
       expect(result).toBe(true);
@@ -1163,7 +1163,7 @@ describe('AnalysisContextService', () => {
       const result = await service.shouldTriggerForDimension(
         'u1',
         '2026-07-01',
-        DailyRecordKind.meal,
+        RecordKind.meal,
       );
 
       expect(result).toBe(true);

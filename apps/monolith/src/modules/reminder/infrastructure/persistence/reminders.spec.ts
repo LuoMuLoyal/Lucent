@@ -32,14 +32,14 @@ describe('PrismaReminders', () => {
 
   beforeEach(() => {
     prisma = {
-      userMedicineReminder: {
+      userReminder: {
         findMany: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
         findFirst: vi.fn(),
       },
       nonDeleted: {
-        userMedicineReminder: {
+        userReminder: {
           findFirst: vi.fn(),
         },
       },
@@ -68,11 +68,11 @@ describe('PrismaReminders', () => {
       // Regression guard: `suggestion` keys medication slots by
       // `reminder.id`. Dropping it from the select makes the facts unusable
       // there, and the failure surfaces only at the consumer, not here.
-      prisma.userMedicineReminder.findMany.mockResolvedValue([] as never);
+      prisma.userReminder.findMany.mockResolvedValue([] as never);
 
       await repository.listActiveFacts('user-1');
 
-      expect(prisma.userMedicineReminder.findMany).toHaveBeenCalledWith(
+      expect(prisma.userReminder.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           select: expect.objectContaining({ id: true }),
         }),
@@ -175,17 +175,17 @@ describe('PrismaReminders', () => {
   });
   describe('findManyReminders', () => {
     it('queries with where clause', async () => {
-      prisma.userMedicineReminder.findMany.mockResolvedValue([] as never);
+      prisma.userReminder.findMany.mockResolvedValue([] as never);
 
       await repository.findManyReminders({ userId: 'user-1' } as never);
 
-      expect(prisma.userMedicineReminder.findMany).toHaveBeenCalledWith({
+      expect(prisma.userReminder.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
       });
     });
 
     it('includes orderBy when provided', async () => {
-      prisma.userMedicineReminder.findMany.mockResolvedValue([] as never);
+      prisma.userReminder.findMany.mockResolvedValue([] as never);
 
       const orderBy = [{ scheduledHour: 'asc' as const }];
       await repository.findManyReminders(
@@ -193,7 +193,7 @@ describe('PrismaReminders', () => {
         orderBy,
       );
 
-      expect(prisma.userMedicineReminder.findMany).toHaveBeenCalledWith({
+      expect(prisma.userReminder.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         orderBy,
       });
@@ -203,7 +203,7 @@ describe('PrismaReminders', () => {
   describe('createReminder', () => {
     it('creates with provided data', async () => {
       const data = { userId: 'user-1', label: 'Morning', scheduledHour: 8 };
-      prisma.userMedicineReminder.create.mockResolvedValue({
+      prisma.userReminder.create.mockResolvedValue({
         id: 'rem-1',
         ...data,
       } as never);
@@ -216,11 +216,11 @@ describe('PrismaReminders', () => {
         ok: true,
         value: { id: 'rem-1', label: 'Morning' },
       });
-      expect(prisma.userMedicineReminder.create).toHaveBeenCalledWith({ data });
+      expect(prisma.userReminder.create).toHaveBeenCalledWith({ data });
     });
 
     it('maps a unique constraint violation to RESOURCE_CONFLICT', async () => {
-      prisma.userMedicineReminder.create.mockRejectedValue(
+      prisma.userReminder.create.mockRejectedValue(
         prismaError('P2002'),
       );
 
@@ -235,7 +235,7 @@ describe('PrismaReminders', () => {
     });
 
     it('rethrows unknown database errors', async () => {
-      prisma.userMedicineReminder.create.mockRejectedValue(
+      prisma.userReminder.create.mockRejectedValue(
         new Error('connection lost'),
       );
 
@@ -249,7 +249,7 @@ describe('PrismaReminders', () => {
     it('updates with where and data', async () => {
       const where = { id: 'rem-1' };
       const data = { label: 'Updated' };
-      prisma.userMedicineReminder.update.mockResolvedValue({
+      prisma.userReminder.update.mockResolvedValue({
         id: 'rem-1',
         label: 'Updated',
       } as never);
@@ -262,14 +262,14 @@ describe('PrismaReminders', () => {
         ok: true,
         value: { id: 'rem-1', label: 'Updated' },
       });
-      expect(prisma.userMedicineReminder.update).toHaveBeenCalledWith({
+      expect(prisma.userReminder.update).toHaveBeenCalledWith({
         where,
         data,
       });
     });
 
     it('maps a missing record to RESOURCE_NOT_FOUND', async () => {
-      prisma.userMedicineReminder.update.mockRejectedValue(
+      prisma.userReminder.update.mockRejectedValue(
         prismaError('P2025'),
       );
 
@@ -284,7 +284,7 @@ describe('PrismaReminders', () => {
     });
 
     it('rethrows unknown database errors', async () => {
-      prisma.userMedicineReminder.update.mockRejectedValue(
+      prisma.userReminder.update.mockRejectedValue(
         new Error('connection lost'),
       );
 
@@ -324,12 +324,12 @@ describe('PrismaReminders', () => {
 
   describe('findReminderById', () => {
     it('queries with id and nonDeleted filter', async () => {
-      prisma.nonDeleted.userMedicineReminder.findFirst.mockResolvedValue(null);
+      prisma.nonDeleted.userReminder.findFirst.mockResolvedValue(null);
 
       await repository.findReminderById('rem-1', { id: true } as never);
 
       expect(
-        prisma.nonDeleted.userMedicineReminder.findFirst,
+        prisma.nonDeleted.userReminder.findFirst,
       ).toHaveBeenCalledWith({
         where: { id: 'rem-1' },
         select: { id: true },

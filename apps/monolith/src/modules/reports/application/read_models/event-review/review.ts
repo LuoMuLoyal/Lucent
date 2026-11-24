@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createDomainFailure } from '../../../../../common/result/index.js';
 import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 import {
@@ -21,8 +21,8 @@ import {
   type HealthEventRecord,
 } from '../../../../health-events/index.js';
 import {
-  RecordEntryReaderPort,
-  type RecordEntryFact,
+  DailyRecordReaderPort,
+  type DailyRecordFact,
 } from '../../../../record/index.js';
 import { DoseLogEntryReaderPort } from '../../../../dose/index.js';
 import { MedicineRiskCheckService } from '../../../../medicines/index.js';
@@ -67,7 +67,7 @@ interface ReviewWindowFacts {
   /** Exact symptom-record count in the window (dedicated count query). */
   symptomRecordCount: number;
   /** Window records for trend computation (capped reader list). */
-  records: RecordEntryFact[];
+  records: DailyRecordFact[];
   /** Exact daily-record count in the window (dedicated count query). */
   dailyRecordCount: number;
   latestDailyRecordCreatedAt: Date | null;
@@ -101,7 +101,7 @@ export class EventReviewService {
 
   constructor(
     private readonly healthEvents: HealthEventsOwnershipService,
-    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly doseLogReader: DoseLogEntryReaderPort,
     private readonly factsSection: EventReviewFactsService,
     private readonly changesSection: EventReviewChangesService,
@@ -143,7 +143,7 @@ export class EventReviewService {
       this.healthEvents.findCheckIns(userId, eventId),
       this.dailyRecordReader.listFactsInRange(userId, windowStart, windowEnd),
       this.dailyRecordReader.countFactsInRange(userId, windowStart, windowEnd, [
-        DailyRecordKind.symptom,
+        RecordKind.symptom,
       ]),
       this.dailyRecordReader.countFactsInRange(userId, windowStart, windowEnd),
       this.dailyRecordReader.findLatestCreatedAtInRange(

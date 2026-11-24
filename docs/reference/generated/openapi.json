@@ -178,7 +178,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntryListResponse"
+                  "$ref": "#/components/schemas/DailyRecordListResponse"
                 }
               }
             }
@@ -211,7 +211,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntryResponse"
+                  "$ref": "#/components/schemas/DailyRecordResponse"
                 }
               }
             }
@@ -276,7 +276,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntrySummaryResponse"
+                  "$ref": "#/components/schemas/DailyRecordSummaryResponse"
                 }
               }
             }
@@ -336,7 +336,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntryImageUploadResponse"
+                  "$ref": "#/components/schemas/DailyRecordImageUploadResponse"
                 }
               }
             }
@@ -371,7 +371,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntryCandidateResponse"
+                  "$ref": "#/components/schemas/DailyRecordCandidateResponse"
                 }
               }
             }
@@ -405,7 +405,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntryResponse"
+                  "$ref": "#/components/schemas/DailyRecordResponse"
                 }
               }
             }
@@ -467,7 +467,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordEntryResponse"
+                  "$ref": "#/components/schemas/DailyRecordResponse"
                 }
               }
             }
@@ -11027,13 +11027,13 @@
         "required": ["items", "total"],
         "additionalProperties": false
       },
-      "RecordEntryListResponse": {
+      "DailyRecordListResponse": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordEntryListResponseItems"
+              "$ref": "#/components/schemas/DailyRecordListResponseItems"
             }
           },
           "total": {
@@ -11046,13 +11046,13 @@
         "required": ["items", "total"],
         "additionalProperties": false
       },
-      "RecordEntrySummaryResponse": {
+      "DailyRecordSummaryResponse": {
         "type": "object",
         "properties": {
           "summaries": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordEntrySummaryResponseSummaries"
+              "$ref": "#/components/schemas/DailyRecordSummaryResponseSummaries"
             }
           }
         },
@@ -11072,7 +11072,7 @@
         "required": ["items"],
         "additionalProperties": false
       },
-      "RecordEntryImageUploadResponse": {
+      "DailyRecordImageUploadResponse": {
         "type": "object",
         "properties": {
           "provider": {
@@ -11123,7 +11123,7 @@
         ],
         "additionalProperties": false
       },
-      "RecordEntryCandidateResponse": {
+      "DailyRecordCandidateResponse": {
         "type": "object",
         "properties": {
           "locale": {
@@ -11141,14 +11141,14 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordEntryCandidateResponseItems"
+              "$ref": "#/components/schemas/DailyRecordCandidateResponseItems"
             }
           }
         },
         "required": ["locale", "generatedAt", "confirmationHint", "items"],
         "additionalProperties": false
       },
-      "RecordEntryResponse": {
+      "DailyRecordResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -11252,7 +11252,7 @@
           "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordEntryResponseAttachments"
+              "$ref": "#/components/schemas/DailyRecordResponseAttachments"
             }
           },
           "createdAt": {
@@ -17936,7 +17936,7 @@
         "required": ["checkInCount", "firstCheckInDate", "lastCheckInDate"],
         "additionalProperties": false
       },
-      "RecordEntryListResponseItems": {
+      "DailyRecordListResponseItems": {
         "type": "object",
         "properties": {
           "id": {
@@ -18040,7 +18040,7 @@
           "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordEntryListResponseItemsAttachments"
+              "$ref": "#/components/schemas/DailyRecordListResponseItemsAttachments"
             }
           },
           "createdAt": {
@@ -18077,7 +18077,7 @@
         ],
         "additionalProperties": false
       },
-      "RecordEntryListResponseItemsAttachments": {
+      "DailyRecordListResponseItemsAttachments": {
         "type": "object",
         "properties": {
           "id": {
@@ -18159,7 +18159,7 @@
         ],
         "additionalProperties": false
       },
-      "RecordEntrySummaryResponseSummaries": {
+      "DailyRecordSummaryResponseSummaries": {
         "type": "object",
         "properties": {
           "kind": {
@@ -18183,13 +18183,13 @@
           },
           "latest": {
             "nullable": true,
-            "$ref": "#/components/schemas/RecordEntrySummaryResponseSummariesLatest"
+            "$ref": "#/components/schemas/DailyRecordSummaryResponseSummariesLatest"
           }
         },
         "required": ["kind", "count", "latest"],
         "additionalProperties": false
       },
-      "RecordEntrySummaryResponseSummariesLatest": {
+      "DailyRecordSummaryResponseSummariesLatest": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -18294,7 +18294,7 @@
           "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecordEntrySummaryResponseSummariesLatestAttachments"
+              "$ref": "#/components/schemas/DailyRecordSummaryResponseSummariesLatestAttachments"
             }
           },
           "createdAt": {
@@ -18332,7 +18332,7 @@
         "additionalProperties": false,
         "description": "Most recent record of this kind."
       },
-      "RecordEntrySummaryResponseSummariesLatestAttachments": {
+      "DailyRecordSummaryResponseSummariesLatestAttachments": {
         "type": "object",
         "properties": {
           "id": {
@@ -18430,7 +18430,7 @@
         "required": ["code", "label"],
         "additionalProperties": false
       },
-      "RecordEntryCandidateResponseItems": {
+      "DailyRecordCandidateResponseItems": {
         "type": "object",
         "properties": {
           "kind": {
@@ -18492,7 +18492,7 @@
         ],
         "additionalProperties": false
       },
-      "RecordEntryResponseAttachments": {
+      "DailyRecordResponseAttachments": {
         "type": "object",
         "properties": {
           "id": {

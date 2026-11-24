@@ -1,6 +1,6 @@
 import { Prisma } from '#generated/prisma/client.js';
 import type { PrismaService } from '../../../../prisma/index.js';
-import type { DailyRecordKind } from '#generated/prisma/client.js';
+import type { RecordKind } from '#generated/prisma/client.js';
 
 const _dailyRecordAttachmentSelect = {
   id: true,
@@ -15,30 +15,30 @@ const _dailyRecordAttachmentSelect = {
   height: true,
   publicUrl: true,
   createdAt: true,
-} satisfies Prisma.UserDailyRecordAttachmentSelect;
+} satisfies Prisma.UserRecordAttachmentSelect;
 
-export type RecordEntryAttachmentShape =
-  Prisma.UserDailyRecordAttachmentGetPayload<{
+export type DailyRecordAttachmentShape =
+  Prisma.UserRecordAttachmentGetPayload<{
     select: typeof _dailyRecordAttachmentSelect;
   }>;
 
-export type RecordEntryDbClient = Pick<
+export type DailyRecordDbClient = Pick<
   PrismaService,
-  'userDailyRecord' | 'userDailyRecordAttachment'
+  'userRecord' | 'userRecordAttachment'
 >;
 
 export const dailyRecordWithAttachments = {
   attachments: {
     orderBy: { createdAt: Prisma.SortOrder.asc },
   },
-} satisfies Prisma.UserDailyRecordInclude;
+} satisfies Prisma.UserRecordInclude;
 
-export type RecordEntryShape = Prisma.UserDailyRecordGetPayload<{
+export type DailyRecordShape = Prisma.UserRecordGetPayload<{
   include: typeof dailyRecordWithAttachments;
 }>;
 
 export type OwnedRecordSnapshot = {
-  kind: DailyRecordKind;
+  kind: RecordKind;
   payload: unknown;
   occurredAt?: Date | undefined;
 };

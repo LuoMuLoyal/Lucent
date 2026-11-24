@@ -1,6 +1,6 @@
 import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
-import { DailyRecordKind } from '#generated/prisma/client.js';
-import type { RecordEntryReaderPort } from '../../../../record/index.js';
+import { RecordKind } from '#generated/prisma/client.js';
+import type { DailyRecordReaderPort } from '../../../../record/index.js';
 import { RecordCollectorService } from './record.js';
 import { SleepTrendBuilderService } from './sleep-trend-builder.js';
 import type { UserSettingsService } from '../../../../settings/index.js';
@@ -10,7 +10,7 @@ import { TREND_LOOKBACK_DAYS } from '../../../domain/rule/thresholds.js';
 describe('RecordCollectorService', () => {
   let service: RecordCollectorService;
   let userSettingsService: DeepMocked<UserSettingsService>;
-  let dailyRecordReader: DeepMocked<RecordEntryReaderPort>;
+  let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
 
   beforeEach(() => {
     userSettingsService = {
@@ -18,7 +18,7 @@ describe('RecordCollectorService', () => {
     } as unknown as DeepMocked<UserSettingsService>;
     dailyRecordReader = {
       listFactsInRange: vi.fn(),
-    } as unknown as DeepMocked<RecordEntryReaderPort>;
+    } as unknown as DeepMocked<DailyRecordReaderPort>;
     service = new RecordCollectorService(
       userSettingsService,
       dailyRecordReader,
@@ -29,7 +29,7 @@ describe('RecordCollectorService', () => {
   function makeRecord(overrides: Partial<Record<string, unknown>> = {}) {
     return {
       id: 'rec-1',
-      kind: DailyRecordKind.water,
+      kind: RecordKind.water,
       occurredAt: new Date('2026-07-09T00:00:00.000Z'),
       occurredTime: null,
       title: null,
@@ -78,13 +78,13 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'w1',
-            kind: DailyRecordKind.water,
+            kind: RecordKind.water,
             value: '250',
             unit: 'ml',
           }),
           makeRecord({
             id: 'w2',
-            kind: DailyRecordKind.water,
+            kind: RecordKind.water,
             value: '250',
             unit: 'ml',
           }),
@@ -93,13 +93,13 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'w1',
-            kind: DailyRecordKind.water,
+            kind: RecordKind.water,
             value: '250',
             unit: 'ml',
           }),
           makeRecord({
             id: 'w2',
-            kind: DailyRecordKind.water,
+            kind: RecordKind.water,
             value: '250',
             unit: 'ml',
           }),
@@ -206,7 +206,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 's1',
-            kind: DailyRecordKind.sleep,
+            kind: RecordKind.sleep,
             payload: sleepPayload,
           }),
         ])
@@ -214,7 +214,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 's1',
-            kind: DailyRecordKind.sleep,
+            kind: RecordKind.sleep,
             payload: sleepPayload,
           }),
         ]);
@@ -253,7 +253,7 @@ describe('RecordCollectorService', () => {
           episodes.map((payload, index) =>
             makeRecord({
               id: `sleep-${String(index)}`,
-              kind: DailyRecordKind.sleep,
+              kind: RecordKind.sleep,
               payload,
             }),
           ),
@@ -262,7 +262,7 @@ describe('RecordCollectorService', () => {
           episodes.map((payload, index) =>
             makeRecord({
               id: `sleep-${String(index)}`,
-              kind: DailyRecordKind.sleep,
+              kind: RecordKind.sleep,
               payload,
             }),
           ),
@@ -298,7 +298,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 's1',
-            kind: DailyRecordKind.sleep,
+            kind: RecordKind.sleep,
             occurredAt: day2,
             payload: { durationMinutes: 360 },
           }),
@@ -307,13 +307,13 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 's0',
-            kind: DailyRecordKind.sleep,
+            kind: RecordKind.sleep,
             occurredAt: day1,
             payload: { durationMinutes: 400 },
           }),
           makeRecord({
             id: 's1',
-            kind: DailyRecordKind.sleep,
+            kind: RecordKind.sleep,
             occurredAt: day2,
             payload: { durationMinutes: 360 },
           }),
@@ -333,14 +333,14 @@ describe('RecordCollectorService', () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
-          makeRecord({ id: 'r1', kind: DailyRecordKind.water }),
-          makeRecord({ id: 'r2', kind: DailyRecordKind.sleep }),
+          makeRecord({ id: 'r1', kind: RecordKind.water }),
+          makeRecord({ id: 'r2', kind: RecordKind.sleep }),
         ])
         // multiDayRecords
         .mockResolvedValueOnce([
-          makeRecord({ id: 'r1', kind: DailyRecordKind.water }),
-          makeRecord({ id: 'r2', kind: DailyRecordKind.sleep }),
-          makeRecord({ id: 'r3', kind: DailyRecordKind.mood }),
+          makeRecord({ id: 'r1', kind: RecordKind.water }),
+          makeRecord({ id: 'r2', kind: RecordKind.sleep }),
+          makeRecord({ id: 'r3', kind: RecordKind.mood }),
         ]);
       mockSettings(8);
 
@@ -363,14 +363,14 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
             mealAnalysisStatus: 'analyzed',
             payload: mealPayload({ fried: 'high', vegetable: 'ok' }),
           }),
           makeRecord({
             id: 'm2',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
             mealAnalysisStatus: 'analyzed',
             payload: mealPayload({ vegetable: 'low', protein: 'ok' }),
@@ -409,14 +409,14 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
             mealAnalysisStatus: 'analyzed',
             payload: mealPayload({ fried: 'low', sugar: 'ok' }),
           }),
           makeRecord({
             id: 'm2',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
             mealAnalysisStatus: 'analyzed',
             payload: mealPayload({ fried: 'high', sugar: 'high' }),
@@ -444,21 +444,21 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             title: '咖啡',
             note: 'drank coffee',
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
           }),
           makeRecord({
             id: 'm2',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
             mealAnalysisStatus: 'analyzing',
             payload: mealPayload({ fried: 'high' }),
           }),
           makeRecord({
             id: 'm3',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-07T00:00:00.000Z'),
             mealAnalysisStatus: 'analysis_failed',
             payload: mealPayload({ fried: 'high' }),
@@ -483,7 +483,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.meal,
+            kind: RecordKind.meal,
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
             mealAnalysisStatus: 'analyzed',
             payload: mealPayload({
@@ -516,7 +516,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.mood,
+            kind: RecordKind.mood,
             title: 'Good',
             value: '4',
           }),
@@ -525,14 +525,14 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm0',
-            kind: DailyRecordKind.mood,
+            kind: RecordKind.mood,
             title: 'Bad',
             value: '2',
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
           }),
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.mood,
+            kind: RecordKind.mood,
             title: 'Good',
             value: '4',
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
@@ -557,14 +557,14 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'm0',
-            kind: DailyRecordKind.mood,
+            kind: RecordKind.mood,
             title: 'Unknown',
             value: null,
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
           }),
           makeRecord({
             id: 'm1',
-            kind: DailyRecordKind.mood,
+            kind: RecordKind.mood,
             title: 'Good',
             value: '4',
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
@@ -592,7 +592,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'sym1',
-            kind: DailyRecordKind.symptom,
+            kind: RecordKind.symptom,
             title: 'Headache',
             value: 'Moderate',
             payload: { symptom: 'headache', severity: 'moderate' },
@@ -602,7 +602,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'sym1',
-            kind: DailyRecordKind.symptom,
+            kind: RecordKind.symptom,
             title: 'Headache',
             value: 'Moderate',
             payload: { symptom: 'headache', severity: 'moderate' },
@@ -636,7 +636,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'sym2',
-            kind: DailyRecordKind.symptom,
+            kind: RecordKind.symptom,
             title: '头痛',
             value: '无法判断',
             payload: { symptom: 'headache', severity: 'unknown' },
@@ -645,7 +645,7 @@ describe('RecordCollectorService', () => {
         .mockResolvedValueOnce([
           makeRecord({
             id: 'sym2',
-            kind: DailyRecordKind.symptom,
+            kind: RecordKind.symptom,
             title: '头痛',
             value: '无法判断',
             payload: { symptom: 'headache', severity: 'unknown' },

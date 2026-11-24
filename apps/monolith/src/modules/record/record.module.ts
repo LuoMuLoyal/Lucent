@@ -5,7 +5,7 @@ import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
 import { PrismaModule } from '../../prisma/index.js';
 import { HealthEventsModule } from '../health-events/health-events.module.js';
 import { RecordController } from './adapters/http/record.controller.js';
-import { RecordEntryImageUploadService } from './adapters/http/image-upload.service.js';
+import { DailyRecordImageUploadService } from './adapters/http/image-upload.service.js';
 import { SymptomCatalogService } from './adapters/http/symptom-catalog.service.js';
 import { MealAnalysisQueue } from './adapters/queue/meal-analysis-queue.js';
 import { MealAnalysisSweeper } from './adapters/queue/meal-analysis-sweeper.js';
@@ -16,8 +16,8 @@ import {
 } from './application/ports/candidate-generator.js';
 import { MealAnalysisJobs } from './application/ports/meal-analysis-jobs.js';
 import { MealVisionModel } from './application/ports/meal-vision.js';
-import { RecordEntryReaderPort } from './application/ports/records-query.js';
-import { RecordEntryCandidatesCopyService } from './application/services/candidate-copy.js';
+import { DailyRecordReaderPort } from './application/ports/records-query.js';
+import { DailyRecordCandidatesCopyService } from './application/services/candidate-copy.js';
 import { HealthEventLink } from './application/services/health-event-link.js';
 import { HealthEventOwnership } from './application/ports/health-events.js';
 import { RecordChangeEvents } from './application/ports/record-change-events.js';
@@ -29,7 +29,7 @@ import { RecordWriteEffects } from './application/services/record-write-effects.
 import { RecordsService } from './application/services/records-facade.service.js';
 import { CreateRecord } from './application/use_cases/create-record.js';
 import { DeleteRecord } from './application/use_cases/delete-record.js';
-import { RecordEntryCandidatesService } from './application/use_cases/generate-candidates.js';
+import { DailyRecordCandidatesService } from './application/use_cases/generate-candidates.js';
 import { GetRecord } from './application/use_cases/get-record.js';
 import { GetSummary } from './application/use_cases/get-summary.js';
 import { ListRecords } from './application/use_cases/list-records.js';
@@ -37,7 +37,7 @@ import { UpdateRecord } from './application/use_cases/update-record.js';
 import { MealAnalyses } from './domain/meal/meal-analyses.js';
 import { Records } from './domain/record/records.js';
 import { BoundCandidateGenerator } from './infrastructure/llm/candidate-generator-binding.js';
-import { RecordEntryCandidatesGeneratorService } from './infrastructure/llm/candidate-generator.js';
+import { DailyRecordCandidatesGeneratorService } from './infrastructure/llm/candidate-generator.js';
 import { MealAnalysisVisionService } from './infrastructure/llm/meal-vision.js';
 import { StorageAttachmentUrls } from './infrastructure/persistence/attachment-urls.js';
 import { PrismaRecordQueries } from './infrastructure/persistence/record-queries.js';
@@ -58,7 +58,7 @@ import { PrismaRecords } from './infrastructure/persistence/records.js';
     PrismaRecords,
     { provide: Records, useExisting: PrismaRecords },
     PrismaRecordQueries,
-    { provide: RecordEntryReaderPort, useExisting: PrismaRecordQueries },
+    { provide: DailyRecordReaderPort, useExisting: PrismaRecordQueries },
     { provide: MealAnalyses, useExisting: PrismaRecordQueries },
     StorageAttachmentUrls,
     { provide: AttachmentUrls, useExisting: StorageAttachmentUrls },
@@ -66,8 +66,8 @@ import { PrismaRecords } from './infrastructure/persistence/records.js';
     // LLM 实现 → 端口
     MealAnalysisVisionService,
     { provide: MealVisionModel, useExisting: MealAnalysisVisionService },
-    RecordEntryCandidatesGeneratorService,
-    RecordEntryCandidatesCopyService,
+    DailyRecordCandidatesGeneratorService,
+    DailyRecordCandidatesCopyService,
     BoundCandidateGenerator,
     {
       provide: CandidateGenerator,
@@ -75,7 +75,7 @@ import { PrismaRecords } from './infrastructure/persistence/records.js';
     },
     {
       provide: CandidateCopyPort,
-      useExisting: RecordEntryCandidatesCopyService,
+      useExisting: DailyRecordCandidatesCopyService,
     },
 
     // 队列适配器
@@ -98,16 +98,16 @@ import { PrismaRecords } from './infrastructure/persistence/records.js';
     GetRecord,
     GetSummary,
     ListRecords,
-    RecordEntryCandidatesService,
+    DailyRecordCandidatesService,
     RecordsService,
     SymptomCatalogService,
-    RecordEntryImageUploadService,
+    DailyRecordImageUploadService,
   ],
   exports: [
-    RecordEntryReaderPort,
+    DailyRecordReaderPort,
     MealAnalysisSweeper,
     RecordsService,
-    RecordEntryCandidatesService,
+    DailyRecordCandidatesService,
   ],
 })
 export class RecordModule {}

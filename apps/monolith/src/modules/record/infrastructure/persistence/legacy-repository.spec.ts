@@ -5,7 +5,7 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 
-import { RecordEntryRepository } from './legacy-repository.js';
+import { DailyRecordRepository } from './legacy-repository.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
@@ -25,13 +25,13 @@ async function collectResult<T>(
   );
 }
 
-describe('RecordEntryRepository', () => {
-  let repository: RecordEntryRepository;
+describe('DailyRecordRepository', () => {
+  let repository: DailyRecordRepository;
   let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
-      userDailyRecord: {
+      userRecord: {
         findMany: vi.fn(),
         findFirst: vi.fn(),
         count: vi.fn(),
@@ -41,14 +41,14 @@ describe('RecordEntryRepository', () => {
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
 
-    repository = new RecordEntryRepository(prisma);
+    repository = new DailyRecordRepository(prisma);
   });
 
   describe('findManyWithAttachments', () => {
     it('returns paginated items with total count', async () => {
       const items = [{ id: 'rec-1' }];
-      prisma.userDailyRecord.findMany.mockResolvedValue(items as never);
-      prisma.userDailyRecord.count.mockResolvedValue(1);
+      prisma.userRecord.findMany.mockResolvedValue(items as never);
+      prisma.userRecord.count.mockResolvedValue(1);
 
       const result = await repository.findManyWithAttachments(
         { userId: 'user-1', occurredAt: new Date('2026-07-10') },
@@ -60,42 +60,42 @@ describe('RecordEntryRepository', () => {
     });
 
     it('includes kind filter when provided', async () => {
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
-      prisma.userDailyRecord.count.mockResolvedValue(0);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.count.mockResolvedValue(0);
 
       await repository.findManyWithAttachments(
         { userId: 'user-1', occurredAt: new Date('2026-07-10'), kind: 'water' },
         { page: 1, pageSize: 10 },
       );
 
-      const findManyCall = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      const findManyCall = prisma.userRecord.findMany.mock.calls[0]?.[0];
       expect(findManyCall?.where).toHaveProperty('kind', 'water');
     });
 
     it('calculates skip correctly', async () => {
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
-      prisma.userDailyRecord.count.mockResolvedValue(0);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.count.mockResolvedValue(0);
 
       await repository.findManyWithAttachments(
         { userId: 'user-1', occurredAt: new Date('2026-07-10') },
         { page: 3, pageSize: 20 },
       );
 
-      const findManyCall = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      const findManyCall = prisma.userRecord.findMany.mock.calls[0]?.[0];
       expect(findManyCall?.skip).toBe(40);
       expect(findManyCall?.take).toBe(20);
     });
 
     it('filters out deleted records', async () => {
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
-      prisma.userDailyRecord.count.mockResolvedValue(0);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.count.mockResolvedValue(0);
 
       await repository.findManyWithAttachments(
         { userId: 'user-1', occurredAt: new Date('2026-07-10') },
         { page: 1, pageSize: 10 },
       );
 
-      const findManyCall = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      const findManyCall = prisma.userRecord.findMany.mock.calls[0]?.[0];
       expect(findManyCall?.where).toHaveProperty('deletedAt', null);
     });
   });
@@ -103,7 +103,7 @@ describe('RecordEntryRepository', () => {
   describe('findByIdWithAttachments', () => {
     it('queries by id and userId', async () => {
       const record = { id: 'rec-1' };
-      prisma.userDailyRecord.findFirst.mockResolvedValue(record as never);
+      prisma.userRecord.findFirst.mockResolvedValue(record as never);
 
       const result = await repository.findByIdWithAttachments(
         'user-1',
@@ -111,7 +111,7 @@ describe('RecordEntryRepository', () => {
       );
 
       expect(result).toBe(record);
-      expect(prisma.userDailyRecord.findFirst).toHaveBeenCalledWith(
+      expect(prisma.userRecord.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'rec-1', userId: 'user-1', deletedAt: null },
         }),
@@ -119,7 +119,7 @@ describe('RecordEntryRepository', () => {
     });
 
     it('returns null when not found', async () => {
-      prisma.userDailyRecord.findFirst.mockResolvedValue(null);
+      prisma.userRecord.findFirst.mockResolvedValue(null);
 
       const result = await repository.findByIdWithAttachments(
         'user-1',
@@ -131,7 +131,7 @@ describe('RecordEntryRepository', () => {
 
   describe('findOwnershipData', () => {
     it('selects userId, kind, and payload', async () => {
-      prisma.userDailyRecord.findFirst.mockResolvedValue({
+      prisma.userRecord.findFirst.mockResolvedValue({
         userId: 'user-1',
         kind: 'water',
         payload: {},
@@ -140,28 +140,28 @@ describe('RecordEntryRepository', () => {
       const result = await repository.findOwnershipData('rec-1');
 
       expect(result).not.toBeNull();
-      expect(prisma.userDailyRecord.findFirst).toHaveBeenCalledWith({
+      expect(prisma.userRecord.findFirst).toHaveBeenCalledWith({
         where: { id: 'rec-1', deletedAt: null },
         select: { userId: true, kind: true, payload: true, occurredAt: true },
       });
     });
 
     it('returns null when not found', async () => {
-      prisma.userDailyRecord.findFirst.mockResolvedValue(null);
+      prisma.userRecord.findFirst.mockResolvedValue(null);
       expect(await repository.findOwnershipData('missing')).toBeNull();
     });
   });
 
   describe('findManyByDateWithAttachments', () => {
     it('queries by userId and occurredAt', async () => {
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
 
       await repository.findManyByDateWithAttachments(
         'user-1',
         new Date('2026-07-10'),
       );
 
-      const call = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      const call = prisma.userRecord.findMany.mock.calls[0]?.[0];
       expect(call?.where).toMatchObject({
         userId: 'user-1',
         occurredAt: new Date('2026-07-10'),
@@ -170,15 +170,15 @@ describe('RecordEntryRepository', () => {
     });
   });
 
-  describe('listFactsInRange (RecordEntryReaderPort)', () => {
+  describe('listFactsInRange (DailyRecordReaderPort)', () => {
     it('queries non-deleted records in range with canonical order', async () => {
       const from = new Date('2026-07-01');
       const to = new Date('2026-07-07');
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
 
       await repository.listFactsInRange('user-1', from, to);
 
-      expect(prisma.userDailyRecord.findMany).toHaveBeenCalledWith(
+      expect(prisma.userRecord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             userId: 'user-1',
@@ -191,7 +191,7 @@ describe('RecordEntryRepository', () => {
     });
 
     it('adds kind IN filter when kinds are provided', async () => {
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
 
       await repository.listFactsInRange(
         'user-1',
@@ -200,12 +200,12 @@ describe('RecordEntryRepository', () => {
         ['water'],
       );
 
-      const call = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      const call = prisma.userRecord.findMany.mock.calls[0]?.[0];
       expect(call?.where).toHaveProperty('kind', { in: ['water'] });
     });
 
     it('omits kind filter when kinds is empty', async () => {
-      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+      prisma.userRecord.findMany.mockResolvedValue([] as never);
 
       await repository.listFactsInRange(
         'user-1',
@@ -214,22 +214,22 @@ describe('RecordEntryRepository', () => {
         [],
       );
 
-      const call = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      const call = prisma.userRecord.findMany.mock.calls[0]?.[0];
       expect(call?.where).not.toHaveProperty('kind');
     });
   });
 
-  describe('countFactsInRange (RecordEntryReaderPort)', () => {
+  describe('countFactsInRange (DailyRecordReaderPort)', () => {
     it('counts non-deleted records in range', async () => {
       const from = new Date('2026-07-01');
       const to = new Date('2026-07-07');
-      prisma.userDailyRecord.count.mockResolvedValue(4);
+      prisma.userRecord.count.mockResolvedValue(4);
 
       await expect(
         repository.countFactsInRange('user-1', from, to),
       ).resolves.toBe(4);
 
-      expect(prisma.userDailyRecord.count).toHaveBeenCalledWith({
+      expect(prisma.userRecord.count).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           deletedAt: null,
@@ -239,7 +239,7 @@ describe('RecordEntryRepository', () => {
     });
 
     it('adds kind IN filter when kinds are provided', async () => {
-      prisma.userDailyRecord.count.mockResolvedValue(2);
+      prisma.userRecord.count.mockResolvedValue(2);
 
       await repository.countFactsInRange(
         'user-1',
@@ -248,15 +248,15 @@ describe('RecordEntryRepository', () => {
         ['symptom'],
       );
 
-      const call = prisma.userDailyRecord.count.mock.calls[0]?.[0];
+      const call = prisma.userRecord.count.mock.calls[0]?.[0];
       expect(call?.where).toHaveProperty('kind', { in: ['symptom'] });
     });
   });
 
-  describe('findLatestCreatedAtInRange (RecordEntryReaderPort)', () => {
+  describe('findLatestCreatedAtInRange (DailyRecordReaderPort)', () => {
     it('returns the latest createdAt in range', async () => {
       const createdAt = new Date('2026-07-05T08:00:00.000Z');
-      prisma.userDailyRecord.findFirst.mockResolvedValue({
+      prisma.userRecord.findFirst.mockResolvedValue({
         createdAt,
       } as never);
 
@@ -268,7 +268,7 @@ describe('RecordEntryRepository', () => {
         ),
       ).resolves.toEqual(createdAt);
 
-      expect(prisma.userDailyRecord.findFirst).toHaveBeenCalledWith({
+      expect(prisma.userRecord.findFirst).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           deletedAt: null,
@@ -283,7 +283,7 @@ describe('RecordEntryRepository', () => {
     });
 
     it('returns null when no records exist', async () => {
-      prisma.userDailyRecord.findFirst.mockResolvedValue(null as never);
+      prisma.userRecord.findFirst.mockResolvedValue(null as never);
 
       await expect(
         repository.findLatestCreatedAtInRange(
@@ -299,19 +299,19 @@ describe('RecordEntryRepository', () => {
     it('creates with provided data and includes attachments', async () => {
       const data = { userId: 'user-1', kind: 'water', occurredAt: new Date() };
       const created = { id: 'rec-1', ...data };
-      prisma.userDailyRecord.create.mockResolvedValue(created as never);
+      prisma.userRecord.create.mockResolvedValue(created as never);
 
       const result = await collectResult(repository.create(data as never));
 
       expect(result).toEqual({ ok: true, value: created });
-      expect(prisma.userDailyRecord.create).toHaveBeenCalledWith({
+      expect(prisma.userRecord.create).toHaveBeenCalledWith({
         data,
         include: expect.anything(),
       });
     });
 
     it('maps a unique constraint violation to RESOURCE_CONFLICT', async () => {
-      prisma.userDailyRecord.create.mockRejectedValue(prismaError('P2002'));
+      prisma.userRecord.create.mockRejectedValue(prismaError('P2002'));
 
       const result = await collectResult(repository.create({} as never));
 
@@ -326,14 +326,14 @@ describe('RecordEntryRepository', () => {
     it('updates by id with provided data', async () => {
       const data = { title: 'updated' };
       const updated = { id: 'rec-1' };
-      prisma.userDailyRecord.update.mockResolvedValue(updated as never);
+      prisma.userRecord.update.mockResolvedValue(updated as never);
 
       const result = await collectResult(
         repository.update('rec-1', data as never),
       );
 
       expect(result).toEqual({ ok: true, value: updated });
-      expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
+      expect(prisma.userRecord.update).toHaveBeenCalledWith({
         where: { id: 'rec-1' },
         data,
         include: expect.anything(),
@@ -341,7 +341,7 @@ describe('RecordEntryRepository', () => {
     });
 
     it('maps a missing row to RESOURCE_NOT_FOUND', async () => {
-      prisma.userDailyRecord.update.mockRejectedValue(prismaError('P2025'));
+      prisma.userRecord.update.mockRejectedValue(prismaError('P2025'));
 
       const result = await collectResult(
         repository.update('missing', {} as never),
@@ -356,7 +356,7 @@ describe('RecordEntryRepository', () => {
 
   describe('softDelete', () => {
     it('updates deletedAt without deleting the record', async () => {
-      prisma.userDailyRecord.update.mockResolvedValue(undefined as never);
+      prisma.userRecord.update.mockResolvedValue(undefined as never);
 
       const deletedAt = new Date('2026-07-10T12:00:00.000Z');
       const result = await collectResult(
@@ -364,7 +364,7 @@ describe('RecordEntryRepository', () => {
       );
 
       expect(result).toEqual({ ok: true, value: undefined });
-      expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
+      expect(prisma.userRecord.update).toHaveBeenCalledWith({
         where: { id: 'rec-1' },
         data: { deletedAt },
       });

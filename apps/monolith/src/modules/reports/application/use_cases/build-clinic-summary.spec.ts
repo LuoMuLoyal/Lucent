@@ -2,9 +2,9 @@ import { DomainFailureException } from '../../../../common/result/domain-failure
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
   ClinicSummaryService,
@@ -38,7 +38,7 @@ type MockFn<TResult> = ((...args: unknown[]) => Promise<TResult>) & {
 
 type PrismaStub = {
   user: { findFirstOrThrow: MockFn<StubUserRow> };
-  userDailyRecord: { findMany: MockFn<unknown[]> };
+  userRecord: { findMany: MockFn<unknown[]> };
   userClinicSummaryShare: {
     findFirst: MockFn<Record<string, unknown> | null>;
     updateMany: MockFn<{ count: number }>;
@@ -109,7 +109,7 @@ function withEventReview(
     recordAccess: () => Promise.resolve(null),
   };
   const records = {
-    listFactsInRange: async () => await prisma.userDailyRecord.findMany(),
+    listFactsInRange: async () => await prisma.userRecord.findMany(),
   };
   return new Ctor(
     shares,
@@ -336,7 +336,7 @@ describe('ClinicSummaryService', () => {
       user: {
         findFirstOrThrow: vi.fn(),
       },
-      userDailyRecord: {
+      userRecord: {
         findMany: vi.fn().mockResolvedValue([]),
       },
       userClinicSummaryShare: {
@@ -380,7 +380,7 @@ describe('ClinicSummaryService', () => {
     };
     dailyRecordReader = {
       listFactsInRange: vi.fn(
-        async () => await prisma.userDailyRecord.findMany(),
+        async () => await prisma.userRecord.findMany(),
       ),
     };
     const adapted = adaptUserRows(prisma);
@@ -1072,9 +1072,9 @@ describe('ClinicSummaryService', () => {
       expect(result).toEqual(cached);
       expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
       expect(productEventLog.emitServerEvent).toHaveBeenCalledWith('owner-1', {
-        name: ProductEventName.visit_summary_share_opened,
-        surface: ProductEventSurface.system,
-        result: ProductEventResult.success,
+        name: ProductEventLogName.visit_summary_share_opened,
+        surface: ProductEventLogSurface.system,
+        result: ProductEventLogResult.success,
       });
       // Each successful open is a distinct event (accessCount increments per
       // open) — no deterministic clientEventId; the uuid default keeps opens

@@ -1,14 +1,14 @@
 import { NotFoundException } from '@nestjs/common';
 import { DomainFailureException } from '../../../../../common/result/domain-failure.exception.js';
 import {
-  DailyRecordKind,
+  RecordKind,
   DoseLogStatus,
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 import type { HealthEventsOwnershipService } from '../../../../health-events/index.js';
-import type { RecordEntryReaderPort } from '../../../../record/index.js';
+import type { DailyRecordReaderPort } from '../../../../record/index.js';
 import type { DoseLogEntryReaderPort } from '../../../../dose/index.js';
 import type { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import { EventReviewFactsService } from './facts.js';
@@ -73,7 +73,7 @@ function checkInFixture(
 function dailyRecordFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'rec-1',
-    kind: DailyRecordKind.symptom,
+    kind: RecordKind.symptom,
     occurredAt: new Date('2026-08-02T00:00:00.000Z'),
     occurredTime: null,
     title: '头痛',
@@ -130,7 +130,7 @@ function buildService() {
   };
   const service = new EventReviewService(
     ownership as unknown as HealthEventsOwnershipService,
-    dailyRecordReader as unknown as RecordEntryReaderPort,
+    dailyRecordReader as unknown as DailyRecordReaderPort,
     doseLogReader as unknown as DoseLogEntryReaderPort,
     new EventReviewFactsService(),
     new EventReviewChangesService(),
@@ -316,7 +316,7 @@ describe('EventReviewService', () => {
         USER_ID,
         WINDOW_START,
         TODAY_INSTANT,
-        [DailyRecordKind.symptom],
+        [RecordKind.symptom],
       );
       expect(dailyRecordReader.countFactsInRange).toHaveBeenCalledWith(
         USER_ID,

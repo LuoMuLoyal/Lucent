@@ -24,8 +24,8 @@ type TestingDbClient = Pick<
   PrismaService,
   | 'user'
   | 'account'
-  | 'userDailyRecord'
-  | 'userDailyRecordAttachment'
+  | 'userRecord'
+  | 'userRecordAttachment'
   | 'userSession'
   | 'userSetting'
 >;
@@ -153,7 +153,7 @@ export class TestingService {
   ): Promise<number> {
     const targetDay = parseDateOnly(date);
     const recordIds = (
-      await tx.userDailyRecord.findMany({
+      await tx.userRecord.findMany({
         where: {
           userId,
           occurredAt: targetDay,
@@ -166,14 +166,14 @@ export class TestingService {
       return 0;
     }
 
-    await tx.userDailyRecordAttachment.deleteMany({
+    await tx.userRecordAttachment.deleteMany({
       where: {
         userId,
         recordId: { in: recordIds },
       },
     });
 
-    await tx.userDailyRecord.deleteMany({
+    await tx.userRecord.deleteMany({
       where: {
         userId,
         id: { in: recordIds },

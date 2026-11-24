@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   type HealthEventStatus,
-  type ProductEventName,
-  type ProductEventResult,
-  type ProductEventSurface,
+  type ProductEventLogName,
+  type ProductEventLogResult,
+  type ProductEventLogSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
 import { now } from '../../../../common/index.js';
@@ -46,9 +46,9 @@ export interface ProductEventRecordResult {
  * (userId, clientEventId) unique constraint instead of double-inserting.
  */
 export interface ServerProductEventInput {
-  name: ProductEventName;
-  surface: ProductEventSurface;
-  result: ProductEventResult;
+  name: ProductEventLogName;
+  surface: ProductEventLogSurface;
+  result: ProductEventLogResult;
   /** Lifecycle status — health_event_started (active) / health_event_ended (ended). */
   eventStatus?: HealthEventStatus | null;
   /** Known server-side suggestion rule code (allowlisted). */
@@ -205,7 +205,7 @@ export class ProductEventLogService {
    * Details (fire-and-forget path).
    */
   private logEmissionFailure(
-    eventName: ProductEventName,
+    eventName: ProductEventLogName,
     failure: unknown,
   ): void {
     const detail = this.events.describeFailure(failure);

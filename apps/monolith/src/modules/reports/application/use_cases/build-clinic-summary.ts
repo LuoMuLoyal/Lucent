@@ -7,9 +7,9 @@ import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import {
-  ProductEventName,
-  ProductEventResult,
-  ProductEventSurface,
+  ProductEventLogName,
+  ProductEventLogResult,
+  ProductEventLogSurface,
 } from '#generated/prisma/client.js';
 import {
   IUserContextReader,
@@ -45,8 +45,8 @@ import type {
 import { EventReviewService } from '../../application/read_models/event-review/review.js';
 import { ProductEventLogService } from '../../../product/index.js';
 import {
-  RecordEntryReaderPort,
-  type RecordEntryFact,
+  DailyRecordReaderPort,
+  type DailyRecordFact,
 } from '../../../record/index.js';
 import {
   applySelectedFields,
@@ -143,7 +143,7 @@ export class ClinicSummaryService {
     @Inject(CLINIC_SUMMARY_SOURCES)
     private readonly sources: ClinicSummarySources,
     private readonly context: IUserContextReader,
-    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
@@ -321,9 +321,9 @@ export class ClinicSummaryService {
     // successful open is a DISTINCT event (accessCount increments per open
     // too), so the per-emission `server-<uuid>` default is intentional.
     await this.productEventLog.emitServerEvent(record.userId, {
-      name: ProductEventName.visit_summary_share_opened,
-      surface: ProductEventSurface.system,
-      result: ProductEventResult.success,
+      name: ProductEventLogName.visit_summary_share_opened,
+      surface: ProductEventLogSurface.system,
+      result: ProductEventLogResult.success,
     });
     return cached;
   }
@@ -533,8 +533,8 @@ export class ClinicSummaryService {
     userId: string,
     start: Date,
     end: Date,
-  ): Promise<RecordEntryFact[]> {
-    // `RecordEntryReaderPort.listFactsInRange` uses an inclusive upper bound
+  ): Promise<DailyRecordFact[]> {
+    // `DailyRecordReaderPort.listFactsInRange` uses an inclusive upper bound
     // (`lte`), while this window has always been half-open (`lt end`). Pulling
     // `end` back by one millisecond reproduces the original boundary exactly
     // rather than silently widening the summary by one instant.
@@ -551,7 +551,7 @@ export class ClinicSummaryService {
    * structured `ml` property. Both paths are tried.
    */
   private buildWaterEntries(
-    records: RecordEntryFact[],
+    records: DailyRecordFact[],
   ): ClinicSummaryWaterEntryDto[] {
     const entries: ClinicSummaryWaterEntryDto[] = [];
     for (const r of records) {
@@ -573,7 +573,7 @@ export class ClinicSummaryService {
    * carry `minutes` or `hours`.
    */
   private buildSleepEntries(
-    records: RecordEntryFact[],
+    records: DailyRecordFact[],
   ): ClinicSummarySleepEntryDto[] {
     const entries: ClinicSummarySleepEntryDto[] = [];
     for (const r of records) {
@@ -594,7 +594,7 @@ export class ClinicSummaryService {
    * record kind, and the original note text.
    */
   private buildNoteEntries(
-    records: RecordEntryFact[],
+    records: DailyRecordFact[],
   ): ClinicSummaryNoteEntryDto[] {
     const entries: ClinicSummaryNoteEntryDto[] = [];
     for (const r of records) {
@@ -609,7 +609,7 @@ export class ClinicSummaryService {
   }
 
   /** Parse a milliliter value from a daily record (value or payload.ml). */
-  private parseMl(r: RecordEntryFact): number | null {
+  private parseMl(r: DailyRecordFact): number | null {
     // Try value field first.
     if (r.value != null) {
       const parsed = parseFloat(r.value);
@@ -628,7 +628,7 @@ export class ClinicSummaryService {
   }
 
   /** Parse a duration in minutes from a daily record (value or payload). */
-  private parseMinutes(r: RecordEntryFact): number | null {
+  private parseMinutes(r: DailyRecordFact): number | null {
     // Try payload['minutes'] first.
     if (r.payload != null && typeof r.payload === 'object') {
       const payload = r.payload as Record<string, unknown>;

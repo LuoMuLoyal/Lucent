@@ -78,6 +78,6 @@ export const dailyRecordCandidatesSchema = z.object({
   items: z.array(dailyRecordCandidateSchema).min(1).max(5),
 });
 
-export type RecordEntryCandidateStructuredOutput = z.infer<
+export type DailyRecordCandidateStructuredOutput = z.infer<
   typeof dailyRecordCandidatesSchema
 >;

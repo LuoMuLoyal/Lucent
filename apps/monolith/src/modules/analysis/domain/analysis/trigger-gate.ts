@@ -10,7 +10,7 @@
  * the thresholds lived in a service: two halves of one decision in two layers.
  * They are together here.
  *
- * **No I/O, no framework.** Reading the records needs `RecordEntryReaderPort`,
+ * **No I/O, no framework.** Reading the records needs `DailyRecordReaderPort`,
  * which `ddd-domain-purity` forbids here; `application/services/trigger-gate.ts`
  * fetches and this file decides.
  */

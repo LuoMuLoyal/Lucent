@@ -1,7 +1,7 @@
 import type { ReminderEntryItemDto } from '../../../reminder/index.js';
-import type { RecordEntryCandidateData } from '../../../record/index.js';
+import type { DailyRecordCandidateData } from '../../../record/index.js';
 
-import type { RecordEntryItemDto } from '../../../record/index.js';
+import type { DailyRecordItemDto } from '../../../record/index.js';
 
 import type { GenerateDailyRecordCandidatesDto } from '../../../record/index.js';
 
@@ -56,7 +56,7 @@ export interface IDailyRecordReader {
     kind?: string,
     page?: number,
     pageSize?: number,
-  ): Promise<{ items: RecordEntryItemDto[]; total: number }>;
+  ): Promise<{ items: DailyRecordItemDto[]; total: number }>;
 }
 
 export const DAILY_RECORD_READER = Symbol('DAILY_RECORD_READER');
@@ -70,7 +70,7 @@ export interface IDailyRecordCandidateGenerator {
     userId: string,
     dto: GenerateDailyRecordCandidatesDto,
     language: string,
-  ): Promise<RecordEntryCandidateData>;
+  ): Promise<DailyRecordCandidateData>;
 }
 
 export const DAILY_RECORD_CANDIDATE_GENERATOR = Symbol(

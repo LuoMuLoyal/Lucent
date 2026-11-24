@@ -1,5 +1,5 @@
 import {
-  DailyRecordKind,
+  RecordKind,
   HealthEventOutcome,
 } from '#generated/prisma/client.js';
 import {
@@ -24,7 +24,7 @@ function waterRecord(
 ): ReviewChangeDailyRecord {
   return {
     occurredAt,
-    kind: DailyRecordKind.water,
+    kind: RecordKind.water,
     value,
     unit,
     payload: null,
@@ -37,7 +37,7 @@ function sleepRecord(
 ): ReviewChangeDailyRecord {
   return {
     occurredAt,
-    kind: DailyRecordKind.sleep,
+    kind: RecordKind.sleep,
     value: null,
     unit: null,
     payload: { durationMinutes },
@@ -188,14 +188,14 @@ describe('EventReviewChangesService', () => {
       records: [
         {
           occurredAt: DAY_10,
-          kind: DailyRecordKind.water,
+          kind: RecordKind.water,
           value: 'not-a-number',
           unit: 'ml',
           payload: null,
         },
         {
           occurredAt: DAY_11,
-          kind: DailyRecordKind.sleep,
+          kind: RecordKind.sleep,
           value: null,
           unit: null,
           payload: {},

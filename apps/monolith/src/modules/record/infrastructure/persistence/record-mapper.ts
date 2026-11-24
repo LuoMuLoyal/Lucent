@@ -3,15 +3,15 @@
  *
  * 这是**唯一**允许知道 Prisma 行形状的文件之一（另一个是仓储实现本身）：
  * 领域层用 `RecordRow`（`domain/record/record-row.ts`），Prisma 用
- * `UserDailyRecordGetPayload`，两者在这里互转。
+ * `userRecordGetPayload`，两者在这里互转。
  *
  * 为什么要转而不是直接用 Prisma 类型：`ddd-application-no-direct-prisma` 禁止
  * `application/**` import 生成物；而读模型与 presenter 都消费 `RecordRow`。
  * 显式写一遍列，也顺带让「新增列」变成一次编译错误而不是静默漏读。
  */
 import {
-  type DailyRecordAttachmentKind,
-  type DailyRecordKind,
+  type RecordAttachmentKind,
+  type RecordKind,
   Prisma,
 } from '#generated/prisma/client.js';
 import { asDailyRecordKind } from '../../domain/record/record-kind.js';
@@ -23,9 +23,9 @@ import type {
 /** 列表/详情都需要的附件 include（附件按创建时间升序）。 */
 export const recordWithAttachments = {
   attachments: { orderBy: { createdAt: Prisma.SortOrder.asc } },
-} satisfies Prisma.UserDailyRecordInclude;
+} satisfies Prisma.UserRecordInclude;
 
-export type RecordDbRow = Prisma.UserDailyRecordGetPayload<{
+export type RecordDbRow = Prisma.UserRecordGetPayload<{
   include: typeof recordWithAttachments;
 }>;
 
@@ -75,11 +75,11 @@ export function toRecordRow(row: RecordDbRow): RecordRow {
 }
 
 /** 领域 kind → Prisma enum 值（两边取值逐字一致，转它是为了类型收窄）。 */
-export function toDbKind(kind: string): DailyRecordKind {
-  return kind as DailyRecordKind;
+export function toDbKind(kind: string): RecordKind {
+  return kind as RecordKind;
 }
 
 /** 领域附件 kind → Prisma enum 值。 */
-export function toDbAttachmentKind(kind: string): DailyRecordAttachmentKind {
-  return kind as DailyRecordAttachmentKind;
+export function toDbAttachmentKind(kind: string): RecordAttachmentKind {
+  return kind as RecordAttachmentKind;
 }

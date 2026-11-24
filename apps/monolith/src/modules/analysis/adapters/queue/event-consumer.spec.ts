@@ -1,4 +1,4 @@
-import { HealthEventKind, DailyRecordKind } from '#generated/prisma/client.js';
+import { HealthEventKind, RecordKind } from '#generated/prisma/client.js';
 import { AnalysisEventConsumerService } from './event-consumer.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
 import type { AnalysisMaterialization } from '../../application/ports/materialization.js';
@@ -126,7 +126,7 @@ describe('AnalysisEventConsumerService', () => {
 
   it('always triggers for a symptom daily record', async () => {
     await service.handle(
-      event('daily-record.changed', { kind: DailyRecordKind.symptom }),
+      event('daily-record.changed', { kind: RecordKind.symptom }),
     );
     expect(store.markPending).toHaveBeenCalledWith(
       expect.objectContaining({ reasonCode: 'symptom_check_in' }),
@@ -135,12 +135,12 @@ describe('AnalysisEventConsumerService', () => {
 
   it('consults the dimension evaluator for a water record', async () => {
     await service.handle(
-      event('daily-record.changed', { kind: DailyRecordKind.water }),
+      event('daily-record.changed', { kind: RecordKind.water }),
     );
     expect(contextService.shouldTriggerForDimension).toHaveBeenCalledWith(
       'u1',
       '2026-10-24',
-      DailyRecordKind.water,
+      RecordKind.water,
     );
   });
 
@@ -149,7 +149,7 @@ describe('AnalysisEventConsumerService', () => {
     // when the change is too small to justify a recompute.
     contextService.shouldTriggerForDimension.mockResolvedValue(false);
     await service.handle(
-      event('daily-record.changed', { kind: DailyRecordKind.water }),
+      event('daily-record.changed', { kind: RecordKind.water }),
     );
     expect(contextService.invalidateContext).toHaveBeenCalled();
     expect(store.markPending).not.toHaveBeenCalled();

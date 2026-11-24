@@ -30,11 +30,11 @@ function buildReminderRow(overrides: Record<string, unknown> = {}) {
 function buildPrisma(overrides: Record<string, unknown> = {}) {
   const reminderFindMany = vi.fn().mockResolvedValue([]);
   return {
-    userMedicineReminder: {
+    userReminder: {
       findMany: reminderFindMany,
     },
     nonDeleted: {
-      userMedicineReminder: {
+      userReminder: {
         findMany: reminderFindMany,
       },
     },
@@ -144,7 +144,7 @@ describe('ReminderSchedulerService', () => {
   // ── No-op cases ──────────────────────────────────────────────────
 
   it('does nothing when no active reminders exist', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([]);
+    prisma.userReminder.findMany.mockResolvedValue([]);
 
     await service.dispatchDueReminders();
 
@@ -154,7 +154,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('skips reminders whose scheduledHour does not match', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ scheduledHour: 9, scheduledMinute: 30 }),
     ]);
 
@@ -164,7 +164,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('skips reminders whose scheduledMinute does not match', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ scheduledHour: 8, scheduledMinute: 31 }),
     ]);
 
@@ -175,7 +175,7 @@ describe('ReminderSchedulerService', () => {
 
   it('skips reminders whose daysOfWeek does not include the current weekday', async () => {
     // 2026-07-20 is a Monday (weekday=1); set days to Sunday only
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ daysOfWeek: [0] }),
     ]);
 
@@ -185,7 +185,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('skips reminders whose startDate is in the future', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ startDate: new Date('2026-07-21') }),
     ]);
 
@@ -195,7 +195,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('skips reminders whose endDate is in the past', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ endDate: new Date('2026-07-19') }),
     ]);
 
@@ -207,7 +207,7 @@ describe('ReminderSchedulerService', () => {
   // ── Happy path ───────────────────────────────────────────────────
 
   it('creates an in_app delivery record and sends a notification for a due reminder', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ label: 'Breakfast dose' }),
     ]);
 
@@ -250,7 +250,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('uses a default label when reminder label is null', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ label: null }),
     ]);
 
@@ -269,7 +269,7 @@ describe('ReminderSchedulerService', () => {
   // ── i18n ────────────────────────────────────────────────────────
 
   it('localizes reminder copy to English when profile locale is en', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({
         label: 'Morning dose',
         user: { profile: { timezone: null, locale: 'en' } },
@@ -297,7 +297,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('falls back to English when profile locale is null', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({
         label: null,
         user: { profile: { timezone: null, locale: null } },
@@ -327,7 +327,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('falls back to English when profile locale is an empty string', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({
         label: null,
         user: { profile: { timezone: null, locale: '' } },
@@ -356,7 +356,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('passes the reminder label as the interpolation arg', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ label: 'Breakfast dose' }),
     ]);
 
@@ -371,7 +371,7 @@ describe('ReminderSchedulerService', () => {
   // ── Deduplication ───────────────────────────────────────────────
 
   it('skips dispatch when an in_app delivery record already exists', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     prisma.userReminderDelivery.findFirst.mockResolvedValue({
@@ -388,7 +388,7 @@ describe('ReminderSchedulerService', () => {
   // ── Multiple reminders ──────────────────────────────────────────
 
   it('dispatches multiple due reminders in a single tick', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ id: 'r1', userId: 'u1', label: 'Morning' }),
       buildReminderRow({ id: 'r2', userId: 'u2', label: 'Evening' }),
     ]);
@@ -404,7 +404,7 @@ describe('ReminderSchedulerService', () => {
 
   it('respects user timezone for matching', async () => {
     // 2026-07-20T00:30:00Z = 20:30 previous day in America/New_York (UTC-4)
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({
         id: 'r-tz',
         userId: 'u-tz',
@@ -423,7 +423,7 @@ describe('ReminderSchedulerService', () => {
   // ── Error handling ───────────────────────────────────────────────
 
   it('logs and returns when the database query fails', async () => {
-    prisma.userMedicineReminder.findMany.mockRejectedValue(
+    prisma.userReminder.findMany.mockRejectedValue(
       new Error('connection refused'),
     );
 
@@ -434,7 +434,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('logs and continues when a single dispatch fails', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ id: 'r-fail' }),
       buildReminderRow({ id: 'r-ok' }),
     ]);
@@ -452,7 +452,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('skips the delivery record when the notification write returns an Err', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ id: 'r-err' }),
     ]);
     notifications.createOrReplaceScoped.mockReturnValueOnce(
@@ -474,7 +474,7 @@ describe('ReminderSchedulerService', () => {
     const warnSpy = vi
       .spyOn(service['logger'], 'warn')
       .mockImplementation(() => undefined);
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ id: 'r-err-log' }),
     ]);
     notifications.createOrReplaceScoped.mockReturnValueOnce(
@@ -506,7 +506,7 @@ describe('ReminderSchedulerService', () => {
   // ── daysOfWeek edge cases ───────────────────────────────────────
 
   it('fires every day when daysOfWeek is null', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ daysOfWeek: null }),
     ]);
 
@@ -517,7 +517,7 @@ describe('ReminderSchedulerService', () => {
 
   it('fires when daysOfWeek includes the current weekday', async () => {
     // 2026-07-20 is Monday (weekday=1)
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow({ daysOfWeek: [1, 3, 5] }),
     ]);
 
@@ -530,7 +530,7 @@ describe('ReminderSchedulerService', () => {
 
   it('skips push entirely when local capability is active', async () => {
     cache.store.set('reminder:local-capability:user-1', 'active');
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
 
@@ -543,7 +543,7 @@ describe('ReminderSchedulerService', () => {
 
   it('skips push entirely when local capability is disabled', async () => {
     cache.store.set('reminder:local-capability:user-1', 'disabled');
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
 
@@ -554,7 +554,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('sends push when local capability is unconfirmed (cache miss)', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     pushDelivery.sendToUser.mockResolvedValue({ sent: true });
@@ -573,7 +573,7 @@ describe('ReminderSchedulerService', () => {
 
   it('sends push when local capability is unavailable', async () => {
     cache.store.set('reminder:local-capability:user-1', 'unavailable');
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     pushDelivery.sendToUser.mockResolvedValue({ sent: true });
@@ -584,7 +584,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('continues with push when the capability cache read fails', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     cache.get.mockRejectedValue(new Error('redis down'));
@@ -608,7 +608,7 @@ describe('ReminderSchedulerService', () => {
   // ── Local delivery row skips push ────────────────────────────────
 
   it('skips push when a local delivery row already exists', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     // 第一次 findFirst（in_app 去重）→ null；第二次（local 行）→ 已存在
@@ -623,7 +623,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('checks the local delivery row with a channel filter', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
 
@@ -652,7 +652,7 @@ describe('ReminderSchedulerService', () => {
   // ── Push result rows ─────────────────────────────────────────────
 
   it('writes a delivered push row when push succeeds', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     pushDelivery.sendToUser.mockResolvedValue({ sent: true });
@@ -674,7 +674,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('writes a failed push row with error message when push fails', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     pushDelivery.sendToUser.mockResolvedValue({
@@ -699,7 +699,7 @@ describe('ReminderSchedulerService', () => {
   });
 
   it('writes a failed push row with push_not_configured when push is not configured', async () => {
-    prisma.userMedicineReminder.findMany.mockResolvedValue([
+    prisma.userReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
     // 默认 mock 返回未配置语义 { sent: false, errorMessage: 'push_not_configured' }

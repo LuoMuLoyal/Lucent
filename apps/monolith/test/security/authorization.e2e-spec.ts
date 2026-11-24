@@ -398,7 +398,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
     beforeAll(async () => {
       // Data export rows are isolated by user; create Alice's directly in DB.
-      const exportRequest = await ctx.prisma.dataExportRequest.create({
+      const exportRequest = await ctx.prisma.exportRequest.create({
         data: {
           userId: alice.id,
           kind: 'daily_records',

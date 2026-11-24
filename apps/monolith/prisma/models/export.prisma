@@ -1,7 +1,7 @@
 // Domain: Data Export
 // Owning module: export
 
-model DataExportRequest {
+model ExportRequest {
   id           String    @id @default(uuid())
   userId       String    @map("user_id")
   kind         String

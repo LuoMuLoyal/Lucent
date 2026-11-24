@@ -14,7 +14,7 @@ function buildPrisma() {
     userSuggestionFeedback: {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
-    userProductEvent: {
+    userProductEventLog: {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     user: {
@@ -110,11 +110,11 @@ describe('RetentionService', () => {
   });
 
   it('deletes raw product events older than 90 days by occurredAt', async () => {
-    prisma.userProductEvent.deleteMany.mockResolvedValue({ count: 7 });
+    prisma.userProductEventLog.deleteMany.mockResolvedValue({ count: 7 });
 
     await service.cleanupExpiredData();
 
-    expect(prisma.userProductEvent.deleteMany).toHaveBeenCalledWith({
+    expect(prisma.userProductEventLog.deleteMany).toHaveBeenCalledWith({
       where: {
         occurredAt: { lt: new Date('2026-04-21T03:00:00.000Z') },
       },
@@ -128,6 +128,6 @@ describe('RetentionService', () => {
     expect(prisma.userSession.deleteMany).toHaveBeenCalled();
     expect(prisma.userNotification.deleteMany).toHaveBeenCalled();
     expect(prisma.userSuggestionFeedback.deleteMany).toHaveBeenCalled();
-    expect(prisma.userProductEvent.deleteMany).toHaveBeenCalled();
+    expect(prisma.userProductEventLog.deleteMany).toHaveBeenCalled();
   });
 });

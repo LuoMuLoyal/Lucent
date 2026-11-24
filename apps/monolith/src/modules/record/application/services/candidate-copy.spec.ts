@@ -1,14 +1,14 @@
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { RecordEntryCandidatesCopyService } from './candidate-copy.js';
+import { DailyRecordCandidatesCopyService } from './candidate-copy.js';
 
-describe('RecordEntryCandidatesCopyService', () => {
-  let service: RecordEntryCandidatesCopyService;
+describe('DailyRecordCandidatesCopyService', () => {
+  let service: DailyRecordCandidatesCopyService;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
-        RecordEntryCandidatesCopyService,
+        DailyRecordCandidatesCopyService,
         {
           provide: I18nService,
           useValue: { t: vi.fn((key: string) => key) },
@@ -16,7 +16,7 @@ describe('RecordEntryCandidatesCopyService', () => {
       ],
     }).compile();
 
-    service = module.get(RecordEntryCandidatesCopyService);
+    service = module.get(DailyRecordCandidatesCopyService);
   });
 
   describe('confirmationHint', () => {

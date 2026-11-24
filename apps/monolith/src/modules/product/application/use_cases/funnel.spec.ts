@@ -1,4 +1,4 @@
-import { ProductEventName } from '#generated/prisma/client.js';
+import { ProductEventLogName } from '#generated/prisma/client.js';
 import type { ProductEventLog } from '../ports/product-event.js';
 import type {
   ResultAsync,
@@ -450,11 +450,11 @@ describe('ProductFunnelService', () => {
     expect(outcome.error.kind).toBe('validation');
   });
 
-  it('accounts for every ProductEventName value — no silent metric dropouts', () => {
+  it('accounts for every ProductEventLogName value — no silent metric dropouts', () => {
     // Enforces the funnel fold's DEV NOTE: a new enum value must be mapped to
     // a core stage or an optional count, or declared uncounted — otherwise
     // the raw query would count it and the fold would silently ignore it.
-    const unmapped = Object.values(ProductEventName).filter(
+    const unmapped = Object.values(ProductEventLogName).filter(
       (name) => !isFunnelEventNameAccountedFor(name),
     );
     expect(unmapped).toEqual([]);

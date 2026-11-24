@@ -3,9 +3,9 @@ import { Injectable } from '@nestjs/common';
 import {
   Prisma,
   type HealthEventStatus,
-  type ProductEventName as PrismaProductEventName,
-  type ProductEventResult as PrismaProductEventResult,
-  type ProductEventSurface as PrismaProductEventSurface,
+  type ProductEventLogName as PrismaProductEventName,
+  type ProductEventLogResult as PrismaProductEventResult,
+  type ProductEventLogSurface as PrismaProductEventSurface,
   type UserDevicePlatform as PrismaUserDevicePlatform,
 } from '#generated/prisma/client.js';
 import { isDomainFailure } from '../../../../common/result/index.js';
@@ -34,7 +34,7 @@ export class PrismaProductEventLog extends ProductEventLog {
   }
 
   async insertBatch(rows: ProductEventRow[]): Promise<number> {
-    const result = await this.prisma.userProductEvent.createMany({
+    const result = await this.prisma.userProductEventLog.createMany({
       data: rows.map((row) => ({
         userId: row.userId,
         clientEventId: row.clientEventId,

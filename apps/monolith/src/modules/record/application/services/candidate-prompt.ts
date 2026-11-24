@@ -18,11 +18,11 @@ export function buildDailyRecordCandidatesSystemPrompt(): string {
   ].join(' ');
 }
 
-export type RecordEntryCandidatesPromptCopy = PromptCopy;
+export type DailyRecordCandidatesPromptCopy = PromptCopy;
 
 export function buildDailyRecordCandidatesUserPrompt(
   context: unknown,
-  copy: RecordEntryCandidatesPromptCopy,
+  copy: DailyRecordCandidatesPromptCopy,
 ): string {
   return buildUserPrompt(context, copy);
 }
