@@ -220,5 +220,5 @@ model UserMedicineNotifyMark {
 
   @@unique([userId, currentMedicineId, notifyDate])
   @@index([userId, notifyDate])
-  @@map("user_medicine_notify_marks")
+  @@map("medicine_notify_marks")
 }
