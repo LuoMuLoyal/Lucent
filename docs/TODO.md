@@ -19,40 +19,6 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, and record the completion in
 today's `Lucent/docs/logs/migration-log/YYYY-MM-DD.md`(跨仓事项在各自仓库的迁移日志留痕)。
 
-## 端口暴露面：安全组限源是访问控制，不是兜底
-
-`compose.yaml`（主站）、`compose.graph.yaml`（图库机）与 `compose.monitoring.yaml`
-（监控机）把服务端口发布到宿主机，
-**可达范围由云安全组按来源 IP 白名单决定**。端口发布到 `0.0.0.0` 不等于对全网开放：
-把某端口限定到指定 IP 后，其可达性等同于「只有该 IP 能连」，与「仅绑回环 + SSH 隧道」
-是同一档的访问控制，区别只在审计面与多一层云厂商依赖。
-
-因此**判断暴露面看安全组放行了谁，不看端口是否发布**；真实 IP 与规则清单属运维信息，
-在服务器侧与私有笔记维护，**不入库**（见 `docs/reference/deployment.md`）。
-
-以下为**残余风险**（不是"待收回"清单），按需要收窄：
-
-- **数据库与队列端口**（`5432` postgres / `6379` redis / `7687` neo4j）：口令是唯一
-  防线，安全组限源是第二道。redis 的 `--requirepass` 一旦配错就是无口令实例，
-  改动后需实测 `redis-cli -a` 能认证、且无口令时被拒。确保只放行运维 IP
-  与确实需要对端的来源（如跨机读库的场景）。
-- **`8099` semantica**：已补 bearer 鉴权（`API_TOKEN` / `SEMANTICA_API_KEY` 两侧一致），
-  属"发布端口 + 鉴权"；`NEO4J_AUTH` 按设计要被同机 sidecar 读到，
-  故其口令也落在服务器侧的运行时 env 里，注意文件权限。
-- **`9100` node-exporter**：**绝不放行 `0.0.0.0/0`**——它没有内建鉴权。
-  监控机与主站分处两机，只能经公网抓取，故安全组只放行监控机的出口 IP。
-- **`8848` / `9848` / `10848` rnacos**：控制台（`10848`）是能改运行时行为的入口，
-  开 `RNACOS_ENABLE_OPEN_API_AUTH=true` 后仍需按受信来源收口；`8848`/`9848` 只给
-  app 与运维用，同样不该对全网开放（详见 `docs/reference/deployment.md`）。
-- **监控栈 `8428` / `3001` / `9428` / `10428`**：`10428`（VictoriaTraces）无内建鉴权，
-  只放行运维 IP。比放行本机 IP 更严的做法是开 SSH 隧道（端口不必对任何 IP 放行）：
-  `ssh -N -L 8428:127.0.0.1:8428 -L 9428:127.0.0.1:9428 root@<监控IP>`。
-
-**无 TLS 是另一个已知缺口**：app 直接以 HTTP 提供入口，`METRICS_*` 与各 sidecar 的
-bearer token 在跨云公网上明文过线。补齐方式是域名 + TLS 终止，属独立决策。
-
-条目完成即删行；变更本身记入当日迁移日志。
-
 ## 2026-10-19 rnacos 运行时配置中心（部署侧遗留）
 
 - **rnacos 的访问日志明文记录控制台口令**：绑定 SDK 走
@@ -79,43 +45,14 @@ bearer token 在跨云公网上明文过线。补齐方式是域名 + TLS 终止
   **注**：Neo4j 迁移已完成（见 `plans/README.md` 所述删除的计划与 ADR-0022），
   P4 已把三条推理规则改写为 Cypher 并删除 Oxigraph 接线；但"导出侧读取"路径
   **仍在**（`/reason` 之外仍有导出路径），故本条**依然成立**，未随迁移消失。
-- **模型供应商配额/凭据**：本轮评测中途开始快失败（`rejected our credentials or
-exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前先确认配额。
 
-## 2026-09-18 LightRAG 中文散文检索（剩余为评测与生产核对）
+## 2026-09-18 LightRAG 中文散文检索（剩余为生产核对）
 
-剩余为评测与生产侧动作：
+剩余为生产侧动作：
 
-- **P2 全量评测（未做）**：当前只有一次 20 条语料的小样本模式验证
-  （产物在仓库外的 `lightrag-eval/`），**不足以判断真实规模下图模式是否有增益**；
-  社区经验阈值是 500–2000 页文档以上图模式才明显胜出，本项目远超该阈值，
-  真正的结论必须来自中大规模重跑，且需补**答案质量**评分（论文证明图模式收益
-  体现在端到端答案，而 Lucent 只取上下文、自己生成）。
-  **图模式的开关已改为配置驱动**（`LIGHTRAG_GRAPH_SOURCES`，默认 `leaflet`）：
-  `leaflet` 现在放行 `local`/`global`/`hybrid`/`mix`，`qa` 仍只接受 `naive`。
-  这是把"待验证前的默认"翻转了，**不是评测结论**——P2 全量评测仍未做，
-  上面那条判断标准（"图模式显著优于 naive"）依然没有被真正检验。
-  **放行前必须先建图**：没建图时图模式拿到的是**空结果而非报错**，
-  只有 `coverage.reason` 会说明；索引状态与 `LIGHTRAG_GRAPH_SOURCES` 必须一致。
-- **建图成本决策（未决）**：实测约 **10.5 s/chunk**、约 $0.057/doc（抽取侧换
-  `deepseek-v4-flash-0731` + 关 thinking + 开 `MAX_ASYNC_LLM` 之后的数字；
-  同一口径下改配置前是 61.4 s/chunk，旧文档记的"4 分钟/chunk"已证伪）。
-  按 21,142 份说明书估算，全量建图的墙钟与费用**需要单独立项**，不是"顺手跑一下"。
-  依据见 `lightrag-eval/PROCESS.md` 与 `lightrag-eval/results/mode-comparison.md` §一、§九。
-  **注**：上述 10.5 s/chunk 未计入抽缓存复用。已核实 LightRAG 的抽取缓存键是
-  **chunk 内容级**（`utils.py:5244` 的 hash 输入不含 `file_path`，实盘验证同文本必然同键），
-  故同一段文本在不同说明书下只抽一次 —— 实测语料 chunk 级重复率 **70.2%**
-  （205,454 → 61,207）。方向应是**命中缓存复用抽取结果、但仍按 leaflet 归属完整写入**，
-  **不可按 chunk 跳过写入**：跳过会丢掉约 **69,264 条跨药品断言**
-  （仅 `validity_period` 一句"24个月"就横跨 7,368 种药品）。详见迁移日志 2026-09-26。
 - **`validity_period` 的「暂定」信号已在库内丢失**：2026-09-26 的就地归一化把
   `暂定一年半` 覆盖为 `18个月`，抹平了「厂家未定稿」这层含义（实测 1,491 行）。
   需要该信号时只能回 `DrugDataBase/derived/v3-dedup/leaflets_dedup.parquet` 取。
-- **P4 灌 `qa` workspace（脚本就位，未实跑）**：`medical_qa_chunks` 当前 0 行，
-  源数据（`DrugDataBase/qa/`）尚未导入。步骤：
-  `import-medical-qa.ts --filter` → `pnpm import:lightrag --workspace=qa`。
-- **P5 生产核对（未做）**：生产库验证 sidecar 可达、`/query` 鉴权生效
-  （注意 `/health` 不校验鉴权，不能用来判断 key 是否配对）与 workspace 命中。
 - **workspace 隔离（已知限制，不做）**：上游 #2527 确认单实例仅支持单
   workspace，实测 `LIGHTRAG-WORKSPACE` 头不改变实际读写位置。因此同实例上
   `leaflet` 与 `qa` 共享一个命名空间，靠 doc id 前缀区分；需要物理隔离要另起
@@ -135,31 +72,6 @@ exhausted its quota`），词汇规则的复测因此没跑完；评测阶段前
 （沿用各资源端点「跨用户访问 → 404」的 e2e 约定）。对侧登记见 Luminous `docs/TODO.md`。
 
 ## 后续可做
-
-### RustFS 缺少域名与 TLS，公网链路是明文 HTTP（2026-11-16，对象存储自建时登记）
-
-对象存储已从七牛云 Kodo 与 dev 的 SeaweedFS 统一换成自建 RustFS。眼下没有域名，客户端
-直传与外部受众（识图模型）都签名到 `http://<主站公网IP>:9000`，后果是：预签名 URL 走明文
-HTTP，公网链路上对象内容可被旁路读取与篡改。方案：给 RustFS 配域名 + 证书（容器内
-`RUSTFS_TLS_PATH` 挂 `rustfs_cert.pem` / `rustfs_key.pem`，或前置同机反代），然后把
-`STORAGE_S3_CLIENT_ENDPOINT`、`STORAGE_S3_EXTERNAL_ENDPOINT` 改成 `https://`。验收：
-预签名 PUT 与 GET 在客户端与外部模型两侧都走 HTTPS，且旧 HTTP 端点关闭。
-
-### RustFS 单盘布局没有真实冗余（2026-11-16，同上）
-
-`RUSTFS_VOLUMES` 默认是单卷 `/data`：单盘部署下这是**唯一**能启动的配置——实测配成
-`/data/rustfs{0...3}` 会 FATAL（`local erasure endpoints must use distinct physical
-disks`）并进入崩溃循环，因为 4 个目录属于同一块设备。代价是没有冗余，单盘故障即全量
-丢失。方案：给 RustFS 挂 4 块独立物理盘（或云盘）并逐个加卷，再把 `RUSTFS_VOLUMES`
-改成 `/data/rustfs{0...3}`；或者明确接受"无冗余"并配置定期异地备份。验收：拔掉一块盘
-的演练下对象仍可读，且备份可恢复。
-
-### 按管理面契约重生成 Luminous 客户端（2026-10-19，管理面扩展收尾）
-
-管理面扩展新增/调整了 `/api/v1/admin/*`（QA 语料、漏斗指标、依赖状态、数据/用户/管理员 API），
-`docs/reference/generated/openapi.json` 已随代码更新，但 Luminous 侧尚未按新契约重跑其 Flutter 契约引导脚本（在 Luminous 仓库内执行）。这些端点是控制台专用，C 端目前无消费方，
-故按计划决策顺延；下次 Luminous 契约同步时一并重生成，验收:重生成后 Luminous 侧 `flutter analyze` 通过,
-且生成物与 Lucent 的 openapi 快照无差异。
 
 ### 深链域名与 App Link 校验文件的部署（2026-10-16，Luminous 深链接入时发现）
 
@@ -237,16 +149,6 @@ R-4 路线图清理完成时裁决去留：若 Luminous 已全面切换 `observe
 `docs/explanation/` 只减不增且 architecture.md 已瘦身，不新增小节；候选去向：AST 约定检查
 （`scripts/arch/check-ast-conventions.ts` 新增 C3 规则）或新 ADR，逐项评估后择一落地。
 
-### F3：CI lint 作业并行化（P3，2026-08-30 审查 Suggestion）
-
-oxlint 落地稳定后，将 `ci.yml` lint-typecheck 作业中的 `lint:oxlint` 与
-`typecheck`/`typecheck:tools` 并行（独立 step 或 matrix），缩短 CI 时长；当前串行稳妥但低效。
-
-### B2：环境数据接入真实天气 API（P3）
-
-静态环境数据已标注 `dataSource: 'static'`（`src/modules/environment/config/reference.ts`）。
-v1.1.0 接入真实天气/空气质量 API（和风天气/彩云天气等），替换 6 个区域静态配置文件。
-
 ### B3：多实例限流验证（P3）
 
 `ThrottlerConfigService` 已实现 Redis-backed 限流存储（`REDIS_URL` 存在时启用）。
@@ -256,27 +158,6 @@ v2.0.0 水平扩展时需验证多实例限流计数器在 Redis 中的正确性
 
 `DataRetentionService` 已实现 `@Cron` 清理管道（过期会话/通知/反馈抑制）和软删除账户 30 天后硬删除。
 仍缺：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL 合规）。
-
-### ESM 遗留 CJS 依赖与互操作跟踪（2026-09-03，NestJS 12 升级第二步）
-
-ESM 化后遗留清单与后续跟进：
-
-- `@prisma/internals`：named `getDMMF` 无法经 cjs-module-lexer 识别（动态重导出），`prisma-module.service.ts`
-  以动态 import + default/具名回退装载。上游发布 ESM 版本后改回裸 named import。
-- 两处 PDF 服务用 `createRequire(import.meta.url).resolve` 解析 `@fontpkg/*` 字体资产路径（ESM 无
-  `require.resolve`），属惯用法保留。
-- `cos-nodejs-sdk-v5`（default import）当前互操作正常，无需改动；若上游导出形态变化，
-  按计划口径复核。
-
-### @nestjs/throttler 的 ^12 peer 跟进（2026-09-02，NestJS 12 升级第一步）
-
-`@nestjs/throttler@6.5.0`（npm latest）的 peerDependencies 尚未纳入 `@nestjs/* ^12`
-（上限 ^11）。pnpm 安装产生 peer 告警但不阻断；框架升级后 e2e 全量运行时行为已验证正常
-（rate-limiting 套件通过）。上游扩 peer 或发新 major 后升级以消除告警；若长期不更新，
-评估替代方案或 fork peer 声明。
-
-> 同一条目里原先还挂着 `nest-winston@1.10.2` 的 peer 告警 —— 2026-10-27 日志底座迁回
-> Pino（`nestjs-pino`，见 ADR-0007 修订记录）后该依赖已移除，这一半事项随之关闭。
 
 ### 高级可观测性进阶项
 
@@ -290,16 +171,6 @@ ESM 化后遗留清单与后续跟进：
 类药性规则等），前端以文本 + 复制呈现。2D 结构式图形渲染未做：Flutter 生态无成熟
 的 SMILES 出图包，且 `structures.sdf` 为纯 2D（z 恒为 0），没有构象数据可消费。
 若将来要出图，需先引入/自研 SMILES 布局渲染，并评估移动端渲染成本。
-
-### 响应侧 Standard Schema 序列化的未竟事项（2026-09-03，NestJS 12 计划收尾）
-
-响应侧 zod + `StandardSchemaSerializerInterceptor` 已全量落地并闸门绿，以下边角留待后续：
-
-- 201/202 主成功响应在 export 期已回写 `$ref`；若新端点引入其他非 200 成功码语义，需在导出
-  脚本的成功码回写列表同步扩展（现 200→201→202）。
-- `@SerializeOptions` 未被 Swagger 自省,响应组件靠 export 期注册表注入;注册路径必须与导出
-  operation 逐字一致(含 RouterModule 前缀与 `{…}` 参数),不一致导出会显式报错——新增模块照此约定。
-- SSE/text 流端点不注册响应组件(非 JSON 200),如需结构化 `event: error` 语义遵循 ADR-0012/0017。
 
 ### 半衰期感知的漏服提示接入（2026-10-24，领域逻辑已就绪，链路未接）
 
@@ -324,26 +195,6 @@ ESM 化后遗留清单与后续跟进：
 **验收**：半衰期 3 小时的药漏 2 个半衰期会提示、同一药一天只提示一次；半衰期 102 小时的
 药同样缺口不提示；`half_life` 缺失的药行为与接入前完全一致。
 
-### Prisma 药品知识库回填（2026-10-24，独立工作，不阻塞图查询）
-
-本机 dev 库（`127.0.0.1:15432/lucent`）实测与应有规模差距很大：
-`drugbank_drugs` 100/19,842、`drugbank_targets` 0、`drugbank_drug_targets` 0、
-`drugbank_structures` 0、`cn_medicine_products` 0、`medical_qa_chunks` 0。
-
-**这不影响图查询**：关系数据在 Neo4j（3,278 节点 / 211,630 边，`lucent-neo4j` 容器 +
-`lucent-neo4j-data` 卷），语义上覆盖了靶点/酶/转运体关系。受影响的只有 **Lucent 自己的
-药品详情接口**（`GET /api/v1/medicines/:id` 的 `targets`/`structure` 等字段）与上面那条
-半衰期接入。
-
-**待查**：是尚未导入，还是导入过但这份 dev 库被重建过。两种情况处置不同——后者要先
-定位数据丢在哪一环，否则导入完还会再丢。源数据在
-`DrugDataBase/derived/drugbank/drugbank_drugs.parquet`（124.8 MB），导入脚本
-`scripts/import/medicine/import-medicine-knowledge.ts` 在。
-
-**顺带修正**：`Luminary/apps/lumine/PRODUCT.md` §二 称 `enzymes`（1,871 条）「已导入」，
-但 `prisma/models/medicine-knowledge.prisma` 里**没有 enzymes 列**——这类关系只存在于
-Neo4j。该文档需更正，避免下一个人按它去找字段。
-
 ### 剂量日志槽位唯一性缺失：`mark` 的幂等只是「通常成立」（2026-10-25，四层迁移补测试时发现）
 
 `POST /medicine-dose-logs/mark` 的契约是「同一槽位幂等」，实现是 **find-then-create**
@@ -359,8 +210,7 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
 - `git log --all -S` 查无任何分支曾加过该约束——**这是既有缺陷，不是四层迁移引入的**。
 
 **连带问题**：controller 上 `POST /medicine-dose-logs` 与 `/mark` 的
-`@ApiResponse({ status: 409, description: 'Duplicate dose log for the same slot
-(RESOURCE_CONFLICT, race)' })` 是**假声明**——没有唯一约束，P2002 永远不会由槽位重复触发
+`@ApiResponse({ status: 409, description: 'Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)' })` 是**假声明**——没有唯一约束，P2002 永远不会由槽位重复触发
 （`create` 的 P2002→`RESOURCE_CONFLICT` 映射本身正确，但只可能来自别的约束）。
 
 **修法（三件事要一起做，缺一不可）**：
@@ -383,24 +233,10 @@ Neo4j。该文档需更正，避免下一个人按它去找字段。
 **前置**：加约束前要查存量重复数据（同一 user+槽位多行未删），否则 migration 会失败；
 `prisma/models/**` 变更需同步 `pnpm export:openapi`（409 文案若改动）。
 
-## 管理控制台遗留（2026-10-07，控制台校验与首次上线时发现）
-
-- **favicon 仍是上游模板图片**：`admin/index.html` 的标题与 OG/Twitter 卡片已改为 Lucent
-  自己的元数据，但四个 favicon 引用仍是模板自带的 `admin/public/images/favicon*.{svg,png}`
-  （上游 shadcn-admin 图形）。替换需要一套 Lucent 图标资产（多尺寸 + 亮/暗两版），
-  留待有正式视觉资产时统一处理。
-
 ## DDD 四层迁移收尾遗留（2026-10-25）
 
 六条轨道合并后 `typecheck` / `lint` / `arch:check` / 单测 / e2e 全绿，以下是这轮
 刻意未做的项，按需处理：
-
-### 小体量 supporting 模块不迁四层（口径决定，非遗漏）
-
-`audit-log`(174 行) / `data-retention`(174) / `app-info`(99) / `environment`(415) /
-`legal-documents`(476) 保持现状。理由：为 99 行的模块造 `domain/` + `application/` +
-`adapters/` 骨架，骨架比代码长；ADR-0024 自己写了「不为 CRUD 硬造富领域模型」。
-等它们长大（出现真实领域规则或跨上下文契约）再拆。
 
 ### `domain-events-outbox.service.ts` 的 `tx` 参数
 
@@ -458,13 +294,6 @@ ambient scope 让调用方**不必**传它——正常路径下 `tx` 参数已�
 每队列 DLX/DLQ 隔离毒消息、以及查看/重放/丢弃积压的工具。发布侧已开 confirms，
 消费侧的失败语义还是空白。
 
-### AMQP 链路没有 TLS
-
-生产 `RABBITMQ_URL` 是 `amqp://` 明文。跨机流量可被旁路读取与篡改，包括事件
-payload 里的用户标识与日期。方案：给 RabbitMQ 配证书后改用 `amqps://`
-（`RABBITMQ_URL` 的校验已接受 `amqps`），或经 stunnel/反代终结 TLS。
-15672 管理台只靠安全组收口来源 IP，接入 TLS 时一并处理。
-
 ## deepagents 灰度收尾（2026-11-18 登记，2026-11-22 收缩）
 
 `ASSISTANT_AGENT_RUNTIME`（默认 `graph`）已接通：`runtime.ts` 按轮分流，deepagents
@@ -495,14 +324,3 @@ multi-tenant」列为不适用场景，而 assistant 正是这一类。三大模
 **真正隔离需要每会话一个容器**（独立命名空间、无网络、只挂临时卷），那是独立的基础设施
 改动，不是本模块能长出来的一层围栏。验收：shell 默认只能读；写只能落 workspace；
 越界被拒绝且以结果事实呈现，升级需要一句话理由；无 runner 时报错而不是静默直跑。
-
-## 高德 MCP 外部工具未做端到端验证（2026-11-22）
-
-`AMAP_MCP_ENABLED` / `AMAP_MCP_URL` / `AMAP_MCP_TIMEOUT_MS` / `AMAP_MCP_KEY` 已接入，
-工具在模型侧是 `amap__<remoteName>`。**单测只覆盖命名与合并逻辑**，真实 server 的
-`tools/list` 与 `tools/call` 没有跑过——需要一把高德 Web 服务 Key（控制台选「Web 服务」
-类型）。
-
-启用前注意：高德 server 的 key 是 **URL 查询参数**，与我们的 `X-API-Key` 习惯不同；
-客户端在调用时拼接，不进快照。验收：`AMAP_MCP_ENABLED=true` 且有 key 时，问一句天气
-能拿到 `maps_weather` 的结果；关掉开关或清空 key 时，工具不绑定、对话不受影响。
