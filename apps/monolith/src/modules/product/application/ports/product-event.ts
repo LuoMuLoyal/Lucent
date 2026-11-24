@@ -39,7 +39,7 @@ export interface FunnelWindow {
   end: Date;
 }
 
-export abstract class ProductEvents {
+export abstract class ProductEventLog {
   /**
    * 批量写入，返回实际插入的行数。
    *

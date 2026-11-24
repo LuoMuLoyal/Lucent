@@ -39,7 +39,7 @@ export const TODAY_ANALYSIS_REASON_CODES = [
   'manual_refresh',
 ] as const;
 
-export type TodayAnalysisReasonCode =
+export type AnalysisReasonCode =
   (typeof TODAY_ANALYSIS_REASON_CODES)[number];
 
 export type PersistedTodayAnalysisStatus =
@@ -48,7 +48,7 @@ export type PersistedTodayAnalysisStatus =
   | 'failed'
   | 'capped';
 
-export type TodayAnalysisStatus =
+export type AnalysisStatus =
   | 'pending'
   | 'ready'
   | 'failed'

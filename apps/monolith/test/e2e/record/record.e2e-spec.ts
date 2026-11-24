@@ -8,7 +8,7 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module.js';
 import { setupApp } from '../../../src/setup-app.js';
-import { DailyRecordCandidatesService } from '../../../src/modules/record/index.js';
+import { RecordEntryCandidatesService } from '../../../src/modules/record/index.js';
 import { PrismaService } from '../../../src/prisma/index.js';
 import { DailyRecordKind, UserStatus } from '#generated/prisma/client.js';
 import { ConfigKey } from '../../../src/config/env/config-keys.enum.js';
@@ -47,7 +47,7 @@ describe('Daily Records API (e2e)', () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let configService: ConfigService;
-  let candidateService: vi.Mocked<DailyRecordCandidatesService>;
+  let candidateService: vi.Mocked<RecordEntryCandidatesService>;
 
   beforeAll(async () => {
     const candidateServiceMock = {
@@ -57,7 +57,7 @@ describe('Daily Records API (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(DailyRecordCandidatesService)
+      .overrideProvider(RecordEntryCandidatesService)
       .useValue(candidateServiceMock)
       .compile();
 
@@ -72,7 +72,7 @@ describe('Daily Records API (e2e)', () => {
     prisma = app.get(PrismaService);
     jwtService = app.get(JwtService);
     configService = app.get(ConfigService);
-    candidateService = moduleFixture.get(DailyRecordCandidatesService);
+    candidateService = moduleFixture.get(RecordEntryCandidatesService);
 
     await prisma.userDailyRecordAttachment.deleteMany();
     await prisma.userDailyRecord.deleteMany();

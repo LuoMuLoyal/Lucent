@@ -385,7 +385,7 @@ describe('presenters', () => {
         {
           assistantContext: {
             healthProfile: true,
-            dailyRecords: false,
+            records: false,
           },
         },
         createTestTranslator('zh-CN'),
@@ -452,8 +452,8 @@ describe('presenters', () => {
       const en = createTestTranslator('en');
       expect(contextPreviewLabel('healthProfile', zh)).toBe('健康档案');
       expect(contextPreviewLabel('healthProfile', en)).toBe('Health profile');
-      expect(contextPreviewLabel('dailyRecords', zh)).toBe('最近记录');
-      expect(contextPreviewLabel('dailyRecords', en)).toBe('Recent records');
+      expect(contextPreviewLabel('records', zh)).toBe('最近记录');
+      expect(contextPreviewLabel('records', en)).toBe('Recent records');
       expect(contextPreviewLabel('sleepRecords', zh)).toBe('睡眠数据');
       expect(contextPreviewLabel('sleepRecords', en)).toBe('Sleep data');
       expect(contextPreviewLabel('currentMedicines', zh)).toBe('当前用药');

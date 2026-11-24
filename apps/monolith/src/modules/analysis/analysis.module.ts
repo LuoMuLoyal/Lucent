@@ -9,18 +9,18 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { ContextModule } from '../context/context.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { PrismaModule } from '../../prisma/index.js';
-import { TodayAnalysisContextService } from './adapters/acl/analysis-context.js';
+import { AnalysisContextService } from './adapters/acl/analysis-context.js';
 import { TriggerEvaluatorService } from './application/services/trigger-evaluator.js';
 
-import { TodayAnalysisCopyService } from './application/services/analysis-copy.js';
+import { AnalysisCopyService } from './application/services/analysis-copy.js';
 
-import { TodayAnalysisGeneratorService } from './infrastructure/llm/analysis-generator.js';
+import { AnalysisGeneratorService } from './infrastructure/llm/analysis-generator.js';
 
 import { AnalysisQueueService } from './adapters/queue/analysis.js';
 
-import { TodayAnalysisService } from './application/use_cases/generate-analysis.js';
-import { TodayAnalysisMaterializationStore } from './infrastructure/persistence/materialization.js';
-import { TodayAnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
+import { AnalysisService } from './application/use_cases/generate-analysis.js';
+import { AnalysisMaterializationStore } from './infrastructure/persistence/materialization.js';
+import { AnalysisEventConsumerService } from './adapters/queue/event-consumer.js';
 import { ANALYSIS_QUEUE_PORT } from './application/ports/analysis-queue.js';
 import { ANALYSIS_MATERIALIZATION } from './application/ports/materialization.js';
 import {
@@ -46,25 +46,25 @@ import { AnalysisController } from './adapters/http/controllers/analysis.control
   ],
   controllers: [AnalysisController],
   providers: [
-    TodayAnalysisCopyService,
-    TodayAnalysisContextService,
+    AnalysisCopyService,
+    AnalysisContextService,
     TriggerEvaluatorService,
-    TodayAnalysisGeneratorService,
-    TodayAnalysisService,
+    AnalysisGeneratorService,
+    AnalysisService,
     AnalysisQueueService,
-    TodayAnalysisMaterializationStore,
-    TodayAnalysisEventConsumerService,
+    AnalysisMaterializationStore,
+    AnalysisEventConsumerService,
     {
       provide: ANALYSIS_MATERIALIZATION,
-      useExisting: TodayAnalysisMaterializationStore,
+      useExisting: AnalysisMaterializationStore,
     },
     {
       provide: ANALYSIS_CONTEXT_SOURCE,
-      useExisting: TodayAnalysisContextService,
+      useExisting: AnalysisContextService,
     },
     {
       provide: ANALYSIS_GENERATOR,
-      useExisting: TodayAnalysisGeneratorService,
+      useExisting: AnalysisGeneratorService,
     },
     {
       provide: ANALYSIS_QUEUE_PORT,

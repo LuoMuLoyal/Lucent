@@ -45,7 +45,7 @@ export const RISK_ASSESSMENT_COMPLETED = 'risk-assessment.completed';
 
 // ─── Event payloads ───
 
-export interface DailyRecordChangedPayload {
+export interface RecordEntryChangedPayload {
   userId: string;
   /** ISO date string (YYYY-MM-DD) of the record's occurredAt date. */
   date: string;

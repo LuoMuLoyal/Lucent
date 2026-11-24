@@ -31,7 +31,7 @@ const baseline = () => 'code prompt';
 
 describe('resolveRuntimePrompt', () => {
   it('returns the code prompt when there is no snapshot service', () => {
-    expect(resolveRuntimePrompt(undefined, 'todayAnalysis', baseline, {})).toBe(
+    expect(resolveRuntimePrompt(undefined, 'analysis', baseline, {})).toBe(
       'code prompt',
     );
   });
@@ -39,7 +39,7 @@ describe('resolveRuntimePrompt', () => {
   it('returns the code prompt when the document declares no override', () => {
     const source = sourceWith({ [EnvKey.PROMPT_TODAY_ANALYSIS]: null });
 
-    expect(resolveRuntimePrompt(source, 'todayAnalysis', baseline, {})).toBe(
+    expect(resolveRuntimePrompt(source, 'analysis', baseline, {})).toBe(
       'code prompt',
     );
   });
@@ -49,7 +49,7 @@ describe('resolveRuntimePrompt', () => {
       [EnvKey.PROMPT_TODAY_ANALYSIS]: 'published prompt',
     });
 
-    expect(resolveRuntimePrompt(source, 'todayAnalysis', baseline, {})).toBe(
+    expect(resolveRuntimePrompt(source, 'analysis', baseline, {})).toBe(
       'published prompt',
     );
   });
@@ -116,12 +116,12 @@ describe('resolveRuntimePrompt', () => {
       }),
     };
 
-    expect(resolveRuntimePrompt(source, 'todayAnalysis', baseline, {})).toBe(
+    expect(resolveRuntimePrompt(source, 'analysis', baseline, {})).toBe(
       'first',
     );
 
     values = { [EnvKey.PROMPT_TODAY_ANALYSIS]: 'second' };
-    expect(resolveRuntimePrompt(source, 'todayAnalysis', baseline, {})).toBe(
+    expect(resolveRuntimePrompt(source, 'analysis', baseline, {})).toBe(
       'second',
     );
   });

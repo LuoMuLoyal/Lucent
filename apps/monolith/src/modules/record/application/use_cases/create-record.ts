@@ -23,10 +23,10 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import type { CreateRecordInput } from '../services/write-input.js';
-import { DailyRecord } from '../../domain/record/daily-record.js';
+import { RecordEntry } from '../../domain/record/daily-record.js';
 import { asDailyRecordKind } from '../../domain/record/record-kind.js';
 import type { RecordRow } from '../../domain/record/record-row.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import type { RecordItem } from '../read_models/record-list.js';
 import { toRecordItem } from '../read_models/record-item.js';
 import { validationFailed } from '../services/domain-failures.js';
@@ -41,7 +41,7 @@ import { RecordWriteEffects } from '../services/record-write-effects.js';
 @Injectable()
 export class CreateRecord {
   constructor(
-    private readonly records: DailyRecords,
+    private readonly records: Records,
     private readonly healthEvents: HealthEventLink,
     private readonly effects: RecordWriteEffects,
   ) {}
@@ -51,7 +51,7 @@ export class CreateRecord {
     dto: CreateRecordInput,
   ): ResultAsync<RecordItem, DomainFailure> {
     const kind = asDailyRecordKind(dto.kind) ?? 'note';
-    const problem = DailyRecord.validatePayload(kind, dto.payload);
+    const problem = RecordEntry.validatePayload(kind, dto.payload);
     if (problem != null) {
       return errAsync(validationFailed());
     }

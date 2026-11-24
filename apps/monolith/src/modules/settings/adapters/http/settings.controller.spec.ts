@@ -26,7 +26,7 @@ function makeSettings(
     waterTargetCount: 8,
     assistantContext: {
       healthProfile: true,
-      dailyRecords: true,
+      records: true,
       sleepRecords: true,
       currentMedicines: true,
     },

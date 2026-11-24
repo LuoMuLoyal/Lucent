@@ -136,7 +136,7 @@ export class AssistantPolicyService {
       case 'health_profile':
         return settings.assistantContext.healthProfile;
       case 'daily_records':
-        return settings.assistantContext.dailyRecords;
+        return settings.assistantContext.records;
       case 'sleep_records':
         return settings.assistantContext.sleepRecords;
       case 'current_medicines':

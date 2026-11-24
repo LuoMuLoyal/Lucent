@@ -123,14 +123,14 @@ export interface EventReviewObservedSource {
 /** Coverage summary across every source the review reads. */
 export interface EventReviewCoverageSummary {
   checkIns: EventReviewCheckInCoverage;
-  dailyRecords: EventReviewObservedSource;
+  records: EventReviewObservedSource;
   doseLogs: EventReviewObservedSource;
 }
 
 /** Last-known timestamp per source, used to explain staleness. */
 export interface EventReviewSourceTimestamps {
   checkIns: string | null;
-  dailyRecords: string | null;
+  records: string | null;
   doseLogs: string | null;
 }
 

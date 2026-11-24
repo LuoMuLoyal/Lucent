@@ -10,13 +10,13 @@ import type { CreateMedicineReminderDto } from '../../application/ports/create-r
 import type { UpdateMedicineReminderDto } from '../../application/ports/update-reminder.js';
 import type { UpsertMedicineReminderGroupDto } from '../../application/ports/upsert-group.js';
 import type {
-  MedicineReminderRecord,
+  ReminderEntryRecord,
   OwnedMedicineReminderRecord,
   ReminderDeliveryRecord,
 } from '../../application/ports/reminder-records.js';
 
 @Injectable()
-export class MedicineRemindersMapper {
+export class RemindersMapper {
   constructor(private readonly i18n: I18nService) {}
   toCreateData(userId: string, dto: CreateMedicineReminderDto) {
     const startDate = this.parseOptionalDate(dto.startDate);
@@ -121,7 +121,7 @@ export class MedicineRemindersMapper {
     return Math.min(Math.max(limit, 1), 100);
   }
 
-  toItem(record: MedicineReminderRecord) {
+  toItem(record: ReminderEntryRecord) {
     return {
       id: record.id,
       currentMedicineId: record.currentMedicineId,

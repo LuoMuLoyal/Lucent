@@ -20,4 +20,4 @@ export const legalDocumentQuerySchema = z
   .strict();
 
 /** Strongly typed query object of the legal-document endpoints. */
-export type LegalDocumentQueryDto = z.infer<typeof legalDocumentQuerySchema>;
+export type LegalDocQueryDto = z.infer<typeof legalDocumentQuerySchema>;

@@ -16,7 +16,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { MetricsService } from '../../../../common/metrics/metrics.service.js';
-import { ProductEvents } from '../ports/product-event.js';
+import { ProductEventLog } from '../ports/product-event.js';
 import { isKnownSuggestionRuleCode } from '../../constants/rule-code-allowlist.constants.js';
 import {
   MAX_PRODUCT_EVENT_FUTURE_SKEW_MS,
@@ -79,11 +79,11 @@ const SERVER_PLATFORM = UserDevicePlatform.web;
  * duplicates silently skip instead of double-inserting.
  */
 @Injectable()
-export class ProductEventsService {
-  private readonly logger = new Logger(ProductEventsService.name);
+export class ProductEventLogService {
+  private readonly logger = new Logger(ProductEventLogService.name);
 
   constructor(
-    private readonly events: ProductEvents,
+    private readonly events: ProductEventLog,
     private readonly metrics: MetricsService,
   ) {}
 

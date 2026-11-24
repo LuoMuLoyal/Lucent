@@ -9,9 +9,9 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 import { ReminderRepositoryPort } from '../../application/ports/reminder-repository.js';
-import { MedicineRemindersOwnership } from '../../application/use_cases/ownership.js';
-import { MedicineRemindersMapper } from '../../application/read_models/mapper.js';
-import { MedicineRemindersService } from '../../application/services/reminders.js';
+import { RemindersOwnership } from '../../application/use_cases/ownership.js';
+import { RemindersMapper } from '../../application/read_models/mapper.js';
+import { RemindersService } from '../../application/services/reminders.js';
 import { DomainEventPublisher } from '../../../../common/index.js';
 import { REMINDER_CHANGED } from '../../../../common/events/domain-events.js';
 
@@ -59,8 +59,8 @@ async function collectResult<T>(
   );
 }
 
-describe('MedicineRemindersService', () => {
-  let service: MedicineRemindersService;
+describe('RemindersService', () => {
+  let service: RemindersService;
 
   let repository: Mocked<ReminderRepositoryPort>;
   let publisher: Mocked<DomainEventPublisher>;
@@ -72,9 +72,9 @@ describe('MedicineRemindersService', () => {
           provide: I18nService,
           useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
-        MedicineRemindersService,
-        MedicineRemindersOwnership,
-        MedicineRemindersMapper,
+        RemindersService,
+        RemindersOwnership,
+        RemindersMapper,
         {
           provide: ReminderRepositoryPort,
           useValue: {
@@ -94,7 +94,7 @@ describe('MedicineRemindersService', () => {
       ],
     }).compile();
 
-    service = module.get(MedicineRemindersService);
+    service = module.get(RemindersService);
     repository = module.get(
       ReminderRepositoryPort,
     ) as unknown as Mocked<ReminderRepositoryPort>;

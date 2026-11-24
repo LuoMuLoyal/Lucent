@@ -7,7 +7,7 @@ export const TODAY_ANALYSIS_BULLET_KINDS = [
   'general',
 ] as const;
 
-export const todayAnalysisSchema = z.object({
+export const analysisSchema = z.object({
   summary: z.string().trim().min(1).max(120),
   bullets: z
     .array(
@@ -23,4 +23,4 @@ export const todayAnalysisSchema = z.object({
   confidenceNote: z.string().trim().min(1).max(80),
 });
 
-export type { TodayAnalysisStructuredOutput } from '../../../application/ports/analysis-output.js';
+export type { AnalysisStructuredOutput } from '../../../application/ports/analysis-output.js';

@@ -18,7 +18,7 @@ import {
 } from '../ports/export-requests.js';
 import type {
   CreateDataExportCommand,
-  DataExportResult,
+  ExportRequestResult,
 } from '../commands/create-export.js';
 import { ObjectStorage } from '../ports/object-storage.js';
 import { ExportQueue } from '../ports/export-queue.js';
@@ -64,14 +64,14 @@ export class CreateDataExportRequest {
     userId: string,
     dto: CreateDataExportCommand,
     language: string,
-  ): ResultAsync<DataExportResult, DomainFailure> {
+  ): ResultAsync<ExportRequestResult, DomainFailure> {
     return this.passwordReauthService
       .verify(userId, dto.password)
       .andThen(() => this.createAfterReauth(userId, dto, language));
   }
 
   /** 取该用户最近一条请求（`null` = 从未导出过）。 */
-  latest(userId: string): ResultAsync<DataExportResult | null, DomainFailure> {
+  latest(userId: string): ResultAsync<ExportRequestResult | null, DomainFailure> {
     return fromPromise(this.requests.findLatestByUser(userId), (error) =>
       mapUnknownToDependencyFailure(error, 'Failed to load export'),
     ).andThen((row) => (row != null ? this.toDto(row) : okAsync(null)));
@@ -81,7 +81,7 @@ export class CreateDataExportRequest {
     userId: string,
     dto: CreateDataExportCommand,
     language: string,
-  ): ResultAsync<DataExportResult, DomainFailure> {
+  ): ResultAsync<ExportRequestResult, DomainFailure> {
     const kind = dto.kind ?? 'hospital';
     const format = dto.format ?? 'pdf';
     const requestedRange = dto.range ?? DEFAULT_EXPORT_RANGE;
@@ -128,7 +128,7 @@ export class CreateDataExportRequest {
     created: DataExportRequestRow,
     userId: string,
     language: string,
-  ): ResultAsync<DataExportResult, DomainFailure> {
+  ): ResultAsync<ExportRequestResult, DomainFailure> {
     if (!this.queue.isConfigured) {
       return this.processInline(created, userId, language);
     }
@@ -167,7 +167,7 @@ export class CreateDataExportRequest {
     created: DataExportRequestRow,
     userId: string,
     language: string,
-  ): ResultAsync<DataExportResult, DomainFailure> {
+  ): ResultAsync<ExportRequestResult, DomainFailure> {
     const work = (async (): Promise<DataExportRequestRow> => {
       await this.processExport.process({
         exportRequestId: created.id,
@@ -199,7 +199,7 @@ export class CreateDataExportRequest {
 
   private toDto(
     row: DataExportRequestRow,
-  ): ResultAsync<DataExportResult, DomainFailure> {
+  ): ResultAsync<ExportRequestResult, DomainFailure> {
     const downloadUrlResult =
       row.downloadUrl != null
         ? okAsync<string | null, DomainFailure>(row.downloadUrl)
@@ -219,7 +219,7 @@ export class CreateDataExportRequest {
           fileName: row.fileName,
           fileSizeBytes: row.fileSizeBytes,
           errorMessage: row.errorMessage,
-        }) satisfies DataExportResult,
+        }) satisfies ExportRequestResult,
     );
   }
 }

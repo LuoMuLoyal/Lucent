@@ -223,7 +223,7 @@ export function contextPreviewLabel(
   switch (key) {
     case 'healthProfile':
       return t('preview.health_profile');
-    case 'dailyRecords':
+    case 'records':
       return t('preview.daily_records');
     case 'sleepRecords':
       return t('preview.sleep_records');

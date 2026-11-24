@@ -14,8 +14,8 @@ import type { z } from 'zod';
  *
  * **Naming convention (2026-09-05 naming reform, AIP-190/136):** component
  * names are semantic PascalCase without a `Dto` suffix — resources use
- * `*Response` / `*Data` (`AccountResponse`, `DailyRecordListResponse`,
- * `TodayAnalysisData`), async jobs use `*JobResponse`
+ * `*Response` / `*Data` (`AccountResponse`, `RecordEntryListResponse`,
+ * `AnalysisData`), async jobs use `*JobResponse`
  * (`ReportSummaryJobResponse`). The RFC 9457 error contracts
  * `ProblemDetailsDto` / `SseProblemDetailsDto` intentionally keep the
  * `Dto` suffix: they are the stable cross-repo error contract and

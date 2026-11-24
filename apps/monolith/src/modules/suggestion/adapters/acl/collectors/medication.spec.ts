@@ -1,8 +1,8 @@
 import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
 import { okAsync } from '../../../../../common/result/index.js';
 import { DoseLogStatus } from '#generated/prisma/client.js';
-import type { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
-import type { MedicineReminderReaderPort } from '../../../../reminder/index.js';
+import type { DoseLogEntryReaderPort } from '../../../../dose/index.js';
+import type { ReminderEntryReaderPort } from '../../../../reminder/index.js';
 import type {
   IUserContextReader,
   ContextResponseData,
@@ -18,7 +18,7 @@ describe('MedicationCollectorService', () => {
     listActiveFacts: ReturnType<typeof vi.fn>;
     listCurrentMedicines: ReturnType<typeof vi.fn>;
   };
-  let doseLogReader: DeepMocked<MedicineDoseLogReaderPort>;
+  let doseLogReader: DeepMocked<DoseLogEntryReaderPort>;
   let context: { getForUser: ReturnType<typeof vi.fn> };
   let timeResolver: MedicationTimeResolverService;
   let notifyLedger: {
@@ -37,7 +37,7 @@ describe('MedicationCollectorService', () => {
     };
     doseLogReader = {
       listFactsInRange: vi.fn().mockResolvedValue([]),
-    } as unknown as DeepMocked<MedicineDoseLogReaderPort>;
+    } as unknown as DeepMocked<DoseLogEntryReaderPort>;
     context = {
       getForUser: vi.fn().mockReturnValue(
         okAsync({
@@ -57,7 +57,7 @@ describe('MedicationCollectorService', () => {
       claimMark: vi.fn().mockResolvedValue(true),
     };
     service = new MedicationCollectorService(
-      reminders as unknown as MedicineReminderReaderPort,
+      reminders as unknown as ReminderEntryReaderPort,
       doseLogReader,
       context as unknown as IUserContextReader,
       timeResolver,

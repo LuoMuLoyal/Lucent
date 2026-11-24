@@ -17,7 +17,7 @@ const updateAssistantContextSettingsSchema = z
         'Allow the assistant to read stored health profile, allergies, and conditions.',
       )
       .optional(),
-    dailyRecords: z
+    records: z
       .boolean()
       .describe('Allow the assistant to read recent daily records.')
       .optional(),

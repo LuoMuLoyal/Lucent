@@ -20,7 +20,7 @@ export type {
   FunnelWindowDto,
 } from './adapters/http/dto/funnel-response.js';
 export {
-  ProductEventsService,
+  ProductEventLogService,
   type ServerProductEventInput,
 } from './application/use_cases/events.js';
 export type { ProductEventRecordResult } from './application/use_cases/events.js';

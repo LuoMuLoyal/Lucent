@@ -43,10 +43,10 @@ import type {
   EventReviewData,
 } from '../ports/event-review.js';
 import { EventReviewService } from '../../application/read_models/event-review/review.js';
-import { ProductEventsService } from '../../../product/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 import {
-  DailyRecordReaderPort,
-  type DailyRecordFact,
+  RecordEntryReaderPort,
+  type RecordEntryFact,
 } from '../../../record/index.js';
 import {
   applySelectedFields,
@@ -143,11 +143,11 @@ export class ClinicSummaryService {
     @Inject(CLINIC_SUMMARY_SOURCES)
     private readonly sources: ClinicSummarySources,
     private readonly context: IUserContextReader,
-    private readonly dailyRecordReader: DailyRecordReaderPort,
+    private readonly dailyRecordReader: RecordEntryReaderPort,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
     @Optional() private readonly eventReview?: EventReviewService,
   ) {}
 
@@ -227,7 +227,7 @@ export class ClinicSummaryService {
 
     // Fetch daily records in the summary window for water/sleep/notes
     // entries. The window is defined by the resolved scope start/end.
-    const dailyRecords = await this.fetchDailyRecords(
+    const records = await this.fetchDailyRecords(
       userId,
       new Date(scope.start),
       new Date(scope.end),
@@ -246,9 +246,9 @@ export class ClinicSummaryService {
       currentMedicines,
       findings: this.buildFindings(scope.review),
       coverage: this.buildCoverage(scope.review),
-      waterEntries: this.buildWaterEntries(dailyRecords),
-      sleepEntries: this.buildSleepEntries(dailyRecords),
-      noteEntries: this.buildNoteEntries(dailyRecords),
+      waterEntries: this.buildWaterEntries(records),
+      sleepEntries: this.buildSleepEntries(records),
+      noteEntries: this.buildNoteEntries(records),
       disclaimer: this.i18n.t('reports-clinic-summary.disclaimer', {
         lang: locale,
       }),
@@ -320,7 +320,7 @@ export class ClinicSummaryService {
     // is no owner to attribute to. No deterministic clientEventId: each
     // successful open is a DISTINCT event (accessCount increments per open
     // too), so the per-emission `server-<uuid>` default is intentional.
-    await this.productEvents.emitServerEvent(record.userId, {
+    await this.productEventLog.emitServerEvent(record.userId, {
       name: ProductEventName.visit_summary_share_opened,
       surface: ProductEventSurface.system,
       result: ProductEventResult.success,
@@ -517,8 +517,8 @@ export class ClinicSummaryService {
     return {
       checkIns: this.toCoverageEntry(review.coverage.checkIns),
       // water and sleep both derive from daily records.
-      water: this.toCoverageEntry(review.coverage.dailyRecords),
-      sleep: this.toCoverageEntry(review.coverage.dailyRecords),
+      water: this.toCoverageEntry(review.coverage.records),
+      sleep: this.toCoverageEntry(review.coverage.records),
       dose: this.toCoverageEntry(review.coverage.doseLogs),
     };
   }
@@ -533,8 +533,8 @@ export class ClinicSummaryService {
     userId: string,
     start: Date,
     end: Date,
-  ): Promise<DailyRecordFact[]> {
-    // `DailyRecordReaderPort.listFactsInRange` uses an inclusive upper bound
+  ): Promise<RecordEntryFact[]> {
+    // `RecordEntryReaderPort.listFactsInRange` uses an inclusive upper bound
     // (`lte`), while this window has always been half-open (`lt end`). Pulling
     // `end` back by one millisecond reproduces the original boundary exactly
     // rather than silently widening the summary by one instant.
@@ -551,7 +551,7 @@ export class ClinicSummaryService {
    * structured `ml` property. Both paths are tried.
    */
   private buildWaterEntries(
-    records: DailyRecordFact[],
+    records: RecordEntryFact[],
   ): ClinicSummaryWaterEntryDto[] {
     const entries: ClinicSummaryWaterEntryDto[] = [];
     for (const r of records) {
@@ -573,7 +573,7 @@ export class ClinicSummaryService {
    * carry `minutes` or `hours`.
    */
   private buildSleepEntries(
-    records: DailyRecordFact[],
+    records: RecordEntryFact[],
   ): ClinicSummarySleepEntryDto[] {
     const entries: ClinicSummarySleepEntryDto[] = [];
     for (const r of records) {
@@ -594,7 +594,7 @@ export class ClinicSummaryService {
    * record kind, and the original note text.
    */
   private buildNoteEntries(
-    records: DailyRecordFact[],
+    records: RecordEntryFact[],
   ): ClinicSummaryNoteEntryDto[] {
     const entries: ClinicSummaryNoteEntryDto[] = [];
     for (const r of records) {
@@ -609,7 +609,7 @@ export class ClinicSummaryService {
   }
 
   /** Parse a milliliter value from a daily record (value or payload.ml). */
-  private parseMl(r: DailyRecordFact): number | null {
+  private parseMl(r: RecordEntryFact): number | null {
     // Try value field first.
     if (r.value != null) {
       const parsed = parseFloat(r.value);
@@ -628,7 +628,7 @@ export class ClinicSummaryService {
   }
 
   /** Parse a duration in minutes from a daily record (value or payload). */
-  private parseMinutes(r: DailyRecordFact): number | null {
+  private parseMinutes(r: RecordEntryFact): number | null {
     // Try payload['minutes'] first.
     if (r.payload != null && typeof r.payload === 'object') {
       const payload = r.payload as Record<string, unknown>;

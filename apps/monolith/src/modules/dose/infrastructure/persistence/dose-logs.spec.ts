@@ -7,7 +7,7 @@ import { PrismaDoseLogs } from './dose-logs.js';
 
 /**
  * `PrismaDoseLogs` — the persistence adapter behind both the write-side
- * `DoseLogs` port and the cross-context `MedicineDoseLogReaderPort`.
+ * `DoseLogs` port and the cross-context `DoseLogEntryReaderPort`.
  *
  * ## Why this spec exists (it replaces coverage that was lost in migration)
  *

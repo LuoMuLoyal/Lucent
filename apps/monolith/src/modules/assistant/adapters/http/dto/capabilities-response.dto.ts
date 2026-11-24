@@ -67,7 +67,7 @@ export const assistantCapabilitiesDataSchema = z.object({
         .describe(
           'Whether the assistant may read stored health profile, allergies, and conditions.',
         ),
-      dailyRecords: z
+      records: z
         .boolean()
         .describe('Whether the assistant may read recent daily records.'),
       sleepRecords: z

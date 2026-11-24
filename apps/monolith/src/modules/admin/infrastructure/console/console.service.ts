@@ -31,11 +31,11 @@ export class AdminConsoleService {
     const newUserSince = new Date(
       now.getTime() - NEW_USER_WINDOW_DAYS * MS_PER_DAY,
     );
-    const productEventsSince = new Date(
+    const productEventLogSince = new Date(
       now.getTime() - PRODUCT_EVENT_WINDOW_HOURS * MS_PER_HOUR,
     );
 
-    const [active, suspended, newLast30Days, productEventsLast24Hours] =
+    const [active, suspended, newLast30Days, productEventLogLast24Hours] =
       await Promise.all([
         this.prisma.nonDeleted.user.count({
           where: { status: UserStatus.active },
@@ -50,14 +50,14 @@ export class AdminConsoleService {
           },
         }),
         this.prisma.userProductEvent.count({
-          where: { occurredAt: { gte: productEventsSince } },
+          where: { occurredAt: { gte: productEventLogSince } },
         }),
       ]);
 
     return {
       generatedAt: now.toISOString(),
       users: { total: active + suspended, active, suspended, newLast30Days },
-      productEventsLast24Hours,
+      productEventLogLast24Hours,
     };
   }
 

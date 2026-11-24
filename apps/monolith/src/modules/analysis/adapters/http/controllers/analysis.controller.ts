@@ -38,12 +38,12 @@ import { CurrentUser } from '../../../../auth/index.js';
 import { AnalysisQueueService } from '../../queue/analysis.js';
 import {
   ANALYSIS_MATERIALIZATION,
-  type TodayAnalysisMaterialization,
-  type TodayAnalysisPendingResult,
+  type AnalysisMaterialization,
+  type AnalysisPendingResult,
 } from '../../../application/ports/materialization.js';
-import type { TodayAnalysisMaterializationView } from '../../../application/ports/materialization-shapes.js';
+import type { AnalysisMaterializationView } from '../../../application/ports/materialization-shapes.js';
 
-import { TodayAnalysisService } from '../../../application/use_cases/generate-analysis.js';
+import { AnalysisService } from '../../../application/use_cases/generate-analysis.js';
 
 import { TodayRecommendationsService } from '../../../application/read_models/recommendations.js';
 import { generateTodayAnalysisSchema } from '../dto/generate-analysis.js';
@@ -53,13 +53,13 @@ import {
   todayRecommendationsResponseSchema,
 } from '../dto/recommendation-response.js';
 import {
-  todayAnalysisAsyncJobDataSchema,
-  todayAnalysisAsyncResultDataSchema,
-  todayAnalysisAsyncStatusDataSchema,
-  todayAnalysisDataSchema,
-  todayAnalysisReadDataSchema,
-  todayAnalysisRefreshPendingDataSchema,
-  todayAnalysisRefreshReadyDataSchema,
+  analysisAsyncJobDataSchema,
+  analysisAsyncResultDataSchema,
+  analysisAsyncStatusDataSchema,
+  analysisDataSchema,
+  analysisReadDataSchema,
+  analysisRefreshPendingDataSchema,
+  analysisRefreshReadyDataSchema,
 } from '../dto/analysis-response.js';
 
 @ApiTags('Today Analysis')
@@ -69,14 +69,14 @@ export class AnalysisController {
   private readonly logger = new Logger(AnalysisController.name);
 
   constructor(
-    private readonly todayAnalysisService: TodayAnalysisService,
+    private readonly analysisService: AnalysisService,
     private readonly todayRecommendationsService: TodayRecommendationsService,
     private readonly analysisQueueService: AnalysisQueueService,
     private readonly sseRegistry: SseConnectionRegistry,
     private readonly sseProblemDetails: SseProblemDetailsMapper,
     @Optional()
     @Inject(ANALYSIS_MATERIALIZATION)
-    private readonly materializationStore?: TodayAnalysisMaterialization,
+    private readonly materializationStore?: AnalysisMaterialization,
   ) {}
 
   @Get()
@@ -89,17 +89,17 @@ export class AnalysisController {
     status: 200,
     description: 'The latest persisted analysis with its read state.',
   })
-  @SerializeOptions({ schema: todayAnalysisReadDataSchema })
+  @SerializeOptions({ schema: analysisReadDataSchema })
   async read(
     @CurrentUser() user: UserPayload,
     @Query('date') date: string | undefined,
     @I18nLang() language: string,
   ) {
-    const resolvedDate = await this.todayAnalysisService.resolveDate(
+    const resolvedDate = await this.analysisService.resolveDate(
       user.sub,
       date,
     );
-    return this.todayAnalysisService.readCurrent(
+    return this.analysisService.readCurrent(
       user.sub,
       resolvedDate,
       language,
@@ -120,12 +120,12 @@ export class AnalysisController {
       'Fresh analysis, current read state, or the queued/synchronous refresh outcome.',
     schema: {
       oneOf: [
-        { $ref: '#/components/schemas/TodayAnalysisData' },
-        { $ref: '#/components/schemas/TodayAnalysisReadData' },
+        { $ref: '#/components/schemas/AnalysisData' },
+        { $ref: '#/components/schemas/AnalysisReadData' },
         {
-          $ref: '#/components/schemas/TodayAnalysisRefreshPendingData',
+          $ref: '#/components/schemas/AnalysisRefreshPendingData',
         },
-        { $ref: '#/components/schemas/TodayAnalysisRefreshReadyData' },
+        { $ref: '#/components/schemas/AnalysisRefreshReadyData' },
       ],
     },
   })
@@ -137,11 +137,11 @@ export class AnalysisController {
   ) {
     const request = await this.prepareManualRequest(user.sub, dto);
     if (request == null) {
-      return this.todayAnalysisService.generate(user.sub, dto, language);
+      return this.analysisService.generate(user.sub, dto, language);
     }
 
     if (request.pending == null || !request.pending.shouldQueue) {
-      return this.todayAnalysisService.readCurrent(
+      return this.analysisService.readCurrent(
         user.sub,
         request.date,
         language,
@@ -162,7 +162,7 @@ export class AnalysisController {
       }
     }
 
-    const data = await this.todayAnalysisService.generateForVersion(
+    const data = await this.analysisService.generateForVersion(
       user.sub,
       { date: request.date },
       language,
@@ -188,8 +188,8 @@ export class AnalysisController {
       'The freshly generated analysis, or the current read state when a generation is already in flight.',
     schema: {
       oneOf: [
-        { $ref: '#/components/schemas/TodayAnalysisData' },
-        { $ref: '#/components/schemas/TodayAnalysisReadData' },
+        { $ref: '#/components/schemas/AnalysisData' },
+        { $ref: '#/components/schemas/AnalysisReadData' },
       ],
     },
   })
@@ -202,13 +202,13 @@ export class AnalysisController {
     const request = await this.prepareManualRequest(user.sub, dto);
     if (request != null) {
       if (request.pending == null || !request.pending.shouldQueue) {
-        return this.todayAnalysisService.readCurrent(
+        return this.analysisService.readCurrent(
           user.sub,
           request.date,
           language,
         );
       }
-      const data = await this.todayAnalysisService.generateForVersion(
+      const data = await this.analysisService.generateForVersion(
         user.sub,
         { date: request.date },
         language,
@@ -220,7 +220,7 @@ export class AnalysisController {
       return data;
     }
 
-    return this.todayAnalysisService.generate(user.sub, dto, language);
+    return this.analysisService.generate(user.sub, dto, language);
   }
 
   @Post('generate/async')
@@ -237,9 +237,9 @@ export class AnalysisController {
       'Job enqueued. Returns jobId, or the synchronous result/status when the queue is unavailable.',
     schema: {
       oneOf: [
-        { $ref: '#/components/schemas/TodayAnalysisAsyncJobData' },
-        { $ref: '#/components/schemas/TodayAnalysisAsyncResultData' },
-        { $ref: '#/components/schemas/TodayAnalysisAsyncStatusData' },
+        { $ref: '#/components/schemas/AnalysisAsyncJobData' },
+        { $ref: '#/components/schemas/AnalysisAsyncResultData' },
+        { $ref: '#/components/schemas/AnalysisAsyncStatusData' },
       ],
     },
   })
@@ -267,7 +267,7 @@ export class AnalysisController {
           return { jobId };
         }
       }
-      const result = await this.todayAnalysisService.generateForVersion(
+      const result = await this.analysisService.generateForVersion(
         user.sub,
         { date: request.date },
         language,
@@ -288,7 +288,7 @@ export class AnalysisController {
     }
 
     // Fallback: run synchronously when Redis is not available
-    const result = await this.todayAnalysisService.generate(
+    const result = await this.analysisService.generate(
       user.sub,
       dto,
       language,
@@ -360,13 +360,13 @@ export class AnalysisController {
   @ApiResponse({
     status: 200,
     description:
-      'Server-Sent Events stream without the API envelope. Each event has an "event" field (summary | result | error | done) and a JSON "data" field. Parsed event data follows TodayAnalysisStreamResultDto.',
+      'Server-Sent Events stream without the API envelope. Each event has an "event" field (summary | result | error | done) and a JSON "data" field. Parsed event data follows AnalysisStreamResultDto.',
     content: {
       'text/event-stream': {
         schema: {
           type: 'string',
           description:
-            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisData; event=error data=TodayAnalysisStreamErrorDto; event=done data={}.',
+            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=AnalysisData; event=error data=AnalysisStreamErrorDto; event=done data={}.',
         },
       },
     },
@@ -390,7 +390,7 @@ export class AnalysisController {
       const request = await this.prepareManualRequest(user.sub, dto);
       const result =
         request == null
-          ? await this.todayAnalysisService.generateStream(
+          ? await this.analysisService.generateStream(
               user.sub,
               dto,
               language,
@@ -403,7 +403,7 @@ export class AnalysisController {
                 language,
                 onSummary,
               )
-            : await this.todayAnalysisService.generateStreamForVersion(
+            : await this.analysisService.generateStreamForVersion(
                 user.sub,
                 { date: request.date },
                 language,
@@ -441,7 +441,7 @@ export class AnalysisController {
     const store = this.materializationStore;
     if (store == null) return null;
 
-    const date = await this.todayAnalysisService.resolveDate(userId, dto.date);
+    const date = await this.analysisService.resolveDate(userId, dto.date);
     const current = await store.readStatus(userId, date);
     if (store.isRefreshCoolingDown(current)) {
       return { date, current, pending: null };
@@ -464,10 +464,10 @@ export class AnalysisController {
     onSummary: ({ summary }: { summary: string }) => void,
   ): Promise<
     NonNullable<
-      Awaited<ReturnType<TodayAnalysisService['readCurrent']>>['analysis']
+      Awaited<ReturnType<AnalysisService['readCurrent']>>['analysis']
     >
   > {
-    const current = await this.todayAnalysisService.readCurrent(
+    const current = await this.analysisService.readCurrent(
       userId,
       date,
       language,
@@ -489,8 +489,8 @@ export class AnalysisController {
 registerResponseSchema({
   path: '/api/v1/user/analysis',
   method: 'get',
-  componentName: 'TodayAnalysisReadResponse',
-  schema: todayAnalysisReadDataSchema,
+  componentName: 'AnalysisReadResponse',
+  schema: analysisReadDataSchema,
   description: 'The latest persisted analysis with its read state.',
 });
 
@@ -511,61 +511,61 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisData',
-  schema: todayAnalysisDataSchema,
+  componentName: 'AnalysisData',
+  schema: analysisDataSchema,
   description: 'A freshly generated Today AI analysis resource.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisReadData',
-  schema: todayAnalysisReadDataSchema,
+  componentName: 'AnalysisReadData',
+  schema: analysisReadDataSchema,
   description: 'The persisted analysis read state.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisRefreshPendingData',
-  schema: todayAnalysisRefreshPendingDataSchema,
+  componentName: 'AnalysisRefreshPendingData',
+  schema: analysisRefreshPendingDataSchema,
   description: 'The enqueued refresh outcome.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/analysis/refresh',
   method: 'post',
-  componentName: 'TodayAnalysisRefreshReadyData',
-  schema: todayAnalysisRefreshReadyDataSchema,
+  componentName: 'AnalysisRefreshReadyData',
+  schema: analysisRefreshReadyDataSchema,
   description: 'The synchronous refresh outcome.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/analysis/generate/async',
   method: 'post',
-  componentName: 'TodayAnalysisAsyncJobData',
-  schema: todayAnalysisAsyncJobDataSchema,
+  componentName: 'AnalysisAsyncJobData',
+  schema: analysisAsyncJobDataSchema,
   description: 'The enqueued async generation job.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/analysis/generate/async',
   method: 'post',
-  componentName: 'TodayAnalysisAsyncResultData',
-  schema: todayAnalysisAsyncResultDataSchema,
+  componentName: 'AnalysisAsyncResultData',
+  schema: analysisAsyncResultDataSchema,
   description: 'The synchronous async-endpoint result.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/analysis/generate/async',
   method: 'post',
-  componentName: 'TodayAnalysisAsyncStatusData',
-  schema: todayAnalysisAsyncStatusDataSchema,
+  componentName: 'AnalysisAsyncStatusData',
+  schema: analysisAsyncStatusDataSchema,
   description: 'The async job status payload.',
 });
 
 interface ManualGenerationRequest {
   date: string;
-  current: TodayAnalysisMaterializationView;
-  pending: TodayAnalysisPendingResult | null;
+  current: AnalysisMaterializationView;
+  pending: AnalysisPendingResult | null;
 }

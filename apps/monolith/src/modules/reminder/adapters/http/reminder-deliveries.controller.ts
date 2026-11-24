@@ -29,13 +29,13 @@ import {
   reminderDeliveryReceiptResponseSchema,
 } from '../../application/ports/delivery-resource.js';
 import { ReminderDeliveries } from '../../application/ports/delivery-services.js';
-import { MedicineRemindersService } from '../../application/services/reminders.js';
+import { RemindersService } from '../../application/services/reminders.js';
 
 @ApiTags('Reminder Deliveries')
 @Controller('reminder-deliveries')
 export class ReminderDeliveriesController {
   constructor(
-    private readonly service: MedicineRemindersService,
+    private readonly service: RemindersService,
     private readonly receiptsService: ReminderDeliveries,
   ) {}
 

@@ -10,11 +10,11 @@ import {
   TODAY_ANALYSIS_EVENT_JOB,
   type DomainEventJobData,
 } from '../../../../common/index.js';
-import { TodayAnalysisService } from '../../application/use_cases/generate-analysis.js';
-import { TodayAnalysisEventConsumerService } from './event-consumer.js';
+import { AnalysisService } from '../../application/use_cases/generate-analysis.js';
+import { AnalysisEventConsumerService } from './event-consumer.js';
 import type {
-  TodayAnalysisDataDto,
-  TodayAnalysisReadDataDto,
+  AnalysisDataDto,
+  AnalysisReadDataDto,
 } from '../../application/read_models/analysis-response.js';
 
 import type { GenerateTodayAnalysisDto } from '../../application/use_cases/generate-analysis-command.js';
@@ -49,28 +49,28 @@ export function buildTodayAnalysisJobId(
  * client can poll `getStatus()`.
  *
  * When Redis is not available, `isConfigured` is false and callers should
- * fall back to the synchronous `TodayAnalysisService.generate()` method.
+ * fall back to the synchronous `AnalysisService.generate()` method.
  */
 @Injectable()
 export class AnalysisQueueService extends BaseAsyncQueueService<
   AnalysisJobData,
-  TodayAnalysisDataDto | TodayAnalysisReadDataDto
+  AnalysisDataDto | AnalysisReadDataDto
 > {
-  private readonly analysisService: TodayAnalysisService;
-  private readonly eventConsumer: TodayAnalysisEventConsumerService;
+  private readonly analysisService: AnalysisService;
+  private readonly eventConsumer: AnalysisEventConsumerService;
 
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
+    @Inject(AnalysisService) analysisService: AnalysisService,
     // `forwardRef` breaks a DI cycle, not a module-import cycle. The consumer
     // injects this queue through `ANALYSIS_QUEUE_PORT` (bound with
     // `useExisting` to this very class), so both are mid-construction when the
     // injector resolves them. Without it the injector's promise never settles:
     // `compile()` hangs with no error and no log, and every `createTestApp()`
     // e2e suite dies on its 90s hook timeout.
-    @Inject(forwardRef(() => TodayAnalysisEventConsumerService))
-    eventConsumer: TodayAnalysisEventConsumerService,
+    @Inject(forwardRef(() => AnalysisEventConsumerService))
+    eventConsumer: AnalysisEventConsumerService,
     @Optional()
     @Inject(RuntimeConfigService)
     runtimeConfig?: RuntimeConfigPort,

@@ -10,7 +10,7 @@ const DAILY_RECORD_ATTACHMENT_KIND_VALUES = Object.values(
  * Standard Schema (zod 4) for one `attachments` entry of the daily-record
  * create/update payloads.
  *
- * Replaces the former class-validator `DailyRecordAttachmentInputDto`:
+ * Replaces the former class-validator `RecordEntryAttachmentInputDto`:
  * - `@IsOptional` → `.optional()` (absent keys stay `undefined`);
  * - nullable optionals (`@ApiPropertyOptional nullable: true`) → `.nullish()`
  *   (absent stays `undefined`, an explicit `null` is still accepted);
@@ -93,7 +93,7 @@ export const dailyRecordAttachmentInputSchema = z
   .strict();
 
 /** Strongly typed attachment metadata entry of record create/update payloads. */
-export type DailyRecordAttachmentInputDto = z.infer<
+export type RecordEntryAttachmentInputDto = z.infer<
   typeof dailyRecordAttachmentInputSchema
 >;
 
@@ -101,7 +101,7 @@ export type DailyRecordAttachmentInputDto = z.infer<
  * Standard Schema (zod 4) for one `attachments` entry of daily-record read
  * responses (list/detail/create/update).
  *
- * Replaces the former `@ApiProperty` response class `DailyRecordAttachmentDto`.
+ * Replaces the former `@ApiProperty` response class `RecordEntryAttachmentDto`.
  * The mapper always emits every key, so nullable storage columns surface as an
  * explicit `null` (no `.optional()`/`.default()` on the response side).
  */
@@ -121,6 +121,6 @@ export const dailyRecordAttachmentSchema = z.object({
 });
 
 /** Strongly typed attachment metadata of daily-record read responses. */
-export type DailyRecordAttachmentDto = z.infer<
+export type RecordEntryAttachmentDto = z.infer<
   typeof dailyRecordAttachmentSchema
 >;

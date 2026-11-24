@@ -11,24 +11,24 @@ import {
   type ResultAsync,
 } from '../../../common/result/index.js';
 import type {
-  LegalDocumentDetailDto,
-  LegalDocumentListDataDto,
-  LegalDocumentListItemDto,
+  LegalDocDetailDto,
+  LegalDocListDataDto,
+  LegalDocListItemDto,
 } from '../dto/response.dto.js';
-import type { LegalDocumentQueryDto } from '../dto/query.dto.js';
+import type { LegalDocQueryDto } from '../dto/query.dto.js';
 import {
   DEFAULT_LEGAL_LANG,
   type LegalLang,
 } from '../constants/legal.constants.js';
 
 @Injectable()
-export class LegalDocumentsService {
+export class LegalService {
   private static readonly LIST_TTL_MS = 60 * 60 * 1000; // 1 hour
   private static readonly DETAIL_TTL_MS = 60 * 60 * 1000; // 1 hour
   private static readonly LIST_CACHE_KEY_PREFIX = 'legal:list';
   private static readonly DETAIL_CACHE_KEY_PREFIX = 'legal:detail';
 
-  private readonly logger = new Logger(LegalDocumentsService.name);
+  private readonly logger = new Logger(LegalService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,13 +45,13 @@ export class LegalDocumentsService {
    * to the global filter).
    */
   findAll(
-    query: LegalDocumentQueryDto,
-  ): ResultAsync<LegalDocumentListDataDto, DomainFailure> {
+    query: LegalDocQueryDto,
+  ): ResultAsync<LegalDocListDataDto, DomainFailure> {
     const lang = this.resolveLang(query.lang);
-    const cacheKey = `${LegalDocumentsService.LIST_CACHE_KEY_PREFIX}:${lang}`;
+    const cacheKey = `${LegalService.LIST_CACHE_KEY_PREFIX}:${lang}`;
 
     return fromPromise(
-      this.readCache<LegalDocumentListDataDto>(cacheKey, 'list read'),
+      this.readCache<LegalDocListDataDto>(cacheKey, 'list read'),
       (error) => {
         throw error;
       },
@@ -69,7 +69,7 @@ export class LegalDocumentsService {
           throw error;
         },
       ).map((rows) => {
-        const items: LegalDocumentListItemDto[] = rows.map((row) => ({
+        const items: LegalDocListItemDto[] = rows.map((row) => ({
           docType: row.docType,
           title: lang === 'en' ? row.titleEn : row.titleZh,
           updatedAt: row.updatedAt.toISOString(),
@@ -85,7 +85,7 @@ export class LegalDocumentsService {
         this.writeCache(
           cacheKey,
           result,
-          LegalDocumentsService.LIST_TTL_MS,
+          LegalService.LIST_TTL_MS,
           'list write',
         );
         return result;
@@ -101,13 +101,13 @@ export class LegalDocumentsService {
    */
   findOne(
     docType: string,
-    query: LegalDocumentQueryDto,
-  ): ResultAsync<LegalDocumentDetailDto, DomainFailure> {
+    query: LegalDocQueryDto,
+  ): ResultAsync<LegalDocDetailDto, DomainFailure> {
     const lang = this.resolveLang(query.lang);
-    const cacheKey = `${LegalDocumentsService.DETAIL_CACHE_KEY_PREFIX}:${docType}:${lang}`;
+    const cacheKey = `${LegalService.DETAIL_CACHE_KEY_PREFIX}:${docType}:${lang}`;
 
     return fromPromise(
-      this.readCache<LegalDocumentDetailDto>(cacheKey, 'detail read'),
+      this.readCache<LegalDocDetailDto>(cacheKey, 'detail read'),
       (error) => {
         throw error;
       },
@@ -137,7 +137,7 @@ export class LegalDocumentsService {
         this.writeCache(
           cacheKey,
           result,
-          LegalDocumentsService.DETAIL_TTL_MS,
+          LegalService.DETAIL_TTL_MS,
           'detail write',
         );
         return okAsync(result);
@@ -147,10 +147,10 @@ export class LegalDocumentsService {
 
   async invalidateDocumentCache(docType: string): Promise<void> {
     const keys = [
-      `${LegalDocumentsService.LIST_CACHE_KEY_PREFIX}:zh`,
-      `${LegalDocumentsService.LIST_CACHE_KEY_PREFIX}:en`,
-      `${LegalDocumentsService.DETAIL_CACHE_KEY_PREFIX}:${docType}:zh`,
-      `${LegalDocumentsService.DETAIL_CACHE_KEY_PREFIX}:${docType}:en`,
+      `${LegalService.LIST_CACHE_KEY_PREFIX}:zh`,
+      `${LegalService.LIST_CACHE_KEY_PREFIX}:en`,
+      `${LegalService.DETAIL_CACHE_KEY_PREFIX}:${docType}:zh`,
+      `${LegalService.DETAIL_CACHE_KEY_PREFIX}:${docType}:en`,
     ];
     await Promise.all(
       keys.map(async (key) => {

@@ -15,7 +15,7 @@ import {
 import type { CreateDailyRecordImageUploadDto } from './dto/candidates/record-image-upload.js';
 
 @Injectable()
-export class DailyRecordImageUploadService {
+export class RecordEntryImageUploadService {
   constructor(
     private readonly runtime: ObjectStorageRuntime,
     private readonly i18n: I18nService,

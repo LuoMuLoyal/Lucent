@@ -4,7 +4,7 @@ import { nonDeleted } from '../../../../common/index.js';
 import {
   type MedicineRiskCheckRecordRow,
   type MedicineRiskCheckType,
-  type MedicineReminderRow,
+  type ReminderEntryRow,
   type MedicineRiskRecordsPort,
   type UserContext,
 } from '../../application/ports/risk-records.js';
@@ -112,7 +112,7 @@ export class MedicineRiskRecordsStore implements MedicineRiskRecordsPort {
     };
   }
 
-  async listReminders(userId: string): Promise<MedicineReminderRow[]> {
+  async listReminders(userId: string): Promise<ReminderEntryRow[]> {
     const reminders = await this.prisma.userMedicineReminder.findMany({
       where: { userId, isActive: true, ...nonDeleted },
       orderBy: [{ scheduledHour: 'asc' }, { scheduledMinute: 'asc' }],

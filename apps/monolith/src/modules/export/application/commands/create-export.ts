@@ -17,7 +17,7 @@ export interface CreateDataExportCommand {
 }
 
 /** 导出请求的响应形状（应用层投影，投递层再序列化）。 */
-export interface DataExportResult {
+export interface ExportRequestResult {
   id: string;
   kind: string;
   format: string;

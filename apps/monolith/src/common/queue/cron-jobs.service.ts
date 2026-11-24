@@ -66,7 +66,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly factory: BullmqQueueFactory,
-    private readonly dataRetentionService: RetentionService,
+    private readonly retentionService: RetentionService,
     private readonly lifecycleService: LifecycleService,
     private readonly weeklyInsightSchedulerService: WeeklyInsightSchedulerService,
     private readonly mealAnalysisSweeperService: MealAnalysisSweeperService,
@@ -89,7 +89,7 @@ export class CronJobsService implements OnModuleInit, OnModuleDestroy {
       processor: async (job) => {
         switch (job.name) {
           case JOB_DATA_RETENTION:
-            await this.dataRetentionService.cleanupExpiredData();
+            await this.retentionService.cleanupExpiredData();
             return;
           case JOB_LIFECYCLE:
             await this.lifecycleService.refreshLifecycleStates();

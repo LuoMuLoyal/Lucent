@@ -6,7 +6,7 @@ import {
   ProductEventSurface,
   UserDevicePlatform,
 } from '#generated/prisma/client.js';
-import type { ProductEvents } from '../ports/product-event.js';
+import type { ProductEventLog } from '../ports/product-event.js';
 // The drift guard reads the rule ids through suggestion's **barrel**
 // (`buildSuggestionRules`) rather than deep-importing each rule class.
 //
@@ -28,7 +28,7 @@ import type {
   DomainFailure,
 } from '../../../../common/result/index.js';
 import {
-  ProductEventsService,
+  ProductEventLogService,
   type ServerProductEventInput,
 } from './events.js';
 
@@ -101,16 +101,16 @@ function buildMetrics() {
   } as unknown as MetricsService;
 }
 
-describe('ProductEventsService', () => {
+describe('ProductEventLogService', () => {
   let events: ReturnType<typeof buildEvents>;
   let metrics: MetricsService;
-  let service: ProductEventsService;
+  let service: ProductEventLogService;
 
   beforeEach(() => {
     events = buildEvents();
     metrics = buildMetrics();
-    service = new ProductEventsService(
-      events as unknown as ProductEvents,
+    service = new ProductEventLogService(
+      events as unknown as ProductEventLog,
       metrics,
     );
   });

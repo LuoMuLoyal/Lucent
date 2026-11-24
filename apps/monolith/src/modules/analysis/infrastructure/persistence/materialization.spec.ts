@@ -1,7 +1,7 @@
-import { TodayAnalysisMaterializationStore } from './materialization.js';
+import { AnalysisMaterializationStore } from './materialization.js';
 
-describe('TodayAnalysisMaterializationStore', () => {
-  let store: TodayAnalysisMaterializationStore;
+describe('AnalysisMaterializationStore', () => {
+  let store: AnalysisMaterializationStore;
   let prisma: {
     $transaction: vi.Mock;
     userTodayAnalysisMaterialization: {
@@ -42,7 +42,7 @@ describe('TodayAnalysisMaterializationStore', () => {
       async (callback: (tx: typeof prisma) => Promise<unknown>) =>
         callback(prisma),
     );
-    store = new TodayAnalysisMaterializationStore(prisma as never);
+    store = new AnalysisMaterializationStore(prisma as never);
   });
 
   it('returns empty status when no materialization exists', async () => {

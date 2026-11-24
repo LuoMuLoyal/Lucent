@@ -15,7 +15,7 @@ const _reminderSelect = {
   updatedAt: true,
 } satisfies Prisma.UserMedicineReminderSelect;
 
-export type MedicineReminderRecord = Prisma.UserMedicineReminderGetPayload<{
+export type ReminderEntryRecord = Prisma.UserMedicineReminderGetPayload<{
   select: typeof _reminderSelect;
 }>;
 

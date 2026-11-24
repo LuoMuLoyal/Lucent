@@ -5,7 +5,7 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 
-import { DailyRecordRepository } from './legacy-repository.js';
+import { RecordEntryRepository } from './legacy-repository.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
 function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
@@ -25,8 +25,8 @@ async function collectResult<T>(
   );
 }
 
-describe('DailyRecordRepository', () => {
-  let repository: DailyRecordRepository;
+describe('RecordEntryRepository', () => {
+  let repository: RecordEntryRepository;
   let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('DailyRecordRepository', () => {
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
 
-    repository = new DailyRecordRepository(prisma);
+    repository = new RecordEntryRepository(prisma);
   });
 
   describe('findManyWithAttachments', () => {
@@ -170,7 +170,7 @@ describe('DailyRecordRepository', () => {
     });
   });
 
-  describe('listFactsInRange (DailyRecordReaderPort)', () => {
+  describe('listFactsInRange (RecordEntryReaderPort)', () => {
     it('queries non-deleted records in range with canonical order', async () => {
       const from = new Date('2026-07-01');
       const to = new Date('2026-07-07');
@@ -219,7 +219,7 @@ describe('DailyRecordRepository', () => {
     });
   });
 
-  describe('countFactsInRange (DailyRecordReaderPort)', () => {
+  describe('countFactsInRange (RecordEntryReaderPort)', () => {
     it('counts non-deleted records in range', async () => {
       const from = new Date('2026-07-01');
       const to = new Date('2026-07-07');
@@ -253,7 +253,7 @@ describe('DailyRecordRepository', () => {
     });
   });
 
-  describe('findLatestCreatedAtInRange (DailyRecordReaderPort)', () => {
+  describe('findLatestCreatedAtInRange (RecordEntryReaderPort)', () => {
     it('returns the latest createdAt in range', async () => {
       const createdAt = new Date('2026-07-05T08:00:00.000Z');
       prisma.userDailyRecord.findFirst.mockResolvedValue({

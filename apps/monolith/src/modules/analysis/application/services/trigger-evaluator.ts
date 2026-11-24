@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DailyRecordReaderPort } from '../../../record/index.js';
+import { RecordEntryReaderPort } from '../../../record/index.js';
 import {
   aggregateDimension as aggregateInDomain,
   type TriggerDimension,
@@ -11,7 +11,7 @@ import { TriggerGateService } from '../../application/services/trigger-gate.js';
  *
  * The decision lives in `domain/analysis/trigger-gate.ts`, the I/O in
  * `application/services/trigger-gate.ts`. This class stays as the injected
- * collaborator of `TodayAnalysisContextService` because renaming it would churn
+ * collaborator of `AnalysisContextService` because renaming it would churn
  * both the service and its spec for no behavioural gain — what mattered was
  * which *layer* holds the rule, and that moved.
  */
@@ -19,7 +19,7 @@ import { TriggerGateService } from '../../application/services/trigger-gate.js';
 export class TriggerEvaluatorService {
   private readonly gate: TriggerGateService;
 
-  constructor(dailyRecordReader: DailyRecordReaderPort) {
+  constructor(dailyRecordReader: RecordEntryReaderPort) {
     this.gate = new TriggerGateService(dailyRecordReader);
   }
 

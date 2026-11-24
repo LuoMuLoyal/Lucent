@@ -2,22 +2,22 @@ import { z } from 'zod';
 
 /**
  * Standard Schema (zod 4) for one bullet point of a Today analysis.
- * Replaces the former `TodayAnalysisBulletDto` response class.
+ * Replaces the former `AnalysisBulletDto` response class.
  */
-export const todayAnalysisBulletSchema = z.object({
+export const analysisBulletSchema = z.object({
   kind: z.enum(['medication', 'hydration', 'sleep', 'general']),
   text: z.string(),
 });
 
 /** Strongly typed Today-analysis bullet point. */
-export type TodayAnalysisBulletDto = z.infer<typeof todayAnalysisBulletSchema>;
+export type AnalysisBulletDto = z.infer<typeof analysisBulletSchema>;
 
 /**
  * Standard Schema (zod 4) for the observed-metric block attached to a Today
- * analysis. Replaces the former `TodayAnalysisObservedMetricDto` response
+ * analysis. Replaces the former `AnalysisObservedMetricDto` response
  * class.
  */
-export const todayAnalysisObservedMetricSchema = z.object({
+export const analysisObservedMetricSchema = z.object({
   value: z.number().nullable(),
   state: z.enum(['observed', 'unknown']),
   coverage: z.enum(['sufficient', 'partial', 'none']),
@@ -31,48 +31,48 @@ export const todayAnalysisObservedMetricSchema = z.object({
 });
 
 /** Strongly typed Today-analysis observed-metric block. */
-export type TodayAnalysisObservedMetricDto = z.infer<
-  typeof todayAnalysisObservedMetricSchema
+export type AnalysisObservedMetricDto = z.infer<
+  typeof analysisObservedMetricSchema
 >;
 
 /**
  * Standard Schema (zod 4) for one metric of a Today analysis. Replaces the
- * former `TodayAnalysisMetricDto` response class.
+ * former `AnalysisMetricDto` response class.
  */
-export const todayAnalysisMetricSchema = z.object({
+export const analysisMetricSchema = z.object({
   kind: z.enum(['medication', 'water', 'sleep']),
-  observedMetric: todayAnalysisObservedMetricSchema,
+  observedMetric: analysisObservedMetricSchema,
 });
 
 /** Strongly typed Today-analysis metric entry. */
-export type TodayAnalysisMetricDto = z.infer<typeof todayAnalysisMetricSchema>;
+export type AnalysisMetricDto = z.infer<typeof analysisMetricSchema>;
 
 /**
  * Standard Schema (zod 4) for a generated Today AI analysis resource.
- * Replaces the former `TodayAnalysisDataDto` response class.
+ * Replaces the former `AnalysisDataDto` response class.
  */
-export const todayAnalysisDataSchema = z.object({
+export const analysisDataSchema = z.object({
   date: z.string(),
   generatedAt: z.string(),
   sourceVersion: z.number().optional(),
   summary: z.string(),
-  bullets: z.array(todayAnalysisBulletSchema),
+  bullets: z.array(analysisBulletSchema),
   actionLabel: z.string(),
   action: z.string(),
   confidenceNote: z.string(),
   aiGenerated: z.boolean(),
-  metrics: z.array(todayAnalysisMetricSchema).optional(),
+  metrics: z.array(analysisMetricSchema).optional(),
 });
 
 /** Strongly typed generated Today AI analysis resource. */
-export type TodayAnalysisDataDto = z.infer<typeof todayAnalysisDataSchema>;
+export type AnalysisDataDto = z.infer<typeof analysisDataSchema>;
 
 /**
  * Standard Schema (zod 4) for the persisted analysis read state. Replaces the
- * former `TodayAnalysisReadDataDto` response class.
+ * former `AnalysisReadDataDto` response class.
  */
-export const todayAnalysisReadDataSchema = z.object({
-  analysis: todayAnalysisDataSchema.nullable(),
+export const analysisReadDataSchema = z.object({
+  analysis: analysisDataSchema.nullable(),
   status: z.enum(['empty', 'pending', 'ready', 'stale', 'failed']),
   sourceVersion: z.number(),
   computedVersion: z.number(),
@@ -81,81 +81,81 @@ export const todayAnalysisReadDataSchema = z.object({
 });
 
 /** Strongly typed persisted Today-analysis read state. */
-export type TodayAnalysisReadDataDto = z.infer<
-  typeof todayAnalysisReadDataSchema
+export type AnalysisReadDataDto = z.infer<
+  typeof analysisReadDataSchema
 >;
 
 /**
  * Backwards-compatible response alias for `GET /analysis`; identical to
- * {@link TodayAnalysisReadDataDto} on the wire.
+ * {@link AnalysisReadDataDto} on the wire.
  */
-export type TodayAnalysisReadResponseDto = TodayAnalysisReadDataDto;
+export type AnalysisReadResponseDto = AnalysisReadDataDto;
 
 /**
  * Standard Schema (zod 4) for the enqueued-refresh outcome. Replaces the
- * former `TodayAnalysisRefreshPendingDataDto` response class.
+ * former `AnalysisRefreshPendingDataDto` response class.
  */
-export const todayAnalysisRefreshPendingDataSchema = z.object({
+export const analysisRefreshPendingDataSchema = z.object({
   status: z.literal('pending'),
   jobId: z.string(),
 });
 
 /** Strongly typed enqueued-refresh outcome. */
-export type TodayAnalysisRefreshPendingDataDto = z.infer<
-  typeof todayAnalysisRefreshPendingDataSchema
+export type AnalysisRefreshPendingDataDto = z.infer<
+  typeof analysisRefreshPendingDataSchema
 >;
 
 /**
  * Standard Schema (zod 4) for the synchronous-refresh outcome. Replaces the
- * former `TodayAnalysisRefreshReadyDataDto` response class.
+ * former `AnalysisRefreshReadyDataDto` response class.
  */
-export const todayAnalysisRefreshReadyDataSchema = z.object({
+export const analysisRefreshReadyDataSchema = z.object({
   status: z.literal('ready'),
-  analysis: todayAnalysisDataSchema,
+  analysis: analysisDataSchema,
 });
 
 /** Strongly typed synchronous-refresh outcome. */
-export type TodayAnalysisRefreshReadyDataDto = z.infer<
-  typeof todayAnalysisRefreshReadyDataSchema
+export type AnalysisRefreshReadyDataDto = z.infer<
+  typeof analysisRefreshReadyDataSchema
 >;
 
 /**
  * Standard Schema (zod 4) for the async job acknowledgement. Replaces the
- * former `TodayAnalysisAsyncJobDataDto` response class.
+ * former `AnalysisAsyncJobDataDto` response class.
  */
-export const todayAnalysisAsyncJobDataSchema = z.object({
+export const analysisAsyncJobDataSchema = z.object({
   jobId: z.string(),
 });
 
 /** Strongly typed async job acknowledgement. */
-export type TodayAnalysisAsyncJobDataDto = z.infer<
-  typeof todayAnalysisAsyncJobDataSchema
+export type AnalysisAsyncJobDataDto = z.infer<
+  typeof analysisAsyncJobDataSchema
 >;
 
 /**
  * Standard Schema (zod 4) for the synchronous async-endpoint result. Replaces
- * the former `TodayAnalysisAsyncResultDataDto` response class.
+ * the former `AnalysisAsyncResultDataDto` response class.
  */
-export const todayAnalysisAsyncResultDataSchema = z.object({
-  result: z.union([todayAnalysisDataSchema, todayAnalysisReadDataSchema]),
+export const analysisAsyncResultDataSchema = z.object({
+  result: z.union([analysisDataSchema, analysisReadDataSchema]),
 });
 
 /** Strongly typed synchronous async-endpoint result. */
-export type TodayAnalysisAsyncResultDataDto = z.infer<
-  typeof todayAnalysisAsyncResultDataSchema
+export type AnalysisAsyncResultDataDto = z.infer<
+  typeof analysisAsyncResultDataSchema
 >;
 
 /**
  * Standard Schema (zod 4) for the async job status payload. Replaces the
- * former `TodayAnalysisAsyncStatusDataDto` response class.
+ * former `AnalysisAsyncStatusDataDto` response class.
  */
-export const todayAnalysisAsyncStatusDataSchema = z.object({
+export const analysisAsyncStatusDataSchema = z.object({
   status: z
     .enum(['empty', 'pending', 'ready', 'stale', 'failed'])
     .meta({ example: 'pending' }),
 });
 
 /** Strongly typed async job status payload. */
-export type TodayAnalysisAsyncStatusDataDto = z.infer<
-  typeof todayAnalysisAsyncStatusDataSchema
+export type AnalysisAsyncStatusDataDto = z.infer<
+  typeof analysisAsyncStatusDataSchema
 >;

@@ -33,7 +33,7 @@ import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../../product/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 
 export type UpsertCheckInInput = EndHealthEventInput;
 
@@ -42,7 +42,7 @@ export class CheckInsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
     private readonly publisher: DomainEventPublisher,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
   ) {}
 
   upsert(
@@ -117,7 +117,7 @@ export class CheckInsService {
               // the unique constraint dedupes it.
               .andThen(() =>
                 fromPromise(
-                  this.productEvents.emitServerEvent(userId, {
+                  this.productEventLog.emitServerEvent(userId, {
                     name: ProductEventName.health_event_outcome_confirmed,
                     surface: ProductEventSurface.review,
                     result: toProductEventResult(outcome),

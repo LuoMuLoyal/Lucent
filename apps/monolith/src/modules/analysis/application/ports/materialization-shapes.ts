@@ -3,18 +3,18 @@ export {
   TODAY_ANALYSIS_REFRESH_COOLDOWN_MS,
   TODAY_ANALYSIS_CLAIM_TIMEOUT_MS,
   TODAY_ANALYSIS_REASON_CODES,
-  type TodayAnalysisReasonCode,
+  type AnalysisReasonCode,
   type PersistedTodayAnalysisStatus,
-  type TodayAnalysisStatus,
+  type AnalysisStatus,
 } from '../../domain/analysis/materialization-vocabulary.js';
 
 import type {
   PersistedTodayAnalysisStatus,
-  TodayAnalysisReasonCode,
-  TodayAnalysisStatus,
+  AnalysisReasonCode,
+  AnalysisStatus,
 } from '../../domain/analysis/materialization-vocabulary.js';
 
-export interface TodayAnalysisMaterializationRow {
+export interface AnalysisMaterializationRow {
   id: string;
   userId: string;
   localDate: Date;
@@ -33,17 +33,17 @@ export interface TodayAnalysisMaterializationRow {
   updatedAt: Date;
 }
 
-export interface TodayAnalysisMaterializationView extends Omit<
-  TodayAnalysisMaterializationRow,
+export interface AnalysisMaterializationView extends Omit<
+  AnalysisMaterializationRow,
   'status'
 > {
-  status: TodayAnalysisStatus;
+  status: AnalysisStatus;
 }
 
 export interface MarkTodayAnalysisPendingInput {
   userId: string;
   localDate: string;
-  reasonCode: TodayAnalysisReasonCode;
+  reasonCode: AnalysisReasonCode;
   requestedSourceVersion?: number;
   triggerKey?: string;
   manual?: boolean;

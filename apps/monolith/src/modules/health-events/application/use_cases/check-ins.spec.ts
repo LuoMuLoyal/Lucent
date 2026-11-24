@@ -12,7 +12,7 @@ import type {
   HealthEventRecord,
   HealthEventCheckInRecord,
 } from '../ports/health-events.js';
-import type { ProductEventsService } from '../../../product/index.js';
+import type { ProductEventLogService } from '../../../product/index.js';
 import type {
   DomainFailure,
   ResultAsync,
@@ -41,7 +41,7 @@ function buildPublisher() {
 function buildProductEvents() {
   return {
     emitServerEvent: vi.fn().mockResolvedValue(undefined),
-  } as unknown as ProductEventsService;
+  } as unknown as ProductEventLogService;
 }
 
 function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
@@ -322,11 +322,11 @@ describe('CheckInsService', () => {
 
   it('emits health_event_outcome_confirmed with the check-in outcome after the upsert succeeds', async () => {
     const repository = buildRepository();
-    const productEvents = buildProductEvents();
+    const productEventLog = buildProductEvents();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      productEvents,
+      productEventLog,
     );
 
     await collectResult(
@@ -335,8 +335,8 @@ describe('CheckInsService', () => {
       }),
     );
 
-    expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
-    expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
+    expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
+    expect(productEventLog.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
       name: ProductEventName.health_event_outcome_confirmed,
       surface: ProductEventSurface.review,
       result: ProductEventResult.worsened,
@@ -347,7 +347,7 @@ describe('CheckInsService', () => {
 
   it('does not emit the product event when the check-in write fails', async () => {
     const repository = buildRepository();
-    const productEvents = buildProductEvents();
+    const productEventLog = buildProductEvents();
     repository.upsertCheckIn.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -356,7 +356,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      productEvents,
+      productEventLog,
     );
 
     await expect(
@@ -364,6 +364,6 @@ describe('CheckInsService', () => {
         outcome: HealthEventOutcome.improved,
       }),
     ).rejects.toThrow('write failed');
-    expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+    expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
   });
 });

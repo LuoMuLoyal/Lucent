@@ -38,7 +38,7 @@ describe('user-setting key strings match common/constants', () => {
   it('matches the four assistant-context keys', () => {
     expect(ASSISTANT_CONTEXT_SETTING_KEYS).toEqual({
       healthProfile: ASSISTANT_CONTEXT_HEALTH_PROFILE_SETTING_KEY,
-      dailyRecords: ASSISTANT_CONTEXT_DAILY_RECORDS_SETTING_KEY,
+      records: ASSISTANT_CONTEXT_DAILY_RECORDS_SETTING_KEY,
       sleepRecords: ASSISTANT_CONTEXT_SLEEP_RECORDS_SETTING_KEY,
       currentMedicines: ASSISTANT_CONTEXT_CURRENT_MEDICINES_SETTING_KEY,
     });

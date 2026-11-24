@@ -108,7 +108,7 @@ describe('AdminConsoleService', () => {
       suspended: 2,
       newLast30Days: 3,
     });
-    expect(result.productEventsLast24Hours).toBe(17);
+    expect(result.productEventLogLast24Hours).toBe(17);
     expect(result).not.toHaveProperty('userIds');
   });
 

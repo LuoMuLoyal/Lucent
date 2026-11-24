@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../../../prisma/index.js';
-import { TestingSupportService } from './record-lane.js';
+import { TestingService } from './record-lane.js';
 import { ARGON2_OPTIONS } from '../../../auth/index.js';
 
 vi.mock('argon2', () => ({
@@ -14,8 +14,8 @@ vi.mock('argon2', () => ({
   hash: vi.fn(),
 }));
 
-describe('TestingSupportService', () => {
-  let service: TestingSupportService;
+describe('TestingService', () => {
+  let service: TestingService;
   let prisma: DeepMocked<PrismaService>;
   let cache: { del: vi.Mock };
 
@@ -26,7 +26,7 @@ describe('TestingSupportService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        TestingSupportService,
+        TestingService,
         {
           provide: CACHE_MANAGER,
           useValue: cache,
@@ -61,7 +61,7 @@ describe('TestingSupportService', () => {
       ],
     }).compile();
 
-    service = module.get(TestingSupportService);
+    service = module.get(TestingService);
     prisma = module.get(PrismaService);
 
     const runTransaction = async <T>(

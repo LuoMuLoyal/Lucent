@@ -11,14 +11,14 @@ import { TRIGGER_DIMENSIONS } from '../../domain/analysis/trigger-gate.js';
 import { DailyRecordKind, HealthEventKind } from '#generated/prisma/client.js';
 import {
   ANALYSIS_MATERIALIZATION,
-  type TodayAnalysisMaterialization,
+  type AnalysisMaterialization,
 } from '../../application/ports/materialization.js';
-import type { TodayAnalysisReasonCode } from '../../domain/analysis/materialization-vocabulary.js';
+import type { AnalysisReasonCode } from '../../domain/analysis/materialization-vocabulary.js';
 import {
   ANALYSIS_QUEUE_PORT,
   type AnalysisQueuePort,
 } from '../../application/ports/analysis-queue.js';
-import { TodayAnalysisContextService } from '../acl/analysis-context.js';
+import { AnalysisContextService } from '../acl/analysis-context.js';
 
 /** BullMQ queue the analysis event consumer runs on. */
 export const ANALYSIS_EVENT_QUEUE_NAME = QUEUE_NAMES.analysis;
@@ -52,15 +52,15 @@ const DIMENSION_RECORD_KINDS: ReadonlySet<string> = new Set<string>(
  * by this job cannot pick up the stale context.
  */
 @Injectable()
-export class TodayAnalysisEventConsumerService implements OnModuleInit {
-  private readonly logger = new Logger(TodayAnalysisEventConsumerService.name);
+export class AnalysisEventConsumerService implements OnModuleInit {
+  private readonly logger = new Logger(AnalysisEventConsumerService.name);
 
   constructor(
     @Inject(ANALYSIS_MATERIALIZATION)
-    private readonly store: TodayAnalysisMaterialization,
+    private readonly store: AnalysisMaterialization,
     @Inject(ANALYSIS_QUEUE_PORT)
     private readonly queue: AnalysisQueuePort,
-    private readonly contextService: TodayAnalysisContextService,
+    private readonly contextService: AnalysisContextService,
     private readonly factory: BullmqQueueFactory,
     private readonly consumers: EventConsumerRegistry,
   ) {}
@@ -241,7 +241,7 @@ export class TodayAnalysisEventConsumerService implements OnModuleInit {
   private async trigger(
     userId: string,
     localDate: string,
-    reasonCode: TodayAnalysisReasonCode,
+    reasonCode: AnalysisReasonCode,
     triggerKey: string,
     requestedSourceVersion?: number,
   ): Promise<void> {

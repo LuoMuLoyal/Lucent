@@ -3,7 +3,7 @@ import type {
   ResultAsync,
   DomainFailure,
 } from '../../../common/result/index.js';
-import { LegalDocumentsService } from './documents.service.js';
+import { LegalService } from './documents.service.js';
 
 /** Folds a ResultAsync into a plain outcome so specs can assert code/value. */
 async function collectResult<T>(
@@ -15,8 +15,8 @@ async function collectResult<T>(
   );
 }
 
-describe('LegalDocumentsService', () => {
-  let service: LegalDocumentsService;
+describe('LegalService', () => {
+  let service: LegalService;
 
   const mockRows = [
     {
@@ -80,7 +80,7 @@ describe('LegalDocumentsService', () => {
   }
 
   beforeEach(() => {
-    service = new LegalDocumentsService(
+    service = new LegalService(
       createMockPrisma(),
       createMockCache() as never,
     );
@@ -121,7 +121,7 @@ describe('LegalDocumentsService', () => {
     });
 
     it('returns current timestamp when no documents exist', async () => {
-      service = new LegalDocumentsService(
+      service = new LegalService(
         createMockPrisma([]),
         createMockCache() as never,
       );
@@ -136,7 +136,7 @@ describe('LegalDocumentsService', () => {
     it('serves from the database when the cache read fails (best-effort)', async () => {
       const cache = createMockCache();
       cache.get.mockRejectedValue(new Error('redis down'));
-      service = new LegalDocumentsService(createMockPrisma(), cache as never);
+      service = new LegalService(createMockPrisma(), cache as never);
 
       const result = await collectResult(service.findAll({}));
 
@@ -148,7 +148,7 @@ describe('LegalDocumentsService', () => {
     it('does not fail the response when the cache write fails (best-effort)', async () => {
       const cache = createMockCache();
       cache.set.mockRejectedValue(new Error('redis down'));
-      service = new LegalDocumentsService(createMockPrisma(), cache as never);
+      service = new LegalService(createMockPrisma(), cache as never);
 
       const result = await collectResult(service.findAll({}));
 
@@ -203,7 +203,7 @@ describe('LegalDocumentsService', () => {
     it('serves from the database when the cache read fails (best-effort)', async () => {
       const cache = createMockCache();
       cache.get.mockRejectedValue(new Error('redis down'));
-      service = new LegalDocumentsService(createMockPrisma(), cache as never);
+      service = new LegalService(createMockPrisma(), cache as never);
 
       const result = await collectResult(service.findOne('terms', {}));
 

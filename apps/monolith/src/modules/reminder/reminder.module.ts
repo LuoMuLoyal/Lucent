@@ -4,9 +4,9 @@ import { ReminderController } from './adapters/http/reminder.controller.js';
 import { ReminderDeliveriesController } from './adapters/http/reminder-deliveries.controller.js';
 import { ReminderDispatchQueue } from './adapters/queue/dispatch.js';
 import { REMINDER_DISPATCH_SCHEDULER } from './application/ports/reminder-dispatch-scheduler.js';
-import { MedicineRemindersOwnership } from './application/use_cases/ownership.js';
-import { MedicineRemindersMapper } from './application/read_models/mapper.js';
-import { MedicineRemindersService } from './application/services/reminders.js';
+import { RemindersOwnership } from './application/use_cases/ownership.js';
+import { RemindersMapper } from './application/read_models/mapper.js';
+import { RemindersService } from './application/services/reminders.js';
 import { ReminderSchedulerService } from './infrastructure/messaging/scheduler.js';
 import { DeliveryReceiptsService } from './infrastructure/persistence/delivery-receipts.js';
 import {
@@ -14,7 +14,7 @@ import {
   ReminderDispatcher,
 } from './application/ports/delivery-services.js';
 import {
-  MedicineReminderReaderPort,
+  ReminderEntryReaderPort,
   ReminderRepositoryPort,
 } from './application/ports/reminder-repository.js';
 import { PrismaReminders } from './infrastructure/persistence/reminders.js';
@@ -33,10 +33,10 @@ import { PrismaReminders } from './infrastructure/persistence/reminders.js';
   providers: [
     PrismaReminders,
     { provide: ReminderRepositoryPort, useExisting: PrismaReminders },
-    { provide: MedicineReminderReaderPort, useExisting: PrismaReminders },
-    MedicineRemindersOwnership,
-    MedicineRemindersMapper,
-    MedicineRemindersService,
+    { provide: ReminderEntryReaderPort, useExisting: PrismaReminders },
+    RemindersOwnership,
+    RemindersMapper,
+    RemindersService,
     ReminderSchedulerService,
     { provide: ReminderDispatcher, useExisting: ReminderSchedulerService },
 
@@ -49,9 +49,9 @@ import { PrismaReminders } from './infrastructure/persistence/reminders.js';
     { provide: ReminderDeliveries, useExisting: DeliveryReceiptsService },
   ],
   exports: [
-    MedicineRemindersService,
+    RemindersService,
     ReminderSchedulerService,
-    MedicineReminderReaderPort,
+    ReminderEntryReaderPort,
   ],
 })
 export class ReminderModule {}

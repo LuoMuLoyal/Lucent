@@ -21,10 +21,10 @@ import {
   type HealthEventRecord,
 } from '../../../../health-events/index.js';
 import {
-  DailyRecordReaderPort,
-  type DailyRecordFact,
+  RecordEntryReaderPort,
+  type RecordEntryFact,
 } from '../../../../record/index.js';
-import { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
+import { DoseLogEntryReaderPort } from '../../../../dose/index.js';
 import { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import type {
   EventReviewData,
@@ -67,7 +67,7 @@ interface ReviewWindowFacts {
   /** Exact symptom-record count in the window (dedicated count query). */
   symptomRecordCount: number;
   /** Window records for trend computation (capped reader list). */
-  dailyRecords: DailyRecordFact[];
+  records: RecordEntryFact[];
   /** Exact daily-record count in the window (dedicated count query). */
   dailyRecordCount: number;
   latestDailyRecordCreatedAt: Date | null;
@@ -101,8 +101,8 @@ export class EventReviewService {
 
   constructor(
     private readonly healthEvents: HealthEventsOwnershipService,
-    private readonly dailyRecordReader: DailyRecordReaderPort,
-    private readonly doseLogReader: MedicineDoseLogReaderPort,
+    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly doseLogReader: DoseLogEntryReaderPort,
     private readonly factsSection: EventReviewFactsService,
     private readonly changesSection: EventReviewChangesService,
     private readonly actionsSection: EventReviewActionsService,
@@ -128,7 +128,7 @@ export class EventReviewService {
       todayCheckIn,
       checkInCoverage,
       checkIns,
-      dailyRecords,
+      records,
       symptomRecordCount,
       dailyRecordCount,
       latestDailyRecordCreatedAt,
@@ -170,7 +170,7 @@ export class EventReviewService {
         checkInCoverage,
         checkIns,
         symptomRecordCount,
-        dailyRecords,
+        records,
         dailyRecordCount,
         latestDailyRecordCreatedAt,
         doseLogs,
@@ -317,7 +317,7 @@ export class EventReviewService {
         }),
         keyChanges: this.changesSection.build({
           checkIns: facts.checkIns,
-          dailyRecords: facts.dailyRecords,
+          records: facts.records,
         }),
         completedActions: this.actionsSection.build({
           doseLogs: facts.doseLogs,
@@ -346,7 +346,7 @@ export class EventReviewService {
           windowStart: event.startedAt,
           windowEnd,
         },
-        dailyRecords: {
+        records: {
           state: facts.dailyRecordCount > 0 ? 'observed' : 'unknown',
           coverage: facts.dailyRecordCount > 0 ? 'partial' : 'none',
           sources: facts.dailyRecordCount > 0 ? ['manual'] : [],
@@ -367,7 +367,7 @@ export class EventReviewService {
       },
       sourceTimestamps: {
         checkIns: formatDateOnly(facts.checkInCoverage.lastCheckInDate),
-        dailyRecords: facts.latestDailyRecordCreatedAt?.toISOString() ?? null,
+        records: facts.latestDailyRecordCreatedAt?.toISOString() ?? null,
         doseLogs: facts.latestDoseLogScheduledFor?.toISOString() ?? null,
       },
       availableActions:

@@ -1,6 +1,6 @@
 import { buildUserPrompt } from '../../../../../common/index.js';
 import type { PromptCopy } from '../../../../../common/index.js';
-import type { TodayAnalysisContext } from '../../../application/read_models/analysis-context-shape.js';
+import type { AnalysisContext } from '../../../application/read_models/analysis-context-shape.js';
 import {
   MEAL_ANALYSIS_MISSING_TITLE,
   MEAL_ANALYSIS_TITLE,
@@ -24,11 +24,11 @@ export function buildTodayAnalysisSystemPrompt(): string {
   ].join(' ');
 }
 
-export type TodayAnalysisPromptCopy = PromptCopy;
+export type AnalysisPromptCopy = PromptCopy;
 
 export function buildTodayAnalysisUserPrompt(
-  context: TodayAnalysisContext,
-  copy: TodayAnalysisPromptCopy,
+  context: AnalysisContext,
+  copy: AnalysisPromptCopy,
 ): string {
   return buildUserPrompt(context, copy);
 }

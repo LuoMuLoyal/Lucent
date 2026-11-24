@@ -57,7 +57,7 @@ describe('EventReviewChangesService', () => {
         checkIn(DAY_11, HealthEventOutcome.unchanged),
         checkIn(DAY_12, HealthEventOutcome.improved),
       ],
-      dailyRecords: [],
+      records: [],
     };
 
     expect(service.build(input)).toEqual({
@@ -85,7 +85,7 @@ describe('EventReviewChangesService', () => {
         checkIn(DAY_10, HealthEventOutcome.unchanged),
         checkIn(DAY_11, HealthEventOutcome.unchanged),
       ],
-      dailyRecords: [],
+      records: [],
     };
 
     const section = service.build(input);
@@ -107,7 +107,7 @@ describe('EventReviewChangesService', () => {
         checkIn(DAY_10, HealthEventOutcome.improved),
         checkIn(DAY_12, HealthEventOutcome.worsened),
       ],
-      dailyRecords: [],
+      records: [],
     };
 
     const section = service.build(input);
@@ -126,7 +126,7 @@ describe('EventReviewChangesService', () => {
     const service = buildService();
     const input: ReviewChangeFacts = {
       checkIns: [],
-      dailyRecords: [
+      records: [
         waterRecord(DAY_10, '500', 'ml'),
         waterRecord(DAY_10, '300', 'ml'),
         waterRecord(DAY_11, '250', 'ml'),
@@ -156,7 +156,7 @@ describe('EventReviewChangesService', () => {
     const service = buildService();
     const input: ReviewChangeFacts = {
       checkIns: [],
-      dailyRecords: [
+      records: [
         sleepRecord(DAY_10, 360),
         sleepRecord(DAY_11, 420),
         sleepRecord(DAY_12, 390),
@@ -185,7 +185,7 @@ describe('EventReviewChangesService', () => {
     const service = buildService();
     const input: ReviewChangeFacts = {
       checkIns: [checkIn(DAY_10, HealthEventOutcome.unchanged)],
-      dailyRecords: [
+      records: [
         {
           occurredAt: DAY_10,
           kind: DailyRecordKind.water,
@@ -211,7 +211,7 @@ describe('EventReviewChangesService', () => {
 
   it('is unknown with no_observations when the window has no observations', () => {
     const service = buildService();
-    const input: ReviewChangeFacts = { checkIns: [], dailyRecords: [] };
+    const input: ReviewChangeFacts = { checkIns: [], records: [] };
 
     expect(service.build(input)).toEqual({
       state: 'unknown',
@@ -223,7 +223,7 @@ describe('EventReviewChangesService', () => {
     const service = buildService();
     const input: ReviewChangeFacts = {
       checkIns: [checkIn(DAY_10, HealthEventOutcome.unchanged)],
-      dailyRecords: [waterRecord(DAY_10, '250', 'ml')],
+      records: [waterRecord(DAY_10, '250', 'ml')],
     };
 
     expect(service.build(input)).toEqual({
@@ -239,7 +239,7 @@ describe('EventReviewChangesService', () => {
         checkIn(DAY_10, HealthEventOutcome.unchanged),
         checkIn(DAY_11, HealthEventOutcome.improved),
       ],
-      dailyRecords: [waterRecord(DAY_10, '250', 'ml')],
+      records: [waterRecord(DAY_10, '250', 'ml')],
     };
 
     const section = service.build(input);

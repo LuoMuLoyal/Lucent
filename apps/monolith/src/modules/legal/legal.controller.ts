@@ -12,18 +12,18 @@ import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 
 import { legalDocumentQuerySchema } from './dto/query.dto.js';
-import type { LegalDocumentQueryDto } from './dto/query.dto.js';
+import type { LegalDocQueryDto } from './dto/query.dto.js';
 import {
   legalDocumentDetailSchema,
   legalDocumentListSchema,
 } from './dto/response.dto.js';
-import { LegalDocumentsService } from './services/documents.service.js';
+import { LegalService } from './services/documents.service.js';
 
 @ApiTags('Legal Documents')
 @Public()
 @Controller('legal')
 export class LegalController {
-  constructor(private readonly service: LegalDocumentsService) {}
+  constructor(private readonly service: LegalService) {}
 
   @Get()
   @ApiOperation({
@@ -36,7 +36,7 @@ export class LegalController {
   })
   @SerializeOptions({ schema: legalDocumentListSchema })
   async findAll(
-    @Query({ schema: legalDocumentQuerySchema }) query: LegalDocumentQueryDto,
+    @Query({ schema: legalDocumentQuerySchema }) query: LegalDocQueryDto,
   ) {
     return await unwrapResult(this.service.findAll(query));
   }
@@ -58,7 +58,7 @@ export class LegalController {
   @SerializeOptions({ schema: legalDocumentDetailSchema })
   async findOne(
     @Param('docType') docType: string,
-    @Query({ schema: legalDocumentQuerySchema }) query: LegalDocumentQueryDto,
+    @Query({ schema: legalDocumentQuerySchema }) query: LegalDocQueryDto,
   ) {
     return await unwrapResult(this.service.findOne(docType, query));
   }
@@ -67,7 +67,7 @@ export class LegalController {
 registerResponseSchema({
   path: '/api/v1/legal',
   method: 'get',
-  componentName: 'LegalDocumentListResponse',
+  componentName: 'LegalDocListResponse',
   schema: legalDocumentListSchema,
   description: 'Active legal documents with list-level update timestamp.',
 });
@@ -75,7 +75,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/legal/{docType}',
   method: 'get',
-  componentName: 'LegalDocumentDetailResponse',
+  componentName: 'LegalDocDetailResponse',
   schema: legalDocumentDetailSchema,
   description: 'Legal document detail with Markdown content.',
 });

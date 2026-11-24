@@ -1,7 +1,7 @@
 /**
  * 跨上下文事实读模型（reader port 的返回形状 + 投影）。
  *
- * `DailyRecordFact` 的**类型**定义在 `application/ports/records-query.ts`（端口与
+ * `RecordEntryFact` 的**类型**定义在 `application/ports/records-query.ts`（端口与
  * 返回形状同址）；这里只放投影函数：
  *
  * - `toDailyRecordFact` / `toDailyRecordSummaryFact`：领域行 → 事实；
@@ -13,8 +13,8 @@
 import type { RecordRow } from '../../domain/record/record-row.js';
 import { asDailyRecordKind } from '../../domain/record/record-kind.js';
 import type {
-  DailyRecordFact,
-  DailyRecordSummaryFact,
+  RecordEntryFact,
+  RecordEntrySummaryFact,
 } from '../ports/records-query.js';
 
 /**
@@ -24,7 +24,7 @@ import type {
  * 时读列即可，不必为每一行解析 `payload` JSONB。只有需要 `items` / `dishes` 明细时
  * 才读 `payload`（它与列同源）。非餐食记录这些字段恒为 `null`。
  */
-export function toDailyRecordFact(row: RecordRow): DailyRecordFact {
+export function toDailyRecordFact(row: RecordRow): RecordEntryFact {
   return {
     id: row.id,
     kind: row.kind,
@@ -48,7 +48,7 @@ export function toDailyRecordFact(row: RecordRow): DailyRecordFact {
 
 export function toDailyRecordSummaryFact(
   row: RecordRow,
-): DailyRecordSummaryFact {
+): RecordEntrySummaryFact {
   return {
     id: row.id,
     kind: row.kind,
@@ -88,7 +88,7 @@ export interface RecordFactColumns {
 /** 显式列 → 事实。未知 kind 按 `note` 收敛（库损坏时的失败方向）。 */
 export function toDailyRecordFactFromColumns(
   columns: RecordFactColumns,
-): DailyRecordFact {
+): RecordEntryFact {
   return {
     id: columns.id,
     kind: asDailyRecordKind(columns.kind) ?? 'note',

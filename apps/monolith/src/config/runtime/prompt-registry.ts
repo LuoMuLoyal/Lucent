@@ -52,7 +52,7 @@ export const RUNTIME_PROMPT_SPECS = {
     key: EnvKey.PROMPT_REPORT_SUMMARY,
     placeholders: [],
   },
-  todayAnalysis: {
+  analysis: {
     key: EnvKey.PROMPT_TODAY_ANALYSIS,
     placeholders: [],
   },

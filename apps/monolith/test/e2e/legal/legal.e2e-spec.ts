@@ -7,8 +7,8 @@ import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers.js';
 
 const BASE_PATH = '/api/v1/legal';
 
-// Cache keys mirror LegalDocumentsService prefix + resolved language
-// (LegalDocumentsService.resolveLang produces only 'zh' or 'en'). Earlier e2e
+// Cache keys mirror LegalService prefix + resolved language
+// (LegalService.resolveLang produces only 'zh' or 'en'). Earlier e2e
 // suites (e.g. contract) may have populated the 1-hour list/detail cache with
 // the migration-seeded documents, so this suite must invalidate it before
 // asserting on its own inserted rows.

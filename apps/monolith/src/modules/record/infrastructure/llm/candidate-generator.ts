@@ -6,23 +6,23 @@ import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildDailyRecordCandidatesSystemPrompt,
   buildDailyRecordCandidatesUserPrompt,
-  type DailyRecordCandidatesPromptCopy,
+  type RecordEntryCandidatesPromptCopy,
 } from '../../application/services/candidate-prompt.js';
 import {
   dailyRecordCandidatesSchema,
-  type DailyRecordCandidateStructuredOutput,
+  type RecordEntryCandidateStructuredOutput,
 } from '../../application/ports/candidate-contract.js';
 
 @Injectable()
-export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorService<
+export class RecordEntryCandidatesGeneratorService extends BaseLlmGeneratorService<
   unknown,
-  DailyRecordCandidatesPromptCopy,
-  DailyRecordCandidateStructuredOutput
+  RecordEntryCandidatesPromptCopy,
+  RecordEntryCandidateStructuredOutput
 > {
   protected readonly schema = dailyRecordCandidatesSchema;
   protected readonly modelRole = 'language';
   protected readonly options = {
-    toolName: 'DailyRecordCandidates',
+    toolName: 'RecordEntryCandidates',
     streamName: 'Daily record candidates',
   } as const;
 
@@ -40,7 +40,7 @@ export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorServi
 
   protected buildUserPrompt(
     context: unknown,
-    promptCopy: DailyRecordCandidatesPromptCopy,
+    promptCopy: RecordEntryCandidatesPromptCopy,
   ): string {
     return buildDailyRecordCandidatesUserPrompt(context, promptCopy);
   }

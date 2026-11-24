@@ -1,4 +1,4 @@
-import { TodayAnalysisContextService } from './analysis-context.js';
+import { AnalysisContextService } from './analysis-context.js';
 import { TriggerEvaluatorService } from '../../application/services/trigger-evaluator.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 
@@ -44,7 +44,7 @@ function mealAnalysisFixture(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('TodayAnalysisContextService', () => {
+describe('AnalysisContextService', () => {
   const buildMocks = (records: unknown[]) => ({
     prisma: {
       userCurrentMedicine: {
@@ -98,7 +98,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T04:30:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -145,7 +145,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T10:30:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -190,7 +190,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T10:30:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -238,7 +238,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T04:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -279,7 +279,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T04:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -306,7 +306,7 @@ describe('TodayAnalysisContextService', () => {
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 12,
     });
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -326,7 +326,7 @@ describe('TodayAnalysisContextService', () => {
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 'not-a-number',
     });
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -344,7 +344,7 @@ describe('TodayAnalysisContextService', () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([]);
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue(null);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -382,7 +382,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T02:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -413,7 +413,7 @@ describe('TodayAnalysisContextService', () => {
     }));
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks(records);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -431,7 +431,7 @@ describe('TodayAnalysisContextService', () => {
   it('keeps unknown water from becoming a remaining deficit', async () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -464,7 +464,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T01:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -515,7 +515,7 @@ describe('TodayAnalysisContextService', () => {
     doseLogReader.listFactsInRange = vi
       .fn()
       .mockResolvedValue([{ currentMedicineId: 'med-1', status: 'taken' }]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -547,7 +547,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     reminderReader.listActiveFacts = vi.fn().mockResolvedValue([]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -584,7 +584,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T07:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -619,7 +619,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T07:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -647,7 +647,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T07:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -676,7 +676,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T00:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -712,7 +712,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T00:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -733,7 +733,7 @@ describe('TodayAnalysisContextService', () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([]);
     prisma.userAllergy.count = vi.fn().mockResolvedValue(3);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -783,7 +783,7 @@ describe('TodayAnalysisContextService', () => {
           createdAt: new Date('2026-07-01T01:00:00.000Z'),
         },
       ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -809,7 +809,7 @@ describe('TodayAnalysisContextService', () => {
     const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
       buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue(meds);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -843,7 +843,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -880,7 +880,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -916,7 +916,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -952,7 +952,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(
+    const service = new AnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
@@ -978,7 +978,7 @@ describe('TodayAnalysisContextService', () => {
       }));
       const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
         buildMocks(records);
-      const service = new TodayAnalysisContextService(
+      const service = new AnalysisContextService(
         prisma as never,
         dailyRecordReader as never,
         doseLogReader as never,
@@ -1017,7 +1017,7 @@ describe('TodayAnalysisContextService', () => {
       ];
       const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
         buildMocks(records);
-      const service = new TodayAnalysisContextService(
+      const service = new AnalysisContextService(
         prisma as never,
         dailyRecordReader as never,
         doseLogReader as never,
@@ -1056,7 +1056,7 @@ describe('TodayAnalysisContextService', () => {
       ];
       const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
         buildMocks(records);
-      const service = new TodayAnalysisContextService(
+      const service = new AnalysisContextService(
         prisma as never,
         dailyRecordReader as never,
         doseLogReader as never,
@@ -1095,7 +1095,7 @@ describe('TodayAnalysisContextService', () => {
       ];
       const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
         buildMocks(records);
-      const service = new TodayAnalysisContextService(
+      const service = new AnalysisContextService(
         prisma as never,
         dailyRecordReader as never,
         doseLogReader as never,
@@ -1151,7 +1151,7 @@ describe('TodayAnalysisContextService', () => {
       ];
       const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
         buildMocks(records);
-      const service = new TodayAnalysisContextService(
+      const service = new AnalysisContextService(
         prisma as never,
         dailyRecordReader as never,
         doseLogReader as never,

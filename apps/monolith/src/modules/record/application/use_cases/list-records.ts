@@ -7,7 +7,7 @@
 import { Injectable } from '@nestjs/common';
 import { parseDateOnly } from '../../../../common/index.js';
 import { asDailyRecordKind } from '../../domain/record/record-kind.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import type { RecordList } from '../read_models/record-list.js';
 import { toRecordItem } from '../read_models/record-item.js';
 
@@ -16,7 +16,7 @@ const DEFAULT_PAGE_SIZE = 50;
 
 @Injectable()
 export class ListRecords {
-  constructor(private readonly records: DailyRecords) {}
+  constructor(private readonly records: Records) {}
 
   async execute(
     userId: string,

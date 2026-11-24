@@ -1,9 +1,9 @@
 import {
-  todayAnalysisSchema,
+  analysisSchema,
   TODAY_ANALYSIS_BULLET_KINDS,
 } from './analysis.js';
 
-describe('todayAnalysisSchema', () => {
+describe('analysisSchema', () => {
   function buildValid(overrides: Record<string, unknown> = {}) {
     return {
       summary: '今日健康状态良好',
@@ -19,7 +19,7 @@ describe('todayAnalysisSchema', () => {
   }
 
   it('accepts a valid today analysis', () => {
-    const result = todayAnalysisSchema.safeParse(buildValid());
+    const result = analysisSchema.safeParse(buildValid());
     expect(result.success).toBe(true);
   });
 
@@ -28,14 +28,14 @@ describe('todayAnalysisSchema', () => {
       kind,
       text: 'text',
     }));
-    const result = todayAnalysisSchema.safeParse(
+    const result = analysisSchema.safeParse(
       buildValid({ bullets: bullets.slice(0, 3) }),
     );
     expect(result.success).toBe(true);
   });
 
   it('rejects an invalid bullet kind', () => {
-    const result = todayAnalysisSchema.safeParse(
+    const result = analysisSchema.safeParse(
       buildValid({
         bullets: [{ kind: 'invalid', text: 'text' }],
       }),
@@ -44,26 +44,26 @@ describe('todayAnalysisSchema', () => {
   });
 
   it('rejects summary exceeding 120 chars', () => {
-    const result = todayAnalysisSchema.safeParse(
+    const result = analysisSchema.safeParse(
       buildValid({ summary: 'x'.repeat(121) }),
     );
     expect(result.success).toBe(false);
   });
 
   it('rejects empty summary', () => {
-    const result = todayAnalysisSchema.safeParse(buildValid({ summary: '  ' }));
+    const result = analysisSchema.safeParse(buildValid({ summary: '  ' }));
     expect(result.success).toBe(false);
   });
 
   it('rejects bullets with fewer than 2 items', () => {
-    const result = todayAnalysisSchema.safeParse(
+    const result = analysisSchema.safeParse(
       buildValid({ bullets: [{ kind: 'general', text: 'only one' }] }),
     );
     expect(result.success).toBe(false);
   });
 
   it('rejects bullets with more than 3 items', () => {
-    const result = todayAnalysisSchema.safeParse({
+    const result = analysisSchema.safeParse({
       ...buildValid(),
       bullets: [
         { kind: 'medication', text: 'a' },
@@ -76,7 +76,7 @@ describe('todayAnalysisSchema', () => {
   });
 
   it('rejects bullet text exceeding 80 chars', () => {
-    const result = todayAnalysisSchema.safeParse(
+    const result = analysisSchema.safeParse(
       buildValid({
         bullets: [
           { kind: 'medication', text: 'x'.repeat(81) },
@@ -88,7 +88,7 @@ describe('todayAnalysisSchema', () => {
   });
 
   it('rejects confidenceNote exceeding 80 chars', () => {
-    const result = todayAnalysisSchema.safeParse(
+    const result = analysisSchema.safeParse(
       buildValid({ confidenceNote: 'x'.repeat(81) }),
     );
     expect(result.success).toBe(false);

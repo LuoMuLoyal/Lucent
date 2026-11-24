@@ -5,7 +5,7 @@ import { LlmCircuitBreakerService } from '../../../../common/llm/safety/llm-circ
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/app-defaults.constants.js';
 import { RuntimeConfigService } from '../../../../config/runtime/runtime-config.service.js';
 import { buildTodayAnalysisSystemPrompt } from './prompts/analysis.js';
-import { TodayAnalysisGeneratorService } from './analysis-generator.js';
+import { AnalysisGeneratorService } from './analysis-generator.js';
 
 const HEADER = ['RNACOS_SCHEMA_VERSION=3', 'RNACOS_REVISION=test.1', ''].join(
   '\n',
@@ -45,7 +45,7 @@ function buildMetricsService() {
   } as unknown as MetricsService;
 }
 
-describe('TodayAnalysisGeneratorService', () => {
+describe('AnalysisGeneratorService', () => {
   it('delegates generation to llm runtime with structured output', async () => {
     const invoke = vi.fn().mockResolvedValue({
       summary: 'ok',
@@ -58,7 +58,7 @@ describe('TodayAnalysisGeneratorService', () => {
     });
     const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
     const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
-    const service = new TodayAnalysisGeneratorService(
+    const service = new AnalysisGeneratorService(
       {
         hasRoleConfig: vi.fn(),
         createChatModel,
@@ -121,7 +121,7 @@ describe('TodayAnalysisGeneratorService', () => {
 
   it('uses the published prompt override, and the code prompt otherwise', () => {
     const { llmRuntimeService } = buildLlmRuntime();
-    const plain = new TodayAnalysisGeneratorService(
+    const plain = new AnalysisGeneratorService(
       llmRuntimeService,
       buildMetricsService(),
       new LlmCircuitBreakerService(),
@@ -134,7 +134,7 @@ describe('TodayAnalysisGeneratorService', () => {
       `${HEADER}PROMPT_TODAY_ANALYSIS=Published system prompt.
 `,
     );
-    const overridden = new TodayAnalysisGeneratorService(
+    const overridden = new AnalysisGeneratorService(
       llmRuntimeService,
       buildMetricsService(),
       new LlmCircuitBreakerService(),
@@ -149,7 +149,7 @@ describe('TodayAnalysisGeneratorService', () => {
     const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
     const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const metricsService = buildMetricsService();
-    const service = new TodayAnalysisGeneratorService(
+    const service = new AnalysisGeneratorService(
       {
         hasRoleConfig: vi.fn(),
         createChatModel,
@@ -215,7 +215,7 @@ describe('TodayAnalysisGeneratorService', () => {
     const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
     const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const metricsService = buildMetricsService();
-    const service = new TodayAnalysisGeneratorService(
+    const service = new AnalysisGeneratorService(
       {
         hasRoleConfig: vi.fn(),
         createChatModel,
@@ -275,7 +275,7 @@ describe('TodayAnalysisGeneratorService', () => {
 
   it('delegates hasAnalysisModel to llmRuntimeService.hasRoleConfig', () => {
     const hasRoleConfig = vi.fn().mockReturnValue(true);
-    const service = new TodayAnalysisGeneratorService(
+    const service = new AnalysisGeneratorService(
       {
         hasRoleConfig,
         createChatModel: vi.fn(),
@@ -290,7 +290,7 @@ describe('TodayAnalysisGeneratorService', () => {
   });
 
   it('returns false from hasAnalysisModel when role is not configured', () => {
-    const service = new TodayAnalysisGeneratorService(
+    const service = new AnalysisGeneratorService(
       {
         hasRoleConfig: vi.fn().mockReturnValue(false),
         createChatModel: vi.fn(),

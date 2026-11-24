@@ -32,7 +32,7 @@ import {
   DomainFailureException,
 } from '../../../../common/result/index.js';
 import type { DoseLogFact } from '../../domain/dose-log/dose-log-facts.js';
-import { MedicineDoseLogReaderPort } from '../../domain/dose-log/dose-log-facts.js';
+import { DoseLogEntryReaderPort } from '../../domain/dose-log/dose-log-facts.js';
 import type {
   DoseLogPatch,
   DoseLogRecord,
@@ -109,7 +109,7 @@ const doseLogFactSelect = {
 @Injectable()
 export class PrismaDoseLogs
   extends DoseLogs
-  implements MedicineDoseLogReaderPort
+  implements DoseLogEntryReaderPort
 {
   constructor(private readonly prisma: PrismaService) {
     super();

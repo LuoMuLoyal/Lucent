@@ -2,9 +2,9 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client.js';
 import { parseDateOnly } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import type { TodayAnalysisMaterialization } from '../../application/ports/materialization.js';
-import type { TodayAnalysisGenerationClaim } from '../../application/ports/materialization.js';
-export type { TodayAnalysisGenerationClaim };
+import type { AnalysisMaterialization } from '../../application/ports/materialization.js';
+import type { AnalysisGenerationClaim } from '../../application/ports/materialization.js';
+export type { AnalysisGenerationClaim };
 import {
   TODAY_ANALYSIS_MAX_GENERATIONS_PER_DATE,
   TODAY_ANALYSIS_CLAIM_TIMEOUT_MS,
@@ -12,27 +12,27 @@ import {
   type MarkTodayAnalysisPendingInput,
   type MarkTodayAnalysisFailedInput,
   type MarkTodayAnalysisReadyInput,
-  type TodayAnalysisMaterializationRow,
-  type TodayAnalysisMaterializationView,
+  type AnalysisMaterializationRow,
+  type AnalysisMaterializationView,
 } from './materialization.types.js';
 
-export interface TodayAnalysisPendingResult extends TodayAnalysisMaterializationView {
+export interface AnalysisPendingResult extends AnalysisMaterializationView {
   shouldQueue: boolean;
 }
 
 @Injectable()
-export class TodayAnalysisMaterializationStore implements TodayAnalysisMaterialization {
+export class AnalysisMaterializationStore implements AnalysisMaterialization {
   constructor(private readonly prisma: PrismaService) {}
 
   async readStatus(
     userId: string,
     localDate: string,
-  ): Promise<TodayAnalysisMaterializationView> {
+  ): Promise<AnalysisMaterializationView> {
     const row = (await this.prisma.userTodayAnalysisMaterialization.findUnique({
       where: {
         userId_localDate: { userId, localDate: parseDateOnly(localDate) },
       },
-    })) as TodayAnalysisMaterializationRow | null;
+    })) as AnalysisMaterializationRow | null;
 
     if (row == null) {
       const date = parseDateOnly(localDate);
@@ -61,12 +61,12 @@ export class TodayAnalysisMaterializationStore implements TodayAnalysisMateriali
 
   async markPending(
     input: MarkTodayAnalysisPendingInput,
-  ): Promise<TodayAnalysisPendingResult> {
+  ): Promise<AnalysisPendingResult> {
     const localDate = parseDateOnly(input.localDate);
     const result = await this.runSerializableTransaction(async (tx) => {
       const current = (await tx.userTodayAnalysisMaterialization.findUnique({
         where: { userId_localDate: { userId: input.userId, localDate } },
-      })) as TodayAnalysisMaterializationRow | null;
+      })) as AnalysisMaterializationRow | null;
       const queuedAt = new Date();
 
       if (
@@ -152,7 +152,7 @@ export class TodayAnalysisMaterializationStore implements TodayAnalysisMateriali
     userId: string,
     localDate: string,
     sourceVersion: number,
-  ): Promise<TodayAnalysisGenerationClaim> {
+  ): Promise<AnalysisGenerationClaim> {
     const current = await this.readStatus(userId, localDate);
     if (current.sourceVersion !== sourceVersion) {
       return { claimed: false, status: 'stale' };
@@ -298,7 +298,7 @@ export class TodayAnalysisMaterializationStore implements TodayAnalysisMateriali
     });
   }
 
-  isRefreshCoolingDown(status: TodayAnalysisMaterializationView): boolean {
+  isRefreshCoolingDown(status: AnalysisMaterializationView): boolean {
     return (
       status.lastManualAt != null &&
       Date.now() - status.lastManualAt.getTime() <
@@ -307,8 +307,8 @@ export class TodayAnalysisMaterializationStore implements TodayAnalysisMateriali
   }
 
   private toPublicStatus(
-    row: TodayAnalysisMaterializationRow,
-  ): TodayAnalysisMaterializationView['status'] {
+    row: AnalysisMaterializationRow,
+  ): AnalysisMaterializationView['status'] {
     if (row.status === 'capped') return 'stale';
     if (row.sourceVersion > row.computedVersion && row.computedVersion > 0) {
       return 'stale';

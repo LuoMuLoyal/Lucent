@@ -1,9 +1,9 @@
 import { HealthEventKind, DailyRecordKind } from '#generated/prisma/client.js';
-import { TodayAnalysisEventConsumerService } from './event-consumer.js';
+import { AnalysisEventConsumerService } from './event-consumer.js';
 import type { DomainEventJobData } from '../../../../common/index.js';
-import type { TodayAnalysisMaterialization } from '../../application/ports/materialization.js';
+import type { AnalysisMaterialization } from '../../application/ports/materialization.js';
 import type { AnalysisQueueService } from './analysis.js';
-import type { TodayAnalysisContextService } from '../acl/analysis-context.js';
+import type { AnalysisContextService } from '../acl/analysis-context.js';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { EventConsumerRegistry } from '../../../../common/index.js';
 
@@ -22,8 +22,8 @@ function event(
   };
 }
 
-describe('TodayAnalysisEventConsumerService', () => {
-  let service: TodayAnalysisEventConsumerService;
+describe('AnalysisEventConsumerService', () => {
+  let service: AnalysisEventConsumerService;
   let store: { markPending: vi.Mock };
   let queue: { enqueue: vi.Mock };
   let contextService: {
@@ -33,10 +33,10 @@ describe('TodayAnalysisEventConsumerService', () => {
   let registry: EventConsumerRegistry;
 
   function build(redisAvailable: boolean) {
-    return new TodayAnalysisEventConsumerService(
-      store as unknown as TodayAnalysisMaterialization,
+    return new AnalysisEventConsumerService(
+      store as unknown as AnalysisMaterialization,
       queue as unknown as AnalysisQueueService,
-      contextService as unknown as TodayAnalysisContextService,
+      contextService as unknown as AnalysisContextService,
       { isAvailable: redisAvailable } as unknown as BullmqQueueFactory,
       registry,
     );

@@ -71,13 +71,13 @@ describe('AssistantToolService', () => {
     const userContextService = {
       getForUser: vi.fn(),
     };
-    const medicineRemindersService = {
+    const remindersService = {
       list: vi.fn(),
     };
     const userSettingsService = {
       getSettings: vi.fn(),
     };
-    const dailyRecordsService = {
+    const recordsService = {
       list: vi.fn(),
     };
     const dailyRecordReaderPort = {
@@ -88,14 +88,14 @@ describe('AssistantToolService', () => {
     };
 
     const recordQueryService = new AssistantToolRecordQueryService(
-      dailyRecordsService as never,
+      recordsService as never,
       dailyRecordReaderPort as never,
     );
     const readService = new AssistantToolReadService(
       {} as never,
       aiSummaryHistoryService as never,
       userContextService as never,
-      medicineRemindersService as never,
+      remindersService as never,
       userSettingsService as never,
       recordQueryService,
     );
@@ -222,8 +222,8 @@ describe('AssistantToolService', () => {
         dailyRecordCandidatesService,
         dailyRecordProposalService,
         dailyRecordReaderPort,
-        dailyRecordsService,
-        medicineRemindersService,
+        recordsService,
+        remindersService,
         medicineLookupService,
         knowledgeRetrievalService,
         metricsService,
@@ -417,7 +417,7 @@ describe('AssistantToolService', () => {
 
   it('matches the more specific record for update proposals', async () => {
     const { service, deps } = buildExecutor();
-    deps.dailyRecordsService.list.mockResolvedValue({
+    deps.recordsService.list.mockResolvedValue({
       items: [
         {
           id: 'water-1',
@@ -455,7 +455,7 @@ describe('AssistantToolService', () => {
       toolCalls('update_record_draft'),
     );
 
-    expect(deps.dailyRecordsService.list).toHaveBeenCalledWith(
+    expect(deps.recordsService.list).toHaveBeenCalledWith(
       'user-1',
       '2026-06-19',
       undefined,
@@ -490,7 +490,7 @@ describe('AssistantToolService', () => {
 
   it('refuses update proposal when message is too vague to identify one record', async () => {
     const { service, deps } = buildExecutor();
-    deps.dailyRecordsService.list.mockResolvedValue({
+    deps.recordsService.list.mockResolvedValue({
       items: [
         {
           id: 'water-1',
@@ -751,7 +751,7 @@ describe('AssistantToolService', () => {
         confidenceNote: 'Based on stored summary.',
       })),
     );
-    deps.dailyRecordsService.list.mockResolvedValue({ items: [] });
+    deps.recordsService.list.mockResolvedValue({ items: [] });
 
     const pending = service.executeMany(
       buildContext(),
@@ -763,7 +763,7 @@ describe('AssistantToolService', () => {
     expect(
       deps.aiSummaryHistoryService.getLatestTodaySummaryByDate,
     ).toHaveBeenCalled();
-    expect(deps.dailyRecordsService.list).toHaveBeenCalled();
+    expect(deps.recordsService.list).toHaveBeenCalled();
 
     releaseSummary!({});
     const results = await pending;
@@ -784,7 +784,7 @@ describe('AssistantToolService', () => {
       .fn()
       .mockReturnValueOnce(listGate)
       .mockResolvedValueOnce({ items: [] });
-    deps.dailyRecordsService.list = listMock;
+    deps.recordsService.list = listMock;
 
     const pending = service.executeMany(
       buildContext({ userMessage: '把今天那条记录改一下' }),

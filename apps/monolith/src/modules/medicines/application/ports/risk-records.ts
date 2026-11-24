@@ -65,7 +65,7 @@ export interface UserContext {
   currentMedicines: CurrentMedicineRow[];
 }
 
-export interface MedicineReminderRow {
+export interface ReminderEntryRow {
   /** `null` when the reminder is not attached to a box medicine. */
   currentMedicineId: string | null;
   scheduledHour: number;
@@ -91,5 +91,5 @@ export interface MedicineRiskRecordsPort {
   ): Promise<UserContext | null>;
 
   /** Active medicine reminders ordered by scheduled time. */
-  listReminders(userId: string): Promise<MedicineReminderRow[]>;
+  listReminders(userId: string): Promise<ReminderEntryRow[]>;
 }

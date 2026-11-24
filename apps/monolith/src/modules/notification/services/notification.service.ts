@@ -10,7 +10,7 @@ import {
 } from '../../../common/result/index.js';
 import { fromPrismaResult } from '../../../common/index.js';
 import type { UpdateNotificationPreferencesDto } from '../dto/update.dto.js';
-import type { NotificationPreferencesDataDto } from '../dto/response.dto.js';
+import type { NotificationSettingsDataDto } from '../dto/response.dto.js';
 
 export const NOTIFICATION_PREFERENCE_DEFAULTS = {
   isHealthAlertsEnabled: true,
@@ -34,7 +34,7 @@ export class NotificationService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async get(userId: string): Promise<NotificationPreferencesDataDto> {
+  async get(userId: string): Promise<NotificationSettingsDataDto> {
     const row = await this.prisma.userNotificationPreference.findUnique({
       where: { userId },
     });
@@ -74,7 +74,7 @@ export class NotificationService {
   patch(
     userId: string,
     dto: UpdateNotificationPreferencesDto,
-  ): ResultAsync<NotificationPreferencesDataDto, DomainFailure> {
+  ): ResultAsync<NotificationSettingsDataDto, DomainFailure> {
     const minutesFailure =
       this.validateMinutes(dto.sleepBedtimeMinutes, 'sleepBedtimeMinutes') ??
       this.validateMinutes(dto.sleepWakeTimeMinutes, 'sleepWakeTimeMinutes');
@@ -163,7 +163,7 @@ export class NotificationService {
     sleepBedtimeMinutes: number | null;
     sleepWakeTimeMinutes: number | null;
     updatedAt: Date;
-  }): NotificationPreferencesDataDto {
+  }): NotificationSettingsDataDto {
     return {
       isHealthAlertsEnabled: row.isHealthAlertsEnabled,
       isWeeklyInsightEnabled: row.isWeeklyInsightEnabled,

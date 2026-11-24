@@ -1,5 +1,5 @@
 /**
- * `DailyRecords`（写侧聚合端口）的 Prisma 实现。
+ * `Records`（写侧聚合端口）的 Prisma 实现。
  *
  * ## 为什么写数据是结构化类型而不是 Prisma 生成类型
  *
@@ -20,7 +20,7 @@ import { nonDeleted } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import type { RecordRow } from '../../domain/record/record-row.js';
 import {
-  DailyRecords,
+  Records,
   type AttachmentWriteValues,
   type RecordListFilter,
   type RecordOwnershipRow,
@@ -38,7 +38,7 @@ import {
 type TransactionClient = Prisma.TransactionClient;
 
 @Injectable()
-export class PrismaRecords implements DailyRecords {
+export class PrismaRecords implements Records {
   private readonly logger = new Logger(PrismaRecords.name);
 
   /**
@@ -185,7 +185,7 @@ export class PrismaRecords implements DailyRecords {
     return count > 0;
   }
 
-  async transaction<T>(fn: (tx: DailyRecords) => Promise<T>): Promise<T> {
+  async transaction<T>(fn: (tx: Records) => Promise<T>): Promise<T> {
     if (PrismaRecords.transactionAls.getStore() === true) {
       this.logger.warn(
         'Nested Prisma transaction detected — Prisma will silently degrade ' +

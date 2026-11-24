@@ -7,16 +7,16 @@ export const DATA_EXPORT_STATUSES = [
   'failed',
   'unavailable',
 ] as const;
-export type DataExportStatus = (typeof DATA_EXPORT_STATUSES)[number];
+export type ExportRequestStatus = (typeof DATA_EXPORT_STATUSES)[number];
 
 export const DATA_EXPORT_KINDS = ['hospital', 'monthly', 'print'] as const;
-export type DataExportKind = (typeof DATA_EXPORT_KINDS)[number];
+export type ExportRequestKind = (typeof DATA_EXPORT_KINDS)[number];
 
 export const DATA_EXPORT_FORMATS = ['pdf'] as const;
-export type DataExportFormat = (typeof DATA_EXPORT_FORMATS)[number];
+export type ExportRequestFormat = (typeof DATA_EXPORT_FORMATS)[number];
 
 export const DATA_EXPORT_RANGES = ['last_7_days', 'last_30_days'] as const;
-export type DataExportRange = (typeof DATA_EXPORT_RANGES)[number];
+export type ExportRequestRange = (typeof DATA_EXPORT_RANGES)[number];
 
 /**
  * Standard Schema (zod 4) for `POST /export-requests` request body.
@@ -62,7 +62,7 @@ export type CreateDataExportRequestDto = z.infer<
  * schemas intentionally carry no `.strict()` / `.default()` so outbound
  * parsing tolerates whatever the service layer produces.
  */
-export const dataExportRequestDataSchema = z.object({
+export const DataExportRequestDataSchema = z.object({
   id: z.string().describe('Unique request identifier.'),
   kind: z.enum(DATA_EXPORT_KINDS),
   format: z.enum(DATA_EXPORT_FORMATS),
@@ -80,19 +80,19 @@ export const dataExportRequestDataSchema = z.object({
 
 /** Strongly typed single data export request resource. */
 export type DataExportRequestDataDto = z.infer<
-  typeof dataExportRequestDataSchema
+  typeof DataExportRequestDataSchema
 >;
 
 /**
  * Standard Schema (zod 4) for `GET /export-requests/latest`, which
  * resolves to a request resource or `null` when no request exists yet.
  */
-export const dataExportLatestResponseSchema =
-  dataExportRequestDataSchema.nullable();
+export const exportRequestLatestResponseSchema =
+  DataExportRequestDataSchema.nullable();
 
 /** Strongly typed result of the latest-request lookup. */
-export type DataExportLatestResponseDto = z.infer<
-  typeof dataExportLatestResponseSchema
+export type ExportRequestLatestResponseDto = z.infer<
+  typeof exportRequestLatestResponseSchema
 >;
 
 /** Backwards-compatible response alias kept for the former DTO class name. */

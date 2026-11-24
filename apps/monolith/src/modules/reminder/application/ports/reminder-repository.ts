@@ -17,7 +17,7 @@ import type {
  * a consumer would have to fall back to positional keys, which drift whenever
  * the reminder list is reordered — so the id is read here deliberately.
  */
-export interface MedicineReminderFact {
+export interface ReminderEntryFact {
   id: string;
   currentMedicineId: string | null;
   scheduledHour: number;
@@ -58,11 +58,11 @@ export interface CurrentMedicineFact {
  * Read-only port for cross-module reads of this context's tables (ADR-0009).
  *
  * Implemented by `PrismaReminders` and exported from `ReminderModule`;
- * write paths stay behind `MedicineRemindersService` / `ReminderRepositoryPort`.
+ * write paths stay behind `RemindersService` / `ReminderRepositoryPort`.
  */
-export abstract class MedicineReminderReaderPort {
+export abstract class ReminderEntryReaderPort {
   /** Lists non-deleted, active reminders for the user. */
-  abstract listActiveFacts(userId: string): Promise<MedicineReminderFact[]>;
+  abstract listActiveFacts(userId: string): Promise<ReminderEntryFact[]>;
 
   /**
    * Lists the user's current medicines (identity + label only).
@@ -75,7 +75,7 @@ export abstract class MedicineReminderReaderPort {
 /**
  * Abstract port for medicine-reminder data access.
  *
- * Allows `MedicineRemindersService` and `MedicineRemindersOwnership`
+ * Allows `RemindersService` and `RemindersOwnership`
  * to depend on an interface rather than `PrismaService` directly.
  */
 export abstract class ReminderRepositoryPort {

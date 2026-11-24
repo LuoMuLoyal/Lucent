@@ -12,7 +12,7 @@ import { ProblemDetailsDto } from '../../common/index.js';
 import { unwrapResult } from '../../common/result/index.js';
 import { updateNotificationPreferencesSchema } from './dto/update.dto.js';
 import type { UpdateNotificationPreferencesDto } from './dto/update.dto.js';
-import { notificationPreferencesSchema } from './dto/response.dto.js';
+import { notificationSettingsSchema } from './dto/response.dto.js';
 import { NotificationService } from './services/notification.service.js';
 
 @ApiTags('Notification Preferences')
@@ -30,7 +30,7 @@ export class NotificationController {
     status: 200,
     description: 'Authenticated user notification preferences.',
   })
-  @SerializeOptions({ schema: notificationPreferencesSchema })
+  @SerializeOptions({ schema: notificationSettingsSchema })
   async get(@CurrentUser() user: UserPayload) {
     return await this.service.get(user.sub);
   }
@@ -49,7 +49,7 @@ export class NotificationController {
     description: 'Sleep time minutes out of range 0-1439 (VALIDATION_FAILED)',
     type: ProblemDetailsDto,
   })
-  @SerializeOptions({ schema: notificationPreferencesSchema })
+  @SerializeOptions({ schema: notificationSettingsSchema })
   async patch(
     @CurrentUser() user: UserPayload,
     @Body({ schema: updateNotificationPreferencesSchema })
@@ -62,15 +62,15 @@ export class NotificationController {
 registerResponseSchema({
   path: '/api/v1/user/notification',
   method: 'get',
-  componentName: 'NotificationPreferencesResponse',
-  schema: notificationPreferencesSchema,
+  componentName: 'NotificationSettingsResponse',
+  schema: notificationSettingsSchema,
   description: 'Authenticated user notification preferences.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/notification',
   method: 'patch',
-  componentName: 'NotificationPreferencesResponse',
-  schema: notificationPreferencesSchema,
+  componentName: 'NotificationSettingsResponse',
+  schema: notificationSettingsSchema,
   description: 'Updated notification preferences.',
 });

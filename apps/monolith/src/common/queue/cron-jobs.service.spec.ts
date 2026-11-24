@@ -106,7 +106,7 @@ function runtimeWith() {
 
 function buildServices() {
   return {
-    dataRetentionService: {
+    retentionService: {
       cleanupExpiredData: vi.fn().mockResolvedValue(undefined),
     } as unknown as RetentionService,
     lifecycleService: {
@@ -124,7 +124,7 @@ function buildServices() {
 describe('CronJobsService', () => {
   let factory: BullmqQueueFactory;
   let captured: CapturedQueue[];
-  let dataRetentionService: RetentionService;
+  let retentionService: RetentionService;
   let lifecycleService: LifecycleService;
   let weeklyInsightSchedulerService: WeeklyInsightSchedulerService;
   let mealAnalysisSweeperService: MealAnalysisSweeperService;
@@ -142,14 +142,14 @@ describe('CronJobsService', () => {
       factory = built.factory;
       captured = built.captured;
       const svcs = buildServices();
-      dataRetentionService = svcs.dataRetentionService;
+      retentionService = svcs.retentionService;
       lifecycleService = svcs.lifecycleService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
-        dataRetentionService,
+        retentionService,
         lifecycleService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
@@ -167,14 +167,14 @@ describe('CronJobsService', () => {
       factory = built.factory;
       captured = built.captured;
       const svcs = buildServices();
-      dataRetentionService = svcs.dataRetentionService;
+      retentionService = svcs.retentionService;
       lifecycleService = svcs.lifecycleService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
-        dataRetentionService,
+        retentionService,
         lifecycleService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
@@ -258,14 +258,14 @@ describe('CronJobsService', () => {
       factory = built.factory;
       captured = built.captured;
       const svcs = buildServices();
-      dataRetentionService = svcs.dataRetentionService;
+      retentionService = svcs.retentionService;
       lifecycleService = svcs.lifecycleService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
-        dataRetentionService,
+        retentionService,
         lifecycleService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,
@@ -283,7 +283,7 @@ describe('CronJobsService', () => {
         name: 'retention-cleanup',
         data: {},
       });
-      expect(dataRetentionService.cleanupExpiredData).toHaveBeenCalledOnce();
+      expect(retentionService.cleanupExpiredData).toHaveBeenCalledOnce();
     });
 
     it('dispatches lifecycle-refresh to LifecycleService', async () => {
@@ -349,7 +349,7 @@ describe('CronJobsService', () => {
 
       service = new CronJobsService(
         factory,
-        svcs.dataRetentionService,
+        svcs.retentionService,
         svcs.lifecycleService,
         svcs.weeklyInsightSchedulerService,
         svcs.mealAnalysisSweeperService,
@@ -380,7 +380,7 @@ describe('CronJobsService', () => {
 
       service = new CronJobsService(
         factory,
-        svcs.dataRetentionService,
+        svcs.retentionService,
         svcs.lifecycleService,
         svcs.weeklyInsightSchedulerService,
         svcs.mealAnalysisSweeperService,
@@ -407,7 +407,7 @@ describe('CronJobsService', () => {
 
       service = new CronJobsService(
         factory,
-        svcs.dataRetentionService,
+        svcs.retentionService,
         svcs.lifecycleService,
         svcs.weeklyInsightSchedulerService,
         svcs.mealAnalysisSweeperService,
@@ -436,14 +436,14 @@ describe('CronJobsService', () => {
       const built = buildFactory(true, true);
       factory = built.factory;
       const svcs = buildServices();
-      dataRetentionService = svcs.dataRetentionService;
+      retentionService = svcs.retentionService;
       lifecycleService = svcs.lifecycleService;
       weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
       mealAnalysisSweeperService = svcs.mealAnalysisSweeperService;
 
       service = new CronJobsService(
         factory,
-        dataRetentionService,
+        retentionService,
         lifecycleService,
         weeklyInsightSchedulerService,
         mealAnalysisSweeperService,

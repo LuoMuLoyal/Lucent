@@ -9,7 +9,7 @@
 
 import type { ObservedMetric } from '../../../../common/index.js';
 
-export interface TodayAnalysisContext {
+export interface AnalysisContext {
   date: string;
   water: {
     completedCount: number;

@@ -14,11 +14,11 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
-import { DailyRecordReaderPort } from '../../../record/index.js';
-import type { DailyRecordFact } from '../../../record/index.js';
-import { MedicineDoseLogReaderPort } from '../../../dose/index.js';
-import { MedicineReminderReaderPort } from '../../../reminder/index.js';
-import type { MedicineReminderFact } from '../../../reminder/index.js';
+import { RecordEntryReaderPort } from '../../../record/index.js';
+import type { RecordEntryFact } from '../../../record/index.js';
+import { DoseLogEntryReaderPort } from '../../../dose/index.js';
+import { ReminderEntryReaderPort } from '../../../reminder/index.js';
+import type { ReminderEntryFact } from '../../../reminder/index.js';
 import { parseMealRecordPayload } from '../../../record/index.js';
 import {
   USER_SETTING_KEYS,
@@ -51,7 +51,7 @@ export const MEAL_KCAL_LABEL = '热量区间：';
 
 type TriggerDimension = 'water' | 'meal' | 'sleep' | 'mood';
 
-export interface TodayAnalysisContext {
+export interface AnalysisContext {
   date: string;
   water: {
     completedCount: number;
@@ -95,26 +95,26 @@ export interface TodayAnalysisContext {
 }
 
 @Injectable()
-export class TodayAnalysisContextService {
+export class AnalysisContextService {
   private static readonly CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
   private static readonly CACHE_KEY_PREFIX = 'analysis:context';
 
-  private readonly logger = new Logger(TodayAnalysisContextService.name);
+  private readonly logger = new Logger(AnalysisContextService.name);
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly dailyRecordReader: DailyRecordReaderPort,
-    private readonly doseLogReader: MedicineDoseLogReaderPort,
-    private readonly reminderReader: MedicineReminderReaderPort,
+    private readonly dailyRecordReader: RecordEntryReaderPort,
+    private readonly doseLogReader: DoseLogEntryReaderPort,
+    private readonly reminderReader: ReminderEntryReaderPort,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly triggerEvaluator: TriggerEvaluatorService,
   ) {}
 
-  async build(userId: string, date: string): Promise<TodayAnalysisContext> {
-    const cacheKey = `${TodayAnalysisContextService.CACHE_KEY_PREFIX}:${userId}:${date}`;
-    let cached: TodayAnalysisContext | undefined;
+  async build(userId: string, date: string): Promise<AnalysisContext> {
+    const cacheKey = `${AnalysisContextService.CACHE_KEY_PREFIX}:${userId}:${date}`;
+    let cached: AnalysisContext | undefined;
     try {
-      cached = await this.cache.get<TodayAnalysisContext>(cacheKey);
+      cached = await this.cache.get<AnalysisContext>(cacheKey);
     } catch (error) {
       this.logger.warn(
         `Today analysis context cache get failed (key=${cacheKey}): ${String(error)}`,
@@ -130,7 +130,7 @@ export class TodayAnalysisContextService {
       await this.cache.set(
         cacheKey,
         result,
-        TodayAnalysisContextService.CACHE_TTL_MS,
+        AnalysisContextService.CACHE_TTL_MS,
       );
     } catch (error) {
       this.logger.warn(
@@ -143,7 +143,7 @@ export class TodayAnalysisContextService {
 
   /** Invalidates the context cache for a user+date. */
   async invalidateContext(userId: string, date: string): Promise<void> {
-    const cacheKey = `${TodayAnalysisContextService.CACHE_KEY_PREFIX}:${userId}:${date}`;
+    const cacheKey = `${AnalysisContextService.CACHE_KEY_PREFIX}:${userId}:${date}`;
     try {
       await this.cache.del(cacheKey);
     } catch (error) {
@@ -156,7 +156,7 @@ export class TodayAnalysisContextService {
   private async fetchContext(
     userId: string,
     date: string,
-  ): Promise<TodayAnalysisContext> {
+  ): Promise<AnalysisContext> {
     const day = this.parseDate(date);
     const weekday = day.getUTCDay();
 
@@ -164,7 +164,7 @@ export class TodayAnalysisContextService {
       currentMedicines,
       reminders,
       doseLogs,
-      dailyRecords,
+      records,
       activeAllergyCount,
       waterTargetCount,
     ] = await Promise.all([
@@ -230,7 +230,7 @@ export class TodayAnalysisContextService {
     );
 
     const waterSummary = summarizeWaterMetrics(
-      dailyRecords
+      records
         .filter((record) => record.kind === DailyRecordKind.water)
         .map((record) => ({ value: record.value, unit: record.unit })),
     );
@@ -253,11 +253,11 @@ export class TodayAnalysisContextService {
             0,
           )
         : 0;
-    const recordSummary = this.buildRecordSummary(dailyRecords);
-    const recentRecords = dailyRecords
+    const recordSummary = this.buildRecordSummary(records);
+    const recentRecords = records
       .slice(0, MAX_RECENT_RECORDS)
       .map((record) => this.toRecentRecord(record));
-    const sleepData = this.buildSleepContext(dailyRecords);
+    const sleepData = this.buildSleepContext(records);
 
     return {
       date,
@@ -292,9 +292,9 @@ export class TodayAnalysisContextService {
     };
   }
 
-  private buildRecordSummary(dailyRecords: DailyRecordFact[]) {
+  private buildRecordSummary(records: RecordEntryFact[]) {
     const counts = new Map<string, number>();
-    for (const record of dailyRecords) {
+    for (const record of records) {
       counts.set(record.kind, (counts.get(record.kind) ?? 0) + 1);
     }
 
@@ -322,7 +322,7 @@ export class TodayAnalysisContextService {
   // Sleep date convention: a sleep record's `occurredAt` is the wake date
   // (the morning the user wakes up). Querying by `occurredAt = day` returns
   // the sleep the user woke up on that calendar day.
-  private buildSleepContext(dailyRecords: DailyRecordFact[]): {
+  private buildSleepContext(records: RecordEntryFact[]): {
     status: 'ok' | 'insufficient_data';
     durationMinutes: number | null;
     quality: string | null;
@@ -343,7 +343,7 @@ export class TodayAnalysisContextService {
       remMinutes: null,
     };
 
-    const sleepRecord = dailyRecords.find(
+    const sleepRecord = records.find(
       (record) => record.kind === DailyRecordKind.sleep,
     );
 
@@ -392,7 +392,7 @@ export class TodayAnalysisContextService {
     };
   }
 
-  private toRecentRecord(record: DailyRecordFact) {
+  private toRecentRecord(record: RecordEntryFact) {
     const mealPresentation = this.toMealRecentRecord(record);
     if (mealPresentation != null) {
       return mealPresentation;
@@ -408,7 +408,7 @@ export class TodayAnalysisContextService {
     };
   }
 
-  private toMealRecentRecord(record: DailyRecordFact) {
+  private toMealRecentRecord(record: RecordEntryFact) {
     if (record.kind !== DailyRecordKind.meal) {
       return null;
     }
@@ -477,7 +477,7 @@ export class TodayAnalysisContextService {
   }
 
   private matchesDate(
-    reminder: MedicineReminderFact,
+    reminder: ReminderEntryFact,
     day: Date,
     weekday: number,
     pendingMedicineIds: Set<string>,

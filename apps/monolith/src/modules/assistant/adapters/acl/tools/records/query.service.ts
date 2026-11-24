@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 import {
-  DailyRecordReaderPort,
+  RecordEntryReaderPort,
   parseMealRecordPayload,
 } from '../../../../../record/index.js';
 import {
@@ -65,8 +65,8 @@ function clampPositiveInt(
 export class AssistantToolRecordQueryService {
   constructor(
     @Inject(DAILY_RECORD_READER)
-    private readonly dailyRecordsService: IDailyRecordReader,
-    private readonly dailyRecordReaderPort: DailyRecordReaderPort,
+    private readonly recordsService: IDailyRecordReader,
+    private readonly dailyRecordReaderPort: RecordEntryReaderPort,
   ) {}
 
   async listToolRecords(
@@ -74,7 +74,7 @@ export class AssistantToolRecordQueryService {
     date: string,
     options: { includeSleep: boolean; sleepOnly?: boolean },
   ): Promise<ToolRecordItem[]> {
-    const result = await this.dailyRecordsService.list(
+    const result = await this.recordsService.list(
       userId,
       date,
       undefined,

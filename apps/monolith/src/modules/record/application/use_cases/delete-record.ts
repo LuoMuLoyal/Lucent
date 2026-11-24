@@ -13,14 +13,14 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { now } from '../../../../common/index.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import { RecordOwnership } from '../services/record-ownership.js';
 import { RecordWriteEffects } from '../services/record-write-effects.js';
 
 @Injectable()
 export class DeleteRecord {
   constructor(
-    private readonly records: DailyRecords,
+    private readonly records: Records,
     private readonly ownership: RecordOwnership,
     private readonly effects: RecordWriteEffects,
   ) {}

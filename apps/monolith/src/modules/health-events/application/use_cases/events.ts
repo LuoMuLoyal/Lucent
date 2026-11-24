@@ -30,7 +30,7 @@ import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../../common/events/domain-events.js';
-import { ProductEventsService } from '../../../product/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 
 /**
  * `ProductEventResult` mirrors `HealthEventOutcome` string-for-string in the
@@ -85,7 +85,7 @@ export class EventsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
     private readonly publisher: DomainEventPublisher,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
   ) {}
 
   create(
@@ -193,7 +193,7 @@ export class EventsService {
             // create is unaffected).
             .andThen(() =>
               fromPromise(
-                this.productEvents.emitServerEvent(userId, {
+                this.productEventLog.emitServerEvent(userId, {
                   name: ProductEventName.health_event_started,
                   surface: ProductEventSurface.review,
                   result: ProductEventResult.success,
@@ -338,7 +338,7 @@ export class EventsService {
                 // end write.
                 .andThen(() =>
                   fromPromise(
-                    this.productEvents.emitServerEvent(userId, {
+                    this.productEventLog.emitServerEvent(userId, {
                       name: ProductEventName.health_event_ended,
                       surface: ProductEventSurface.review,
                       result: toProductEventResult(outcome),

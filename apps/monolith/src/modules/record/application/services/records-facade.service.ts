@@ -1,9 +1,9 @@
 /**
- * `DailyRecordsService` 门面 —— 保持既有跨模块调用面，内部委托四层用例。
+ * `RecordsService` 门面 —— 保持既有跨模块调用面，内部委托四层用例。
  *
  * ## 为什么保留这一层
  *
- * assistant 的提案确认与 `DAILY_RECORD_READER` 绑定都按 `DailyRecordsService`
+ * assistant 的提案确认与 `DAILY_RECORD_READER` 绑定都按 `RecordsService`
  * 的形状调用（`create` / `update` / `delete` / `list` / `summary` / `get`）。
  * 它是**发布语言**的一部分，改名会牵动别的轨道；而真正的逻辑已经全在
  * `application/use_cases/`，这里只做转发，不承载任何规则。
@@ -25,7 +25,7 @@ import { ListRecords } from '../use_cases/list-records.js';
 import { UpdateRecord } from '../use_cases/update-record.js';
 
 @Injectable()
-export class DailyRecordsService {
+export class RecordsService {
   constructor(
     private readonly listRecords: ListRecords,
     private readonly getRecord: GetRecord,

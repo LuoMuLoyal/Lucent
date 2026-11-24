@@ -90,7 +90,7 @@ describe('Product Events API (e2e)', () => {
     app = ctx.app;
     await cleanupDatabase(ctx.prisma);
 
-    user = await createTestUser(ctx.prisma, undefined, 'ProductEventsUser');
+    user = await createTestUser(ctx.prisma, undefined, 'ProductEventLogUser');
     accessToken = await createAccessToken(
       ctx.jwtService,
       ctx.configService,

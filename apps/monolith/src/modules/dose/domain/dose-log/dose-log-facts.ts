@@ -36,13 +36,13 @@ export interface DoseLogFact {
  *
  * ## The published name is kept
  *
- * The historical name `MedicineDoseLogReaderPort` is retained: three other
+ * The historical name `DoseLogEntryReaderPort` is retained: three other
  * contexts (the reports dashboard, reports event-review, and analysis)
  * already inject it by that token. Renaming a port other contexts depend on is
  * a cross-module breaking change with no behavioural upside; ADR-0024's naming
  * rules govern *internal* structure, and this is a published boundary.
  */
-export abstract class MedicineDoseLogReaderPort {
+export abstract class DoseLogEntryReaderPort {
   /**
    * Non-deleted logs with `scheduledFor` in `[from, to]`, ordered
    * `scheduledFor asc`, capped at `MAX_READER_FACTS`.

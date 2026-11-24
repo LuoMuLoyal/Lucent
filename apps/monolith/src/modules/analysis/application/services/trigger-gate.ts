@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 import {
-  DailyRecordReaderPort,
+  RecordEntryReaderPort,
   parseMealRecordPayload,
-  type DailyRecordFact,
+  type RecordEntryFact,
 } from '../../../record/index.js';
 import {
   FETCH_WINDOW_DAYS,
@@ -19,10 +19,10 @@ import {
 /**
  * The I/O half of the trigger gate (judgement B in the module README).
  *
- * Fetches the records and maps each `DailyRecordFact` into the
+ * Fetches the records and maps each `RecordEntryFact` into the
  * dimension-specific value the domain rules expect, then delegates the decision
  * to `domain/analysis/trigger-gate.ts`. The split exists because the domain
- * cannot depend on `DailyRecordReaderPort`.
+ * cannot depend on `RecordEntryReaderPort`.
  *
  * **The per-dimension extraction stays here** and is deliberately not
  * generalised: water sums mL, sleep reads the first record's `durationMinutes`,
@@ -31,7 +31,7 @@ import {
  */
 @Injectable()
 export class TriggerGateService {
-  constructor(private readonly dailyRecordReader: DailyRecordReaderPort) {}
+  constructor(private readonly dailyRecordReader: RecordEntryReaderPort) {}
 
   async shouldTriggerForDimension(
     userId: string,
@@ -83,7 +83,7 @@ function toDailyRecordKind(kind: TriggerDimension): DailyRecordKind {
  * meal each analyzed meal contributes `1`.
  */
 function groupFactsByDate(
-  facts: readonly DailyRecordFact[],
+  facts: readonly RecordEntryFact[],
   kind: TriggerDimension,
 ): TriggerRecord[] {
   const records: TriggerRecord[] = [];
@@ -109,7 +109,7 @@ function groupFactsByDate(
  * ignore.
  */
 function dimensionValue(
-  fact: DailyRecordFact,
+  fact: RecordEntryFact,
   kind: TriggerDimension,
 ): number | null {
   switch (kind) {

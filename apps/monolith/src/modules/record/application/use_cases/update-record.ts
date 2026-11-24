@@ -25,14 +25,14 @@ import {
 } from '../../../../common/result/index.js';
 import type { UpdateRecordInput } from '../services/write-input.js';
 import { formatOccurredAt } from '../../domain/record/occurred-at.js';
-import { DailyRecord } from '../../domain/record/daily-record.js';
+import { RecordEntry } from '../../domain/record/daily-record.js';
 import { getMealSourceRevision } from '../../domain/meal/meal-analysis.js';
 import {
   asDailyRecordKind,
   type DailyRecordKind,
 } from '../../domain/record/record-kind.js';
 import type { RecordRow } from '../../domain/record/record-row.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import type { RecordItem } from '../read_models/record-list.js';
 import { toRecordItem } from '../read_models/record-item.js';
 import { validationFailed } from '../services/domain-failures.js';
@@ -48,7 +48,7 @@ import { prepareMealPayload } from '../services/meal-payload.js';
 @Injectable()
 export class UpdateRecord {
   constructor(
-    private readonly records: DailyRecords,
+    private readonly records: Records,
     private readonly ownership: RecordOwnership,
     private readonly healthEvents: HealthEventLink,
     private readonly effects: RecordWriteEffects,
@@ -68,7 +68,7 @@ export class UpdateRecord {
       return this.healthEvents
         .requireActive(userId, dto.healthEventId ?? null)
         .andThen(() => {
-          const problem = DailyRecord.validateFinalState({
+          const problem = RecordEntry.validateFinalState({
             kind: targetKind,
             payload: dto.payload !== undefined ? dto.payload : existing.payload,
           });

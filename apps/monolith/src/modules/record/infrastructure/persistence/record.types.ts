@@ -17,12 +17,12 @@ const _dailyRecordAttachmentSelect = {
   createdAt: true,
 } satisfies Prisma.UserDailyRecordAttachmentSelect;
 
-export type DailyRecordAttachmentShape =
+export type RecordEntryAttachmentShape =
   Prisma.UserDailyRecordAttachmentGetPayload<{
     select: typeof _dailyRecordAttachmentSelect;
   }>;
 
-export type DailyRecordDbClient = Pick<
+export type RecordEntryDbClient = Pick<
   PrismaService,
   'userDailyRecord' | 'userDailyRecordAttachment'
 >;
@@ -33,7 +33,7 @@ export const dailyRecordWithAttachments = {
   },
 } satisfies Prisma.UserDailyRecordInclude;
 
-export type DailyRecordShape = Prisma.UserDailyRecordGetPayload<{
+export type RecordEntryShape = Prisma.UserDailyRecordGetPayload<{
   include: typeof dailyRecordWithAttachments;
 }>;
 

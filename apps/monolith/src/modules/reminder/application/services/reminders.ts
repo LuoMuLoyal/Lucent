@@ -22,23 +22,23 @@ import type { CreateMedicineReminderDto } from '../../application/ports/create-r
 
 import type { UpdateMedicineReminderDto } from '../../application/ports/update-reminder.js';
 import type { UpsertMedicineReminderGroupDto } from '../../application/ports/upsert-group.js';
-import type { MedicineReminderItemDto } from '../../application/ports/reminder-resource.js';
+import type { ReminderEntryItemDto } from '../../application/ports/reminder-resource.js';
 import type { ReminderDeliveryItemDto } from '../../application/ports/delivery-resource.js';
-import { MedicineRemindersOwnership } from '../../application/use_cases/ownership.js';
-import { MedicineRemindersMapper } from '../../application/read_models/mapper.js';
+import { RemindersOwnership } from '../../application/use_cases/ownership.js';
+import { RemindersMapper } from '../../application/read_models/mapper.js';
 import {
   REMINDER_CHANGED,
   type ReminderChangedPayload,
 } from '../../../../common/events/domain-events.js';
 
 @Injectable()
-export class MedicineRemindersService {
-  private readonly logger = new Logger(MedicineRemindersService.name);
+export class RemindersService {
+  private readonly logger = new Logger(RemindersService.name);
 
   constructor(
     private readonly repository: ReminderRepositoryPort,
-    private readonly ownershipService: MedicineRemindersOwnership,
-    private readonly mapperService: MedicineRemindersMapper,
+    private readonly ownershipService: RemindersOwnership,
+    private readonly mapperService: RemindersMapper,
     private readonly publisher: DomainEventPublisher,
   ) {}
 
@@ -62,7 +62,7 @@ export class MedicineRemindersService {
   create(
     userId: string,
     dto: CreateMedicineReminderDto,
-  ): ResultAsync<MedicineReminderItemDto, DomainFailure> {
+  ): ResultAsync<ReminderEntryItemDto, DomainFailure> {
     return this.ownershipService
       .ensureCurrentMedicineOwnedByUser(userId, dto.currentMedicineId ?? null)
       .andThen(() =>
@@ -78,7 +78,7 @@ export class MedicineRemindersService {
     userId: string,
     id: string,
     dto: UpdateMedicineReminderDto,
-  ): ResultAsync<MedicineReminderItemDto, DomainFailure> {
+  ): ResultAsync<ReminderEntryItemDto, DomainFailure> {
     return this.ownershipService
       .ensureOwnedByUser(userId, id)
       .andThen((existing) => {
@@ -122,7 +122,7 @@ export class MedicineRemindersService {
   upsertGroup(
     userId: string,
     dto: UpsertMedicineReminderGroupDto,
-  ): ResultAsync<{ items: MedicineReminderItemDto[] }, DomainFailure> {
+  ): ResultAsync<{ items: ReminderEntryItemDto[] }, DomainFailure> {
     if (dto.slots.length === 0) {
       return errAsync(this.validationFailed());
     }
@@ -151,7 +151,7 @@ export class MedicineRemindersService {
         const transaction = this.repository.transaction(
           async (
             tx,
-          ): Promise<Result<MedicineReminderItemDto[], DomainFailure>> => {
+          ): Promise<Result<ReminderEntryItemDto[], DomainFailure>> => {
             // Slots carrying an id must belong to this user + medicine and not
             // be soft-deleted; otherwise the whole group upsert fails with 404.
             if (incomingIds.length > 0) {

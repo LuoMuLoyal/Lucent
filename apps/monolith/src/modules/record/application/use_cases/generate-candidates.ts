@@ -20,19 +20,19 @@ import {
 } from '@nestjs/common';
 import { nowIsoString, extractErrorInfo } from '../../../../common/index.js';
 import type { GenerateCandidatesInput } from '../ports/record-candidates.js';
-import type { DailyRecordCandidateData } from '../ports/record-candidates.js';
+import type { RecordEntryCandidateData } from '../ports/record-candidates.js';
 import { CandidateCopyPort } from '../ports/candidate-generator.js';
 import { CandidateGenerator } from '../ports/candidate-generator.js';
 
-interface DailyRecordCandidatesContext {
+interface RecordEntryCandidatesContext {
   text: string;
   occurredAt: string;
   timezone: string | null;
 }
 
 @Injectable()
-export class DailyRecordCandidatesService {
-  private readonly logger = new Logger(DailyRecordCandidatesService.name);
+export class RecordEntryCandidatesService {
+  private readonly logger = new Logger(RecordEntryCandidatesService.name);
 
   constructor(
     private readonly copyService: CandidateCopyPort,
@@ -43,7 +43,7 @@ export class DailyRecordCandidatesService {
     userId: string,
     dto: GenerateCandidatesInput,
     language: string,
-  ): Promise<DailyRecordCandidateData> {
+  ): Promise<RecordEntryCandidateData> {
     const locale = this.copyService.resolveLocale(language);
 
     if (!this.generatorService.isConfigured()) {
@@ -76,7 +76,7 @@ export class DailyRecordCandidatesService {
 
   private buildContext(
     dto: GenerateCandidatesInput,
-  ): DailyRecordCandidatesContext {
+  ): RecordEntryCandidatesContext {
     return {
       text: dto.text.trim(),
       occurredAt: dto.occurredAt,

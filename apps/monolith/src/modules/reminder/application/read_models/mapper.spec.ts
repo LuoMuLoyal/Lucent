@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import { Prisma } from '#generated/prisma/client.js';
 
-import { MedicineRemindersMapper } from '../../application/read_models/mapper.js';
+import { RemindersMapper } from '../../application/read_models/mapper.js';
 
 const now = new Date('2026-06-08T12:00:00.000Z');
 
@@ -40,11 +40,11 @@ function deliveryRecord(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('MedicineRemindersMapper', () => {
-  let service: MedicineRemindersMapper;
+describe('RemindersMapper', () => {
+  let service: RemindersMapper;
 
   beforeEach(() => {
-    service = new MedicineRemindersMapper({
+    service = new RemindersMapper({
       t: vi.fn().mockImplementation((key: string) => key),
     } as unknown as I18nService);
   });

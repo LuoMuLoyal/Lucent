@@ -2,11 +2,11 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { errAsync, okAsync } from '../../common/result/index.js';
 import type { DomainFailure } from '../../common/result/index.js';
 import { LegalController } from './legal.controller.js';
-import { LegalDocumentsService } from './services/documents.service.js';
+import { LegalService } from './services/documents.service.js';
 
 describe('LegalController', () => {
   let controller: LegalController;
-  let service: LegalDocumentsService;
+  let service: LegalService;
 
   const mockListData = {
     items: [
@@ -36,7 +36,7 @@ describe('LegalController', () => {
       controllers: [LegalController],
       providers: [
         {
-          provide: LegalDocumentsService,
+          provide: LegalService,
           useValue: {
             findAll: vi.fn(),
             findOne: vi.fn(),
@@ -46,7 +46,7 @@ describe('LegalController', () => {
     }).compile();
 
     controller = module.get(LegalController);
-    service = module.get(LegalDocumentsService);
+    service = module.get(LegalService);
   });
 
   it('should be defined', () => {

@@ -1,8 +1,8 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory.js';
 import { AnalysisQueueService } from './analysis.js';
-import type { TodayAnalysisService } from '../../application/use_cases/generate-analysis.js';
-import type { TodayAnalysisEventConsumerService } from './event-consumer.js';
+import type { AnalysisService } from '../../application/use_cases/generate-analysis.js';
+import type { AnalysisEventConsumerService } from './event-consumer.js';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;
@@ -42,12 +42,12 @@ const mockAnalysisService = {
   resolveDate: vi.fn((_userId: string, date?: string) =>
     Promise.resolve(date ?? '2026-08-02'),
   ),
-} as unknown as TodayAnalysisService;
+} as unknown as AnalysisService;
 
 /** Handles the fanned-out `event-trigger` jobs that share this queue. */
 const mockEventConsumer = {
   handle: vi.fn().mockResolvedValue(undefined),
-} as unknown as TodayAnalysisEventConsumerService;
+} as unknown as AnalysisEventConsumerService;
 
 describe('AnalysisQueueService', () => {
   it('is not configured when Redis is unavailable', () => {

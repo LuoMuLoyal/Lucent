@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 import { DAILY_RECORD_CANDIDATE_KINDS } from '../../../../application/ports/candidate-contract.js';
 
-export type DailyRecordCandidateKind =
+export type RecordEntryCandidateKind =
   (typeof DAILY_RECORD_CANDIDATE_KINDS)[number];
 
 /**
  * Standard Schema (zod 4) for one AI-generated candidate item of
  * `POST /record/candidate-records/generate`.
  *
- * Replaces the former `@ApiProperty` class `DailyRecordCandidateItemDto`
+ * Replaces the former `@ApiProperty` class `RecordEntryCandidateItemDto`
  * (module-internal, not exported). Every key is always emitted; nullable
  * fields surface as an explicit `null`.
  */
@@ -39,7 +39,7 @@ const dailyRecordCandidateItemSchema = z.object({
  * Standard Schema (zod 4) for the generate-candidates payload
  * (`locale` + `generatedAt` + `confirmationHint` + candidate `items`).
  *
- * Replaces the former `@ApiProperty` data class `DailyRecordCandidateDataDto`.
+ * Replaces the former `@ApiProperty` data class `RecordEntryCandidateDataDto`.
  */
 export const dailyRecordCandidateDataSchema = z.object({
   locale: z.string().describe('Normalized parse locale.'),
@@ -55,7 +55,7 @@ export const dailyRecordCandidateDataSchema = z.object({
 });
 
 /** Strongly typed generate-candidates payload (shared alias). */
-export type DailyRecordCandidateDataDto = z.infer<
+export type RecordEntryCandidateDataDto = z.infer<
   typeof dailyRecordCandidateDataSchema
 >;
 
@@ -63,16 +63,16 @@ export type DailyRecordCandidateDataDto = z.infer<
  * Standard Schema (zod 4) for the `POST /record/candidate-records/
  * generate` (200) response body.
  *
- * Replaces the former response class `DailyRecordCandidateResponseDto` (which
- * extended `DailyRecordCandidateDataDto` without adding fields).
+ * Replaces the former response class `RecordEntryCandidateResponseDto` (which
+ * extended `RecordEntryCandidateDataDto` without adding fields).
  */
 export const dailyRecordCandidateResponseSchema =
   dailyRecordCandidateDataSchema;
 
 /** Strongly typed response body of the generate-candidates endpoint. */
-export type DailyRecordCandidateResponseDto = z.infer<
+export type RecordEntryCandidateResponseDto = z.infer<
   typeof dailyRecordCandidateResponseSchema
 >;
 
 /** Backwards-compatible alias used by the candidates orchestration layer. */
-export type DailyRecordCandidateData = DailyRecordCandidateDataDto;
+export type RecordEntryCandidateData = RecordEntryCandidateDataDto;

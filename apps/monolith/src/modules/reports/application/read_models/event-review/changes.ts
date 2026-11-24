@@ -29,7 +29,7 @@ export interface ReviewChangeDailyRecord {
 /** Facts the keyChanges section consumes. */
 export interface ReviewChangeFacts {
   checkIns: ReviewChangeCheckIn[];
-  dailyRecords: ReviewChangeDailyRecord[];
+  records: ReviewChangeDailyRecord[];
 }
 
 /** Factual outcome trend between the first and last check-in. */
@@ -74,8 +74,8 @@ const OUTCOME_RANK: Record<HealthEventOutcome, number> = {
 @Injectable()
 export class EventReviewChangesService {
   build(input: ReviewChangeFacts): EventReviewSection {
-    const waterPoints = this.waterPoints(input.dailyRecords);
-    const sleepPoints = this.sleepPoints(input.dailyRecords);
+    const waterPoints = this.waterPoints(input.records);
+    const sleepPoints = this.sleepPoints(input.records);
     const checkIns = this.outcomeTrend(input.checkIns);
     const water = this.numericTrend(waterPoints);
     const sleep = this.numericTrend(sleepPoints);

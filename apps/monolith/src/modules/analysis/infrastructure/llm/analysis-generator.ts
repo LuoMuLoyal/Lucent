@@ -8,24 +8,24 @@ import { MetricsService } from '../../../../common/metrics/metrics.service.js';
 import {
   buildTodayAnalysisSystemPrompt,
   buildTodayAnalysisUserPrompt,
-  type TodayAnalysisPromptCopy,
+  type AnalysisPromptCopy,
 } from './prompts/analysis.js';
 import {
-  todayAnalysisSchema,
-  type TodayAnalysisStructuredOutput,
+  analysisSchema,
+  type AnalysisStructuredOutput,
 } from './schemas/analysis.js';
-import type { TodayAnalysisContext } from '../../application/read_models/analysis-context-shape.js';
+import type { AnalysisContext } from '../../application/read_models/analysis-context-shape.js';
 
 @Injectable()
-export class TodayAnalysisGeneratorService extends BaseLlmGeneratorService<
-  TodayAnalysisContext,
-  TodayAnalysisPromptCopy,
-  TodayAnalysisStructuredOutput
+export class AnalysisGeneratorService extends BaseLlmGeneratorService<
+  AnalysisContext,
+  AnalysisPromptCopy,
+  AnalysisStructuredOutput
 > {
-  protected readonly schema = todayAnalysisSchema;
+  protected readonly schema = analysisSchema;
   protected readonly modelRole = 'analysis';
   protected readonly options = {
-    toolName: 'TodayAnalysis',
+    toolName: 'Analysis',
     streamName: 'Today analysis',
   } as const;
 
@@ -42,15 +42,15 @@ export class TodayAnalysisGeneratorService extends BaseLlmGeneratorService<
   protected buildSystemPrompt(): string {
     return resolveRuntimePrompt(
       this.runtimeConfigService,
-      'todayAnalysis',
+      'analysis',
       () => buildTodayAnalysisSystemPrompt(),
       {},
     );
   }
 
   protected buildUserPrompt(
-    context: TodayAnalysisContext,
-    promptCopy: TodayAnalysisPromptCopy,
+    context: AnalysisContext,
+    promptCopy: AnalysisPromptCopy,
   ): string {
     return buildTodayAnalysisUserPrompt(context, promptCopy);
   }

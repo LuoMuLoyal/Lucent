@@ -12,7 +12,7 @@ import { ReminderRepositoryPort } from '../../application/ports/reminder-reposit
 import type { OwnedMedicineReminderRecord } from '../../application/ports/reminder-records.js';
 
 @Injectable()
-export class MedicineRemindersOwnership {
+export class RemindersOwnership {
   constructor(private readonly repository: ReminderRepositoryPort) {}
 
   ensureCurrentMedicineOwnedByUser(

@@ -31,11 +31,11 @@ import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety
 import type { GenerateTodayAnalysisDto } from './generate-analysis-command.js';
 
 import type {
-  TodayAnalysisDataDto,
-  TodayAnalysisReadDataDto,
+  AnalysisDataDto,
+  AnalysisReadDataDto,
 } from '../read_models/analysis-response.js';
-import { TodayAnalysisCopyService } from '../services/analysis-copy.js';
-import type { TodayAnalysisContext } from '../read_models/analysis-context-shape.js';
+import { AnalysisCopyService } from '../services/analysis-copy.js';
+import type { AnalysisContext } from '../read_models/analysis-context-shape.js';
 import {
   ANALYSIS_CONTEXT_SOURCE,
   ANALYSIS_GENERATOR,
@@ -44,21 +44,21 @@ import type {
   AnalysisContextSource,
   AnalysisGenerator,
 } from '../ports/analysis-pipeline.js';
-import type { TodayAnalysisStructuredOutput } from '../ports/analysis-output.js';
+import type { AnalysisStructuredOutput } from '../ports/analysis-output.js';
 import { nowIsoString } from '../../../../common/index.js';
 import {
   ANALYSIS_MATERIALIZATION,
-  type TodayAnalysisMaterialization,
+  type AnalysisMaterialization,
 } from '../ports/materialization.js';
 import type { StreamSummaryEvent } from '../../../../common/api/stream-summary.js';
 
 interface PreparedTodayAnalysis {
-  context: TodayAnalysisContext;
+  context: AnalysisContext;
   locale: string;
-  metadata: TodayAnalysisMetadata;
+  metadata: AnalysisMetadata;
 }
 
-interface TodayAnalysisMetadata {
+interface AnalysisMetadata {
   generatedAt: string;
   sourceVersion?: number;
 }
@@ -68,14 +68,14 @@ type InternalTodayAnalysisDto = GenerateTodayAnalysisDto & {
 };
 
 @Injectable()
-export class TodayAnalysisService extends BaseLlmSummaryService<
-  TodayAnalysisContext,
-  TodayAnalysisStructuredOutput,
-  TodayAnalysisDataDto,
+export class AnalysisService extends BaseLlmSummaryService<
+  AnalysisContext,
+  AnalysisStructuredOutput,
+  AnalysisDataDto,
   GenerateTodayAnalysisDto,
-  TodayAnalysisMetadata
+  AnalysisMetadata
 > {
-  protected readonly logger = new Logger(TodayAnalysisService.name);
+  protected readonly logger = new Logger(AnalysisService.name);
 
   /**
    * Own Prisma handle: this service needs it for its own date/user lookups, and
@@ -89,7 +89,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     private readonly contextService: AnalysisContextSource,
     private readonly context: IUserContextReader,
     private readonly userSettings: IUserSettingsPort,
-    copyService: TodayAnalysisCopyService,
+    copyService: AnalysisCopyService,
     @Inject(ANALYSIS_GENERATOR)
     generatorService: AnalysisGenerator,
     policyService: LlmSafetyPolicyService,
@@ -98,7 +98,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     private readonly i18n: I18nService,
     @Optional()
     @Inject(ANALYSIS_MATERIALIZATION)
-    private readonly materializationStore?: TodayAnalysisMaterialization,
+    private readonly materializationStore?: AnalysisMaterialization,
   ) {
     super(copyService, generatorService, policyService);
   }
@@ -124,7 +124,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     dto: GenerateTodayAnalysisDto,
     language: string,
     sourceVersion: number,
-  ): Promise<TodayAnalysisDataDto | TodayAnalysisReadDataDto> {
+  ): Promise<AnalysisDataDto | AnalysisReadDataDto> {
     const date = await this.resolveDate(userId, dto.date);
     const empty = await this.checkEmptyContext(userId, date, language);
     if (empty != null) {
@@ -204,7 +204,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     language: string,
     sourceVersion: number,
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
-  ): Promise<TodayAnalysisDataDto | TodayAnalysisReadDataDto> {
+  ): Promise<AnalysisDataDto | AnalysisReadDataDto> {
     const date = await this.resolveDate(userId, dto.date);
     const empty = await this.checkEmptyContext(userId, date, language);
     if (empty != null) {
@@ -287,7 +287,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     userId: string,
     date: string,
     _language?: string,
-  ): Promise<TodayAnalysisReadDataDto> {
+  ): Promise<AnalysisReadDataDto> {
     const status =
       this.materializationStore == null
         ? {
@@ -323,7 +323,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
             action: summary.action,
             confidenceNote: summary.confidenceNote,
             aiGenerated: summary.aiGenerated ?? false,
-          } satisfies TodayAnalysisDataDto)
+          } satisfies AnalysisDataDto)
         : null;
 
     if (analysis == null && status.status === 'empty') {
@@ -371,11 +371,11 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   }
 
   protected toDataDto(
-    context: TodayAnalysisContext,
-    output: TodayAnalysisStructuredOutput,
-    metadata: TodayAnalysisMetadata,
+    context: AnalysisContext,
+    output: AnalysisStructuredOutput,
+    metadata: AnalysisMetadata,
     aiGenerated: boolean,
-  ): TodayAnalysisDataDto {
+  ): AnalysisDataDto {
     return {
       date: context.date,
       generatedAt: metadata.generatedAt,
@@ -393,7 +393,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
 
   protected async persistSummary(
     userId: string,
-    data: TodayAnalysisDataDto,
+    data: AnalysisDataDto,
   ): Promise<void> {
     await this.aiSummaryHistoryService.save({
       userId,
@@ -422,13 +422,13 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     return settings.aiSummariesEnabled;
   }
 
-  protected buildLogContext(context: TodayAnalysisContext): string {
+  protected buildLogContext(context: AnalysisContext): string {
     return context.date;
   }
 
   protected override async afterPersist(
     userId: string,
-    data: TodayAnalysisDataDto,
+    data: AnalysisDataDto,
     locale: string,
   ): Promise<void> {
     const scope = {
@@ -463,8 +463,8 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   }
 
   private async markFailedBestEffort(
-    store: TodayAnalysisMaterialization,
-    input: Parameters<TodayAnalysisMaterialization['markFailed']>[0],
+    store: AnalysisMaterialization,
+    input: Parameters<AnalysisMaterialization['markFailed']>[0],
   ): Promise<void> {
     try {
       await store.markFailed(input);
@@ -495,7 +495,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   }
 
   private buildTodaySummaryNotification(
-    data: TodayAnalysisDataDto,
+    data: AnalysisDataDto,
     locale: string,
   ): CreateNotificationDto {
     return {
@@ -574,7 +574,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     userId: string,
     date: string,
     _language: string,
-  ): Promise<TodayAnalysisReadDataDto | null> {
+  ): Promise<AnalysisReadDataDto | null> {
     const context = await this.contextService.build(userId, date);
     if (this.hasMeaningfulContext(context)) {
       return null;
@@ -600,7 +600,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     };
   }
 
-  private hasMeaningfulContext(context: TodayAnalysisContext): boolean {
+  private hasMeaningfulContext(context: AnalysisContext): boolean {
     if (context.medication.medicineCount > 0) return true;
     if (context.lowRiskContext.activeAllergyCount > 0) return true;
     if (context.lowRiskContext.currentMedicineCount > 0) return true;

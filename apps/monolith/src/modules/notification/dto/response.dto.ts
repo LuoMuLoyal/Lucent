@@ -4,11 +4,11 @@ import { z } from 'zod';
  * Standard Schema (zod 4) for the authenticated user's notification
  * preferences resource (`GET`/`PATCH /notification`).
  *
- * Replaces the former `NotificationPreferencesDataDto` response class.
+ * Replaces the former `NotificationSettingsDataDto` response class.
  * Response schemas intentionally carry no `.strict()` / `.default()` so
  * outbound parsing tolerates whatever the service layer produces.
  */
-export const notificationPreferencesSchema = z.object({
+export const notificationSettingsSchema = z.object({
   isHealthAlertsEnabled: z.boolean(),
   isWeeklyInsightEnabled: z.boolean(),
   isWaterRemindersEnabled: z.boolean(),
@@ -22,9 +22,9 @@ export const notificationPreferencesSchema = z.object({
 });
 
 /** Strongly typed notification preferences resource. */
-export type NotificationPreferencesDataDto = z.infer<
-  typeof notificationPreferencesSchema
+export type NotificationSettingsDataDto = z.infer<
+  typeof notificationSettingsSchema
 >;
 
 /** Backwards-compatible response alias kept for the former DTO class name. */
-export type NotificationPreferencesResponseDto = NotificationPreferencesDataDto;
+export type NotificationSettingsResponseDto = NotificationSettingsDataDto;

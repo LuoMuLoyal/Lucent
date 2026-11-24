@@ -6,7 +6,7 @@ import {
 } from '../../../../common/result/index.js';
 import type { UserPayload } from '../../../auth/index.js';
 import { ReminderController } from './reminder.controller.js';
-import { MedicineRemindersService } from '../../application/services/reminders.js';
+import { RemindersService } from '../../application/services/reminders.js';
 import { createMedicineReminderSchema } from '../../application/ports/create-reminder.js';
 import { updateMedicineReminderSchema } from '../../application/ports/update-reminder.js';
 import { upsertMedicineReminderGroupSchema } from '../../application/ports/upsert-group.js';
@@ -19,14 +19,14 @@ const mockUser: UserPayload = {
 
 describe('ReminderController', () => {
   let controller: ReminderController;
-  let service: vi.Mocked<MedicineRemindersService>;
+  let service: vi.Mocked<RemindersService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReminderController],
       providers: [
         {
-          provide: MedicineRemindersService,
+          provide: RemindersService,
           useValue: {
             list: vi.fn(),
             create: vi.fn(),
@@ -39,7 +39,7 @@ describe('ReminderController', () => {
     }).compile();
 
     controller = module.get(ReminderController);
-    service = module.get(MedicineRemindersService);
+    service = module.get(RemindersService);
   });
 
   describe('GET /user/reminder', () => {

@@ -19,7 +19,7 @@ interface UserSettingsData {
   assistantMemoryEnabled: boolean;
   assistantContext: {
     healthProfile: boolean;
-    dailyRecords: boolean;
+    records: boolean;
     sleepRecords: boolean;
     currentMedicines: boolean;
   };
@@ -76,7 +76,7 @@ describe('User Settings API (e2e)', () => {
       expect(settings.assistantMemoryEnabled).toBe(false);
       expect(settings.assistantContext).toEqual({
         healthProfile: true,
-        dailyRecords: true,
+        records: true,
         sleepRecords: true,
         currentMedicines: true,
       });
@@ -143,7 +143,7 @@ describe('User Settings API (e2e)', () => {
         .send({
           assistantContext: {
             healthProfile: false,
-            dailyRecords: false,
+            records: false,
           },
         })
         .expect(200);
@@ -151,7 +151,7 @@ describe('User Settings API (e2e)', () => {
       const settings = expectData(response.body as UserSettingsData);
 
       expect(settings.assistantContext.healthProfile).toBe(false);
-      expect(settings.assistantContext.dailyRecords).toBe(false);
+      expect(settings.assistantContext.records).toBe(false);
       expect(settings.assistantContext.sleepRecords).toBe(true);
       expect(settings.assistantContext.currentMedicines).toBe(true);
     });

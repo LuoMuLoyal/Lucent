@@ -4,16 +4,16 @@ import {
   SseConnectionRegistry,
   SseProblemDetailsMapper,
 } from '../../common/index.js';
-import { TodayAnalysisService } from './application/use_cases/generate-analysis.js';
+import { AnalysisService } from './application/use_cases/generate-analysis.js';
 import { AnalysisQueueService } from './adapters/queue/analysis.js';
 import { TodayRecommendationsService } from './application/read_models/recommendations.js';
-import type { TodayAnalysisDataDto } from './adapters/http/dto/analysis-response.js';
+import type { AnalysisDataDto } from './adapters/http/dto/analysis-response.js';
 import { generateTodayAnalysisSchema } from './adapters/http/dto/generate-analysis.js';
 import { AnalysisController } from './adapters/http/controllers/analysis.controller.js';
 
 describe('AnalysisController', () => {
   let controller: AnalysisController;
-  let service: vi.Mocked<TodayAnalysisService>;
+  let service: vi.Mocked<AnalysisService>;
   let recommendationsService: vi.Mocked<TodayRecommendationsService>;
   let sseRegistry: SseConnectionRegistry;
 
@@ -22,7 +22,7 @@ describe('AnalysisController', () => {
       controllers: [AnalysisController],
       providers: [
         {
-          provide: TodayAnalysisService,
+          provide: AnalysisService,
           useValue: {
             generate: vi.fn(),
             generateStream: vi.fn(),
@@ -71,7 +71,7 @@ describe('AnalysisController', () => {
     }).compile();
 
     controller = module.get(AnalysisController);
-    service = module.get(TodayAnalysisService);
+    service = module.get(AnalysisService);
     recommendationsService = module.get(TodayRecommendationsService);
     sseRegistry = module.get(SseConnectionRegistry);
   });
@@ -478,8 +478,8 @@ function makeMockReply(
 }
 
 function makeAnalysis(
-  overrides: Partial<TodayAnalysisDataDto> = {},
-): TodayAnalysisDataDto {
+  overrides: Partial<AnalysisDataDto> = {},
+): AnalysisDataDto {
   return {
     date: '2026-06-12',
     generatedAt: '2026-06-12T08:00:00.000Z',

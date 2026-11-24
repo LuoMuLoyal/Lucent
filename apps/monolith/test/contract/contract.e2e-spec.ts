@@ -273,7 +273,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/legal — contract', () => {
-    it('should match LegalDocumentListResponse shape', async () => {
+    it('should match LegalDocListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/legal')
         .expect(200);
@@ -282,7 +282,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/LegalDocumentListResponse',
+        '#/components/schemas/LegalDocListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
@@ -373,7 +373,7 @@ describe('API Contract Tests (e2e)', () => {
   });
 
   describe('GET /api/v1/user/record — contract', () => {
-    it('should match DailyRecordListResponse shape', async () => {
+    it('should match RecordEntryListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/record')
         .query({ date: '2026-07-12' })
@@ -384,14 +384,14 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/DailyRecordListResponse',
+        '#/components/schemas/RecordEntryListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });
   });
 
   describe('GET /api/v1/user/reminder — contract', () => {
-    it('should match MedicineReminderListResponse shape', async () => {
+    it('should match ReminderEntryListResponse shape', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/reminder')
         .set('Authorization', bearer(accessToken))
@@ -401,7 +401,7 @@ describe('API Contract Tests (e2e)', () => {
 
       const schema = resolveRef(
         spec,
-        '#/components/schemas/MedicineReminderListResponse',
+        '#/components/schemas/ReminderEntryListResponse',
       );
       assertRequiredProperties(res.body, schema, spec);
     });

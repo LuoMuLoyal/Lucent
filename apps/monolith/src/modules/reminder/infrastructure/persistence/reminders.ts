@@ -11,10 +11,10 @@ import type {
   ResultAsync,
 } from '../../../../common/result/index.js';
 import {
-  MedicineReminderReaderPort,
+  ReminderEntryReaderPort,
   ReminderRepositoryPort,
   type CurrentMedicineFact,
-  type MedicineReminderFact,
+  type ReminderEntryFact,
 } from '../../application/ports/reminder-repository.js';
 
 /** Hard cap on facts returned by the reader port (ADR-0009). */
@@ -40,7 +40,7 @@ const medicineReminderFactSelect = {
 @Injectable()
 export class PrismaReminders
   extends ReminderRepositoryPort
-  implements MedicineReminderReaderPort
+  implements ReminderEntryReaderPort
 {
   constructor(
     private readonly prisma: PrismaService,
@@ -49,7 +49,7 @@ export class PrismaReminders
     super();
   }
 
-  async listActiveFacts(userId: string): Promise<MedicineReminderFact[]> {
+  async listActiveFacts(userId: string): Promise<ReminderEntryFact[]> {
     return this.prisma.userMedicineReminder.findMany({
       where: { userId, isActive: true, ...nonDeleted },
       select: medicineReminderFactSelect,

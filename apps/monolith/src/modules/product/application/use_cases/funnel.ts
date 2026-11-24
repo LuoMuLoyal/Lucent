@@ -11,7 +11,7 @@ import {
   type ResultAsync,
 } from '../../../../common/result/index.js';
 import { fromPromise } from '../../../../common/result/index.js';
-import { ProductEvents } from '../ports/product-event.js';
+import { ProductEventLog } from '../ports/product-event.js';
 import {
   MAX_FUNNEL_RANGE_DAYS,
   type FunnelDailyCounts,
@@ -137,7 +137,7 @@ export function isFunnelEventNameAccountedFor(name: ProductEventName): boolean {
  */
 @Injectable()
 export class ProductFunnelService {
-  constructor(private readonly events: ProductEvents) {}
+  constructor(private readonly events: ProductEventLog) {}
 
   /**
    * Aggregate the core funnel and the optional visit-summary events over a

@@ -81,7 +81,7 @@ const TOP_LEVEL_FIELDS: readonly UserSettingField[] = [
 
 const ASSISTANT_CONTEXT_FIELDS: readonly AssistantContextField[] = [
   'healthProfile',
-  'dailyRecords',
+  'records',
   'sleepRecords',
   'currentMedicines',
 ];
@@ -163,9 +163,9 @@ export class UserSettings {
           ASSISTANT_CONTEXT_SETTING_KEYS.healthProfile,
           ASSISTANT_CONTEXT_DEFAULTS.healthProfile,
         ),
-        dailyRecords: boolOf(
-          ASSISTANT_CONTEXT_SETTING_KEYS.dailyRecords,
-          ASSISTANT_CONTEXT_DEFAULTS.dailyRecords,
+        records: boolOf(
+          ASSISTANT_CONTEXT_SETTING_KEYS.records,
+          ASSISTANT_CONTEXT_DEFAULTS.records,
         ),
         sleepRecords: boolOf(
           ASSISTANT_CONTEXT_SETTING_KEYS.sleepRecords,

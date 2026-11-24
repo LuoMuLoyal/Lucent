@@ -68,7 +68,7 @@ describe('EscalationService', () => {
       },
     };
 
-    const notificationPreferencesMock = {
+    const notificationSettingsMock = {
       isRuleEnabled: vi.fn().mockResolvedValue(true),
     };
 
@@ -76,7 +76,7 @@ describe('EscalationService', () => {
       notificationsMock as never,
       pushDeliveryMock as never,
       prismaMock as never,
-      notificationPreferencesMock as never,
+      notificationSettingsMock as never,
     );
   });
 

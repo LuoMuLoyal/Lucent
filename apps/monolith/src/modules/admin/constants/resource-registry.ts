@@ -565,7 +565,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
   }),
   defineResource({
     key: 'export-requests',
-    model: 'dataExportRequest',
+    model: 'DataExportRequest',
     searchFields: ['kind', 'status'],
     filterFields: ['userId', 'status', 'kind'],
     writableFields: [

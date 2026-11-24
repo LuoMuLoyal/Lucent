@@ -20,7 +20,7 @@ import {
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 
-type TestingSupportDbClient = Pick<
+type TestingDbClient = Pick<
   PrismaService,
   | 'user'
   | 'account'
@@ -31,7 +31,7 @@ type TestingSupportDbClient = Pick<
 >;
 
 @Injectable()
-export class TestingSupportService {
+export class TestingService {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly prisma: PrismaService,
@@ -147,7 +147,7 @@ export class TestingSupportService {
   }
 
   private async clearDailyRecordsForDate(
-    tx: TestingSupportDbClient,
+    tx: TestingDbClient,
     userId: string,
     date: string,
   ): Promise<number> {

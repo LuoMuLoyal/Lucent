@@ -1,7 +1,7 @@
 import { DeliveryReceiptsService } from '../../infrastructure/persistence/delivery-receipts.js';
 import type { PrismaService } from '../../../../prisma/index.js';
-import type { MedicineRemindersOwnership } from '../../application/use_cases/ownership.js';
-import type { MedicineRemindersMapper } from '../../application/read_models/mapper.js';
+import type { RemindersOwnership } from '../../application/use_cases/ownership.js';
+import type { RemindersMapper } from '../../application/read_models/mapper.js';
 import type { Cache } from 'cache-manager';
 import { errAsync, okAsync } from '../../../../common/result/index.js';
 import { createDomainFailure } from '../../../../common/result/index.js';
@@ -114,8 +114,8 @@ describe('DeliveryReceiptsService', () => {
 
     service = new DeliveryReceiptsService(
       prisma as unknown as PrismaService,
-      ownership as unknown as MedicineRemindersOwnership,
-      mapper as unknown as MedicineRemindersMapper,
+      ownership as unknown as RemindersOwnership,
+      mapper as unknown as RemindersMapper,
       cache as unknown as Cache,
     );
   });

@@ -1,1 +1,1 @@
-export { LegalDocumentsAdminService } from './services/admin.service.js';
+export { LegalAdminService } from './services/admin.service.js';

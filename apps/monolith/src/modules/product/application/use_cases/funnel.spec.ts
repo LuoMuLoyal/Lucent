@@ -1,5 +1,5 @@
 import { ProductEventName } from '#generated/prisma/client.js';
-import type { ProductEvents } from '../ports/product-event.js';
+import type { ProductEventLog } from '../ports/product-event.js';
 import type {
   ResultAsync,
   DomainFailure,
@@ -71,7 +71,7 @@ describe('ProductFunnelService', () => {
 
   beforeEach(() => {
     events = buildEvents();
-    service = new ProductFunnelService(events as unknown as ProductEvents);
+    service = new ProductFunnelService(events as unknown as ProductEventLog);
   });
 
   it('aggregates events across users into the core stages with no per-user leakage', async () => {

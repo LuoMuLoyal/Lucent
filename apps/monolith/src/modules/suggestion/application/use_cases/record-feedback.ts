@@ -22,7 +22,7 @@ import {
 } from '../../constants/feedback.constants.js';
 import { SUGGESTION_CACHE_PORT } from '../ports/suggestion-cache.js';
 import type { SuggestionCachePort } from '../ports/suggestion-cache.js';
-import { ProductEventsService } from '../../../product/index.js';
+import { ProductEventLogService } from '../../../product/index.js';
 import { FEEDBACK_PORT } from '../ports/feedback.js';
 import type { FeedbackPort } from '../ports/feedback.js';
 
@@ -65,7 +65,7 @@ export class RecordFeedbackUseCase {
     @Inject(FEEDBACK_PORT) private readonly feedback: FeedbackPort,
     @Inject(SUGGESTION_CACHE_PORT)
     private readonly suggestionCache: SuggestionCachePort,
-    private readonly productEvents: ProductEventsService,
+    private readonly productEventLog: ProductEventLogService,
   ) {}
 
   /**
@@ -143,7 +143,7 @@ export class RecordFeedbackUseCase {
     //    main write appends a NEW feedback row per action (not an upsert), so a
     //    retry would legitimately produce a second action — a fresh
     //    per-emission id counts each action exactly once.
-    await this.productEvents.emitServerEvent(userId, {
+    await this.productEventLog.emitServerEvent(userId, {
       name: ProductEventName.suggestion_actioned,
       surface: ProductEventSurface.today,
       result: ProductEventResult.success,

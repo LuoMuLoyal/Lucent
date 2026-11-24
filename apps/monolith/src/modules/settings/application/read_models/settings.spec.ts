@@ -129,7 +129,7 @@ describe('UserSettingsReadModel', () => {
       waterTargetCount: 3,
       assistantContext: {
         healthProfile: false,
-        dailyRecords: false,
+        records: false,
         sleepRecords: false,
         currentMedicines: false,
       },

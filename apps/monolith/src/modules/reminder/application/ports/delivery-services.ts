@@ -51,7 +51,7 @@ export const REMINDER_SCHEDULER_CRON = '* * * * *';
 /**
  * Delivery endpoints' capabilities.
  *
- * Listing lives on `MedicineRemindersService` (it shares the mapper and the
+ * Listing lives on `RemindersService` (it shares the mapper and the
  * delivery query), while the receipt / capability writes are implemented by the
  * delivery persistence adapter. The controller therefore depends on both ports,
  * never on the classes behind them.

@@ -3,14 +3,14 @@
  *
  * ## 为什么单独一个端口
  *
- * `DailyRecords`（`domain/record/records.ts`）是写侧聚合端口，只在模块内使用；
+ * `Records`（`domain/record/records.ts`）是写侧聚合端口，只在模块内使用；
  * 下游上下文（suggestion / reports / analysis / assistant）需要的是
  * 「按区间读一批轻量事实」，与聚合加载无关。两者混在一起会让下游被迫依赖
  * 写模型，也是 ADR-0009 当初把读面单列的原因。
  *
  * ## 形状约束
  *
- * - 返回**轻量事实**（`DailyRecordFact`），只有数据列，没有 Prisma 查询 DSL。
+ * - 返回**轻量事实**（`RecordEntryFact`），只有数据列，没有 Prisma 查询 DSL。
  * - 规范顺序 `occurredAt asc, createdAt asc`；需要别的顺序由消费方在内存里重排。
  * - 一次最多 `MAX_READER_FACTS` 条：上下文查询不能随用户数据无限增长。
  *   要精确总数 / 最新时间请用专门的计数方法。
@@ -18,7 +18,7 @@
 import type { DailyRecordKind } from '../../domain/record/record-kind.js';
 
 /** 跨模块可见的记录事实（ADR-0009）。 */
-export interface DailyRecordFact {
+export interface RecordEntryFact {
   id: string;
   kind: DailyRecordKind;
   occurredAt: Date;
@@ -45,7 +45,7 @@ export interface DailyRecordFact {
 export const MAX_READER_FACTS = 500;
 
 /** 按 id 读单条记录的最小投影（事件复查解析触发记录标题等场景）。 */
-export interface DailyRecordSummaryFact {
+export interface RecordEntrySummaryFact {
   id: string;
   kind: DailyRecordKind;
   occurredAt: Date;
@@ -59,7 +59,7 @@ export interface DailyRecordSummaryFact {
   createdAt: Date;
 }
 
-export abstract class DailyRecordReaderPort {
+export abstract class RecordEntryReaderPort {
   /**
    * 列出 `occurredAt` 落在 [from, to] 的非删除记录，最多 `MAX_READER_FACTS` 条。
    *
@@ -70,7 +70,7 @@ export abstract class DailyRecordReaderPort {
     from: Date,
     to: Date,
     kinds?: DailyRecordKind[],
-  ): Promise<DailyRecordFact[]>;
+  ): Promise<RecordEntryFact[]>;
 
   /** `occurredAt` 落在 [from, to] 的非删除记录精确条数。 */
   abstract countFactsInRange(
@@ -96,7 +96,7 @@ export abstract class DailyRecordReaderPort {
   abstract findById(
     userId: string,
     id: string,
-  ): Promise<DailyRecordSummaryFact | null>;
+  ): Promise<RecordEntrySummaryFact | null>;
 
   /**
    * 按 id 读单条（含附件明细）。
@@ -107,5 +107,5 @@ export abstract class DailyRecordReaderPort {
   abstract findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<DailyRecordFact | null>;
+  ): Promise<RecordEntryFact | null>;
 }

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { LocalizedCopyService } from '../../../../common/services/localized-copy.service.js';
-import type { TodayAnalysisContext } from '../read_models/analysis-context-shape.js';
-import type { TodayAnalysisStructuredOutput } from '../ports/analysis-output.js';
+import type { AnalysisContext } from '../read_models/analysis-context-shape.js';
+import type { AnalysisStructuredOutput } from '../ports/analysis-output.js';
 import type { PromptCopy } from '../../../../common/index.js';
 
 @Injectable()
-export class TodayAnalysisCopyService extends LocalizedCopyService<PromptCopy> {
+export class AnalysisCopyService extends LocalizedCopyService<PromptCopy> {
   protected readonly scope = 'analysis';
 
   summariesDisabled(locale: string): string {
@@ -13,9 +13,9 @@ export class TodayAnalysisCopyService extends LocalizedCopyService<PromptCopy> {
   }
 
   buildFallback(
-    context: TodayAnalysisContext,
+    context: AnalysisContext,
     locale: string,
-  ): TodayAnalysisStructuredOutput {
+  ): AnalysisStructuredOutput {
     const medicationPending = context.medication.pendingCount;
     const waterRemaining =
       context.water.observedMetric?.state === 'observed' &&

@@ -1,10 +1,10 @@
 import { okAsync } from '../../../common/result/index.js';
 import type { PrismaService } from '../../../prisma/index.js';
 import type { AuditLogService } from '../../audit-log/index.js';
-import type { LegalDocumentsService } from './documents.service.js';
-import { LegalDocumentsAdminService } from './admin.service.js';
+import type { LegalService } from './documents.service.js';
+import { LegalAdminService } from './admin.service.js';
 
-describe('LegalDocumentsAdminService', () => {
+describe('LegalAdminService', () => {
   function buildService() {
     const rows = {
       findMany: vi.fn(),
@@ -15,10 +15,10 @@ describe('LegalDocumentsAdminService', () => {
     const audit = { log: vi.fn().mockReturnValue(okAsync(undefined)) };
     const invalidateDocumentCache = vi.fn().mockResolvedValue(undefined);
     const documents = { invalidateDocumentCache };
-    const service = new LegalDocumentsAdminService(
+    const service = new LegalAdminService(
       prisma,
       audit as unknown as AuditLogService,
-      documents as unknown as LegalDocumentsService,
+      documents as unknown as LegalService,
     );
     return { service, rows, audit, invalidateDocumentCache };
   }

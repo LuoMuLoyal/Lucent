@@ -39,8 +39,8 @@ export const REPORT_DASHBOARD_CONTEXT = Symbol('ReportDashboardContext');
  * daily-record facts, aggregated into one facts object.
  *
  * Implemented by `adapters/acl/dashboard-context.ts`, which reaches each source
- * through its *reader port* (`IUserSettingsPort`, `MedicineDoseLogReaderPort`,
- * `DailyRecordReaderPort`) — never through another context's tables.
+ * through its *reader port* (`IUserSettingsPort`, `DoseLogEntryReaderPort`,
+ * `RecordEntryReaderPort`) — never through another context's tables.
  */
 export interface DashboardContextPort {
   build(

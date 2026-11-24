@@ -22,7 +22,7 @@ import type { AssistantAgentMode } from '../../domain/settings/setting-key.js';
 /** Fine-grained assistant context permission flags. */
 export interface AssistantContextPermissionsResource {
   healthProfile: boolean;
-  dailyRecords: boolean;
+  records: boolean;
   sleepRecords: boolean;
   currentMedicines: boolean;
 }
@@ -35,7 +35,7 @@ export interface AssistantContextPermissionsResource {
  */
 export interface AssistantContextPermissionsPatch {
   healthProfile?: boolean | undefined;
-  dailyRecords?: boolean | undefined;
+  records?: boolean | undefined;
   sleepRecords?: boolean | undefined;
   currentMedicines?: boolean | undefined;
 }

@@ -7,7 +7,7 @@ import { dailyRecordAttachmentSchema } from './record-attachment.js';
  * Standard Schema (zod 4) for one daily-record read item — the wire shape of
  * `GET/POST/PATCH /record` responses.
  *
- * Replaces the former `@ApiProperty` response class `DailyRecordItemDto`. The
+ * Replaces the former `@ApiProperty` response class `RecordEntryItemDto`. The
  * mapper always emits every key (nullable columns become an explicit `null`),
  * so fields are required and `.nullable()` marks null-capable columns only.
  *
@@ -74,4 +74,4 @@ export const dailyRecordItemSchema = z.object({
 });
 
 /** Strongly typed daily-record read item returned by record endpoints. */
-export type DailyRecordItemDto = z.infer<typeof dailyRecordItemSchema>;
+export type RecordEntryItemDto = z.infer<typeof dailyRecordItemSchema>;

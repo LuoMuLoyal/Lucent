@@ -23,8 +23,8 @@ import {
 } from '../../domain/reminder/delivery.js';
 import type { ReminderDeliveryReceiptDto } from '../../application/ports/delivery-receipt.js';
 import type { ReminderDeliveryItemDto } from '../../application/ports/delivery-resource.js';
-import { MedicineRemindersMapper } from '../../application/read_models/mapper.js';
-import { MedicineRemindersOwnership } from '../../application/use_cases/ownership.js';
+import { RemindersMapper } from '../../application/read_models/mapper.js';
+import { RemindersOwnership } from '../../application/use_cases/ownership.js';
 import { wallClockToScheduledFor } from '../../domain/reminder/delivery-moment.js';
 
 const deliveryItemSelect = {
@@ -58,8 +58,8 @@ export class DeliveryReceiptsService extends ReminderDeliveries {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ownershipService: MedicineRemindersOwnership,
-    private readonly mapperService: MedicineRemindersMapper,
+    private readonly ownershipService: RemindersOwnership,
+    private readonly mapperService: RemindersMapper,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {
     super();

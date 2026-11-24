@@ -295,7 +295,7 @@ describe('AssistantToolReadService', () => {
         assistantMemoryEnabled: false,
         assistantContext: {
           healthProfile: true,
-          dailyRecords: true,
+          records: true,
           sleepRecords: false,
           currentMedicines: false,
         },

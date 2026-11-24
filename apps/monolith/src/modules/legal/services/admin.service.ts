@@ -3,9 +3,9 @@ import { PrismaService } from '../../../prisma/index.js';
 import { AuditLogService } from '../../audit-log/index.js';
 import type { AuditLogEntry } from '../../audit-log/services/audit-log.service.js';
 import { unwrapResult } from '../../../common/result/index.js';
-import { LegalDocumentsService } from './documents.service.js';
+import { LegalService } from './documents.service.js';
 
-export interface LegalDocumentAdminUpdate {
+export interface LegalDocAdminUpdate {
   titleZh?: string | undefined;
   titleEn?: string | undefined;
   contentZh?: string | undefined;
@@ -13,7 +13,7 @@ export interface LegalDocumentAdminUpdate {
   isActive?: boolean | undefined;
 }
 
-interface LegalDocumentAdminRow {
+interface LegalDocAdminRow {
   docType: string;
   titleZh: string;
   titleEn: string;
@@ -28,16 +28,16 @@ interface LegalDocumentAdminRow {
  * the serializer rejects a raw `Date` — so Prisma rows are converted here
  * rather than at the controller.
  */
-function toAdminDocument(row: LegalDocumentAdminRow) {
+function toAdminDocument(row: LegalDocAdminRow) {
   return { ...row, updatedAt: row.updatedAt.toISOString() };
 }
 
 @Injectable()
-export class LegalDocumentsAdminService {
+export class LegalAdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
-    private readonly documents: LegalDocumentsService,
+    private readonly documents: LegalService,
   ) {}
 
   async list() {
@@ -59,7 +59,7 @@ export class LegalDocumentsAdminService {
   async update(
     actorUserId: string,
     docType: string,
-    input: LegalDocumentAdminUpdate,
+    input: LegalDocAdminUpdate,
   ) {
     const before = await this.prisma.legalDocument.findUnique({
       where: { docType },

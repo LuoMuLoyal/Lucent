@@ -47,7 +47,7 @@ type PrismaStub = {
 
 import { okAsync } from '../../../../common/result/index.js';
 import type { ClinicSummaryPdf } from '../ports/clinic-summary-pdf.js';
-import type { ProductEventsService } from '../../../product/index.js';
+import type { ProductEventLogService } from '../../../product/index.js';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
@@ -95,9 +95,9 @@ function withEventReview(
   config: vi.Mocked<ConfigService>,
   eventReview: { buildCurrent: vi.Mock; buildForEvent?: vi.Mock },
 ): ClinicSummaryService {
-  const productEvents = {
+  const productEventLog = {
     emitServerEvent: vi.fn().mockResolvedValue(undefined),
-  } as unknown as ProductEventsService;
+  } as unknown as ProductEventLogService;
   const Ctor = ClinicSummaryService as unknown as new (
     ...args: unknown[]
   ) => ClinicSummaryService;
@@ -119,7 +119,7 @@ function withEventReview(
     cache,
     config,
     i18nMock,
-    productEvents,
+    productEventLog,
     eventReview,
   );
 }
@@ -167,7 +167,7 @@ const mockEventReview = {
       windowStart: '2026-08-01T08:00:00.000Z',
       windowEnd: '2026-08-13T12:00:00.000Z',
     },
-    dailyRecords: {
+    records: {
       state: 'observed',
       coverage: 'partial',
       sources: ['manual'],
@@ -188,7 +188,7 @@ const mockEventReview = {
   },
   sourceTimestamps: {
     checkIns: '2026-08-11',
-    dailyRecords: '2026-08-10',
+    records: '2026-08-10',
     doseLogs: '2026-08-10',
   },
   availableActions: ['check_in'],
@@ -329,7 +329,7 @@ describe('ClinicSummaryService', () => {
   let cacheManager: { get: vi.Mock; set: vi.Mock };
   let pdfService: vi.Mocked<ClinicSummaryPdf>;
   let configService: vi.Mocked<ConfigService>;
-  let productEvents: { emitServerEvent: vi.Mock };
+  let productEventLog: { emitServerEvent: vi.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -358,7 +358,7 @@ describe('ClinicSummaryService', () => {
       get: vi.fn(),
     } as unknown as vi.Mocked<ConfigService>;
 
-    productEvents = { emitServerEvent: vi.fn().mockResolvedValue(undefined) };
+    productEventLog = { emitServerEvent: vi.fn().mockResolvedValue(undefined) };
 
     // Port doubles delegate to the same `prisma` object the scenarios mutate,
     // so replacing `prisma.userClinicSummaryShare` still drives the behaviour
@@ -392,7 +392,7 @@ describe('ClinicSummaryService', () => {
       cacheManager as never,
       configService,
       i18nMock,
-      productEvents as unknown as ProductEventsService,
+      productEventLog as unknown as ProductEventLogService,
     );
   });
 
@@ -1070,8 +1070,8 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('valid-token');
 
       expect(result).toEqual(cached);
-      expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
-      expect(productEvents.emitServerEvent).toHaveBeenCalledWith('owner-1', {
+      expect(productEventLog.emitServerEvent).toHaveBeenCalledTimes(1);
+      expect(productEventLog.emitServerEvent).toHaveBeenCalledWith('owner-1', {
         name: ProductEventName.visit_summary_share_opened,
         surface: ProductEventSurface.system,
         result: ProductEventResult.success,
@@ -1080,7 +1080,7 @@ describe('ClinicSummaryService', () => {
       // open) — no deterministic clientEventId; the uuid default keeps opens
       // unique across reads.
       expect(
-        productEvents.emitServerEvent.mock.calls[0]![1],
+        productEventLog.emitServerEvent.mock.calls[0]![1],
       ).not.toHaveProperty('clientEventId');
     });
 
@@ -1096,7 +1096,7 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('legacy-token');
 
       expect(result).toEqual(cached);
-      expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+      expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
     });
 
     it('emits no open event when the guarded access write is denied', async () => {
@@ -1119,7 +1119,7 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('racing-token');
 
       expect(result).toBeNull();
-      expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+      expect(productEventLog.emitServerEvent).not.toHaveBeenCalled();
     });
   });
 

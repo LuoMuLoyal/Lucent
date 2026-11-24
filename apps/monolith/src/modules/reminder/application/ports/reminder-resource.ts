@@ -12,7 +12,7 @@ import { z } from 'zod';
  *   contract is unchanged.
  *
  * No `.strict()` / `.default()` — outbound validation must accept the wire
- * shape produced by `MedicineRemindersMapper.toItem` (every key
+ * shape produced by `RemindersMapper.toItem` (every key
  * present).
  */
 
@@ -55,21 +55,21 @@ export const medicineReminderListResponseSchema =
 export const medicineReminderResponseSchema = medicineReminderItemSchema;
 
 /** Strongly typed single medicine reminder. */
-export type MedicineReminderItemDto = z.infer<
+export type ReminderEntryItemDto = z.infer<
   typeof medicineReminderItemSchema
 >;
 
 /** Strongly typed reminder list payload. */
-export type MedicineReminderListDataDto = z.infer<
+export type ReminderEntryListDataDto = z.infer<
   typeof medicineReminderListDataSchema
 >;
 
 /** Strongly typed reminder list body. */
-export type MedicineReminderListResponseDto = z.infer<
+export type ReminderEntryListResponseDto = z.infer<
   typeof medicineReminderListResponseSchema
 >;
 
 /** Strongly typed single reminder body. */
-export type MedicineReminderResponseDto = z.infer<
+export type ReminderEntryResponseDto = z.infer<
   typeof medicineReminderResponseSchema
 >;

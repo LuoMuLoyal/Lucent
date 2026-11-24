@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import { DailyRecordReaderPort } from '../../../../record/index.js';
+import { RecordEntryReaderPort } from '../../../../record/index.js';
 import {
   HealthEventsOwnershipService,
   type HealthEventRecord,
@@ -24,7 +24,7 @@ const DATE_ONLY_LENGTH = 10;
 export class HealthEventCollectorService {
   constructor(
     private readonly healthEvents: HealthEventsOwnershipService,
-    private readonly dailyRecordReader: DailyRecordReaderPort,
+    private readonly dailyRecordReader: RecordEntryReaderPort,
   ) {}
 
   async collect(userId: string, date: string): Promise<SuggestionSignal[]> {

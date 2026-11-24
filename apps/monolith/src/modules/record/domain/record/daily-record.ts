@@ -3,7 +3,7 @@
  *
  * ## 聚合边界
  *
- * `DailyRecord` 拥有的是 `user_daily_records` 一行 + 它的附件行
+ * `RecordEntry` 拥有的是 `user_daily_records` 一行 + 它的附件行
  * （`user_daily_record_attachments`）：附件没有独立生命周期，删记录即删附件，
  * 所以它们在**同一个**聚合里。餐食分析结果不是独立聚合——它是记录的 payload
  * 与投影列，写它也是一次记录更新（见 `domain/meal/meal-analysis.ts`）。
@@ -24,7 +24,7 @@
 import { isMeal, type DailyRecordKind } from './record-kind.js';
 
 /** 记录的一次加载快照（写侧需要的字段）。 */
-export interface DailyRecordState {
+export interface RecordEntryState {
   id: string;
   userId: string;
   kind: DailyRecordKind;
@@ -70,11 +70,11 @@ function asPlainRecord(raw: unknown): PlainRecord | null {
     : null;
 }
 
-export class DailyRecord {
-  private constructor(private readonly state: DailyRecordState) {}
+export class RecordEntry {
+  private constructor(private readonly state: RecordEntryState) {}
 
-  static from(state: DailyRecordState): DailyRecord {
-    return new DailyRecord(state);
+  static from(state: RecordEntryState): RecordEntry {
+    return new RecordEntry(state);
   }
 
   get id(): string {

@@ -1,7 +1,7 @@
 /**
  * 候选生成端口的实现绑定。
  *
- * `DailyRecordCandidatesGeneratorService` 继承 `BaseLlmGeneratorService`，它的
+ * `RecordEntryCandidatesGeneratorService` 继承 `BaseLlmGeneratorService`，它的
  * `generate(context, promptCopy)` 需要**文案对象**（prompt 渲染是基础设施细节），
  * 而应用层端口只认识 `locale`。这层绑定做两件事：
  *
@@ -16,14 +16,14 @@ import {
   type CandidateGenerationContext,
   type CandidateGenerationResult,
 } from '../../application/ports/candidate-generator.js';
-import { DailyRecordCandidatesCopyService } from '../../application/services/candidate-copy.js';
-import { DailyRecordCandidatesGeneratorService } from './candidate-generator.js';
+import { RecordEntryCandidatesCopyService } from '../../application/services/candidate-copy.js';
+import { RecordEntryCandidatesGeneratorService } from './candidate-generator.js';
 
 @Injectable()
 export class BoundCandidateGenerator extends CandidateGenerator {
   constructor(
-    private readonly generator: DailyRecordCandidatesGeneratorService,
-    private readonly copy: DailyRecordCandidatesCopyService,
+    private readonly generator: RecordEntryCandidatesGeneratorService,
+    private readonly copy: RecordEntryCandidatesCopyService,
   ) {
     super();
   }

@@ -1,6 +1,6 @@
 import type { DeepMocked } from '../../../../../common/types/deep-mocked.js';
 import { DailyRecordKind } from '#generated/prisma/client.js';
-import type { DailyRecordReaderPort } from '../../../../record/index.js';
+import type { RecordEntryReaderPort } from '../../../../record/index.js';
 import { RecordCollectorService } from './record.js';
 import { SleepTrendBuilderService } from './sleep-trend-builder.js';
 import type { UserSettingsService } from '../../../../settings/index.js';
@@ -10,7 +10,7 @@ import { TREND_LOOKBACK_DAYS } from '../../../domain/rule/thresholds.js';
 describe('RecordCollectorService', () => {
   let service: RecordCollectorService;
   let userSettingsService: DeepMocked<UserSettingsService>;
-  let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
+  let dailyRecordReader: DeepMocked<RecordEntryReaderPort>;
 
   beforeEach(() => {
     userSettingsService = {
@@ -18,7 +18,7 @@ describe('RecordCollectorService', () => {
     } as unknown as DeepMocked<UserSettingsService>;
     dailyRecordReader = {
       listFactsInRange: vi.fn(),
-    } as unknown as DeepMocked<DailyRecordReaderPort>;
+    } as unknown as DeepMocked<RecordEntryReaderPort>;
     service = new RecordCollectorService(
       userSettingsService,
       dailyRecordReader,

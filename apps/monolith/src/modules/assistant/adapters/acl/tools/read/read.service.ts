@@ -41,7 +41,7 @@ export class AssistantToolReadService {
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
     private readonly userContextService: IUserContextReader,
     @Inject(MEDICINE_REMINDER_READER)
-    private readonly medicineRemindersService: IMedicineReminderReader,
+    private readonly remindersService: IMedicineReminderReader,
     private readonly userSettingsService: IUserSettingsPort,
     private readonly recordQueryService: AssistantToolRecordQueryService,
   ) {}
@@ -427,7 +427,7 @@ export class AssistantToolReadService {
           return null;
         },
       );
-    const reminders = await this.medicineRemindersService.list(
+    const reminders = await this.remindersService.list(
       context.userId,
       true,
     );

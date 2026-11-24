@@ -8,8 +8,8 @@ import {
   HealthEventStatus,
 } from '#generated/prisma/client.js';
 import type { HealthEventsOwnershipService } from '../../../../health-events/index.js';
-import type { DailyRecordReaderPort } from '../../../../record/index.js';
-import type { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
+import type { RecordEntryReaderPort } from '../../../../record/index.js';
+import type { DoseLogEntryReaderPort } from '../../../../dose/index.js';
 import type { MedicineRiskCheckService } from '../../../../medicines/index.js';
 import { EventReviewFactsService } from './facts.js';
 import { EventReviewChangesService } from './changes.js';
@@ -130,8 +130,8 @@ function buildService() {
   };
   const service = new EventReviewService(
     ownership as unknown as HealthEventsOwnershipService,
-    dailyRecordReader as unknown as DailyRecordReaderPort,
-    doseLogReader as unknown as MedicineDoseLogReaderPort,
+    dailyRecordReader as unknown as RecordEntryReaderPort,
+    doseLogReader as unknown as DoseLogEntryReaderPort,
     new EventReviewFactsService(),
     new EventReviewChangesService(),
     new EventReviewActionsService(),
@@ -278,7 +278,7 @@ describe('EventReviewService', () => {
         outcome: HealthEventOutcome.unchanged,
         updatedAt: '2026-08-13T09:30:00.000Z',
       });
-      expect(review.coverage.dailyRecords).toMatchObject({
+      expect(review.coverage.records).toMatchObject({
         state: 'observed',
         coverage: 'partial',
         sources: ['manual'],
@@ -294,7 +294,7 @@ describe('EventReviewService', () => {
       });
       expect(review.sourceTimestamps).toEqual({
         checkIns: '2026-08-13',
-        dailyRecords: '2026-08-02T08:00:00.000Z',
+        records: '2026-08-02T08:00:00.000Z',
         doseLogs: '2026-08-13T08:00:00.000Z',
       });
       expect(review.availableActions).toEqual(['check_in', 'end_event']);
@@ -411,7 +411,7 @@ describe('EventReviewService', () => {
       expect(review.availableActions).toEqual(['clinic_summary', 'export']);
       expect(review.sourceTimestamps).toEqual({
         checkIns: '2026-08-10',
-        dailyRecords: null,
+        records: null,
         doseLogs: null,
       });
       expect(dailyRecordReader.listFactsInRange).toHaveBeenCalledWith(
@@ -474,7 +474,7 @@ describe('EventReviewService', () => {
         lastCheckInDate: null,
         todayCheckIn: null,
       });
-      expect(review.coverage.dailyRecords).toMatchObject({
+      expect(review.coverage.records).toMatchObject({
         state: 'unknown',
         coverage: 'none',
         observedCount: 0,
@@ -486,7 +486,7 @@ describe('EventReviewService', () => {
       });
       expect(review.sourceTimestamps).toEqual({
         checkIns: null,
-        dailyRecords: null,
+        records: null,
         doseLogs: null,
       });
       expect(review.availableActions).toEqual(['check_in', 'end_event']);

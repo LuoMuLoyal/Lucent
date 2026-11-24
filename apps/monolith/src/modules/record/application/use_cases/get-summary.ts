@@ -6,13 +6,13 @@
  */
 import { Injectable } from '@nestjs/common';
 import { parseDateOnly } from '../../../../common/index.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import type { RecordSummary } from '../read_models/record-list.js';
 import { toRecordSummary } from '../read_models/record-item.js';
 
 @Injectable()
 export class GetSummary {
-  constructor(private readonly records: DailyRecords) {}
+  constructor(private readonly records: Records) {}
 
   async execute(userId: string, date: string): Promise<RecordSummary> {
     const rows = await this.records.listByDay(userId, parseDateOnly(date));

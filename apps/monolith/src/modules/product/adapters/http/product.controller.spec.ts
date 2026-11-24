@@ -18,7 +18,7 @@ import type { CreateProductEventBatchDto } from './dto/create-product-event.js';
 import { productFunnelQuerySchema } from './dto/funnel-query.js';
 import type { FunnelQueryDto } from './dto/funnel-query.js';
 import { ProductController } from './product.controller.js';
-import { ProductEventsService } from '../../application/use_cases/events.js';
+import { ProductEventLogService } from '../../application/use_cases/events.js';
 import { ProductFunnelService } from '../../application/use_cases/funnel.js';
 
 const user: UserPayload = {
@@ -58,7 +58,7 @@ function issuesJson(result: {
 
 describe('ProductController', () => {
   let controller: ProductController;
-  let eventsService: vi.Mocked<ProductEventsService>;
+  let eventsService: vi.Mocked<ProductEventLogService>;
   let funnelService: vi.Mocked<ProductFunnelService>;
 
   beforeEach(async () => {
@@ -66,7 +66,7 @@ describe('ProductController', () => {
       controllers: [ProductController],
       providers: [
         {
-          provide: ProductEventsService,
+          provide: ProductEventLogService,
           useValue: { recordBatch: vi.fn() },
         },
         {
@@ -81,7 +81,7 @@ describe('ProductController', () => {
     }).compile();
 
     controller = module.get(ProductController);
-    eventsService = module.get(ProductEventsService);
+    eventsService = module.get(ProductEventLogService);
     funnelService = module.get(ProductFunnelService);
   });
 

@@ -3,7 +3,7 @@
  *
  * ## 为什么需要这个端口
  *
- * 四层迁移前，`DataExportService` / `ProcessExport` 直接注入
+ * 四层迁移前，`ExportRequestService` / `ProcessExport` 直接注入
  * `PrismaService` 读写 `data_export_requests`。`pnpm arch:check` 的
  * `ddd-application-no-direct-prisma` 会拦（禁止 `application/**` import
  * `@prisma/client` 或 `src/prisma/**`）。
@@ -16,7 +16,7 @@
  */
 
 /** 导出请求的状态。 */
-export type DataExportStatus =
+export type ExportRequestStatus =
   | 'pending'
   | 'processing'
   | 'completed'
@@ -45,13 +45,13 @@ export interface NewDataExportRequest {
   kind: string;
   format: string;
   range: string;
-  status: DataExportStatus;
+  status: ExportRequestStatus;
   errorMessage?: string;
 }
 
 /** 完成/失败时写回的字段。 */
-export interface DataExportCompletion {
-  status: DataExportStatus;
+export interface ExportRequestCompletion {
+  status: ExportRequestStatus;
   objectKey?: string | null;
   fileName?: string | null;
   fileSizeBytes?: number | null;
@@ -81,5 +81,5 @@ export abstract class DataExportRequests {
   abstract markProcessing(id: string): Promise<void>;
 
   /** 写回完成/失败状态。 */
-  abstract complete(id: string, patch: DataExportCompletion): Promise<void>;
+  abstract complete(id: string, patch: ExportRequestCompletion): Promise<void>;
 }

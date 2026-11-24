@@ -25,7 +25,7 @@ import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-reco
 export class TestingController {
   constructor(
     @Inject(RECORD_LANE_FIXTURE)
-    private readonly testingSupportService: RecordLaneFixturePort,
+    private readonly testingService: RecordLaneFixturePort,
   ) {}
 
   @Post('record-lane/prepare')
@@ -34,6 +34,6 @@ export class TestingController {
     @Body({ schema: prepareFullstackRecordLaneSchema })
     dto: PrepareFullstackRecordLaneDto,
   ) {
-    return await this.testingSupportService.prepareFullstackRecordLane(dto);
+    return await this.testingService.prepareFullstackRecordLane(dto);
   }
 }

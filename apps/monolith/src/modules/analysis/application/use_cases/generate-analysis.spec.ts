@@ -1,17 +1,17 @@
 import { DomainFailureException } from '../../../../common/result/domain-failure.exception.js';
 import type { LlmConfig } from '../../../../config/services/llm.config.js';
-import type { TodayAnalysisCopyService } from '../services/analysis-copy.js';
-import type { TodayAnalysisContext } from '../read_models/analysis-context-shape.js';
+import type { AnalysisCopyService } from '../services/analysis-copy.js';
+import type { AnalysisContext } from '../read_models/analysis-context-shape.js';
 import type { AnalysisContextSource } from '../ports/analysis-pipeline.js';
 import type { NotificationsService } from '../../../notifications/index.js';
 import type { AnalysisGenerator } from '../ports/analysis-pipeline.js';
 import { LlmSafetyPolicyService } from '../../../../common/llm/safety/llm-safety-policy.service.js';
 import { makeTestI18n } from '../../../../common/tests/test-i18n.js';
-import { TodayAnalysisService } from '../../application/use_cases/generate-analysis.js';
+import { AnalysisService } from '../../application/use_cases/generate-analysis.js';
 import { fromPromise, okAsync } from '../../../../common/result/index.js';
 import type { PushDeliveryService } from '../../../notifications/index.js';
 
-function modelGenerateSpy(service: TodayAnalysisService) {
+function modelGenerateSpy(service: AnalysisService) {
   return vi.spyOn(
     (
       service as unknown as {
@@ -22,7 +22,7 @@ function modelGenerateSpy(service: TodayAnalysisService) {
   );
 }
 
-function modelGenerateStreamSpy(service: TodayAnalysisService) {
+function modelGenerateStreamSpy(service: AnalysisService) {
   return vi.spyOn(
     (
       service as unknown as {
@@ -33,7 +33,7 @@ function modelGenerateStreamSpy(service: TodayAnalysisService) {
   );
 }
 
-function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
+function notificationCreateOrReplaceScopedSpy(service: AnalysisService) {
   return vi.spyOn(
     (
       service as unknown as {
@@ -44,7 +44,7 @@ function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
   );
 }
 
-function pushDeliverySendToUserSpy(service: TodayAnalysisService) {
+function pushDeliverySendToUserSpy(service: AnalysisService) {
   return vi.spyOn(
     (
       service as unknown as {
@@ -55,7 +55,7 @@ function pushDeliverySendToUserSpy(service: TodayAnalysisService) {
   );
 }
 
-describe('TodayAnalysisService', () => {
+describe('AnalysisService', () => {
   const baseConfig: LlmConfig = {
     provider: 'openai-compatible',
     analysis: {
@@ -96,7 +96,7 @@ describe('TodayAnalysisService', () => {
     },
   };
 
-  const emptyContext: TodayAnalysisContext = {
+  const emptyContext: AnalysisContext = {
     date: '2026-06-12',
     water: {
       completedCount: 0,
@@ -838,7 +838,7 @@ describe('TodayAnalysisService', () => {
     };
     summary?: { sourceVersion: number | null };
     claimActiveVersion?: number | null;
-    context?: TodayAnalysisContext;
+    context?: AnalysisContext;
   }) {
     // The use case reads settings and health context through ports now, so the
     // doubles are port-shaped instead of Prisma-shaped.
@@ -998,7 +998,7 @@ describe('TodayAnalysisService', () => {
             "Generated only from today's recorded data. This is not a diagnosis or treatment advice.",
         };
       }),
-    } as unknown as TodayAnalysisCopyService;
+    } as unknown as AnalysisCopyService;
     const generatorService = {
       hasAnalysisModel: vi
         .fn()
@@ -1016,7 +1016,7 @@ describe('TodayAnalysisService', () => {
     const pushDeliveryService = {
       sendToUser: vi.fn().mockResolvedValue({ sent: true }),
     } as unknown as PushDeliveryService;
-    return new TodayAnalysisService(
+    return new AnalysisService(
       aiSummaryHistoryService as never,
       contextService,
       context as never,
@@ -1033,7 +1033,7 @@ describe('TodayAnalysisService', () => {
     );
   }
 
-  function materializationWriteSpies(service: TodayAnalysisService) {
+  function materializationWriteSpies(service: AnalysisService) {
     return (
       service as unknown as {
         materializationStore: {

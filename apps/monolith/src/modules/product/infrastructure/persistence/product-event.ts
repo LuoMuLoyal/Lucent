@@ -11,14 +11,14 @@ import {
 import { isDomainFailure } from '../../../../common/result/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
-  ProductEvents,
+  ProductEventLog,
   type FunnelAggregateRow,
   type FunnelWindow,
   type ProductEventRow,
 } from '../../application/ports/product-event.js';
 
 /**
- * `ProductEvents` 端口的 Prisma 实现。
+ * `ProductEventLog` 端口的 Prisma 实现。
  *
  * ## `describeFailure` 为什么在这里
  *
@@ -28,7 +28,7 @@ import {
  * `@prisma/client`——`arch:check` 会拦，且那也确实不是应用层该知道的。
  */
 @Injectable()
-export class PrismaProductEvents extends ProductEvents {
+export class PrismaProductEvents extends ProductEventLog {
   constructor(private readonly prisma: PrismaService) {
     super();
   }

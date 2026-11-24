@@ -5,14 +5,14 @@ import {
   parseDateOnly,
 } from '../../../../../common/index.js';
 import { DoseLogStatus } from '#generated/prisma/client.js';
-import { MedicineDoseLogReaderPort } from '../../../../dose/index.js';
+import { DoseLogEntryReaderPort } from '../../../../dose/index.js';
 import {
   evaluateHalfLifeGap,
   type HalfLifeGapOutcome,
 } from '../../../../medicines/index.js';
 import {
-  MedicineReminderReaderPort,
-  type MedicineReminderFact,
+  ReminderEntryReaderPort,
+  type ReminderEntryFact,
 } from '../../../../reminder/index.js';
 import { IUserContextReader } from '../../../../context/index.js';
 import { MISSED_DOSE_GRACE_MINUTES } from '../../../domain/rule/thresholds.js';
@@ -39,8 +39,8 @@ type DoseLogFactShape = {
 @Injectable()
 export class MedicationCollectorService {
   constructor(
-    private readonly reminders: MedicineReminderReaderPort,
-    private readonly doseLogReader: MedicineDoseLogReaderPort,
+    private readonly reminders: ReminderEntryReaderPort,
+    private readonly doseLogReader: DoseLogEntryReaderPort,
     private readonly context: IUserContextReader,
     private readonly timeResolver: MedicationTimeResolverService,
     private readonly notifyLedger: NotifyLedgerPort,
@@ -303,7 +303,7 @@ export class MedicationCollectorService {
   private indexDoseLogsBySlot(
     doseLogs: DoseLogFactShape[],
     date: string,
-    reminders: MedicineReminderFact[],
+    reminders: ReminderEntryFact[],
   ): {
     reminderStatuses: Map<string, DoseLogStatus>;
     temporaryLogs: DoseLogFactShape[];
@@ -486,7 +486,7 @@ export class MedicationCollectorService {
 
   private reminderTime(
     reminderId: string,
-    reminders: MedicineReminderFact[],
+    reminders: ReminderEntryFact[],
   ): string | null {
     const reminder = reminders.find((candidate) => candidate.id === reminderId);
     return reminder == null
@@ -518,7 +518,7 @@ export class MedicationCollectorService {
   }
 
   private matchesDate(
-    reminder: MedicineReminderFact,
+    reminder: ReminderEntryFact,
     day: Date,
     weekday: number,
   ): boolean {

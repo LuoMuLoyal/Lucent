@@ -29,8 +29,8 @@ import { CurrentUser } from '../../../auth/index.js';
 import { CreateDataExportRequest } from '../../application/use_cases/create-export-request.js';
 import {
   createDataExportRequestSchema,
-  dataExportLatestResponseSchema,
-  dataExportRequestDataSchema,
+  exportRequestLatestResponseSchema,
+  DataExportRequestDataSchema,
 } from './dto/export-response.js';
 import type { CreateDataExportRequestDto } from './dto/export-response.js';
 import type { CreateDataExportCommand } from '../../application/commands/create-export.js';
@@ -87,7 +87,7 @@ export class ExportController {
     type: ProblemDetailsDto,
     description: 'Object storage backend is not reachable.',
   })
-  @SerializeOptions({ schema: dataExportRequestDataSchema })
+  @SerializeOptions({ schema: DataExportRequestDataSchema })
   async createRequest(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createDataExportRequestSchema })
@@ -123,7 +123,7 @@ export class ExportController {
     type: ProblemDetailsDto,
     description: 'Object storage backend is not reachable.',
   })
-  @SerializeOptions({ schema: dataExportLatestResponseSchema })
+  @SerializeOptions({ schema: exportRequestLatestResponseSchema })
   async getLatestRequest(@CurrentUser() user: UserPayload) {
     return await unwrapResult(this.useCase.latest(user.sub));
   }
@@ -133,7 +133,7 @@ registerResponseSchema({
   path: '/api/v1/user/export-requests',
   method: 'post',
   componentName: 'DataExportRequestResponse',
-  schema: dataExportRequestDataSchema,
+  schema: DataExportRequestDataSchema,
   description: 'Data export request created.',
 });
 
@@ -141,6 +141,6 @@ registerResponseSchema({
   path: '/api/v1/user/export-requests/latest',
   method: 'get',
   componentName: 'DataExportRequestData',
-  schema: dataExportLatestResponseSchema,
+  schema: exportRequestLatestResponseSchema,
   description: 'Latest data export request, or null when none exists.',
 });

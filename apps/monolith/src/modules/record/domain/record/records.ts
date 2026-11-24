@@ -69,7 +69,7 @@ export interface AttachmentWriteValues {
   publicUrl: string | null;
 }
 
-export abstract class DailyRecords {
+export abstract class Records {
   /** 按日（可选按 kind）分页列出，排序 `occurredTime desc nulls last, createdAt desc`。 */
   abstract listPage(
     filter: RecordListFilter,
@@ -111,5 +111,5 @@ export abstract class DailyRecords {
    * WARNING: `fn` 内不得调用任何会自带事务的方法（Prisma 的嵌套事务会静默退化成
    * 独立连接，丢掉原子性）。副作用（入队、缓存失效）必须留在 `fn` 之外。
    */
-  abstract transaction<T>(fn: (tx: DailyRecords) => Promise<T>): Promise<T>;
+  abstract transaction<T>(fn: (tx: Records) => Promise<T>): Promise<T>;
 }

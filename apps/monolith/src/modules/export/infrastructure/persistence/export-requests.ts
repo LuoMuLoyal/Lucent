@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../../../../prisma/index.js';
 import {
   DataExportRequests,
-  type DataExportCompletion,
+  type ExportRequestCompletion,
   type DataExportRequestRow,
   type NewDataExportRequest,
 } from '../../application/ports/export-requests.js';
@@ -99,7 +99,7 @@ export class PrismaDataExportRequests extends DataExportRequests {
     }
   }
 
-  async complete(id: string, patch: DataExportCompletion): Promise<void> {
+  async complete(id: string, patch: ExportRequestCompletion): Promise<void> {
     try {
       await this.prisma.dataExportRequest.update({
         where: { id },

@@ -12,7 +12,7 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import type { RecordItem } from '../read_models/record-list.js';
 import { toRecordItem } from '../read_models/record-item.js';
 import { recordNotFound } from '../services/domain-failures.js';
@@ -21,7 +21,7 @@ import { RecordOwnership } from '../services/record-ownership.js';
 @Injectable()
 export class GetRecord {
   constructor(
-    private readonly records: DailyRecords,
+    private readonly records: Records,
     private readonly ownership: RecordOwnership,
   ) {}
 

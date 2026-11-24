@@ -4,7 +4,7 @@
  * ## 为什么需要先按 id 读一行
  *
  * 不能 id+userId 一起查：那样分不清「不存在」与「别人的」。先按 id 取归属投影，
- * 再在内存里判定——`DailyRecord.ownershipFor` 是这个判定的领域版本，这里直接用它，
+ * 再在内存里判定——`RecordEntry.ownershipFor` 是这个判定的领域版本，这里直接用它，
  * 保证「什么算归属」只有一处定义。
  *
  * ## 对外语义
@@ -20,8 +20,8 @@ import {
   type DomainFailure,
   type ResultAsync,
 } from '../../../../common/result/index.js';
-import { DailyRecord } from '../../domain/record/daily-record.js';
-import { DailyRecords } from '../../domain/record/records.js';
+import { RecordEntry } from '../../domain/record/daily-record.js';
+import { Records } from '../../domain/record/records.js';
 import { recordNotFound } from './domain-failures.js';
 
 /** 通过归属校验后携带的旧值快照（更新 / 删除需要）。 */
@@ -33,7 +33,7 @@ export interface OwnedRecordSnapshot {
 
 @Injectable()
 export class RecordOwnership {
-  constructor(private readonly records: DailyRecords) {}
+  constructor(private readonly records: Records) {}
 
   /** 校验记录属于该用户；返回旧值快照，不返回整行。 */
   ensure(
@@ -47,7 +47,7 @@ export class RecordOwnership {
         return errAsync(recordNotFound());
       }
 
-      const record = DailyRecord.from({
+      const record = RecordEntry.from({
         id,
         userId: row.userId,
         kind: row.kind,

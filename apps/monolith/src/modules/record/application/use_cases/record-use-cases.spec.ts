@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { DailyRecords } from '../../domain/record/records.js';
+import { Records } from '../../domain/record/records.js';
 import type { RecordRow } from '../../domain/record/record-row.js';
 import { DomainFailureException } from '../../../../common/result/unwrap-result.js';
 import { CreateRecord } from './create-record.js';
@@ -109,8 +109,8 @@ function memoryRecords(row: RecordRow | null = recordRow()) {
     softDelete: vi.fn(() => Promise.resolve(true)),
     // 事务端口在这里退化成「直接执行回调」：用例测试不验证事务语义，
     // 只验证「事务内做了哪些写」。
-    transaction: vi.fn(async <T>(fn: (tx: DailyRecords) => Promise<T>) =>
-      fn(port as unknown as DailyRecords),
+    transaction: vi.fn(async <T>(fn: (tx: Records) => Promise<T>) =>
+      fn(port as unknown as Records),
     ),
     setRow: (next: RecordRow | null) => {
       current.row = next;
@@ -135,7 +135,7 @@ describe('record write use cases', () => {
 
     testingModule = await Test.createTestingModule({
       providers: [
-        { provide: DailyRecords, useValue: records },
+        { provide: Records, useValue: records },
         { provide: MealAnalysisJobs, useValue: jobs },
         { provide: RecordChangeEvents, useValue: events },
         { provide: HealthEventOwnership, useValue: healthEvents },

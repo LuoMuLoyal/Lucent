@@ -1,5 +1,5 @@
 import { AnalysisController } from './adapters/http/controllers/analysis.controller.js';
-import { todayAnalysisReadDataSchema } from './adapters/http/dto/analysis-response.js';
+import { analysisReadDataSchema } from './adapters/http/dto/analysis-response.js';
 
 describe('AnalysisController OpenAPI contract', () => {
   const responsesFor = (method: keyof AnalysisController) =>
@@ -16,7 +16,7 @@ describe('AnalysisController OpenAPI contract', () => {
 
   it('wires the read endpoint to the zod response schema', () => {
     expect(serializeOptionsFor('read')?.schema).toBe(
-      todayAnalysisReadDataSchema,
+      analysisReadDataSchema,
     );
     // The former class-based `type` is gone; the schema is carried by
     // `@SerializeOptions` and registered in the response-schema registry.
@@ -33,23 +33,23 @@ describe('AnalysisController OpenAPI contract', () => {
 
     expect(responsesFor('refresh')?.['201']?.type).toBeUndefined();
     expect(oneOfRefs(responsesFor('refresh')?.['201']?.schema)).toEqual([
-      '#/components/schemas/TodayAnalysisData',
-      '#/components/schemas/TodayAnalysisReadData',
-      '#/components/schemas/TodayAnalysisRefreshPendingData',
-      '#/components/schemas/TodayAnalysisRefreshReadyData',
+      '#/components/schemas/AnalysisData',
+      '#/components/schemas/AnalysisReadData',
+      '#/components/schemas/AnalysisRefreshPendingData',
+      '#/components/schemas/AnalysisRefreshReadyData',
     ]);
 
     expect(responsesFor('generate')?.['200']?.type).toBeUndefined();
     expect(oneOfRefs(responsesFor('generate')?.['200']?.schema)).toEqual([
-      '#/components/schemas/TodayAnalysisData',
-      '#/components/schemas/TodayAnalysisReadData',
+      '#/components/schemas/AnalysisData',
+      '#/components/schemas/AnalysisReadData',
     ]);
 
     expect(responsesFor('generateAsync')?.['202']?.type).toBeUndefined();
     expect(oneOfRefs(responsesFor('generateAsync')?.['202']?.schema)).toEqual([
-      '#/components/schemas/TodayAnalysisAsyncJobData',
-      '#/components/schemas/TodayAnalysisAsyncResultData',
-      '#/components/schemas/TodayAnalysisAsyncStatusData',
+      '#/components/schemas/AnalysisAsyncJobData',
+      '#/components/schemas/AnalysisAsyncResultData',
+      '#/components/schemas/AnalysisAsyncStatusData',
     ]);
   });
 });

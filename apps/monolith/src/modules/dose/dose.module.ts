@@ -13,7 +13,7 @@ import { DeleteDoseLog } from './application/use_cases/delete-dose-log.js';
 import { DoseTargetResolver } from './application/use_cases/dose-target-resolver.js';
 import { MarkDoseLog } from './application/use_cases/mark-dose-log.js';
 import { UpdateDoseLog } from './application/use_cases/update-dose-log.js';
-import { MedicineDoseLogReaderPort } from './domain/dose-log/dose-log-facts.js';
+import { DoseLogEntryReaderPort } from './domain/dose-log/dose-log-facts.js';
 import { DoseLogs } from './domain/dose-log/dose-logs.js';
 import { PrismaDoseLogs } from './infrastructure/persistence/dose-logs.js';
 
@@ -30,7 +30,7 @@ import { PrismaDoseLogs } from './infrastructure/persistence/dose-logs.js';
   providers: [
     PrismaDoseLogs,
     { provide: DoseLogs, useExisting: PrismaDoseLogs },
-    { provide: MedicineDoseLogReaderPort, useExisting: PrismaDoseLogs },
+    { provide: DoseLogEntryReaderPort, useExisting: PrismaDoseLogs },
     PublishedDoseLogEvents,
     { provide: DoseLogEvents, useExisting: PublishedDoseLogEvents },
     HealthEventsGuardAdapter,
@@ -43,6 +43,6 @@ import { PrismaDoseLogs } from './infrastructure/persistence/dose-logs.js';
     DoseLogsForDate,
     DoseLogService,
   ],
-  exports: [MedicineDoseLogReaderPort],
+  exports: [DoseLogEntryReaderPort],
 })
 export class DoseModule {}

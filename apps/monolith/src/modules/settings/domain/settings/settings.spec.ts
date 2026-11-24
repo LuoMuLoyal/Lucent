@@ -18,7 +18,7 @@ describe('UserSettings aggregate', () => {
         waterTargetCount: 8,
         assistantContext: {
           healthProfile: true,
-          dailyRecords: true,
+          records: true,
           sleepRecords: true,
           currentMedicines: true,
         },
@@ -42,7 +42,7 @@ describe('UserSettings aggregate', () => {
       expect(snapshot.waterTargetCount).toBe(8);
       expect(snapshot.assistantContext).toEqual({
         healthProfile: true,
-        dailyRecords: true,
+        records: true,
         sleepRecords: false,
         currentMedicines: true,
       });

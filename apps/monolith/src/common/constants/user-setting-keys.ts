@@ -16,7 +16,7 @@ export const ASSISTANT_AGENT_MODE_SETTING_KEY = 'assistantAgentMode';
 export const ASSISTANT_CONTEXT_HEALTH_PROFILE_SETTING_KEY =
   'assistantContext.healthProfile';
 export const ASSISTANT_CONTEXT_DAILY_RECORDS_SETTING_KEY =
-  'assistantContext.dailyRecords';
+  'assistantContext.records';
 export const ASSISTANT_CONTEXT_SLEEP_RECORDS_SETTING_KEY =
   'assistantContext.sleepRecords';
 export const ASSISTANT_CONTEXT_CURRENT_MEDICINES_SETTING_KEY =

@@ -117,7 +117,7 @@ export class PrismaClinicSummaryShares implements ClinicSummaryShares {
  *
  * Only the nickname comes from here; every health field is read through
  * IUserContextReader and daily records through
- * DailyRecordReaderPort - see the port comments for why.
+ * RecordEntryReaderPort - see the port comments for why.
  */
 @Injectable()
 export class PrismaClinicSummarySources implements ClinicSummarySources {

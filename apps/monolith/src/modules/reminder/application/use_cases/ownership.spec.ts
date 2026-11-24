@@ -5,7 +5,7 @@ import type {
 } from '../../../../common/result/index.js';
 
 import { ReminderRepositoryPort } from '../../application/ports/reminder-repository.js';
-import { MedicineRemindersOwnership } from '../../application/use_cases/ownership.js';
+import { RemindersOwnership } from '../../application/use_cases/ownership.js';
 
 async function collectResult<T>(
   result: ResultAsync<T, DomainFailure>,
@@ -16,8 +16,8 @@ async function collectResult<T>(
   );
 }
 
-describe('MedicineRemindersOwnership', () => {
-  let service: MedicineRemindersOwnership;
+describe('RemindersOwnership', () => {
+  let service: RemindersOwnership;
   let repository: {
     findCurrentMedicine: vi.Mock;
     findReminderById: vi.Mock;
@@ -31,7 +31,7 @@ describe('MedicineRemindersOwnership', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        MedicineRemindersOwnership,
+        RemindersOwnership,
         {
           provide: ReminderRepositoryPort,
           useValue: repository,
@@ -39,7 +39,7 @@ describe('MedicineRemindersOwnership', () => {
       ],
     }).compile();
 
-    service = module.get(MedicineRemindersOwnership);
+    service = module.get(RemindersOwnership);
   });
 
   // ── ensureCurrentMedicineOwnedByUser ──────────────────────────────────

@@ -10,7 +10,7 @@ import type {
 import type { DomainEventPublisher } from '../../../../common/index.js';
 import { RISK_ASSESSMENT_COMPLETED } from '../../../../common/events/domain-events.js';
 import type {
-  MedicineReminderRow,
+  ReminderEntryRow,
   MedicineRiskRecordsPort,
   UserContext,
 } from '../ports/risk-records.js';
@@ -752,7 +752,7 @@ describe('MedicineRiskCheckService', () => {
         },
       } as never),
     );
-    const reminders: MedicineReminderRow[] = [
+    const reminders: ReminderEntryRow[] = [
       {
         currentMedicineId: 'm1',
         scheduledHour: 8,

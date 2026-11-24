@@ -7,20 +7,20 @@ import type {
   ObjectStorageRuntime,
 } from '../../../../common/index.js';
 import type { I18nService } from 'nestjs-i18n';
-import { DailyRecordImageUploadService } from './image-upload.service.js';
+import { RecordEntryImageUploadService } from './image-upload.service.js';
 
 const mockI18n = {
   t: vi.fn().mockReturnValue('error'),
 } as unknown as I18nService;
 
-describe('DailyRecordImageUploadService', () => {
+describe('RecordEntryImageUploadService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should create a signed upload URL', async () => {
     const runtime = runtimeDouble(testConfig());
-    const service = new DailyRecordImageUploadService(runtime, mockI18n);
+    const service = new RecordEntryImageUploadService(runtime, mockI18n);
     const expectedObjectKeyPattern =
       /^record\/user-1\/\d{4}\/\d{2}\/\d{2}\/[0-9a-f-]+\.jpg$/;
 
@@ -46,7 +46,7 @@ describe('DailyRecordImageUploadService', () => {
   });
 
   it('should reject unsupported content types', async () => {
-    const service = new DailyRecordImageUploadService(
+    const service = new RecordEntryImageUploadService(
       runtimeDouble(testConfig()),
       mockI18n,
     );
@@ -60,7 +60,7 @@ describe('DailyRecordImageUploadService', () => {
   });
 
   it('should reject images larger than configured limit', async () => {
-    const service = new DailyRecordImageUploadService(
+    const service = new RecordEntryImageUploadService(
       runtimeDouble({ ...testConfig(), maxUploadBytes: 1000 }),
       mockI18n,
     );
@@ -74,7 +74,7 @@ describe('DailyRecordImageUploadService', () => {
   });
 
   it('should fail when storage is not configured', async () => {
-    const service = new DailyRecordImageUploadService(
+    const service = new RecordEntryImageUploadService(
       runtimeDouble({ ...testConfig() }, false),
       mockI18n,
     );
@@ -89,7 +89,7 @@ describe('DailyRecordImageUploadService', () => {
 
   it('should return provider from runtime config', async () => {
     const runtime = runtimeDouble({ ...testConfig(), provider: 's3' });
-    const service = new DailyRecordImageUploadService(runtime, mockI18n);
+    const service = new RecordEntryImageUploadService(runtime, mockI18n);
 
     const result = await service.createPresignedUpload('user-1', {
       contentType: 'image/jpeg',

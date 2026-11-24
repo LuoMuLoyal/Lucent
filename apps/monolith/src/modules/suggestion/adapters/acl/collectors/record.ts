@@ -12,11 +12,11 @@ import {
   MealAnalysisStatus,
 } from '#generated/prisma/client.js';
 import {
-  DailyRecordReaderPort,
+  RecordEntryReaderPort,
   parseMealRecordPayload,
 } from '../../../../record/index.js';
 
-import type { DailyRecordFact } from '../../../../record/index.js';
+import type { RecordEntryFact } from '../../../../record/index.js';
 import type { SuggestionSignal } from '../../../domain/signal/signal.js';
 import { TriggerType } from '../../../domain/suggestion/suggestion.types.js';
 import { IUserSettingsPort } from '../../../../settings/index.js';
@@ -78,7 +78,7 @@ export class RecordCollectorService {
 
   constructor(
     private readonly userSettingsService: IUserSettingsPort,
-    private readonly dailyRecordReader: DailyRecordReaderPort,
+    private readonly dailyRecordReader: RecordEntryReaderPort,
     private readonly sleepTrendBuilder: SleepTrendBuilderService,
   ) {}
 
@@ -338,7 +338,7 @@ export class RecordCollectorService {
   }
 
   private buildDailyCounts(
-    records: DailyRecordFact[],
+    records: RecordEntryFact[],
   ): Array<{ date: string; count: number }> {
     const byDate = new Map<string, number>();
     for (const record of records) {
@@ -353,7 +353,7 @@ export class RecordCollectorService {
     }));
   }
 
-  private buildSymptomTrend(records: DailyRecordFact[]): Array<{
+  private buildSymptomTrend(records: RecordEntryFact[]): Array<{
     date: string;
     symptom: string | null;
     severity: string | null;
@@ -403,7 +403,7 @@ export class RecordCollectorService {
    * 遇到不认识的 key **不静默跳过**——按日期汇总成一条 debug 日志。静默过滤意味着
    * 上游改了 kind 名我们永远不知道；而日志按日期去重，不会一餐一条刷屏。
    */
-  private buildDailyFacets(records: DailyRecordFact[]): Array<{
+  private buildDailyFacets(records: RecordEntryFact[]): Array<{
     date: string;
     analyzedMeals: number;
     facets: Partial<Record<DietFacetKind, DietFacetLevel>>;
@@ -457,7 +457,7 @@ export class RecordCollectorService {
    * Builds a per-date summary of mood from mood records.
    * Maps mood title/value to a numeric scale (1–5).
    */
-  private buildMoodTrend(records: DailyRecordFact[]): Array<{
+  private buildMoodTrend(records: RecordEntryFact[]): Array<{
     date: string;
     moodScore: number;
     label: string;

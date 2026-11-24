@@ -25,7 +25,7 @@ import { productFunnelQuerySchema } from './dto/funnel-query.js';
 import type { FunnelQueryDto } from './dto/funnel-query.js';
 import { funnelResponseSchema } from './dto/funnel-response.js';
 import { AdminGuard } from '../../../admin/index.js';
-import { ProductEventsService } from '../../application/use_cases/events.js';
+import { ProductEventLogService } from '../../application/use_cases/events.js';
 import { ProductFunnelService } from '../../application/use_cases/funnel.js';
 
 @ApiTags('Product Events')
@@ -33,7 +33,7 @@ import { ProductFunnelService } from '../../application/use_cases/funnel.js';
 @Controller('product')
 export class ProductController {
   constructor(
-    private readonly eventsService: ProductEventsService,
+    private readonly eventsService: ProductEventLogService,
     private readonly funnelService: ProductFunnelService,
   ) {}
 

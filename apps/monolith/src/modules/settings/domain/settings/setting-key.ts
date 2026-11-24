@@ -41,7 +41,7 @@ export type AssistantAgentMode = (typeof ASSISTANT_AGENT_MODES)[number];
 
 export const ASSISTANT_CONTEXT_SETTING_KEYS = {
   healthProfile: 'assistantContext.healthProfile',
-  dailyRecords: 'assistantContext.dailyRecords',
+  records: 'assistantContext.records',
   sleepRecords: 'assistantContext.sleepRecords',
   currentMedicines: 'assistantContext.currentMedicines',
 } as const;
@@ -57,7 +57,7 @@ export const USER_SETTINGS_DEFAULTS = {
 
 export const ASSISTANT_CONTEXT_DEFAULTS = {
   healthProfile: true,
-  dailyRecords: true,
+  records: true,
   sleepRecords: true,
   currentMedicines: true,
 } as const;

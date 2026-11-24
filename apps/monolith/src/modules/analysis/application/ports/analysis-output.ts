@@ -11,23 +11,23 @@
  */
 
 /** Which advice family a bullet belongs to. */
-export type TodayAnalysisBulletKind =
+export type AnalysisBulletKind =
   | 'medication'
   | 'hydration'
   | 'sleep'
   | 'general';
 
 /** One bullet of the analysis. */
-export type TodayAnalysisBullet = {
-  kind: TodayAnalysisBulletKind;
+export type AnalysisBullet = {
+  kind: AnalysisBulletKind;
   text: string;
 };
 
 /** What the model returns for a day's analysis. */
-export type TodayAnalysisStructuredOutput = {
+export type AnalysisStructuredOutput = {
   summary: string;
   /** Two or three bullets — the schema enforces the bound. */
-  bullets: TodayAnalysisBullet[];
+  bullets: AnalysisBullet[];
   actionLabel: string;
   action: string;
   confidenceNote: string;

@@ -6,7 +6,7 @@ import {
   ProductEventSurface,
 } from '#generated/prisma/client.js';
 import type { ClinicSummaryShares } from '../ports/clinic-summary.js';
-import type { ProductEventsService } from '../../../product/index.js';
+import type { ProductEventLogService } from '../../../product/index.js';
 import { ShareService } from './clinic-summary-shares.js';
 
 /**
@@ -171,7 +171,7 @@ describe('ShareService', () => {
     emitServerEvent = vi.fn().mockResolvedValue(undefined);
     service = new ShareService(toSharesPort(shareStore), {
       emitServerEvent,
-    } as unknown as ProductEventsService);
+    } as unknown as ProductEventLogService);
   });
 
   describe('createShare', () => {
@@ -367,7 +367,7 @@ describe('ShareService', () => {
     const makeService = (store: ShareStore): ShareService => {
       return new ShareService(toSharesPort(store), {
         emitServerEvent,
-      } as unknown as ProductEventsService);
+      } as unknown as ProductEventLogService);
     };
 
     it('looks up by the sha256 token hash', async () => {
@@ -521,7 +521,7 @@ describe('ShareService', () => {
     const makeService = (store: ShareStore): ShareService => {
       return new ShareService(toSharesPort(store), {
         emitServerEvent,
-      } as unknown as ProductEventsService);
+      } as unknown as ProductEventLogService);
     };
 
     it('queries with the userId scope and createdAt desc ordering', async () => {
@@ -716,7 +716,7 @@ describe('ShareService', () => {
       ]);
       const openService = new ShareService(toSharesPort(store), {
         emitServerEvent,
-      } as unknown as ProductEventsService);
+      } as unknown as ProductEventLogService);
 
       const result = await openService.getSharedSummaryByToken('valid-token');
 

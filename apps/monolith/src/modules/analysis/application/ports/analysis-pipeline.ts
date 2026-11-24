@@ -9,8 +9,8 @@
  * contract, let the composition root choose the implementation.
  */
 
-import type { TodayAnalysisContext } from '../read_models/analysis-context-shape.js';
-import type { TodayAnalysisStructuredOutput } from './analysis-output.js';
+import type { AnalysisContext } from '../read_models/analysis-context-shape.js';
+import type { AnalysisStructuredOutput } from './analysis-output.js';
 import type { BaseLlmGeneratorService } from '../../../../common/llm/generators/base-llm-generator.service.js';
 import type { PromptCopy } from '../../../../common/index.js';
 
@@ -31,14 +31,14 @@ export interface AnalysisContextSource {
     userId: string,
     date: string,
     options?: { locale?: string; eventId?: string | null },
-  ): Promise<TodayAnalysisContext>;
+  ): Promise<AnalysisContext>;
 
   invalidateContext(userId: string, date: string): Promise<void>;
 }
 
 /** What the use case needs from the LLM generator. */
 export type AnalysisGenerator = BaseLlmGeneratorService<
-  TodayAnalysisContext,
+  AnalysisContext,
   PromptCopy,
-  TodayAnalysisStructuredOutput
+  AnalysisStructuredOutput
 >;

@@ -37,13 +37,13 @@ import { updateMedicineReminderSchema } from '../../application/ports/update-rem
 import type { UpdateMedicineReminderDto } from '../../application/ports/update-reminder.js';
 import { upsertMedicineReminderGroupSchema } from '../../application/ports/upsert-group.js';
 import type { UpsertMedicineReminderGroupDto } from '../../application/ports/upsert-group.js';
-import { MedicineRemindersService } from '../../application/services/reminders.js';
+import { RemindersService } from '../../application/services/reminders.js';
 
 @ApiTags('Medicine Reminders')
 @ApiBearerAuth('access-token')
 @Controller('reminder')
 export class ReminderController {
-  constructor(private readonly remindersService: MedicineRemindersService) {}
+  constructor(private readonly remindersService: RemindersService) {}
 
   @Get()
   @ApiOperation({
@@ -181,7 +181,7 @@ export class ReminderController {
 registerResponseSchema({
   path: '/api/v1/user/reminder',
   method: 'get',
-  componentName: 'MedicineReminderListResponse',
+  componentName: 'ReminderEntryListResponse',
   schema: medicineReminderListResponseSchema,
   description: 'Medicine reminder schedules.',
 });
@@ -189,7 +189,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reminder',
   method: 'post',
-  componentName: 'MedicineReminderResponse',
+  componentName: 'ReminderEntryResponse',
   schema: medicineReminderResponseSchema,
   description: 'The created medicine reminder.',
 });
@@ -197,7 +197,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reminder/{id}',
   method: 'patch',
-  componentName: 'MedicineReminderResponse',
+  componentName: 'ReminderEntryResponse',
   schema: medicineReminderResponseSchema,
   description: 'The updated medicine reminder.',
 });
@@ -205,7 +205,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/reminder/group',
   method: 'put',
-  componentName: 'MedicineReminderListResponse',
+  componentName: 'ReminderEntryListResponse',
   schema: medicineReminderListResponseSchema,
   description: 'The upserted reminder group.',
 });

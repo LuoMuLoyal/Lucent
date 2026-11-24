@@ -178,7 +178,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordListResponse"
+                  "$ref": "#/components/schemas/RecordEntryListResponse"
                 }
               }
             }
@@ -211,7 +211,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponse"
+                  "$ref": "#/components/schemas/RecordEntryResponse"
                 }
               }
             }
@@ -276,7 +276,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordSummaryResponse"
+                  "$ref": "#/components/schemas/RecordEntrySummaryResponse"
                 }
               }
             }
@@ -336,7 +336,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordImageUploadResponse"
+                  "$ref": "#/components/schemas/RecordEntryImageUploadResponse"
                 }
               }
             }
@@ -371,7 +371,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordCandidateResponse"
+                  "$ref": "#/components/schemas/RecordEntryCandidateResponse"
                 }
               }
             }
@@ -405,7 +405,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponse"
+                  "$ref": "#/components/schemas/RecordEntryResponse"
                 }
               }
             }
@@ -467,7 +467,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponse"
+                  "$ref": "#/components/schemas/RecordEntryResponse"
                 }
               }
             }
@@ -4013,7 +4013,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LegalDocumentListResponse"
+                  "$ref": "#/components/schemas/LegalDocListResponse"
                 }
               }
             }
@@ -4053,7 +4053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LegalDocumentDetailResponse"
+                  "$ref": "#/components/schemas/LegalDocDetailResponse"
                 }
               }
             }
@@ -5180,7 +5180,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
                 }
               }
             }
@@ -5213,7 +5213,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
+                  "$ref": "#/components/schemas/NotificationSettingsResponse"
                 }
               }
             }
@@ -6832,7 +6832,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                  "$ref": "#/components/schemas/ReminderEntryListResponse"
                 }
               }
             }
@@ -6865,7 +6865,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                  "$ref": "#/components/schemas/ReminderEntryResponse"
                 }
               }
             }
@@ -6929,7 +6929,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponse"
+                  "$ref": "#/components/schemas/ReminderEntryResponse"
                 }
               }
             }
@@ -7039,7 +7039,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponse"
+                  "$ref": "#/components/schemas/ReminderEntryListResponse"
                 }
               }
             }
@@ -8285,7 +8285,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisReadResponse"
+                  "$ref": "#/components/schemas/AnalysisReadResponse"
                 }
               }
             }
@@ -8320,7 +8320,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisRefreshReadyData"
+                  "$ref": "#/components/schemas/AnalysisRefreshReadyData"
                 }
               }
             }
@@ -8357,10 +8357,10 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/TodayAnalysisData"
+                      "$ref": "#/components/schemas/AnalysisData"
                     },
                     {
-                      "$ref": "#/components/schemas/TodayAnalysisReadData"
+                      "$ref": "#/components/schemas/AnalysisReadData"
                     }
                   ]
                 }
@@ -8397,7 +8397,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisAsyncStatusData"
+                  "$ref": "#/components/schemas/AnalysisAsyncStatusData"
                 }
               }
             }
@@ -8493,12 +8493,12 @@
         },
         "responses": {
           "200": {
-            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (summary | result | error | done) and a JSON \"data\" field. Parsed event data follows TodayAnalysisStreamResultDto.",
+            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (summary | result | error | done) and a JSON \"data\" field. Parsed event data follows AnalysisStreamResultDto.",
             "content": {
               "text/event-stream": {
                 "schema": {
                   "type": "string",
-                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisData; event=error data=TodayAnalysisStreamErrorDto; event=done data={}."
+                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=AnalysisData; event=error data=AnalysisStreamErrorDto; event=done data={}."
                 }
               }
             }
@@ -9363,13 +9363,13 @@
         "required": ["user", "expiresIn"],
         "additionalProperties": false
       },
-      "LegalDocumentListResponse": {
+      "LegalDocListResponse": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LegalDocumentListResponseItems"
+              "$ref": "#/components/schemas/LegalDocListResponseItems"
             }
           },
           "updatedAt": {
@@ -9381,7 +9381,7 @@
         "required": ["items", "updatedAt"],
         "additionalProperties": false
       },
-      "LegalDocumentDetailResponse": {
+      "LegalDocDetailResponse": {
         "type": "object",
         "properties": {
           "docType": {
@@ -10187,14 +10187,14 @@
           "users": {
             "$ref": "#/components/schemas/AdminMetricsOverviewUsers"
           },
-          "productEventsLast24Hours": {
+          "productEventLogLast24Hours": {
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991,
             "example": 4820
           }
         },
-        "required": ["generatedAt", "users", "productEventsLast24Hours"],
+        "required": ["generatedAt", "users", "productEventLogLast24Hours"],
         "additionalProperties": false
       },
       "AdminDependencies": {
@@ -11027,13 +11027,13 @@
         "required": ["items", "total"],
         "additionalProperties": false
       },
-      "DailyRecordListResponse": {
+      "RecordEntryListResponse": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DailyRecordListResponseItems"
+              "$ref": "#/components/schemas/RecordEntryListResponseItems"
             }
           },
           "total": {
@@ -11046,13 +11046,13 @@
         "required": ["items", "total"],
         "additionalProperties": false
       },
-      "DailyRecordSummaryResponse": {
+      "RecordEntrySummaryResponse": {
         "type": "object",
         "properties": {
           "summaries": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DailyRecordSummaryResponseSummaries"
+              "$ref": "#/components/schemas/RecordEntrySummaryResponseSummaries"
             }
           }
         },
@@ -11072,7 +11072,7 @@
         "required": ["items"],
         "additionalProperties": false
       },
-      "DailyRecordImageUploadResponse": {
+      "RecordEntryImageUploadResponse": {
         "type": "object",
         "properties": {
           "provider": {
@@ -11123,7 +11123,7 @@
         ],
         "additionalProperties": false
       },
-      "DailyRecordCandidateResponse": {
+      "RecordEntryCandidateResponse": {
         "type": "object",
         "properties": {
           "locale": {
@@ -11141,14 +11141,14 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DailyRecordCandidateResponseItems"
+              "$ref": "#/components/schemas/RecordEntryCandidateResponseItems"
             }
           }
         },
         "required": ["locale", "generatedAt", "confirmationHint", "items"],
         "additionalProperties": false
       },
-      "DailyRecordResponse": {
+      "RecordEntryResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -11252,7 +11252,7 @@
           "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DailyRecordResponseAttachments"
+              "$ref": "#/components/schemas/RecordEntryResponseAttachments"
             }
           },
           "createdAt": {
@@ -11383,13 +11383,13 @@
         ],
         "additionalProperties": false
       },
-      "MedicineReminderListResponse": {
+      "ReminderEntryListResponse": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/MedicineReminderListResponseItems"
+              "$ref": "#/components/schemas/ReminderEntryListResponseItems"
             },
             "description": "Medicine reminders."
           }
@@ -11397,7 +11397,7 @@
         "required": ["items"],
         "additionalProperties": false
       },
-      "MedicineReminderResponse": {
+      "ReminderEntryResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -12242,7 +12242,7 @@
         ],
         "additionalProperties": false
       },
-      "NotificationPreferencesResponse": {
+      "NotificationSettingsResponse": {
         "type": "object",
         "properties": {
           "isHealthAlertsEnabled": {
@@ -12893,12 +12893,12 @@
         "additionalProperties": false,
         "description": "One surface layout."
       },
-      "TodayAnalysisReadResponse": {
+      "AnalysisReadResponse": {
         "type": "object",
         "properties": {
           "analysis": {
             "nullable": true,
-            "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysis"
+            "$ref": "#/components/schemas/AnalysisReadResponseAnalysis"
           },
           "status": {
             "type": "string",
@@ -12943,7 +12943,7 @@
           }
         ]
       },
-      "TodayAnalysisData": {
+      "AnalysisData": {
         "type": "object",
         "properties": {
           "date": {
@@ -12961,7 +12961,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisDataBullets"
+              "$ref": "#/components/schemas/AnalysisDataBullets"
             }
           },
           "actionLabel": {
@@ -12979,7 +12979,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisDataMetrics"
+              "$ref": "#/components/schemas/AnalysisDataMetrics"
             }
           }
         },
@@ -12995,12 +12995,12 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadData": {
+      "AnalysisReadData": {
         "type": "object",
         "properties": {
           "analysis": {
             "nullable": true,
-            "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysis"
+            "$ref": "#/components/schemas/AnalysisReadDataAnalysis"
           },
           "status": {
             "type": "string",
@@ -13031,7 +13031,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshPendingData": {
+      "AnalysisRefreshPendingData": {
         "type": "object",
         "properties": {
           "status": {
@@ -13045,7 +13045,7 @@
         "required": ["status", "jobId"],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyData": {
+      "AnalysisRefreshReadyData": {
         "type": "object",
         "properties": {
           "status": {
@@ -13053,13 +13053,13 @@
             "enum": ["ready"]
           },
           "analysis": {
-            "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysis"
+            "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysis"
           }
         },
         "required": ["status", "analysis"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncJobData": {
+      "AnalysisAsyncJobData": {
         "type": "object",
         "properties": {
           "jobId": {
@@ -13069,7 +13069,7 @@
         "required": ["jobId"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultData": {
+      "AnalysisAsyncResultData": {
         "type": "object",
         "properties": {
           "result": {
@@ -13092,7 +13092,7 @@
                   "bullets": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataBullets"
+                      "$ref": "#/components/schemas/AnalysisAsyncResultDataBullets"
                     }
                   },
                   "actionLabel": {
@@ -13110,7 +13110,7 @@
                   "metrics": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataMetrics"
+                      "$ref": "#/components/schemas/AnalysisAsyncResultDataMetrics"
                     }
                   }
                 },
@@ -13131,7 +13131,7 @@
                 "properties": {
                   "analysis": {
                     "nullable": true,
-                    "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysis"
+                    "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysis"
                   },
                   "status": {
                     "type": "string",
@@ -13168,7 +13168,7 @@
         "required": ["result"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncStatusData": {
+      "AnalysisAsyncStatusData": {
         "type": "object",
         "properties": {
           "status": {
@@ -15676,7 +15676,7 @@
         ],
         "additionalProperties": false
       },
-      "LegalDocumentListResponseItems": {
+      "LegalDocListResponseItems": {
         "type": "object",
         "properties": {
           "docType": {
@@ -17936,7 +17936,7 @@
         "required": ["checkInCount", "firstCheckInDate", "lastCheckInDate"],
         "additionalProperties": false
       },
-      "DailyRecordListResponseItems": {
+      "RecordEntryListResponseItems": {
         "type": "object",
         "properties": {
           "id": {
@@ -18040,7 +18040,7 @@
           "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DailyRecordListResponseItemsAttachments"
+              "$ref": "#/components/schemas/RecordEntryListResponseItemsAttachments"
             }
           },
           "createdAt": {
@@ -18077,7 +18077,7 @@
         ],
         "additionalProperties": false
       },
-      "DailyRecordListResponseItemsAttachments": {
+      "RecordEntryListResponseItemsAttachments": {
         "type": "object",
         "properties": {
           "id": {
@@ -18159,7 +18159,7 @@
         ],
         "additionalProperties": false
       },
-      "DailyRecordSummaryResponseSummaries": {
+      "RecordEntrySummaryResponseSummaries": {
         "type": "object",
         "properties": {
           "kind": {
@@ -18183,13 +18183,13 @@
           },
           "latest": {
             "nullable": true,
-            "$ref": "#/components/schemas/DailyRecordSummaryResponseSummariesLatest"
+            "$ref": "#/components/schemas/RecordEntrySummaryResponseSummariesLatest"
           }
         },
         "required": ["kind", "count", "latest"],
         "additionalProperties": false
       },
-      "DailyRecordSummaryResponseSummariesLatest": {
+      "RecordEntrySummaryResponseSummariesLatest": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -18294,7 +18294,7 @@
           "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DailyRecordSummaryResponseSummariesLatestAttachments"
+              "$ref": "#/components/schemas/RecordEntrySummaryResponseSummariesLatestAttachments"
             }
           },
           "createdAt": {
@@ -18332,7 +18332,7 @@
         "additionalProperties": false,
         "description": "Most recent record of this kind."
       },
-      "DailyRecordSummaryResponseSummariesLatestAttachments": {
+      "RecordEntrySummaryResponseSummariesLatestAttachments": {
         "type": "object",
         "properties": {
           "id": {
@@ -18430,7 +18430,7 @@
         "required": ["code", "label"],
         "additionalProperties": false
       },
-      "DailyRecordCandidateResponseItems": {
+      "RecordEntryCandidateResponseItems": {
         "type": "object",
         "properties": {
           "kind": {
@@ -18492,7 +18492,7 @@
         ],
         "additionalProperties": false
       },
-      "DailyRecordResponseAttachments": {
+      "RecordEntryResponseAttachments": {
         "type": "object",
         "properties": {
           "id": {
@@ -18650,7 +18650,7 @@
         ],
         "additionalProperties": false
       },
-      "MedicineReminderListResponseItems": {
+      "ReminderEntryListResponseItems": {
         "type": "object",
         "properties": {
           "id": {
@@ -19182,7 +19182,7 @@
             "type": "boolean",
             "description": "Whether the assistant may read stored health profile, allergies, and conditions."
           },
-          "dailyRecords": {
+          "records": {
             "type": "boolean",
             "description": "Whether the assistant may read recent daily records."
           },
@@ -19197,7 +19197,7 @@
         },
         "required": [
           "healthProfile",
-          "dailyRecords",
+          "records",
           "sleepRecords",
           "currentMedicines"
         ],
@@ -19211,7 +19211,7 @@
             "type": "boolean",
             "description": "Whether the assistant may read stored health profile, allergies, and conditions."
           },
-          "dailyRecords": {
+          "records": {
             "type": "boolean",
             "description": "Whether the assistant may read recent daily records."
           },
@@ -19226,7 +19226,7 @@
         },
         "required": [
           "healthProfile",
-          "dailyRecords",
+          "records",
           "sleepRecords",
           "currentMedicines"
         ],
@@ -20594,14 +20594,14 @@
           "checkIns": {
             "$ref": "#/components/schemas/EventReviewDataCoverageCheckIns"
           },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewDataCoverageDailyRecords"
+          "records": {
+            "$ref": "#/components/schemas/EventReviewDataCoverageRecords"
           },
           "doseLogs": {
             "$ref": "#/components/schemas/EventReviewDataCoverageDoseLogs"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "EventReviewDataCoverageCheckIns": {
@@ -20689,7 +20689,7 @@
         "required": ["date", "outcome", "updatedAt"],
         "additionalProperties": false
       },
-      "EventReviewDataCoverageDailyRecords": {
+      "EventReviewDataCoverageRecords": {
         "type": "object",
         "properties": {
           "state": {
@@ -20793,7 +20793,7 @@
             "description": "Last check-in calendar date (YYYY-MM-DD), or null.",
             "type": "string"
           },
-          "dailyRecords": {
+          "records": {
             "nullable": true,
             "description": "Latest daily-record creation time in the event window (ISO 8601), or null.",
             "type": "string"
@@ -20804,7 +20804,7 @@
             "type": "string"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "EventReviewListResponseItems": {
@@ -21097,14 +21097,14 @@
           "checkIns": {
             "$ref": "#/components/schemas/EventReviewResponseCoverageCheckIns"
           },
-          "dailyRecords": {
-            "$ref": "#/components/schemas/EventReviewResponseCoverageDailyRecords"
+          "records": {
+            "$ref": "#/components/schemas/EventReviewResponseCoverageRecords"
           },
           "doseLogs": {
             "$ref": "#/components/schemas/EventReviewResponseCoverageDoseLogs"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "EventReviewResponseCoverageCheckIns": {
@@ -21192,7 +21192,7 @@
         "required": ["date", "outcome", "updatedAt"],
         "additionalProperties": false
       },
-      "EventReviewResponseCoverageDailyRecords": {
+      "EventReviewResponseCoverageRecords": {
         "type": "object",
         "properties": {
           "state": {
@@ -21296,7 +21296,7 @@
             "description": "Last check-in calendar date (YYYY-MM-DD), or null.",
             "type": "string"
           },
-          "dailyRecords": {
+          "records": {
             "nullable": true,
             "description": "Latest daily-record creation time in the event window (ISO 8601), or null.",
             "type": "string"
@@ -21307,7 +21307,7 @@
             "type": "string"
           }
         },
-        "required": ["checkIns", "dailyRecords", "doseLogs"],
+        "required": ["checkIns", "records", "doseLogs"],
         "additionalProperties": false
       },
       "TodaySuggestionsResponsePrimary": {
@@ -22257,7 +22257,7 @@
         "required": ["percent"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysis": {
+      "AnalysisReadResponseAnalysis": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -22276,7 +22276,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisReadResponseAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22294,7 +22294,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisReadResponseAnalysisMetrics"
             }
           }
         },
@@ -22310,7 +22310,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysisBullets": {
+      "AnalysisReadResponseAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22324,7 +22324,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysisMetrics": {
+      "AnalysisReadResponseAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22332,13 +22332,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisReadResponseAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisReadResponseAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadResponseAnalysisMetricsObservedMetric": {
+      "AnalysisReadResponseAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22386,7 +22386,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisDataBullets": {
+      "AnalysisDataBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22400,7 +22400,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisDataMetrics": {
+      "AnalysisDataMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22408,13 +22408,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisDataMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisDataMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisDataMetricsObservedMetric": {
+      "AnalysisDataMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22462,7 +22462,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysis": {
+      "AnalysisReadDataAnalysis": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -22481,7 +22481,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisReadDataAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22499,7 +22499,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisReadDataAnalysisMetrics"
             }
           }
         },
@@ -22515,7 +22515,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysisBullets": {
+      "AnalysisReadDataAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22529,7 +22529,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysisMetrics": {
+      "AnalysisReadDataAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22537,13 +22537,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisReadDataAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisReadDataAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisReadDataAnalysisMetricsObservedMetric": {
+      "AnalysisReadDataAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22591,7 +22591,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysis": {
+      "AnalysisRefreshReadyDataAnalysis": {
         "type": "object",
         "properties": {
           "date": {
@@ -22609,7 +22609,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22627,7 +22627,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysisMetrics"
             }
           }
         },
@@ -22643,7 +22643,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysisBullets": {
+      "AnalysisRefreshReadyDataAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22657,7 +22657,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysisMetrics": {
+      "AnalysisRefreshReadyDataAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22665,13 +22665,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisRefreshReadyDataAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisRefreshReadyDataAnalysisMetricsObservedMetric": {
+      "AnalysisRefreshReadyDataAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22719,7 +22719,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataBullets": {
+      "AnalysisAsyncResultDataBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22733,7 +22733,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataMetrics": {
+      "AnalysisAsyncResultDataMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22741,13 +22741,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisAsyncResultDataMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataMetricsObservedMetric": {
+      "AnalysisAsyncResultDataMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -22795,7 +22795,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysis": {
+      "AnalysisAsyncResultDataAnalysis": {
         "nullable": true,
         "type": "object",
         "properties": {
@@ -22814,7 +22814,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysisBullets"
+              "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysisBullets"
             }
           },
           "actionLabel": {
@@ -22832,7 +22832,7 @@
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysisMetrics"
+              "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysisMetrics"
             }
           }
         },
@@ -22848,7 +22848,7 @@
         ],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysisBullets": {
+      "AnalysisAsyncResultDataAnalysisBullets": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22862,7 +22862,7 @@
         "required": ["kind", "text"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysisMetrics": {
+      "AnalysisAsyncResultDataAnalysisMetrics": {
         "type": "object",
         "properties": {
           "kind": {
@@ -22870,13 +22870,13 @@
             "enum": ["medication", "water", "sleep"]
           },
           "observedMetric": {
-            "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataAnalysisMetricsObservedMetric"
+            "$ref": "#/components/schemas/AnalysisAsyncResultDataAnalysisMetricsObservedMetric"
           }
         },
         "required": ["kind", "observedMetric"],
         "additionalProperties": false
       },
-      "TodayAnalysisAsyncResultDataAnalysisMetricsObservedMetric": {
+      "AnalysisAsyncResultDataAnalysisMetricsObservedMetric": {
         "type": "object",
         "properties": {
           "value": {
@@ -23220,7 +23220,7 @@
             "type": "boolean",
             "description": "Allow the assistant to read stored health profile, allergies, and conditions."
           },
-          "dailyRecords": {
+          "records": {
             "type": "boolean",
             "description": "Allow the assistant to read recent daily records."
           },

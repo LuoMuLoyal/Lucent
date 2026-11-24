@@ -12,10 +12,10 @@ import { Injectable } from '@nestjs/common';
 import { nonDeleted, toInputJsonValue } from '../../../../common/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
-  DailyRecordReaderPort,
+  RecordEntryReaderPort,
   MAX_READER_FACTS,
-  type DailyRecordFact,
-  type DailyRecordSummaryFact,
+  type RecordEntryFact,
+  type RecordEntrySummaryFact,
 } from '../../application/ports/records-query.js';
 import {
   toDailyRecordFact,
@@ -67,7 +67,7 @@ const factSelect = {
 
 @Injectable()
 export class PrismaRecordQueries
-  extends DailyRecordReaderPort
+  extends RecordEntryReaderPort
   implements MealAnalyses
 {
   constructor(private readonly prisma: PrismaService) {
@@ -121,7 +121,7 @@ export class PrismaRecordQueries
     from: Date,
     to: Date,
     kinds?: DailyRecordKind[],
-  ): Promise<DailyRecordFact[]> {
+  ): Promise<RecordEntryFact[]> {
     const rows = await this.prisma.userDailyRecord.findMany({
       where: {
         userId,
@@ -173,7 +173,7 @@ export class PrismaRecordQueries
   async findById(
     userId: string,
     id: string,
-  ): Promise<DailyRecordSummaryFact | null> {
+  ): Promise<RecordEntrySummaryFact | null> {
     const row = await this.prisma.userDailyRecord.findFirst({
       where: { id, userId, ...nonDeleted },
       include: recordWithAttachments,
@@ -184,7 +184,7 @@ export class PrismaRecordQueries
   async findByIdWithAttachments(
     userId: string,
     id: string,
-  ): Promise<DailyRecordFact | null> {
+  ): Promise<RecordEntryFact | null> {
     const row = await this.prisma.userDailyRecord.findFirst({
       where: { id, userId, ...nonDeleted },
       include: recordWithAttachments,

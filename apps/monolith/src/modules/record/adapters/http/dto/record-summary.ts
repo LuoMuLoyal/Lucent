@@ -7,7 +7,7 @@ import { dailyRecordItemSchema } from './record-item.js';
  * Standard Schema (zod 4) for one entry of the per-kind daily-record summary
  * (`GET /record/summary`).
  *
- * Replaces the former `@ApiProperty` response class `DailyRecordSummaryDto`.
+ * Replaces the former `@ApiProperty` response class `RecordEntrySummaryDto`.
  * The mapper always emits `latest` (the most recent record of the kind, or
  * `null` when the kind has no record), so it is a required nullable field.
  */
@@ -23,4 +23,4 @@ export const dailyRecordSummarySchema = z.object({
 });
 
 /** Strongly typed per-kind daily-record summary of the summary endpoint. */
-export type DailyRecordSummaryDto = z.infer<typeof dailyRecordSummarySchema>;
+export type RecordEntrySummaryDto = z.infer<typeof dailyRecordSummarySchema>;

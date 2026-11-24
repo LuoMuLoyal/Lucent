@@ -7,7 +7,7 @@ import {
 import type { UserPayload } from '../../../auth/index.js';
 
 import { ReminderDeliveriesController } from './reminder-deliveries.controller.js';
-import { MedicineRemindersService } from '../../application/services/reminders.js';
+import { RemindersService } from '../../application/services/reminders.js';
 import { ReminderDeliveries } from '../../application/ports/delivery-services.js';
 import { reminderDeliveryReceiptSchema } from '../../application/ports/delivery-receipt.js';
 import type { ReminderDeliveryReceiptDto } from '../../application/ports/delivery-receipt.js';
@@ -20,7 +20,7 @@ const mockUser: UserPayload = {
 
 describe('ReminderDeliveriesController', () => {
   let controller: ReminderDeliveriesController;
-  let service: vi.Mocked<MedicineRemindersService>;
+  let service: vi.Mocked<RemindersService>;
   let receiptsService: vi.Mocked<ReminderDeliveries>;
 
   beforeEach(async () => {
@@ -28,7 +28,7 @@ describe('ReminderDeliveriesController', () => {
       controllers: [ReminderDeliveriesController],
       providers: [
         {
-          provide: MedicineRemindersService,
+          provide: RemindersService,
           useValue: {
             listDeliveries: vi.fn(),
           },
@@ -44,7 +44,7 @@ describe('ReminderDeliveriesController', () => {
     }).compile();
 
     controller = module.get(ReminderDeliveriesController);
-    service = module.get(MedicineRemindersService);
+    service = module.get(RemindersService);
     receiptsService = module.get(ReminderDeliveries);
   });
 

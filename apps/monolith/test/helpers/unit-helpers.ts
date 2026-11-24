@@ -81,7 +81,7 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
-    dataExportRequest: {
+    DataExportRequest: {
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),

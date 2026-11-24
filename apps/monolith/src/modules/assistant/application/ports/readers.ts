@@ -1,7 +1,7 @@
-import type { MedicineReminderItemDto } from '../../../reminder/index.js';
-import type { DailyRecordCandidateData } from '../../../record/index.js';
+import type { ReminderEntryItemDto } from '../../../reminder/index.js';
+import type { RecordEntryCandidateData } from '../../../record/index.js';
 
-import type { DailyRecordItemDto } from '../../../record/index.js';
+import type { RecordEntryItemDto } from '../../../record/index.js';
 
 import type { GenerateDailyRecordCandidatesDto } from '../../../record/index.js';
 
@@ -17,7 +17,7 @@ export interface IAssistantUserSettings {
   assistantMemoryEnabled: boolean;
   assistantContext: {
     healthProfile: boolean;
-    dailyRecords: boolean;
+    records: boolean;
     sleepRecords: boolean;
     currentMedicines: boolean;
   };
@@ -40,7 +40,7 @@ export interface IMedicineReminderReader {
   list(
     userId: string,
     activeOnly?: boolean,
-  ): Promise<{ items: MedicineReminderItemDto[] }>;
+  ): Promise<{ items: ReminderEntryItemDto[] }>;
 }
 
 export const MEDICINE_REMINDER_READER = Symbol('MEDICINE_REMINDER_READER');
@@ -56,7 +56,7 @@ export interface IDailyRecordReader {
     kind?: string,
     page?: number,
     pageSize?: number,
-  ): Promise<{ items: DailyRecordItemDto[]; total: number }>;
+  ): Promise<{ items: RecordEntryItemDto[]; total: number }>;
 }
 
 export const DAILY_RECORD_READER = Symbol('DAILY_RECORD_READER');
@@ -70,7 +70,7 @@ export interface IDailyRecordCandidateGenerator {
     userId: string,
     dto: GenerateDailyRecordCandidatesDto,
     language: string,
-  ): Promise<DailyRecordCandidateData>;
+  ): Promise<RecordEntryCandidateData>;
 }
 
 export const DAILY_RECORD_CANDIDATE_GENERATOR = Symbol(

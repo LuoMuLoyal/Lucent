@@ -1,9 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { DailyRecordKind } from '#generated/prisma/client.js';
 import { RecordController } from './record.controller.js';
-import { DailyRecordCandidatesService } from '../../application/use_cases/generate-candidates.js';
-import { DailyRecordImageUploadService } from './image-upload.service.js';
-import { DailyRecordsService } from '../../application/services/records-facade.service.js';
+import { RecordEntryCandidatesService } from '../../application/use_cases/generate-candidates.js';
+import { RecordEntryImageUploadService } from './image-upload.service.js';
+import { RecordsService } from '../../application/services/records-facade.service.js';
 import { SymptomCatalogService } from './symptom-catalog.service.js';
 import type { UserPayload } from '../../../auth/index.js';
 import { okAsync, errAsync } from '../../../../common/result/index.js';
@@ -13,9 +13,9 @@ import { generateDailyRecordCandidatesSchema } from './dto/candidates/generate-r
 
 describe('RecordController', () => {
   let controller: RecordController;
-  let dailyRecordsService: vi.Mocked<DailyRecordsService>;
-  let candidatesService: vi.Mocked<DailyRecordCandidatesService>;
-  let imageUploadService: vi.Mocked<DailyRecordImageUploadService>;
+  let recordsService: vi.Mocked<RecordsService>;
+  let candidatesService: vi.Mocked<RecordEntryCandidatesService>;
+  let imageUploadService: vi.Mocked<RecordEntryImageUploadService>;
   let symptomCatalogService: vi.Mocked<SymptomCatalogService>;
 
   const mockUser: UserPayload = {
@@ -36,22 +36,22 @@ describe('RecordController', () => {
   };
 
   beforeEach(async () => {
-    dailyRecordsService = {
+    recordsService = {
       list: vi.fn(),
       summary: vi.fn(),
       get: vi.fn().mockReturnValue(okAsync({ id: 'rec-1' })),
       create: vi.fn().mockReturnValue(okAsync({ id: 'rec-1' })),
       update: vi.fn().mockReturnValue(okAsync({ id: 'rec-1' })),
       delete: vi.fn().mockReturnValue(okAsync(undefined)),
-    } as unknown as vi.Mocked<DailyRecordsService>;
+    } as unknown as vi.Mocked<RecordsService>;
 
     candidatesService = {
       generate: vi.fn(),
-    } as unknown as vi.Mocked<DailyRecordCandidatesService>;
+    } as unknown as vi.Mocked<RecordEntryCandidatesService>;
 
     imageUploadService = {
       createPresignedUpload: vi.fn(),
-    } as unknown as vi.Mocked<DailyRecordImageUploadService>;
+    } as unknown as vi.Mocked<RecordEntryImageUploadService>;
 
     symptomCatalogService = {
       list: vi.fn().mockReturnValue({ items: [] }),
@@ -60,10 +60,10 @@ describe('RecordController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RecordController],
       providers: [
-        { provide: DailyRecordsService, useValue: dailyRecordsService },
-        { provide: DailyRecordCandidatesService, useValue: candidatesService },
+        { provide: RecordsService, useValue: recordsService },
+        { provide: RecordEntryCandidatesService, useValue: candidatesService },
         {
-          provide: DailyRecordImageUploadService,
+          provide: RecordEntryImageUploadService,
           useValue: imageUploadService,
         },
         { provide: SymptomCatalogService, useValue: symptomCatalogService },
@@ -76,13 +76,13 @@ describe('RecordController', () => {
   describe('list', () => {
     it('calls service.list with correct params', async () => {
       const data = { items: [], total: 0, page: 1, pageSize: 50 };
-      dailyRecordsService.list.mockResolvedValue(data);
+      recordsService.list.mockResolvedValue(data);
 
       const result = await controller.list(mockUser, {
         date: '2026-07-10',
       });
 
-      expect(dailyRecordsService.list).toHaveBeenCalledWith(
+      expect(recordsService.list).toHaveBeenCalledWith(
         'user-1',
         '2026-07-10',
         undefined,
@@ -93,7 +93,7 @@ describe('RecordController', () => {
     });
 
     it('passes kind, page, pageSize when provided', async () => {
-      dailyRecordsService.list.mockResolvedValue({
+      recordsService.list.mockResolvedValue({
         items: [],
         total: 0,
         page: 2,
@@ -107,7 +107,7 @@ describe('RecordController', () => {
         pageSize: 10,
       });
 
-      expect(dailyRecordsService.list).toHaveBeenCalledWith(
+      expect(recordsService.list).toHaveBeenCalledWith(
         'user-1',
         '2026-07-10',
         'water',
@@ -120,11 +120,11 @@ describe('RecordController', () => {
   describe('summary', () => {
     it('calls service.summary with userId and date', async () => {
       const data = { date: '2026-07-10', counts: {} } as never;
-      dailyRecordsService.summary.mockResolvedValue(data);
+      recordsService.summary.mockResolvedValue(data);
 
       const result = await controller.summary(mockUser, '2026-07-10');
 
-      expect(dailyRecordsService.summary).toHaveBeenCalledWith(
+      expect(recordsService.summary).toHaveBeenCalledWith(
         'user-1',
         '2026-07-10',
       );
@@ -182,16 +182,16 @@ describe('RecordController', () => {
   describe('get', () => {
     it('calls service.get with userId and id', async () => {
       const data = { id: 'rec-1', kind: 'water', value: '500' } as never;
-      dailyRecordsService.get.mockReturnValue(okAsync(data));
+      recordsService.get.mockReturnValue(okAsync(data));
 
       const result = await controller.get(mockUser, 'rec-1');
 
-      expect(dailyRecordsService.get).toHaveBeenCalledWith('user-1', 'rec-1');
+      expect(recordsService.get).toHaveBeenCalledWith('user-1', 'rec-1');
       expect(result).toEqual(data);
     });
 
     it('folds a foreign record into DomainFailureException with FORBIDDEN', async () => {
-      dailyRecordsService.get.mockReturnValue(errAsync(forbiddenFailure));
+      recordsService.get.mockReturnValue(errAsync(forbiddenFailure));
 
       await expect(
         controller.get(mockUser, 'rec-foreign'),
@@ -201,7 +201,7 @@ describe('RecordController', () => {
     });
 
     it('folds a missing record into DomainFailureException with RESOURCE_NOT_FOUND', async () => {
-      dailyRecordsService.get.mockReturnValue(errAsync(notFoundFailure));
+      recordsService.get.mockReturnValue(errAsync(notFoundFailure));
 
       await expect(
         controller.get(mockUser, 'rec-missing'),
@@ -220,11 +220,11 @@ describe('RecordController', () => {
         value: '500',
         unit: 'ml',
       } as never;
-      dailyRecordsService.create.mockReturnValue(okAsync(data));
+      recordsService.create.mockReturnValue(okAsync(data));
 
       const result = await controller.create(mockUser, dto);
 
-      expect(dailyRecordsService.create).toHaveBeenCalledWith('user-1', dto);
+      expect(recordsService.create).toHaveBeenCalledWith('user-1', dto);
       expect(result).toEqual(data);
     });
 
@@ -235,7 +235,7 @@ describe('RecordController', () => {
         kind: 'validation',
         code: 'VALIDATION_FAILED',
       };
-      dailyRecordsService.create.mockReturnValue(errAsync(validationFailure));
+      recordsService.create.mockReturnValue(errAsync(validationFailure));
 
       await expect(controller.create(mockUser, dto)).rejects.toMatchObject({
         failure: { kind: 'validation', code: 'VALIDATION_FAILED' },
@@ -247,11 +247,11 @@ describe('RecordController', () => {
     it('calls service.update with userId, id, and dto', async () => {
       const dto = { value: '600' };
       const data = { id: 'rec-1', kind: 'water', value: '600' } as never;
-      dailyRecordsService.update.mockReturnValue(okAsync(data));
+      recordsService.update.mockReturnValue(okAsync(data));
 
       const result = await controller.update(mockUser, 'rec-1', dto);
 
-      expect(dailyRecordsService.update).toHaveBeenCalledWith(
+      expect(recordsService.update).toHaveBeenCalledWith(
         'user-1',
         'rec-1',
         dto,
@@ -260,7 +260,7 @@ describe('RecordController', () => {
     });
 
     it('folds a missing record into DomainFailureException with RESOURCE_NOT_FOUND', async () => {
-      dailyRecordsService.update.mockReturnValue(errAsync(notFoundFailure));
+      recordsService.update.mockReturnValue(errAsync(notFoundFailure));
 
       await expect(
         controller.update(mockUser, 'rec-missing', {}),
@@ -276,14 +276,14 @@ describe('RecordController', () => {
         controller.delete(mockUser, 'rec-1'),
       ).resolves.toBeUndefined();
 
-      expect(dailyRecordsService.delete).toHaveBeenCalledWith(
+      expect(recordsService.delete).toHaveBeenCalledWith(
         'user-1',
         'rec-1',
       );
     });
 
     it('folds a foreign record into DomainFailureException with FORBIDDEN', async () => {
-      dailyRecordsService.delete.mockReturnValue(errAsync(forbiddenFailure));
+      recordsService.delete.mockReturnValue(errAsync(forbiddenFailure));
 
       await expect(
         controller.delete(mockUser, 'rec-foreign'),

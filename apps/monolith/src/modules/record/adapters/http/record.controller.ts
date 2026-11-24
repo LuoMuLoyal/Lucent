@@ -49,9 +49,9 @@ import type { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate
 
 import { queryDailyRecordSchema } from './dto/query-record.js';
 import type { QueryDailyRecordDto } from './dto/query-record.js';
-import { DailyRecordCandidatesService } from '../../application/use_cases/generate-candidates.js';
-import { DailyRecordImageUploadService } from './image-upload.service.js';
-import { DailyRecordsService } from '../../application/services/records-facade.service.js';
+import { RecordEntryCandidatesService } from '../../application/use_cases/generate-candidates.js';
+import { RecordEntryImageUploadService } from './image-upload.service.js';
+import { RecordsService } from '../../application/services/records-facade.service.js';
 import { I18nLang } from 'nestjs-i18n';
 import { symptomCatalogResponseSchema } from './dto/symptom-catalog.js';
 import type { SymptomCatalogResponseDto } from './dto/symptom-catalog.js';
@@ -62,9 +62,9 @@ import { SymptomCatalogService } from './symptom-catalog.service.js';
 @Controller('record')
 export class RecordController {
   constructor(
-    private readonly dailyRecordsService: DailyRecordsService,
-    private readonly dailyRecordCandidatesService: DailyRecordCandidatesService,
-    private readonly imageUploadService: DailyRecordImageUploadService,
+    private readonly recordsService: RecordsService,
+    private readonly dailyRecordCandidatesService: RecordEntryCandidatesService,
+    private readonly imageUploadService: RecordEntryImageUploadService,
     private readonly symptomCatalogService: SymptomCatalogService,
   ) {}
 
@@ -83,7 +83,7 @@ export class RecordController {
     @Query({ schema: queryDailyRecordSchema })
     query: QueryDailyRecordDto,
   ) {
-    const result = await this.dailyRecordsService.list(
+    const result = await this.recordsService.list(
       user.sub,
       query.date,
       query.kind,
@@ -105,7 +105,7 @@ export class RecordController {
   })
   @SerializeOptions({ schema: dailyRecordSummaryResponseSchema })
   async summary(@CurrentUser() user: UserPayload, @Query('date') date: string) {
-    const result = await this.dailyRecordsService.summary(user.sub, date);
+    const result = await this.recordsService.summary(user.sub, date);
     return result;
   }
 
@@ -190,7 +190,7 @@ export class RecordController {
     type: ProblemDetailsDto,
   })
   async get(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    return unwrapResult(this.dailyRecordsService.get(user.sub, id));
+    return unwrapResult(this.recordsService.get(user.sub, id));
   }
 
   @Post()
@@ -220,7 +220,7 @@ export class RecordController {
     @Body({ schema: createDailyRecordSchema })
     dto: CreateDailyRecordDto,
   ) {
-    return unwrapResult(this.dailyRecordsService.create(user.sub, dto));
+    return unwrapResult(this.recordsService.create(user.sub, dto));
   }
 
   @Patch(':id')
@@ -252,7 +252,7 @@ export class RecordController {
     @Body({ schema: updateDailyRecordSchema })
     dto: UpdateDailyRecordDto,
   ) {
-    return unwrapResult(this.dailyRecordsService.update(user.sub, id, dto));
+    return unwrapResult(this.recordsService.update(user.sub, id, dto));
   }
 
   @Delete(':id')
@@ -274,7 +274,7 @@ export class RecordController {
     type: ProblemDetailsDto,
   })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await unwrapResult(this.dailyRecordsService.delete(user.sub, id));
+    await unwrapResult(this.recordsService.delete(user.sub, id));
     return;
   }
 }
@@ -286,7 +286,7 @@ export class RecordController {
 registerResponseSchema({
   path: '/api/v1/user/record',
   method: 'get',
-  componentName: 'DailyRecordListResponse',
+  componentName: 'RecordEntryListResponse',
   schema: dailyRecordListResponseSchema,
   description: 'Daily records for the date.',
 });
@@ -294,7 +294,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/summary',
   method: 'get',
-  componentName: 'DailyRecordSummaryResponse',
+  componentName: 'RecordEntrySummaryResponse',
   schema: dailyRecordSummaryResponseSchema,
   description: 'Daily record counts grouped by kind for the date.',
 });
@@ -311,7 +311,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/attachments/images/presign-upload',
   method: 'post',
-  componentName: 'DailyRecordImageUploadResponse',
+  componentName: 'RecordEntryImageUploadResponse',
   schema: dailyRecordImageUploadResponseSchema,
   description: 'Presigned upload metadata for direct object storage upload.',
 });
@@ -319,7 +319,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/candidate-records/generate',
   method: 'post',
-  componentName: 'DailyRecordCandidateResponse',
+  componentName: 'RecordEntryCandidateResponse',
   schema: dailyRecordCandidateResponseSchema,
   description: 'Generated candidate daily records (not saved yet).',
 });
@@ -327,7 +327,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/{id}',
   method: 'get',
-  componentName: 'DailyRecordResponse',
+  componentName: 'RecordEntryResponse',
   schema: dailyRecordResponseSchema,
   description: 'The daily record.',
 });
@@ -335,7 +335,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record',
   method: 'post',
-  componentName: 'DailyRecordResponse',
+  componentName: 'RecordEntryResponse',
   schema: dailyRecordResponseSchema,
   description: 'The created daily record.',
 });
@@ -343,7 +343,7 @@ registerResponseSchema({
 registerResponseSchema({
   path: '/api/v1/user/record/{id}',
   method: 'patch',
-  componentName: 'DailyRecordResponse',
+  componentName: 'RecordEntryResponse',
   schema: dailyRecordResponseSchema,
   description: 'The updated daily record.',
 });

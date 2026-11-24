@@ -35,7 +35,7 @@ export class EscalationService {
     private readonly notificationsService: INotificationSender,
     private readonly pushDeliveryService: PushDeliveryService,
     private readonly prisma: PrismaService,
-    private readonly notificationPreferencesService: NotificationService,
+    private readonly notificationSettingsService: NotificationService,
   ) {}
 
   /**
@@ -60,7 +60,7 @@ export class EscalationService {
     }
 
     if (
-      !(await this.notificationPreferencesService.isRuleEnabled(
+      !(await this.notificationSettingsService.isRuleEnabled(
         userId,
         candidate.ruleId,
       ))

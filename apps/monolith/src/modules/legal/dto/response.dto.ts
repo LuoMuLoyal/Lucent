@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Standard Schema (zod 4) for one entry of the `GET /legal` list.
  *
- * Replaces the former `LegalDocumentListItemDto` response class. Response
+ * Replaces the former `LegalDocListItemDto` response class. Response
  * schemas intentionally carry no `.strict()` / `.default()` so outbound
  * parsing tolerates whatever the service layer produces.
  */
@@ -14,14 +14,14 @@ export const legalDocumentListItemSchema = z.object({
 });
 
 /** Strongly typed metadata item for the legal document list endpoint. */
-export type LegalDocumentListItemDto = z.infer<
+export type LegalDocListItemDto = z.infer<
   typeof legalDocumentListItemSchema
 >;
 
 /**
  * Standard Schema (zod 4) for the `GET /legal/:docType` response.
  *
- * Replaces the former `LegalDocumentDetailDto` response class.
+ * Replaces the former `LegalDocDetailDto` response class.
  */
 export const legalDocumentDetailSchema = z.object({
   docType: z
@@ -34,12 +34,12 @@ export const legalDocumentDetailSchema = z.object({
 });
 
 /** Strongly typed full legal document with Markdown content. */
-export type LegalDocumentDetailDto = z.infer<typeof legalDocumentDetailSchema>;
+export type LegalDocDetailDto = z.infer<typeof legalDocumentDetailSchema>;
 
 /**
  * Standard Schema (zod 4) for the `GET /legal` list response body.
  *
- * Replaces the former `LegalDocumentListDataDto` response class.
+ * Replaces the former `LegalDocListDataDto` response class.
  */
 export const legalDocumentListSchema = z.object({
   items: z.array(legalDocumentListItemSchema),
@@ -50,10 +50,10 @@ export const legalDocumentListSchema = z.object({
 });
 
 /** Strongly typed response data for the list endpoint. */
-export type LegalDocumentListDataDto = z.infer<typeof legalDocumentListSchema>;
+export type LegalDocListDataDto = z.infer<typeof legalDocumentListSchema>;
 
 /** Backwards-compatible response alias for the list endpoint. */
-export type LegalDocumentListResponseDto = LegalDocumentListDataDto;
+export type LegalDocListResponseDto = LegalDocListDataDto;
 
 /** Backwards-compatible response alias for the detail endpoint. */
-export type LegalDocumentDetailResponseDto = LegalDocumentDetailDto;
+export type LegalDocDetailResponseDto = LegalDocDetailDto;

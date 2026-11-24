@@ -18,10 +18,10 @@ import type {
   MarkTodayAnalysisFailedInput,
   MarkTodayAnalysisPendingInput,
   MarkTodayAnalysisReadyInput,
-  TodayAnalysisMaterializationView,
+  AnalysisMaterializationView,
 } from './materialization-shapes.js';
 
-/** Injection token for {@link TodayAnalysisMaterialization}. */
+/** Injection token for {@link AnalysisMaterialization}. */
 export const ANALYSIS_MATERIALIZATION = Symbol(
   'AnalysisMaterialization',
 );
@@ -34,26 +34,26 @@ export const ANALYSIS_MATERIALIZATION = Symbol(
  * rather than beside the Prisma implementation so the port does not depend on
  * `infrastructure/`.
  */
-export type TodayAnalysisGenerationClaim =
+export type AnalysisGenerationClaim =
   | { claimed: true; status: 'claimed'; activeVersion: number }
   | { claimed: false; status: 'stale' | 'capped' | 'busy' };
 
 /** `markPending` result: the new view plus whether a job should be queued. */
-export interface TodayAnalysisPendingResult extends TodayAnalysisMaterializationView {
+export interface AnalysisPendingResult extends AnalysisMaterializationView {
   shouldQueue: boolean;
 }
 
 /** Persistence surface of the materialization row. */
-export interface TodayAnalysisMaterialization {
+export interface AnalysisMaterialization {
   readStatus(
     userId: string,
     localDate: string,
-  ): Promise<TodayAnalysisMaterializationView>;
+  ): Promise<AnalysisMaterializationView>;
 
   /** Allocates the next `sourceVersion`; decides whether to enqueue. */
   markPending(
     input: MarkTodayAnalysisPendingInput,
-  ): Promise<TodayAnalysisPendingResult>;
+  ): Promise<AnalysisPendingResult>;
 
   /**
    * Claims the generation slot for `sourceVersion`.
@@ -66,7 +66,7 @@ export interface TodayAnalysisMaterialization {
     userId: string,
     localDate: string,
     sourceVersion: number,
-  ): Promise<TodayAnalysisGenerationClaim>;
+  ): Promise<AnalysisGenerationClaim>;
 
   markReady(input: MarkTodayAnalysisReadyInput): Promise<boolean>;
 
@@ -80,5 +80,5 @@ export interface TodayAnalysisMaterialization {
   ): Promise<void>;
 
   /** True when a recompute was requested too recently to start another. */
-  isRefreshCoolingDown(status: TodayAnalysisMaterializationView): boolean;
+  isRefreshCoolingDown(status: AnalysisMaterializationView): boolean;
 }

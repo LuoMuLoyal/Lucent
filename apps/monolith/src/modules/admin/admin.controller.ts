@@ -82,7 +82,7 @@ import type {
   AdminSafetyTipCreateDto,
   AdminSafetyTipUpdateDto,
 } from './adapters/http/dto/admin-content.js';
-import { LegalDocumentsAdminService } from '../legal/index.js';
+import { LegalAdminService } from '../legal/index.js';
 import { SafetyTipsAdminService } from '../medicines/index.js';
 import { QaChunksAdminService } from '../assistant/index.js';
 import { adminIdentityResponseSchema } from './adapters/http/dto/admin-identity.js';
@@ -101,7 +101,7 @@ export class AdminController {
     private readonly authSessions: AuthSessionAdminService,
     private readonly shares: AdminSharesService,
     private readonly userRelated: AdminUserRelatedService,
-    private readonly legalDocuments: LegalDocumentsAdminService,
+    private readonly legal: LegalAdminService,
     private readonly safetyTips: SafetyTipsAdminService,
     private readonly qaChunks: QaChunksAdminService,
   ) {}
@@ -448,7 +448,7 @@ export class AdminController {
   @SerializeOptions({ schema: adminLegalDocumentSchema })
   @ApiOperation({ operationId: 'listAdminLegalDocuments', summary: 'List legal documents for administration' })
   async listLegalDocuments() {
-    return this.legalDocuments.list();
+    return this.legal.list();
   }
 
   @Put('content/legal/:docType')
@@ -463,7 +463,7 @@ export class AdminController {
     @Body({ schema: adminLegalDocumentUpdateSchema })
     input: AdminLegalDocumentUpdateDto,
   ) {
-    const document = await this.legalDocuments.update(user.sub, docType, input);
+    const document = await this.legal.update(user.sub, docType, input);
     if (document === null) {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',

@@ -20,7 +20,7 @@ import {
  * LLM generator for suggestion card explanations.
  *
  * Extends BaseLlmGeneratorService to use structured-output function calling
- * with a Zod schema, following the same pattern as TodayAnalysisGeneratorService.
+ * with a Zod schema, following the same pattern as AnalysisGeneratorService.
  */
 @Injectable()
 export class ExplanationGeneratorService extends BaseLlmGeneratorService<
