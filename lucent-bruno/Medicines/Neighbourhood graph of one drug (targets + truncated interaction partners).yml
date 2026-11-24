@@ -1,0 +1,146 @@
+info:
+  name: Neighbourhood graph of one drug (targets + truncated interaction partners)
+  type: http
+  seq: 5
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/:id/network'
+  params:
+    - name: id
+      value: ''
+      type: path
+      description: DrugBank id of the centre drug
+    - name: source
+      value: drugbank
+      type: query
+      description: Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.
+      disabled: true
+    - name: source
+      value: cn
+      type: query
+      description: Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.
+      disabled: true
+    - name: depth
+      value: '1'
+      type: query
+      description: 'Neighbourhood depth. Only 1 is supported: depth 2 on the interaction graph is quadratic and unreadable.'
+      disabled: true
+    - name: limit
+      value: '30'
+      type: query
+      description: Maximum neighbour nodes (1-100, default 30). Deterministic index order, not importance-ranked.
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Neighbourhood graph. Empty neighbours with truncated=0 when the drug has no relations.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/:id/network'
+      method: GET
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: DrugBank id of the centre drug
+        - name: source
+          value: drugbank
+          type: query
+          description: Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.
+          disabled: true
+        - name: source
+          value: cn
+          type: query
+          description: Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.
+          disabled: true
+        - name: depth
+          value: '1'
+          type: query
+          description: 'Neighbourhood depth. Only 1 is supported: depth 2 on the interaction graph is quadratic and unreadable.'
+          disabled: true
+        - name: limit
+          value: '30'
+          type: query
+          description: Maximum neighbour nodes (1-100, default 30). Deterministic index order, not importance-ranked.
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "center": {
+              "id": "",
+              "name": ""
+            },
+            "degree": {
+              "interactions": 0,
+              "targets": 0
+            },
+            "neighbours": [
+              {
+                "id": "",
+                "name": "",
+                "nodeKind": "drug",
+                "inCatalogue": false
+              }
+            ],
+            "edges": [
+              {
+                "kind": "interaction",
+                "neighbourId": "",
+                "relationKind": "",
+                "actions": []
+              }
+            ],
+            "truncated": 0,
+            "ordering": "drugbank_id_asc"
+          }
+  - name: 404 Response
+    description: Unknown medicine id.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/:id/network'
+      method: GET
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: DrugBank id of the centre drug
+        - name: source
+          value: drugbank
+          type: query
+          description: Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.
+          disabled: true
+        - name: source
+          value: cn
+          type: query
+          description: Knowledge source. Only drugbank has a relation graph; cn returns an empty graph.
+          disabled: true
+        - name: depth
+          value: '1'
+          type: query
+          description: 'Neighbourhood depth. Only 1 is supported: depth 2 on the interaction graph is quadratic and unreadable.'
+          disabled: true
+        - name: limit
+          value: '30'
+          type: query
+          description: Maximum neighbour nodes (1-100, default 30). Deterministic index order, not importance-ranked.
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ''
+
+docs: 'Facts only: no inferred edges. Neighbours are capped (default 30, max 100) and taken in index order by partner id, NOT ranked by importance; the response always states how many were omitted (`truncated`) and which ordering was used.'

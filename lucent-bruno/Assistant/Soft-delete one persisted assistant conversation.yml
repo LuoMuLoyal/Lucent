@@ -1,0 +1,57 @@
+info:
+  name: Soft-delete one persisted assistant conversation
+  type: http
+  seq: 7
+  tags:
+    - Assistant
+
+http:
+  method: DELETE
+  url: '{{baseUrl}}/api/v1/user/assistant/conversations/:conversationId'
+  params:
+    - name: conversationId
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The conversation after soft deletion (status archived/deleted).
+    request:
+      url: '{{baseUrl}}/api/v1/user/assistant/conversations/:conversationId'
+      method: DELETE
+      params:
+        - name: conversationId
+          value: ''
+          type: path
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "title": "",
+            "status": "active",
+            "messages": [
+              {
+                "role": "user",
+                "content": "",
+                "usedTools": [],
+                "createdAt": ""
+              }
+            ],
+            "lastMessageAt": "",
+            "createdAt": "",
+            "updatedAt": ""
+          }

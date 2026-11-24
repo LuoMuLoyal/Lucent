@@ -1,0 +1,66 @@
+info:
+  name: Soft-delete a dose log
+  type: http
+  seq: 5
+  tags:
+    - Medicine_Dose_Logs
+
+http:
+  method: DELETE
+  url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/:id'
+  params:
+    - name: id
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Dose log deleted.
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/:id'
+      method: DELETE
+      params:
+        - name: id
+          value: ''
+          type: path
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ''
+  - name: 404 Response
+    description: Dose log not found (RESOURCE_NOT_FOUND)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/:id'
+      method: DELETE
+      params:
+        - name: id
+          value: ''
+          type: path
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

@@ -1,0 +1,54 @@
+info:
+  name: What targets one drug acts on
+  type: http
+  seq: 15
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/actions'
+  params:
+    - name: drugbankId
+      value: ''
+      type: query
+      description: DrugBank id
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Target action spectrum of the drug.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/actions'
+      method: GET
+      params:
+        - name: drugbankId
+          value: ''
+          type: query
+          description: DrugBank id
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "actions": [
+              {
+                "targetGene": "",
+                "targetName": "",
+                "relation": "",
+                "actions": []
+              }
+            ]
+          }

@@ -1,0 +1,62 @@
+info:
+  name: List user notifications
+  type: http
+  seq: 2
+  tags:
+    - Notifications
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/notifications'
+  params:
+    - name: page
+      value: ''
+      type: query
+    - name: pageSize
+      value: ''
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Paginated notification list.
+    request:
+      url: '{{baseUrl}}/api/v1/user/notifications'
+      method: GET
+      params:
+        - name: page
+          value: ''
+          type: query
+        - name: pageSize
+          value: ''
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "type": "ai_today_summary",
+                "title": "",
+                "content": "",
+                "action": "",
+                "actionPayload": "",
+                "isRead": false,
+                "createdAt": ""
+              }
+            ],
+            "total": 0
+          }

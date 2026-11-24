@@ -1,0 +1,122 @@
+info:
+  name: Revoke an administrator role
+  type: http
+  seq: 13
+  tags:
+    - Admin
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/admin/admins/:userId"
+  params:
+    - name: userId
+      value: ""
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Administrator grant removed.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/admins/:userId"
+      method: DELETE
+      params:
+        - name: userId
+          value: ""
+          type: path
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ""
+  - name: 403 Response
+    description: Attempting to remove the caller's own role.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/admins/:userId"
+      method: DELETE
+      params:
+        - name: userId
+          value: ""
+          type: path
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Grant not found.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/admins/:userId"
+      method: DELETE
+      params:
+        - name: userId
+          value: ""
+          type: path
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: Refusing to remove the last super administrator.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/admins/:userId"
+      method: DELETE
+      params:
+        - name: userId
+          value: ""
+          type: path
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

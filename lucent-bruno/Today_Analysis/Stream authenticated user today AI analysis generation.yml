@@ -1,0 +1,45 @@
+info:
+  name: Stream authenticated user today AI analysis generation
+  type: http
+  seq: 7
+  tags:
+    - Today_Analysis
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today-analysis/generate/stream'
+  body:
+    type: json
+    data: |-
+      {
+        "date": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Server-Sent Events stream without the API envelope. Each event has an "event" field (summary | result | error | done) and a JSON "data" field. Parsed event data follows TodayAnalysisStreamResultDto.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today-analysis/generate/stream'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "date": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: text/event-stream
+      body:
+        type: text
+        data: ''

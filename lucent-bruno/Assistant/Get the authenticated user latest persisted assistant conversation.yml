@@ -1,0 +1,49 @@
+info:
+  name: Get the authenticated user latest persisted assistant conversation
+  type: http
+  seq: 3
+  tags:
+    - Assistant
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/assistant/latest'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Latest persisted assistant conversation, or null when none exists.
+    request:
+      url: '{{baseUrl}}/api/v1/user/assistant/latest'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "title": "",
+            "status": "active",
+            "messages": [
+              {
+                "role": "user",
+                "content": "",
+                "usedTools": [],
+                "createdAt": ""
+              }
+            ],
+            "lastMessageAt": "",
+            "createdAt": "",
+            "updatedAt": ""
+          }

@@ -1,0 +1,99 @@
+info:
+  name: List reminder delivery audit logs
+  type: http
+  seq: 1
+  tags:
+    - Reminder_Deliveries
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/reminder-deliveries'
+  params:
+    - name: date
+      value: 2026-06-10
+      type: query
+      description: Optional scheduled date filter in YYYY-MM-DD format.
+    - name: limit
+      value: '20'
+      type: query
+      description: Maximum rows to return. Clamped to 1-100.
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Reminder delivery audit rows.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reminder-deliveries'
+      method: GET
+      params:
+        - name: date
+          value: 2026-06-10
+          type: query
+          description: Optional scheduled date filter in YYYY-MM-DD format.
+        - name: limit
+          value: '20'
+          type: query
+          description: Maximum rows to return. Clamped to 1-100.
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "reminderId": "",
+                "deviceId": "",
+                "channel": "",
+                "status": "",
+                "scheduledFor": "",
+                "deliveredAt": "",
+                "errorMessage": "",
+                "createdAt": ""
+              }
+            ]
+          }
+  - name: 400 Response
+    description: Invalid date filter (VALIDATION_FAILED)
+    request:
+      url: '{{baseUrl}}/api/v1/user/reminder-deliveries'
+      method: GET
+      params:
+        - name: date
+          value: 2026-06-10
+          type: query
+          description: Optional scheduled date filter in YYYY-MM-DD format.
+        - name: limit
+          value: '20'
+          type: query
+          description: Maximum rows to return. Clamped to 1-100.
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

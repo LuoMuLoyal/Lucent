@@ -1,0 +1,48 @@
+info:
+  name: Report client local scheduling capability
+  type: http
+  seq: 3
+  tags:
+    - Reminder_Deliveries
+
+http:
+  method: PUT
+  url: '{{baseUrl}}/api/v1/user/reminder-deliveries/local-capability'
+  body:
+    type: json
+    data: |-
+      {
+        "state": "active"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The persisted local scheduling capability state.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reminder-deliveries/local-capability'
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "state": "active"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "state": "active"
+          }

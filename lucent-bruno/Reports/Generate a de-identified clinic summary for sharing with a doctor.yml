@@ -1,0 +1,155 @@
+info:
+  name: Generate a de-identified clinic summary for sharing with a doctor
+  type: http
+  seq: 6
+  tags:
+    - Reports
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/preview'
+  body:
+    type: json
+    data: |-
+      {
+        "eventId": "",
+        "dateFrom": "",
+        "dateTo": "",
+        "selectedFields": [
+          "event_overview"
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The de-identified clinic summary preview.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/preview'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "eventId": "",
+            "dateFrom": "",
+            "dateTo": "",
+            "selectedFields": [
+              "event_overview"
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "generatedAt": "",
+            "scopeLabel": "",
+            "start": "",
+            "end": "",
+            "selectedFields": [],
+            "coverage": {
+              "checkIns": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              },
+              "water": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              },
+              "dose": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              },
+              "sleep": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              }
+            },
+            "dataRange": "",
+            "profile": {
+              "nickname": "",
+              "age": 0,
+              "sexAtBirth": ""
+            },
+            "allergies": [
+              {
+                "label": "",
+                "reaction": "",
+                "severity": ""
+              }
+            ],
+            "conditions": [
+              {
+                "label": "",
+                "status": "",
+                "diagnosedYear": 0
+              }
+            ],
+            "currentMedicines": [
+              {
+                "displayName": "",
+                "doseText": ""
+              }
+            ],
+            "findings": [],
+            "waterEntries": [
+              {
+                "date": "",
+                "ml": 0
+              }
+            ],
+            "sleepEntries": [
+              {
+                "date": "",
+                "minutes": 0
+              }
+            ],
+            "noteEntries": [
+              {
+                "date": "",
+                "kind": "",
+                "text": ""
+              }
+            ],
+            "disclaimer": ""
+          }

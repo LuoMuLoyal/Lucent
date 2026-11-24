@@ -1,0 +1,72 @@
+info:
+  name: List dose logs for a date
+  type: http
+  seq: 1
+  tags:
+    - Medicine_Dose_Logs
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/medicine-dose-logs'
+  params:
+    - name: date
+      value: 2026-06-04
+      type: query
+    - name: page
+      value: '1'
+      type: query
+    - name: pageSize
+      value: '50'
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Dose logs for the requested date.
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs'
+      method: GET
+      params:
+        - name: date
+          value: 2026-06-04
+          type: query
+        - name: page
+          value: '1'
+          type: query
+        - name: pageSize
+          value: '50'
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "healthEventId": "",
+                "currentMedicineId": "",
+                "reminderId": "",
+                "status": "taken",
+                "scheduledFor": "",
+                "scheduledTime": "",
+                "doseText": "",
+                "note": "",
+                "source": "",
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ],
+            "total": 0
+          }

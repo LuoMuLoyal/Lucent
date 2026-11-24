@@ -1,0 +1,141 @@
+info:
+  name: Start a user-confirmed health event
+  type: http
+  seq: 1
+  tags:
+    - Health_Events
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/health-events'
+  body:
+    type: json
+    data: |-
+      {
+        "kind": "symptom",
+        "title": "",
+        "reasonRecordId": "",
+        "currentMedicineIds": []
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The created health event.
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "symptom",
+            "title": "",
+            "reasonRecordId": "",
+            "currentMedicineIds": []
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "symptom",
+            "id": "",
+            "title": "",
+            "status": "active",
+            "startedAt": "",
+            "endedAt": "",
+            "outcome": "improved",
+            "reasonRecordId": "",
+            "currentMedicineIds": [],
+            "checkIn": {
+              "id": "",
+              "eventId": "",
+              "date": "",
+              "outcome": "improved",
+              "createdAt": "",
+              "updatedAt": ""
+            },
+            "coverage": {
+              "checkInCount": 0,
+              "firstCheckInDate": "",
+              "lastCheckInDate": ""
+            }
+          }
+  - name: 404 Response
+    description: Related medicine or reason record not found
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "symptom",
+            "title": "",
+            "reasonRecordId": "",
+            "currentMedicineIds": []
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: An active health event already exists
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "symptom",
+            "title": "",
+            "reasonRecordId": "",
+            "currentMedicineIds": []
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

@@ -1,0 +1,196 @@
+info:
+  name: Create a new data export request
+  type: http
+  seq: 1
+  tags:
+    - Data_Export
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/data-export-requests'
+  body:
+    type: json
+    data: |-
+      {
+        "kind": "hospital",
+        "format": "pdf",
+        "range": "last_7_days",
+        "password": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Data export request created.
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "password": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "status": "requested",
+            "requestedAt": "",
+            "completedAt": "",
+            "downloadUrl": "",
+            "fileName": "",
+            "fileSizeBytes": 0,
+            "errorMessage": ""
+          }
+  - name: 401 Response
+    description: Wrong password (AUTH_WRONG_PASSWORD) or no password set (AUTH_PASSWORD_NOT_SET)
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "password": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: Duplicate data export request (unique constraint race).
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "password": ""
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 429 Response
+    description: Too many failed re-authentication attempts.
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "password": ""
+          }
+    response:
+      status: 429
+      statusText: Too Many Requests
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 503 Response
+    description: Object storage backend is not reachable.
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "password": ""
+          }
+    response:
+      status: 503
+      statusText: Service Unavailable
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

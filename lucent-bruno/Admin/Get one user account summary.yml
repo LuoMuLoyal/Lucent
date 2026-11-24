@@ -1,0 +1,79 @@
+info:
+  name: Get one user account summary
+  type: http
+  seq: 5
+  tags:
+    - Admin
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/admin/users/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: User account summary.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/users/:id"
+      method: GET
+      params:
+        - name: id
+          value: ""
+          type: path
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "email": "",
+            "nickname": "",
+            "status": "active",
+            "isEmailVerified": false,
+            "createdAt": "",
+            "lastLoginAt": "",
+            "adminRole": "SUPER_ADMIN"
+          }
+  - name: 404 Response
+    description: User not found.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/users/:id"
+      method: GET
+      params:
+        - name: id
+          value: ""
+          type: path
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

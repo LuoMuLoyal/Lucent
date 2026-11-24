@@ -1,0 +1,65 @@
+info:
+  name: Update a QA corpus chunk
+  type: http
+  seq: 22
+  tags:
+    - Admin
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/admin/content/qa-chunks/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+  body:
+    type: json
+    data: |-
+      {
+        "question": "",
+        "answer": "",
+        "safetyLabel": "safe"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Updated QA corpus chunk.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/content/qa-chunks/:id"
+      method: PUT
+      params:
+        - name: id
+          value: ""
+          type: path
+      body:
+        type: json
+        data: |-
+          {
+            "question": "",
+            "answer": "",
+            "safetyLabel": "safe"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "qaId": "Q-1",
+            "question": "",
+            "answer": "",
+            "safetyLabel": "safe",
+            "updatedAt": ""
+          }

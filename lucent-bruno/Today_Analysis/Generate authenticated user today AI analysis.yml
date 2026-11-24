@@ -1,0 +1,45 @@
+info:
+  name: Generate authenticated user today AI analysis
+  type: http
+  seq: 3
+  tags:
+    - Today_Analysis
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today-analysis/generate'
+  body:
+    type: json
+    data: |-
+      {
+        "date": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The freshly generated analysis, or the current read state when a generation is already in flight.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today-analysis/generate'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "date": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: ''

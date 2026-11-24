@@ -1,0 +1,43 @@
+info:
+  name: Get aggregate admin dashboard metrics
+  type: http
+  seq: 2
+  tags:
+    - Admin
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/admin/metrics/overview"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Aggregate admin dashboard metrics.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/metrics/overview"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "generatedAt": "2026-01-15T08:30:00.000Z",
+            "users": {
+              "total": 1280,
+              "active": 1150,
+              "suspended": 0,
+              "newLast30Days": 0
+            },
+            "productEventsLast24Hours": 4820
+          }

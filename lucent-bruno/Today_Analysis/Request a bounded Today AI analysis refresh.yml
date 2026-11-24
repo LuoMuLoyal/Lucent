@@ -1,0 +1,81 @@
+info:
+  name: Request a bounded Today AI analysis refresh
+  type: http
+  seq: 2
+  tags:
+    - Today_Analysis
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today-analysis/refresh'
+  body:
+    type: json
+    data: |-
+      {
+        "date": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Fresh analysis, current read state, or the queued/synchronous refresh outcome.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today-analysis/refresh'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "date": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ready",
+            "analysis": {
+              "date": "",
+              "generatedAt": "",
+              "sourceVersion": 0,
+              "summary": "",
+              "bullets": [
+                {
+                  "kind": "medication",
+                  "text": ""
+                }
+              ],
+              "actionLabel": "",
+              "action": "",
+              "confidenceNote": "",
+              "aiGenerated": false,
+              "metrics": [
+                {
+                  "kind": "medication",
+                  "observedMetric": {
+                    "value": 0,
+                    "state": "observed",
+                    "coverage": "sufficient",
+                    "sources": [
+                      "manual"
+                    ],
+                    "observedCount": 0,
+                    "expectedCount": 0,
+                    "windowStart": "",
+                    "windowEnd": ""
+                  }
+                }
+              ]
+            }
+          }

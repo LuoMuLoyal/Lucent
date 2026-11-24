@@ -1,0 +1,28 @@
+info:
+  name: Download a de-identified clinic summary as PDF (auth required) — POST so the request scope (eventId/date range + selectedFields) can be carried in the body, like the preview and export endpoints.
+  type: http
+  seq: 13
+  tags:
+    - Reports
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/preview/pdf'
+  body:
+    type: json
+    data: |-
+      {
+        "eventId": "",
+        "dateFrom": "",
+        "dateTo": "",
+        "selectedFields": [
+          "event_overview"
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

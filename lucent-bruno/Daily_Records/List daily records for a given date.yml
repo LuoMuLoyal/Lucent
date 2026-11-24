@@ -1,0 +1,166 @@
+info:
+  name: List daily records for a given date
+  type: http
+  seq: 1
+  tags:
+    - Daily_Records
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/daily-records'
+  params:
+    - name: date
+      value: 2026-06-04
+      type: query
+      description: Date in YYYY-MM-DD format.
+    - name: kind
+      value: water
+      type: query
+      disabled: true
+    - name: kind
+      value: meal
+      type: query
+      disabled: true
+    - name: kind
+      value: vital
+      type: query
+      disabled: true
+    - name: kind
+      value: mood
+      type: query
+      disabled: true
+    - name: kind
+      value: symptom
+      type: query
+      disabled: true
+    - name: kind
+      value: activity
+      type: query
+      disabled: true
+    - name: kind
+      value: note
+      type: query
+      disabled: true
+    - name: kind
+      value: sleep
+      type: query
+      disabled: true
+    - name: page
+      value: '1'
+      type: query
+      description: Page number (1-based).
+    - name: pageSize
+      value: '20'
+      type: query
+      description: Page size (1-100).
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Daily records for the date.
+    request:
+      url: '{{baseUrl}}/api/v1/user/daily-records'
+      method: GET
+      params:
+        - name: date
+          value: 2026-06-04
+          type: query
+          description: Date in YYYY-MM-DD format.
+        - name: kind
+          value: water
+          type: query
+          disabled: true
+        - name: kind
+          value: meal
+          type: query
+          disabled: true
+        - name: kind
+          value: vital
+          type: query
+          disabled: true
+        - name: kind
+          value: mood
+          type: query
+          disabled: true
+        - name: kind
+          value: symptom
+          type: query
+          disabled: true
+        - name: kind
+          value: activity
+          type: query
+          disabled: true
+        - name: kind
+          value: note
+          type: query
+          disabled: true
+        - name: kind
+          value: sleep
+          type: query
+          disabled: true
+        - name: page
+          value: '1'
+          type: query
+          description: Page number (1-based).
+        - name: pageSize
+          value: '20'
+          type: query
+          description: Page size (1-100).
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "kind": "water",
+                "healthEventId": "",
+                "occurredAt": "",
+                "occurredTime": "",
+                "title": "",
+                "value": "",
+                "unit": "",
+                "note": "",
+                "source": "",
+                "payload": {},
+                "mealAnalysisStatus": "",
+                "mealAnalysisUpdatedAt": "",
+                "mealAnalysisFailureReason": "",
+                "mealHeadline": "",
+                "mealCalorieMin": 0,
+                "mealCalorieMax": 0,
+                "mealCalorieBucket": "low",
+                "attachments": [
+                  {
+                    "id": "",
+                    "kind": "image",
+                    "objectKey": "",
+                    "bucket": "",
+                    "provider": "",
+                    "fileName": "",
+                    "contentType": "",
+                    "sizeBytes": 0,
+                    "width": 0,
+                    "height": 0,
+                    "publicUrl": "",
+                    "createdAt": ""
+                  }
+                ],
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ],
+            "total": 0
+          }

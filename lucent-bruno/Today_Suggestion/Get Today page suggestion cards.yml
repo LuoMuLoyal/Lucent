@@ -1,0 +1,235 @@
+info:
+  name: Get Today page suggestion cards
+  type: http
+  seq: 1
+  tags:
+    - Today_Suggestion
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/today/suggestions'
+  headers:
+    - name: accept-language
+      value: ''
+  params:
+    - name: date
+      value: ''
+      type: query
+      description: Target date (YYYY-MM-DD). Defaults to today.
+      disabled: true
+    - name: excludeIds
+      value: '[]'
+      type: query
+      description: Suggestion IDs the user has dismissed.
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Today page suggestion cards with materialization state.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today/suggestions'
+      method: GET
+      headers:
+        - name: accept-language
+          value: ''
+      params:
+        - name: date
+          value: ''
+          type: query
+          description: Target date (YYYY-MM-DD). Defaults to today.
+          disabled: true
+        - name: excludeIds
+          value: '[]'
+          type: query
+          description: Suggestion IDs the user has dismissed.
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "generatedAt": "",
+            "primary": {
+              "id": "",
+              "type": "confirmed_risk",
+              "cardTone": "urgent",
+              "icon": "",
+              "title": "",
+              "reason": "",
+              "evidence": [
+                {
+                  "kind": "",
+                  "label": "",
+                  "value": "",
+                  "recordId": "",
+                  "medicineId": ""
+                }
+              ],
+              "boundary": "",
+              "primaryAction": {
+                "actionId": "",
+                "label": "",
+                "route": "",
+                "authRequired": false
+              },
+              "secondaryActions": [
+                {
+                  "actionId": "",
+                  "label": "",
+                  "route": "",
+                  "authRequired": false
+                }
+              ],
+              "confidence": "high",
+              "ruleId": "",
+              "ruleVersion": "",
+              "triggerType": "event",
+              "lifecycleState": "generated",
+              "isNotificationEligible": false,
+              "feedbackOptions": [
+                "accepted"
+              ],
+              "subtype": "",
+              "observedMetric": {
+                "value": 0,
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              }
+            },
+            "secondary": [
+              {
+                "id": "",
+                "type": "confirmed_risk",
+                "cardTone": "urgent",
+                "icon": "",
+                "title": "",
+                "reason": "",
+                "evidence": [
+                  {
+                    "kind": "",
+                    "label": "",
+                    "value": "",
+                    "recordId": "",
+                    "medicineId": ""
+                  }
+                ],
+                "boundary": "",
+                "primaryAction": {
+                  "actionId": "",
+                  "label": "",
+                  "route": "",
+                  "authRequired": false
+                },
+                "secondaryActions": [
+                  {
+                    "actionId": "",
+                    "label": "",
+                    "route": "",
+                    "authRequired": false
+                  }
+                ],
+                "confidence": "high",
+                "ruleId": "",
+                "ruleVersion": "",
+                "triggerType": "event",
+                "lifecycleState": "generated",
+                "isNotificationEligible": false,
+                "feedbackOptions": [
+                  "accepted"
+                ],
+                "subtype": "",
+                "observedMetric": {
+                  "value": 0,
+                  "state": "observed",
+                  "coverage": "sufficient",
+                  "sources": [
+                    "manual"
+                  ],
+                  "observedCount": 0,
+                  "expectedCount": 0,
+                  "windowStart": "",
+                  "windowEnd": ""
+                }
+              }
+            ],
+            "observations": [
+              {
+                "id": "",
+                "type": "confirmed_risk",
+                "cardTone": "urgent",
+                "icon": "",
+                "title": "",
+                "reason": "",
+                "evidence": [
+                  {
+                    "kind": "",
+                    "label": "",
+                    "value": "",
+                    "recordId": "",
+                    "medicineId": ""
+                  }
+                ],
+                "boundary": "",
+                "primaryAction": {
+                  "actionId": "",
+                  "label": "",
+                  "route": "",
+                  "authRequired": false
+                },
+                "secondaryActions": [
+                  {
+                    "actionId": "",
+                    "label": "",
+                    "route": "",
+                    "authRequired": false
+                  }
+                ],
+                "confidence": "high",
+                "ruleId": "",
+                "ruleVersion": "",
+                "triggerType": "event",
+                "lifecycleState": "generated",
+                "isNotificationEligible": false,
+                "feedbackOptions": [
+                  "accepted"
+                ],
+                "subtype": "",
+                "observedMetric": {
+                  "value": 0,
+                  "state": "observed",
+                  "coverage": "sufficient",
+                  "sources": [
+                    "manual"
+                  ],
+                  "observedCount": 0,
+                  "expectedCount": 0,
+                  "windowStart": "",
+                  "windowEnd": ""
+                }
+              }
+            ],
+            "degraded": false,
+            "materializationStatus": "empty",
+            "sourceVersion": 0,
+            "computedAt": "",
+            "retryAfterSeconds": 0
+          }

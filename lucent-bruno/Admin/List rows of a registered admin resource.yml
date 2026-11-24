@@ -1,0 +1,152 @@
+info:
+  name: List rows of a registered admin resource
+  type: http
+  seq: 23
+  tags:
+    - Admin
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/admin/data/:resource"
+  params:
+    - name: resource
+      value: ""
+      type: path
+    - name: page
+      value: "1"
+      type: query
+    - name: limit
+      value: "25"
+      type: query
+    - name: q
+      value: ""
+      type: query
+      disabled: true
+    - name: userId
+      value: ""
+      type: query
+      disabled: true
+    - name: sort
+      value: ""
+      type: query
+      disabled: true
+    - name: order
+      value: asc
+      type: query
+      disabled: true
+    - name: order
+      value: desc
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Paginated resource rows.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/data/:resource"
+      method: GET
+      params:
+        - name: resource
+          value: ""
+          type: path
+        - name: page
+          value: "1"
+          type: query
+        - name: limit
+          value: "25"
+          type: query
+        - name: q
+          value: ""
+          type: query
+          disabled: true
+        - name: userId
+          value: ""
+          type: query
+          disabled: true
+        - name: sort
+          value: ""
+          type: query
+          disabled: true
+        - name: order
+          value: asc
+          type: query
+          disabled: true
+        - name: order
+          value: desc
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {}
+            ],
+            "total": 1,
+            "page": 1,
+            "limit": 25
+          }
+  - name: 404 Response
+    description: Unknown resource key.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/data/:resource"
+      method: GET
+      params:
+        - name: resource
+          value: ""
+          type: path
+        - name: page
+          value: "1"
+          type: query
+        - name: limit
+          value: "25"
+          type: query
+        - name: q
+          value: ""
+          type: query
+          disabled: true
+        - name: userId
+          value: ""
+          type: query
+          disabled: true
+        - name: sort
+          value: ""
+          type: query
+          disabled: true
+        - name: order
+          value: asc
+          type: query
+          disabled: true
+        - name: order
+          value: desc
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

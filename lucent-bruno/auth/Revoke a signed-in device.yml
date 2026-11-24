@@ -1,0 +1,150 @@
+info:
+  name: Revoke a signed-in device
+  type: http
+  seq: 18
+  tags:
+    - Auth
+
+http:
+  method: DELETE
+  url: '{{baseUrl}}/api/v1/auth/sessions/:sessionId'
+  params:
+    - name: sessionId
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Device revoked.
+    request:
+      url: '{{baseUrl}}/api/v1/auth/sessions/:sessionId'
+      method: DELETE
+      params:
+        - name: sessionId
+          value: ''
+          type: path
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ''
+  - name: 401 Response
+    description: Access token invalid or expired
+    request:
+      url: '{{baseUrl}}/api/v1/auth/sessions/:sessionId'
+      method: DELETE
+      params:
+        - name: sessionId
+          value: ''
+          type: path
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 403 Response
+    description: Session belongs to another user
+    request:
+      url: '{{baseUrl}}/api/v1/auth/sessions/:sessionId'
+      method: DELETE
+      params:
+        - name: sessionId
+          value: ''
+          type: path
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Session not found
+    request:
+      url: '{{baseUrl}}/api/v1/auth/sessions/:sessionId'
+      method: DELETE
+      params:
+        - name: sessionId
+          value: ''
+          type: path
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 503 Response
+    description: Authentication method unavailable
+    request:
+      url: '{{baseUrl}}/api/v1/auth/sessions/:sessionId'
+      method: DELETE
+      params:
+        - name: sessionId
+          value: ''
+          type: path
+    response:
+      status: 503
+      statusText: Service Unavailable
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

@@ -1,0 +1,61 @@
+info:
+  name: Shortest propagation route between two drugs
+  type: http
+  seq: 16
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/shortest-route'
+  params:
+    - name: fromDrugbankId
+      value: ''
+      type: query
+      description: Source DrugBank id
+    - name: toDrugbankId
+      value: ''
+      type: query
+      description: Target DrugBank id
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Shortest routes, with nodes and edge types.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/shortest-route'
+      method: GET
+      params:
+        - name: fromDrugbankId
+          value: ''
+          type: query
+          description: Source DrugBank id
+        - name: toDrugbankId
+          value: ''
+          type: query
+          description: Target DrugBank id
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "routes": [
+              {
+                "stepCount": 0,
+                "pathNodes": [],
+                "pathRelations": []
+              }
+            ]
+          }

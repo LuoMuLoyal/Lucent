@@ -1,0 +1,151 @@
+info:
+  name: Create a medicine reminder schedule
+  type: http
+  seq: 2
+  tags:
+    - Medicine_Reminders
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/medicine-reminders'
+  body:
+    type: json
+    data: |-
+      {
+        "currentMedicineId": "",
+        "label": "",
+        "scheduledHour": 0,
+        "scheduledMinute": 0,
+        "daysOfWeek": [],
+        "startDate": "",
+        "endDate": "",
+        "isActive": false,
+        "note": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The created medicine reminder.
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "label": "",
+            "scheduledHour": 0,
+            "scheduledMinute": 0,
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "currentMedicineId": "",
+            "label": "",
+            "scheduledHour": 0,
+            "scheduledMinute": 0,
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": "",
+            "createdAt": "",
+            "updatedAt": ""
+          }
+  - name: 400 Response
+    description: Invalid reminder payload (VALIDATION_FAILED)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "label": "",
+            "scheduledHour": 0,
+            "scheduledMinute": 0,
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Current medicine not found (RESOURCE_NOT_FOUND)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "label": "",
+            "scheduledHour": 0,
+            "scheduledMinute": 0,
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

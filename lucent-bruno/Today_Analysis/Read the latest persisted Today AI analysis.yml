@@ -1,0 +1,83 @@
+info:
+  name: Read the latest persisted Today AI analysis
+  type: http
+  seq: 1
+  tags:
+    - Today_Analysis
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/today-analysis'
+  params:
+    - name: date
+      value: ''
+      type: query
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The latest persisted analysis with its read state.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today-analysis'
+      method: GET
+      params:
+        - name: date
+          value: ''
+          type: query
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "analysis": {
+              "date": "",
+              "generatedAt": "",
+              "sourceVersion": 0,
+              "summary": "",
+              "bullets": [
+                {
+                  "kind": "medication",
+                  "text": ""
+                }
+              ],
+              "actionLabel": "",
+              "action": "",
+              "confidenceNote": "",
+              "aiGenerated": false,
+              "metrics": [
+                {
+                  "kind": "medication",
+                  "observedMetric": {
+                    "value": 0,
+                    "state": "observed",
+                    "coverage": "sufficient",
+                    "sources": [
+                      "manual"
+                    ],
+                    "observedCount": 0,
+                    "expectedCount": 0,
+                    "windowStart": "",
+                    "windowEnd": ""
+                  }
+                }
+              ]
+            },
+            "status": "empty",
+            "sourceVersion": 0,
+            "computedVersion": 0,
+            "computedAt": "",
+            "retryAfterSeconds": 0
+          }

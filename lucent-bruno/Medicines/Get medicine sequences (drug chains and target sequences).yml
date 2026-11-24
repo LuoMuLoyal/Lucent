@@ -1,0 +1,81 @@
+info:
+  name: Get medicine sequences (drug chains and target sequences)
+  type: http
+  seq: 4
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/:id/sequences'
+  headers:
+    - name: x-bypass-cache
+      value: ''
+      description: Set to true/1/no-cache to bypass medicines read cache for this request only.
+      disabled: true
+  params:
+    - name: id
+      value: ''
+      type: path
+      description: Medicine id in the selected source
+    - name: source
+      value: cn
+      type: query
+      description: Knowledge source selector.
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Sequences of the drug itself and of its targets. Empty arrays when the source has none.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/:id/sequences'
+      method: GET
+      headers:
+        - name: x-bypass-cache
+          value: ''
+          description: Set to true/1/no-cache to bypass medicines read cache for this request only.
+          disabled: true
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: Medicine id in the selected source
+        - name: source
+          value: cn
+          type: query
+          description: Knowledge source selector.
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "source": "drugbank",
+            "drug": [
+              {
+                "description": "",
+                "length": 0,
+                "sequence": ""
+              }
+            ],
+            "targets": [
+              {
+                "uniprotId": "",
+                "targetName": "",
+                "dataset": "",
+                "length": 0,
+                "sequence": ""
+              }
+            ]
+          }

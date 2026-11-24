@@ -1,0 +1,70 @@
+info:
+  name: Get the latest data export request
+  type: http
+  seq: 2
+  tags:
+    - Data_Export
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/data-export-requests/latest'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Latest data export request, or null when none exists.
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests/latest'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "kind": "hospital",
+            "format": "pdf",
+            "range": "last_7_days",
+            "status": "requested",
+            "requestedAt": "",
+            "completedAt": "",
+            "downloadUrl": "",
+            "fileName": "",
+            "fileSizeBytes": 0,
+            "errorMessage": ""
+          }
+  - name: 503 Response
+    description: Object storage backend is not reachable.
+    request:
+      url: '{{baseUrl}}/api/v1/user/data-export-requests/latest'
+      method: GET
+    response:
+      status: 503
+      statusText: Service Unavailable
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

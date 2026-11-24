@@ -1,0 +1,53 @@
+info:
+  name: All drugs acting on one target gene
+  type: http
+  seq: 17
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/target-drugs'
+  params:
+    - name: geneName
+      value: ''
+      type: query
+      description: Target gene symbol, e.g. CYP2C9
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Drugs acting on the target, with relation type.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/target-drugs'
+      method: GET
+      params:
+        - name: geneName
+          value: ''
+          type: query
+          description: Target gene symbol, e.g. CYP2C9
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "drugs": [
+              {
+                "drugbankId": "",
+                "name": "",
+                "relation": ""
+              }
+            ]
+          }

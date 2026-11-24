@@ -1,0 +1,37 @@
+info:
+  name: Archive the authenticated user latest active assistant conversation
+  type: http
+  seq: 9
+  tags:
+    - Assistant
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/assistant/latest/clear'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Whether the latest conversation was cleared and the archived conversation id.
+    request:
+      url: '{{baseUrl}}/api/v1/user/assistant/latest/clear'
+      method: POST
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "cleared": false,
+            "archivedConversationId": ""
+          }

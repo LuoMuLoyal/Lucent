@@ -1,0 +1,84 @@
+info:
+  name: Create a notification (internal/test)
+  type: http
+  seq: 1
+  tags:
+    - Notifications
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/notifications'
+  body:
+    type: json
+    data: |-
+      {
+        "type": "ai_today_summary",
+        "title": "",
+        "content": "",
+        "action": "",
+        "actionPayload": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Created notification.
+    request:
+      url: '{{baseUrl}}/api/v1/user/notifications'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "type": "ai_today_summary",
+            "title": "",
+            "content": "",
+            "action": "",
+            "actionPayload": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      body:
+        type: text
+        data: ''
+  - name: 409 Response
+    description: Notification already exists (RESOURCE_CONFLICT, P2002 race)
+    request:
+      url: '{{baseUrl}}/api/v1/user/notifications'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "type": "ai_today_summary",
+            "title": "",
+            "content": "",
+            "action": "",
+            "actionPayload": ""
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

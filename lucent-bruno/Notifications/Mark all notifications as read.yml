@@ -1,0 +1,36 @@
+info:
+  name: Mark all notifications as read
+  type: http
+  seq: 8
+  tags:
+    - Notifications
+
+http:
+  method: PATCH
+  url: '{{baseUrl}}/api/v1/user/notifications/mark-all-read'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Number of notifications marked as read.
+    request:
+      url: '{{baseUrl}}/api/v1/user/notifications/mark-all-read'
+      method: PATCH
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "count": 3
+          }

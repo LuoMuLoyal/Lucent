@@ -1,0 +1,137 @@
+info:
+  name: Get latest medicine risk check records
+  type: http
+  seq: 6
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/risk-check'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Latest static and LLM medicine risk check records.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/risk-check'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "static": {
+              "checkType": "static",
+              "result": {
+                "overallRiskLevel": "safe",
+                "overallRiskScore": 0,
+                "currentMedicineCount": 0,
+                "checkedMedicineCount": 0,
+                "findings": [
+                  {
+                    "type": "interaction",
+                    "severity": "high",
+                    "context": "none",
+                    "primaryMedicineName": "",
+                    "secondaryMedicineName": "",
+                    "relatedLabel": "",
+                    "evidence": "",
+                    "recommendation": "",
+                    "mechanism": {
+                      "status": "ok",
+                      "mechanisms": [
+                        {
+                          "kind": "enzyme",
+                          "geneSymbol": "",
+                          "entityName": "",
+                          "relation": ""
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "coverageIssues": [
+                  {
+                    "medicineName": "",
+                    "reason": "manualEntry"
+                  }
+                ],
+                "redFlags": [
+                  {
+                    "rule": "severeAllergy",
+                    "primaryMedicineName": "",
+                    "relatedLabel": ""
+                  }
+                ],
+                "overallRecommendation": ""
+              },
+              "riskScore": 42,
+              "riskLevel": "safe",
+              "isStale": false,
+              "createdAt": "",
+              "updatedAt": ""
+            },
+            "llm": {
+              "checkType": "static",
+              "result": {
+                "overallRiskLevel": "safe",
+                "overallRiskScore": 0,
+                "currentMedicineCount": 0,
+                "checkedMedicineCount": 0,
+                "findings": [
+                  {
+                    "type": "interaction",
+                    "severity": "high",
+                    "context": "none",
+                    "primaryMedicineName": "",
+                    "secondaryMedicineName": "",
+                    "relatedLabel": "",
+                    "evidence": "",
+                    "recommendation": "",
+                    "mechanism": {
+                      "status": "ok",
+                      "mechanisms": [
+                        {
+                          "kind": "enzyme",
+                          "geneSymbol": "",
+                          "entityName": "",
+                          "relation": ""
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "coverageIssues": [
+                  {
+                    "medicineName": "",
+                    "reason": "manualEntry"
+                  }
+                ],
+                "redFlags": [
+                  {
+                    "rule": "severeAllergy",
+                    "primaryMedicineName": "",
+                    "relatedLabel": ""
+                  }
+                ],
+                "overallRecommendation": ""
+              },
+              "riskScore": 42,
+              "riskLevel": "safe",
+              "isStale": false,
+              "createdAt": "",
+              "updatedAt": ""
+            }
+          }

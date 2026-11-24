@@ -1,0 +1,168 @@
+info:
+  name: Register (httpOnly cookie session)
+  type: http
+  seq: 20
+  tags:
+    - Auth
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/auth/browser/register'
+  body:
+    type: json
+    data: |-
+      {
+        "email": "",
+        "password": "",
+        "code": "",
+        "captchaToken": "",
+        "nickname": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Registered user. Tokens are set as HttpOnly cookies.
+    request:
+      url: '{{baseUrl}}/api/v1/auth/browser/register'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "",
+            "password": "",
+            "code": "",
+            "captchaToken": "",
+            "nickname": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "user": {
+              "id": "",
+              "email": "",
+              "nickname": "",
+              "avatar": "",
+              "isEmailVerified": false,
+              "emailVerifiedAt": "",
+              "createdAt": "",
+              "updatedAt": ""
+            },
+            "expiresIn": 900
+          }
+  - name: 400 Response
+    description: Verification code expired or does not match
+    request:
+      url: '{{baseUrl}}/api/v1/auth/browser/register'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "",
+            "password": "",
+            "code": "",
+            "captchaToken": "",
+            "nickname": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 401 Response
+    description: Anti-enumeration credential failure (email already registered is indistinguishable from a wrong verification code)
+    request:
+      url: '{{baseUrl}}/api/v1/auth/browser/register'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "",
+            "password": "",
+            "code": "",
+            "captchaToken": "",
+            "nickname": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 503 Response
+    description: Authentication method unavailable
+    request:
+      url: '{{baseUrl}}/api/v1/auth/browser/register'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "email": "",
+            "password": "",
+            "code": "",
+            "captchaToken": "",
+            "nickname": ""
+          }
+    response:
+      status: 503
+      statusText: Service Unavailable
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

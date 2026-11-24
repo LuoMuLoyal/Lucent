@@ -1,0 +1,39 @@
+info:
+  name: Get application metadata
+  type: http
+  seq: 1
+  tags:
+    - App_Info
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/public/app-info'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Application metadata.
+    request:
+      url: '{{baseUrl}}/api/v1/public/app-info'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "supportEmail": "",
+            "minClientVersion": "",
+            "latestVersion": "",
+            "downloadUrl": ""
+          }

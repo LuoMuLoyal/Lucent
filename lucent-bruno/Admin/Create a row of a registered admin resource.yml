@@ -1,0 +1,82 @@
+info:
+  name: Create a row of a registered admin resource
+  type: http
+  seq: 24
+  tags:
+    - Admin
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/admin/data/:resource"
+  params:
+    - name: resource
+      value: ""
+      type: path
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Created resource row.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/data/:resource"
+      method: POST
+      params:
+        - name: resource
+          value: ""
+          type: path
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "usr_9f2c1e4a7b8d4c6e",
+            "email": "a@example.com"
+          }
+  - name: 403 Response
+    description: Resource is read-only or caller lacks data:write.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/data/:resource"
+      method: POST
+      params:
+        - name: resource
+          value: ""
+          type: path
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

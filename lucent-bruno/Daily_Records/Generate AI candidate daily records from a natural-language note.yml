@@ -1,0 +1,66 @@
+info:
+  name: Generate AI candidate daily records from a natural-language note
+  type: http
+  seq: 6
+  tags:
+    - Daily_Records
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/daily-records/candidate-records/generate'
+  body:
+    type: json
+    data: |-
+      {
+        "text": "Slept about 7 hours and had a mild headache in the afternoon.",
+        "occurredAt": "2026-06-04",
+        "timezone": "Asia/Shanghai"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Generated candidate daily records (not saved yet).
+    request:
+      url: '{{baseUrl}}/api/v1/user/daily-records/candidate-records/generate'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "text": "Slept about 7 hours and had a mild headache in the afternoon.",
+            "occurredAt": "2026-06-04",
+            "timezone": "Asia/Shanghai"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "locale": "",
+            "generatedAt": "",
+            "confirmationHint": "",
+            "items": [
+              {
+                "kind": "water",
+                "occurredAt": "",
+                "title": "",
+                "value": "",
+                "unit": "",
+                "note": "",
+                "payload": {},
+                "rationale": ""
+              }
+            ]
+          }

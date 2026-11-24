@@ -1,0 +1,57 @@
+info:
+  name: Enqueue async AI explanation for a suggestion card
+  type: http
+  seq: 4
+  tags:
+    - Today_Suggestion
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today/suggestions/:id/explain/async'
+  headers:
+    - name: accept-language
+      value: ''
+  params:
+    - name: id
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 202 Response
+    description: Returns either a queued jobId or the synchronous explanation resource when the queue is unavailable.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today/suggestions/:id/explain/async'
+      method: POST
+      headers:
+        - name: accept-language
+          value: ''
+      params:
+        - name: id
+          value: ''
+          type: path
+    response:
+      status: 202
+      statusText: Accepted
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "jobId": "explanation-job-7d3a5b",
+            "result": {
+              "suggestionId": "sug_9f2c1e4a",
+              "reason": "",
+              "boundary": "",
+              "aiGenerated": false,
+              "locale": ""
+            }
+          }

@@ -1,0 +1,43 @@
+info:
+  name: Get authenticated user notification preferences
+  type: http
+  seq: 1
+  tags:
+    - Notification_Preferences
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/notification-preferences'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Authenticated user notification preferences.
+    request:
+      url: '{{baseUrl}}/api/v1/user/notification-preferences'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "isHealthAlertsEnabled": false,
+            "isWeeklyInsightEnabled": false,
+            "isWaterRemindersEnabled": false,
+            "isSleepReminderEnabled": false,
+            "sleepBedtimeMinutes": 0,
+            "sleepWakeTimeMinutes": 0,
+            "configured": false,
+            "updatedAt": ""
+          }

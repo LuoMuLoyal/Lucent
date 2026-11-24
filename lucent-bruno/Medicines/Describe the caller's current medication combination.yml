@@ -1,0 +1,63 @@
+info:
+  name: Describe the caller's current medication combination
+  type: http
+  seq: 20
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/medication-overview'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Duplicate ingredients and source grouping for the current medicines. Empty aggregates when the user has no medicines — that is an answer, not an error.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/medication-overview'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalMedicines": 3,
+            "resolvableMedicines": 2,
+            "duplicates": [
+              {
+                "ingredientKey": "",
+                "entryIds": [],
+                "displayNames": [],
+                "severity": "medium"
+              }
+            ],
+            "sourceOverlaps": [
+              {
+                "source": "",
+                "medicineCount": 0,
+                "displayNames": []
+              }
+            ]
+          }
+  - name: 401 Response
+    description: Access token invalid or expired
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/medication-overview'
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ''

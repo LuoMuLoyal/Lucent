@@ -1,0 +1,48 @@
+info:
+  name: Enqueue async today AI analysis generation
+  type: http
+  seq: 4
+  tags:
+    - Today_Analysis
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today-analysis/generate/async'
+  body:
+    type: json
+    data: |-
+      {
+        "date": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 202 Response
+    description: Job enqueued. Returns jobId, or the synchronous result/status when the queue is unavailable.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today-analysis/generate/async'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "date": ""
+          }
+    response:
+      status: 202
+      statusText: Accepted
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "pending"
+          }

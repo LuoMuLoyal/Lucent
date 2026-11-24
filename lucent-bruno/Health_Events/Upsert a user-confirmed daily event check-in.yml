@@ -1,0 +1,243 @@
+info:
+  name: Upsert a user-confirmed daily event check-in
+  type: http
+  seq: 5
+  tags:
+    - Health_Events
+
+http:
+  method: PUT
+  url: '{{baseUrl}}/api/v1/user/health-events/:id/check-ins/:date'
+  params:
+    - name: id
+      value: ''
+      type: path
+      description: Health event id.
+    - name: date
+      value: ''
+      type: path
+      description: Calendar date in YYYY-MM-DD format.
+  body:
+    type: json
+    data: |-
+      {
+        "outcome": "improved"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The updated health event.
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events/:id/check-ins/:date'
+      method: PUT
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: Health event id.
+        - name: date
+          value: ''
+          type: path
+          description: Calendar date in YYYY-MM-DD format.
+      body:
+        type: json
+        data: |-
+          {
+            "outcome": "improved"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "symptom",
+            "id": "",
+            "title": "",
+            "status": "active",
+            "startedAt": "",
+            "endedAt": "",
+            "outcome": "improved",
+            "reasonRecordId": "",
+            "currentMedicineIds": [],
+            "checkIn": {
+              "id": "",
+              "eventId": "",
+              "date": "",
+              "outcome": "improved",
+              "createdAt": "",
+              "updatedAt": ""
+            },
+            "coverage": {
+              "checkInCount": 0,
+              "firstCheckInDate": "",
+              "lastCheckInDate": ""
+            }
+          }
+  - name: 400 Response
+    description: Invalid outcome or date, or event is not active
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events/:id/check-ins/:date'
+      method: PUT
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: Health event id.
+        - name: date
+          value: ''
+          type: path
+          description: Calendar date in YYYY-MM-DD format.
+      body:
+        type: json
+        data: |-
+          {
+            "outcome": "improved"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 403 Response
+    description: Health event is owned by another user
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events/:id/check-ins/:date'
+      method: PUT
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: Health event id.
+        - name: date
+          value: ''
+          type: path
+          description: Calendar date in YYYY-MM-DD format.
+      body:
+        type: json
+        data: |-
+          {
+            "outcome": "improved"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Health event not found
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events/:id/check-ins/:date'
+      method: PUT
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: Health event id.
+        - name: date
+          value: ''
+          type: path
+          description: Calendar date in YYYY-MM-DD format.
+      body:
+        type: json
+        data: |-
+          {
+            "outcome": "improved"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: Duplicate check-in for the same event and date (race)
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events/:id/check-ins/:date'
+      method: PUT
+      params:
+        - name: id
+          value: ''
+          type: path
+          description: Health event id.
+        - name: date
+          value: ''
+          type: path
+          description: Calendar date in YYYY-MM-DD format.
+      body:
+        type: json
+        data: |-
+          {
+            "outcome": "improved"
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

@@ -1,0 +1,67 @@
+info:
+  name: Create a revocable share link for the clinic summary (7-day expiry)
+  type: http
+  seq: 7
+  tags:
+    - Reports
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/share'
+  body:
+    type: json
+    data: |-
+      {
+        "eventId": "",
+        "dateFrom": "",
+        "dateTo": "",
+        "selectedFields": [
+          "event_overview"
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The created share record with its one-time token.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/share'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "eventId": "",
+            "dateFrom": "",
+            "dateTo": "",
+            "selectedFields": [
+              "event_overview"
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "shareId": "",
+            "token": "",
+            "shareUrl": "",
+            "expiresAt": "",
+            "scope": {
+              "eventId": "",
+              "dateFrom": "",
+              "dateTo": ""
+            },
+            "selectedFields": []
+          }

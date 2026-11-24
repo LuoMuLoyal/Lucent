@@ -1,0 +1,59 @@
+info:
+  name: Enqueue async clinic summary PDF export
+  type: http
+  seq: 11
+  tags:
+    - Reports
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/export/async'
+  body:
+    type: json
+    data: |-
+      {
+        "eventId": "",
+        "dateFrom": "",
+        "dateTo": "",
+        "selectedFields": [
+          "event_overview"
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64) because the queue job only carries the default scope. When no queue is configured, both paths return the base64 PDF synchronously.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/export/async'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "eventId": "",
+            "dateFrom": "",
+            "dateTo": "",
+            "selectedFields": [
+              "event_overview"
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "jobId": "clinic-summary-export-job-2f1c9a",
+            "pdfBase64": ""
+          }

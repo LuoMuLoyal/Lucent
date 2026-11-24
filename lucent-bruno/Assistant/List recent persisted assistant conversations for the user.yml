@@ -1,0 +1,43 @@
+info:
+  name: List recent persisted assistant conversations for the user
+  type: http
+  seq: 2
+  tags:
+    - Assistant
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/assistant/conversations'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: List of recent assistant conversation summaries.
+    request:
+      url: '{{baseUrl}}/api/v1/user/assistant/conversations'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          [
+            {
+              "id": "",
+              "title": "",
+              "status": "active",
+              "lastMessageAt": "",
+              "createdAt": "",
+              "updatedAt": ""
+            }
+          ]

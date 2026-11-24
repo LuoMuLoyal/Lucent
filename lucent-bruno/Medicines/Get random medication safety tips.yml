@@ -1,0 +1,52 @@
+info:
+  name: Get random medication safety tips
+  type: http
+  seq: 1
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/safety-tips'
+  params:
+    - name: exclude
+      value: '[]'
+      type: query
+      description: Safety tip IDs from the last response, used for deduplication
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Random medication safety tips.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/safety-tips'
+      method: GET
+      params:
+        - name: exclude
+          value: '[]'
+          type: query
+          description: Safety tip IDs from the last response, used for deduplication
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          [
+            {
+              "id": "tip-alcohol",
+              "text": "",
+              "category": ""
+            }
+          ]

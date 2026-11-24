@@ -1,0 +1,94 @@
+info:
+  name: List the assistant's open medical Q&A corpus chunks
+  type: http
+  seq: 21
+  tags:
+    - Admin
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/admin/content/qa-chunks"
+  params:
+    - name: page
+      value: "1"
+      type: query
+    - name: limit
+      value: "25"
+      type: query
+    - name: q
+      value: ""
+      type: query
+      disabled: true
+    - name: safetyLabel
+      value: safe
+      type: query
+      disabled: true
+    - name: safetyLabel
+      value: caution
+      type: query
+      disabled: true
+    - name: safetyLabel
+      value: blocked
+      type: query
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Paginated QA corpus chunks.
+    request:
+      url: "{{baseUrl}}/api/v1/admin/content/qa-chunks"
+      method: GET
+      params:
+        - name: page
+          value: "1"
+          type: query
+        - name: limit
+          value: "25"
+          type: query
+        - name: q
+          value: ""
+          type: query
+          disabled: true
+        - name: safetyLabel
+          value: safe
+          type: query
+          disabled: true
+        - name: safetyLabel
+          value: caution
+          type: query
+          disabled: true
+        - name: safetyLabel
+          value: blocked
+          type: query
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "qaId": "Q-1",
+                "question": "",
+                "answer": "",
+                "safetyLabel": "safe",
+                "updatedAt": ""
+              }
+            ],
+            "total": 0,
+            "page": 0,
+            "limit": 0
+          }

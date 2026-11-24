@@ -1,0 +1,110 @@
+info:
+  name: Record a batch of privacy-minimal product events
+  type: http
+  seq: 1
+  tags:
+    - Product_Events
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/product-events'
+  body:
+    type: json
+    data: |-
+      {
+        "events": [
+          {
+            "name": "health_event_started",
+            "surface": "today",
+            "result": "success",
+            "eventStatus": "active",
+            "suggestionRuleCode": "",
+            "appVersion": "",
+            "platform": "ios",
+            "occurredAt": "",
+            "clientEventId": ""
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Events accepted; `recorded` may be lower than `received` when duplicate clientEventIds were skipped.
+    request:
+      url: '{{baseUrl}}/api/v1/user/product-events'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "events": [
+              {
+                "name": "health_event_started",
+                "surface": "today",
+                "result": "success",
+                "eventStatus": "active",
+                "suggestionRuleCode": "",
+                "appVersion": "",
+                "platform": "ios",
+                "occurredAt": "",
+                "clientEventId": ""
+              }
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      body:
+        type: text
+        data: ''
+  - name: 400 Response
+    description: Unknown suggestion rule code or occurredAt more than 24 hours in the future.
+    request:
+      url: '{{baseUrl}}/api/v1/user/product-events'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "events": [
+              {
+                "name": "health_event_started",
+                "surface": "today",
+                "result": "success",
+                "eventStatus": "active",
+                "suggestionRuleCode": "",
+                "appVersion": "",
+                "platform": "ios",
+                "occurredAt": "",
+                "clientEventId": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+
+docs: Write-only ingestion for product measurement. userId always comes from the session — a client-supplied userId is rejected by the whitelist. Raw events are retained 90 days, then deleted.

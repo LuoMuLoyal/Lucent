@@ -1,0 +1,87 @@
+info:
+  name: Get daily record summary (counts by kind)
+  type: http
+  seq: 3
+  tags:
+    - Daily_Records
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/daily-records/summary'
+  params:
+    - name: date
+      value: 2026-06-04
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Daily record counts grouped by kind for the date.
+    request:
+      url: '{{baseUrl}}/api/v1/user/daily-records/summary'
+      method: GET
+      params:
+        - name: date
+          value: 2026-06-04
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "summaries": [
+              {
+                "kind": "water",
+                "count": 0,
+                "latest": {
+                  "id": "",
+                  "kind": "water",
+                  "healthEventId": "",
+                  "occurredAt": "",
+                  "occurredTime": "",
+                  "title": "",
+                  "value": "",
+                  "unit": "",
+                  "note": "",
+                  "source": "",
+                  "payload": {},
+                  "mealAnalysisStatus": "",
+                  "mealAnalysisUpdatedAt": "",
+                  "mealAnalysisFailureReason": "",
+                  "mealHeadline": "",
+                  "mealCalorieMin": 0,
+                  "mealCalorieMax": 0,
+                  "mealCalorieBucket": "low",
+                  "attachments": [
+                    {
+                      "id": "",
+                      "kind": "image",
+                      "objectKey": "",
+                      "bucket": "",
+                      "provider": "",
+                      "fileName": "",
+                      "contentType": "",
+                      "sizeBytes": 0,
+                      "width": 0,
+                      "height": 0,
+                      "publicUrl": "",
+                      "createdAt": ""
+                    }
+                  ],
+                  "createdAt": "",
+                  "updatedAt": ""
+                }
+              }
+            ]
+          }

@@ -1,0 +1,21 @@
+info:
+  name: Download a shared clinic summary as PDF (no auth required)
+  type: http
+  seq: 14
+  tags:
+    - Reports
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/shared/:token/pdf'
+  params:
+    - name: token
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

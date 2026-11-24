@@ -1,0 +1,175 @@
+info:
+  name: Upsert a whole medicine reminder group
+  type: http
+  seq: 5
+  tags:
+    - Medicine_Reminders
+
+http:
+  method: PUT
+  url: '{{baseUrl}}/api/v1/user/medicine-reminders/group'
+  body:
+    type: json
+    data: |-
+      {
+        "currentMedicineId": "",
+        "label": "",
+        "daysOfWeek": [],
+        "startDate": "",
+        "endDate": "",
+        "isActive": false,
+        "note": "",
+        "slots": [
+          {
+            "id": "",
+            "scheduledHour": 0,
+            "scheduledMinute": 0
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The upserted reminder group.
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders/group'
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "label": "",
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": "",
+            "slots": [
+              {
+                "id": "",
+                "scheduledHour": 0,
+                "scheduledMinute": 0
+              }
+            ]
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "currentMedicineId": "",
+                "label": "",
+                "scheduledHour": 0,
+                "scheduledMinute": 0,
+                "daysOfWeek": [],
+                "startDate": "",
+                "endDate": "",
+                "isActive": false,
+                "note": "",
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ]
+          }
+  - name: 400 Response
+    description: Empty group, duplicate slot ids or invalid payload (VALIDATION_FAILED)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders/group'
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "label": "",
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": "",
+            "slots": [
+              {
+                "id": "",
+                "scheduledHour": 0,
+                "scheduledMinute": 0
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Current medicine or a slot not found (RESOURCE_NOT_FOUND)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders/group'
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "label": "",
+            "daysOfWeek": [],
+            "startDate": "",
+            "endDate": "",
+            "isActive": false,
+            "note": "",
+            "slots": [
+              {
+                "id": "",
+                "scheduledHour": 0,
+                "scheduledMinute": 0
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

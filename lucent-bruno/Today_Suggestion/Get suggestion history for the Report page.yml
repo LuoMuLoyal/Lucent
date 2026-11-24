@@ -1,0 +1,195 @@
+info:
+  name: Get suggestion history for the Report page
+  type: http
+  seq: 6
+  tags:
+    - Today_Suggestion
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/today/suggestions/history'
+  headers:
+    - name: accept-language
+      value: ''
+  params:
+    - name: startDate
+      value: ''
+      type: query
+      description: Start date (YYYY-MM-DD). Defaults to 30 days ago.
+      disabled: true
+    - name: endDate
+      value: ''
+      type: query
+      description: End date (YYYY-MM-DD). Defaults to today.
+      disabled: true
+    - name: lifecycleState
+      value: generated
+      type: query
+      description: Filter by lifecycle state.
+      disabled: true
+    - name: lifecycleState
+      value: active
+      type: query
+      description: Filter by lifecycle state.
+      disabled: true
+    - name: lifecycleState
+      value: fading
+      type: query
+      description: Filter by lifecycle state.
+      disabled: true
+    - name: lifecycleState
+      value: expired
+      type: query
+      description: Filter by lifecycle state.
+      disabled: true
+    - name: lifecycleState
+      value: dismissed
+      type: query
+      description: Filter by lifecycle state.
+      disabled: true
+    - name: type
+      value: confirmed_risk
+      type: query
+      description: Filter by suggestion type.
+      disabled: true
+    - name: type
+      value: compliance
+      type: query
+      description: Filter by suggestion type.
+      disabled: true
+    - name: type
+      value: trend
+      type: query
+      description: Filter by suggestion type.
+      disabled: true
+    - name: type
+      value: behavior_advice
+      type: query
+      description: Filter by suggestion type.
+      disabled: true
+    - name: type
+      value: coverage
+      type: query
+      description: Filter by suggestion type.
+      disabled: true
+    - name: limit
+      value: ''
+      type: query
+      description: Max items (default 100, max 500).
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Suggestion history items with the query window used.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today/suggestions/history'
+      method: GET
+      headers:
+        - name: accept-language
+          value: ''
+      params:
+        - name: startDate
+          value: ''
+          type: query
+          description: Start date (YYYY-MM-DD). Defaults to 30 days ago.
+          disabled: true
+        - name: endDate
+          value: ''
+          type: query
+          description: End date (YYYY-MM-DD). Defaults to today.
+          disabled: true
+        - name: lifecycleState
+          value: generated
+          type: query
+          description: Filter by lifecycle state.
+          disabled: true
+        - name: lifecycleState
+          value: active
+          type: query
+          description: Filter by lifecycle state.
+          disabled: true
+        - name: lifecycleState
+          value: fading
+          type: query
+          description: Filter by lifecycle state.
+          disabled: true
+        - name: lifecycleState
+          value: expired
+          type: query
+          description: Filter by lifecycle state.
+          disabled: true
+        - name: lifecycleState
+          value: dismissed
+          type: query
+          description: Filter by lifecycle state.
+          disabled: true
+        - name: type
+          value: confirmed_risk
+          type: query
+          description: Filter by suggestion type.
+          disabled: true
+        - name: type
+          value: compliance
+          type: query
+          description: Filter by suggestion type.
+          disabled: true
+        - name: type
+          value: trend
+          type: query
+          description: Filter by suggestion type.
+          disabled: true
+        - name: type
+          value: behavior_advice
+          type: query
+          description: Filter by suggestion type.
+          disabled: true
+        - name: type
+          value: coverage
+          type: query
+          description: Filter by suggestion type.
+          disabled: true
+        - name: limit
+          value: ''
+          type: query
+          description: Max items (default 100, max 500).
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "date": "",
+                "type": "confirmed_risk",
+                "title": "",
+                "reason": "",
+                "ruleId": "",
+                "ruleVersion": "",
+                "triggerType": "event",
+                "lifecycleState": "generated",
+                "confidence": "high",
+                "subtype": "",
+                "feedback": "",
+                "feedbackAt": "",
+                "generatedAt": "",
+                "expiredAt": ""
+              }
+            ],
+            "total": 42,
+            "startDate": "",
+            "endDate": ""
+          }

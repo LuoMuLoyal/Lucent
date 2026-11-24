@@ -1,0 +1,51 @@
+info:
+  name: List all stored layouts of the authenticated user
+  type: http
+  seq: 1
+  tags:
+    - Layouts
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/layouts'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Stored layouts keyed by surface.
+    request:
+      url: '{{baseUrl}}/api/v1/layouts'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "surfaces": {
+              "today": {
+                "surface": "today",
+                "version": 3,
+                "schemaVersion": 1,
+                "payload": {
+                  "placements": [
+                    {
+                      "id": "summary.metrics",
+                      "size": "wide"
+                    }
+                  ]
+                },
+                "updatedAt": "2026-10-30T12:00:00.000Z"
+              }
+            }
+          }

@@ -1,0 +1,58 @@
+info:
+  name: Submit feedback for a suggestion card
+  type: http
+  seq: 2
+  tags:
+    - Today_Suggestion
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today/suggestions/:id/feedback'
+  params:
+    - name: id
+      value: ''
+      type: path
+  body:
+    type: json
+    data: |-
+      {
+        "feedback": "accepted"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    request:
+      url: '{{baseUrl}}/api/v1/user/today/suggestions/:id/feedback'
+      method: POST
+      params:
+        - name: id
+          value: ''
+          type: path
+      body:
+        type: json
+        data: |-
+          {
+            "feedback": "accepted"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "suggestionId": "",
+            "feedback": "accepted",
+            "appliedEffect": "boosted_type",
+            "expiresAt": ""
+          }

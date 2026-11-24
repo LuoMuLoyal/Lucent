@@ -1,0 +1,153 @@
+info:
+  name: Create a condition record
+  type: http
+  seq: 6
+  tags:
+    - User_Health_Context
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/health-context/conditions'
+  body:
+    type: json
+    data: |-
+      {
+        "label": "Type 2 diabetes",
+        "status": "active",
+        "diagnosedAt": "2024-03-15",
+        "note": "Managed with diet and metformin."
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The updated user health-context aggregate.
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-context/conditions'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "label": "Type 2 diabetes",
+            "status": "active",
+            "diagnosedAt": "2024-03-15",
+            "note": "Managed with diet and metformin."
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "summary": {
+              "age": 0,
+              "onboardingCompleted": false,
+              "activeAllergyCount": 0,
+              "conditionCount": 0,
+              "currentMedicineCount": 0,
+              "missingCoreProfileFields": []
+            },
+            "profile": {
+              "birthDate": "",
+              "sexAtBirth": "female",
+              "heightCm": 0,
+              "weightKg": 0,
+              "activityLevel": "sedentary",
+              "dietaryPreferences": [],
+              "locale": "",
+              "timezone": "",
+              "unitSystem": "metric",
+              "onboardingCompletedAt": "",
+              "extras": ""
+            },
+            "allergies": [
+              {
+                "id": "",
+                "kind": "drug",
+                "label": "",
+                "reaction": "",
+                "severity": "mild",
+                "isActive": false,
+                "note": "",
+                "extras": "",
+                "recordedAt": "",
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ],
+            "conditions": [
+              {
+                "id": "",
+                "label": "",
+                "status": "active",
+                "diagnosedAt": "",
+                "resolvedAt": "",
+                "note": "",
+                "extras": "",
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ],
+            "currentMedicines": [
+              {
+                "id": "",
+                "source": "drugbank",
+                "sourceRefId": "",
+                "displayName": "",
+                "strengthText": "",
+                "doseText": "",
+                "route": "",
+                "startedAt": "",
+                "endedAt": "",
+                "isCurrent": false,
+                "note": "",
+                "sourcePayload": "",
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ]
+          }
+  - name: 404 Response
+    description: User not found
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-context/conditions'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "label": "Type 2 diabetes",
+            "status": "active",
+            "diagnosedAt": "2024-03-15",
+            "note": "Managed with diet and metformin."
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

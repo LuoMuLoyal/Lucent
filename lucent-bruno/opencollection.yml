@@ -2,9 +2,27 @@ opencollection: 1.0.0
 
 info:
   name: lucent-bruno
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ''
+      port: ''
+      auth:
+        username: ''
+        password: ''
+      bypassProxy: ''
 bundled: false
 extensions:
   bruno:
     ignore:
       - node_modules
       - .git
+    openapi:
+      - sourceUrl: ../docs/reference/generated/openapi.json
+        groupBy: tags
+        lastSyncDate: 2026-11-24T05:21:14.477Z
+        specHash: 01ca36c65c898e2f0626be44f5841b0b
+        autoCheck: true
+        autoCheckInterval: 5

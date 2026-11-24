@@ -1,0 +1,141 @@
+info:
+  name: Access a shared clinic summary by token (no auth required)
+  type: http
+  seq: 9
+  tags:
+    - Reports
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/shared/:token'
+  params:
+    - name: token
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The shared clinic summary.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/shared/:token'
+      method: GET
+      params:
+        - name: token
+          value: ''
+          type: path
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "generatedAt": "",
+            "scopeLabel": "",
+            "start": "",
+            "end": "",
+            "selectedFields": [],
+            "coverage": {
+              "checkIns": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              },
+              "water": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              },
+              "dose": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              },
+              "sleep": {
+                "state": "observed",
+                "coverage": "sufficient",
+                "sources": [
+                  "manual"
+                ],
+                "observedCount": 0,
+                "expectedCount": 0,
+                "windowStart": "",
+                "windowEnd": ""
+              }
+            },
+            "dataRange": "",
+            "profile": {
+              "nickname": "",
+              "age": 0,
+              "sexAtBirth": ""
+            },
+            "allergies": [
+              {
+                "label": "",
+                "reaction": "",
+                "severity": ""
+              }
+            ],
+            "conditions": [
+              {
+                "label": "",
+                "status": "",
+                "diagnosedYear": 0
+              }
+            ],
+            "currentMedicines": [
+              {
+                "displayName": "",
+                "doseText": ""
+              }
+            ],
+            "findings": [],
+            "waterEntries": [
+              {
+                "date": "",
+                "ml": 0
+              }
+            ],
+            "sleepEntries": [
+              {
+                "date": "",
+                "minutes": 0
+              }
+            ],
+            "noteEntries": [
+              {
+                "date": "",
+                "kind": "",
+                "text": ""
+              }
+            ],
+            "disclaimer": ""
+          }

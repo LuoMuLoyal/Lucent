@@ -1,0 +1,53 @@
+info:
+  name: 'Induction vs substrate pairs: opposite effect on exposure'
+  type: http
+  seq: 19
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/enzyme-duel'
+  params:
+    - name: drugbankIds
+      value: ''
+      type: query
+      description: Comma-separated DrugBank ids (2-10)
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Inducer/substrate pairs sharing one enzyme.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/enzyme-duel'
+      method: GET
+      params:
+        - name: drugbankIds
+          value: ''
+          type: query
+          description: Comma-separated DrugBank ids (2-10)
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "duels": [
+              {
+                "enzymeGene": "",
+                "inducerDrug": "",
+                "inhibitedSubstrate": ""
+              }
+            ]
+          }

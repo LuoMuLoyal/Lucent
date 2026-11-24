@@ -1,0 +1,52 @@
+info:
+  name: Get cold-start onboarding guide cards
+  type: http
+  seq: 6
+  tags:
+    - Today_Analysis
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/today-analysis/recommendations'
+  params:
+    - name: exclude
+      value: '[]'
+      type: query
+      description: Guide IDs from the last response, used for deduplication
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Cold-start onboarding guide cards.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today-analysis/recommendations'
+      method: GET
+      params:
+        - name: exclude
+          value: '[]'
+          type: query
+          description: Guide IDs from the last response, used for deduplication
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          [
+            {
+              "id": "onboarding-hydration",
+              "text": "Keep a water bottle nearby to stay hydrated through the day.",
+              "category": "onboarding"
+            }
+          ]

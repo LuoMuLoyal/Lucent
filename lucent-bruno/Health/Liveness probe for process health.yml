@@ -1,0 +1,59 @@
+info:
+  name: Liveness probe for process health
+  type: http
+  seq: 2
+  tags:
+    - Health
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/health/live'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Process is alive; downstream dependencies are not checked.
+    request:
+      url: '{{baseUrl}}/api/v1/health/live'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "info": {
+              "database": {
+                "status": "up"
+              },
+              "cache": {
+                "status": "up"
+              },
+              "app": {
+                "status": "up"
+              }
+            },
+            "error": {},
+            "details": {
+              "database": {
+                "status": "up"
+              },
+              "cache": {
+                "status": "up"
+              },
+              "app": {
+                "status": "up"
+              }
+            }
+          }

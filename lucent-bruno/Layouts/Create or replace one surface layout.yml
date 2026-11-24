@@ -1,0 +1,313 @@
+info:
+  name: Create or replace one surface layout
+  type: http
+  seq: 3
+  tags:
+    - Layouts
+
+http:
+  method: PUT
+  url: '{{baseUrl}}/api/v1/layouts/:surface'
+  params:
+    - name: surface
+      value: today
+      type: path
+      description: Surface identifier.
+    - name: surface
+      value: record
+      type: path
+      description: Surface identifier.
+      disabled: true
+    - name: surface
+      value: medicine
+      type: path
+      description: Surface identifier.
+      disabled: true
+    - name: surface
+      value: review
+      type: path
+      description: Surface identifier.
+      disabled: true
+    - name: surface
+      value: mine
+      type: path
+      description: Surface identifier.
+      disabled: true
+    - name: surface
+      value: tab
+      type: path
+      description: Surface identifier.
+      disabled: true
+  body:
+    type: json
+    data: |-
+      {
+        "ifVersion": 0,
+        "schemaVersion": 0,
+        "payload": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The stored layout after the write.
+    request:
+      url: '{{baseUrl}}/api/v1/layouts/:surface'
+      method: PUT
+      params:
+        - name: surface
+          value: today
+          type: path
+          description: Surface identifier.
+        - name: surface
+          value: record
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: medicine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: review
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: mine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: tab
+          type: path
+          description: Surface identifier.
+          disabled: true
+      body:
+        type: json
+        data: |-
+          {
+            "ifVersion": 0,
+            "schemaVersion": 0,
+            "payload": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "surface": "today",
+            "version": 3,
+            "schemaVersion": 1,
+            "payload": {
+              "placements": [
+                {
+                  "id": "summary.metrics",
+                  "size": "wide"
+                },
+                {
+                  "id": "water.trend",
+                  "size": "compact"
+                }
+              ]
+            },
+            "updatedAt": "2026-10-30T12:00:00.000Z"
+          }
+  - name: 400 Response
+    description: Unknown surface or invalid body (LAYOUT_SURFACE_UNKNOWN)
+    request:
+      url: '{{baseUrl}}/api/v1/layouts/:surface'
+      method: PUT
+      params:
+        - name: surface
+          value: today
+          type: path
+          description: Surface identifier.
+        - name: surface
+          value: record
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: medicine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: review
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: mine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: tab
+          type: path
+          description: Surface identifier.
+          disabled: true
+      body:
+        type: json
+        data: |-
+          {
+            "ifVersion": 0,
+            "schemaVersion": 0,
+            "payload": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: Version conflict (LAYOUT_VERSION_CONFLICT); carries the current document under `errors.current`
+    request:
+      url: '{{baseUrl}}/api/v1/layouts/:surface'
+      method: PUT
+      params:
+        - name: surface
+          value: today
+          type: path
+          description: Surface identifier.
+        - name: surface
+          value: record
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: medicine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: review
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: mine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: tab
+          type: path
+          description: Surface identifier.
+          disabled: true
+      body:
+        type: json
+        data: |-
+          {
+            "ifVersion": 0,
+            "schemaVersion": 0,
+            "payload": ""
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 422 Response
+    description: Unsupported document shape (LAYOUT_SCHEMA_VERSION_UNSUPPORTED)
+    request:
+      url: '{{baseUrl}}/api/v1/layouts/:surface'
+      method: PUT
+      params:
+        - name: surface
+          value: today
+          type: path
+          description: Surface identifier.
+        - name: surface
+          value: record
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: medicine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: review
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: mine
+          type: path
+          description: Surface identifier.
+          disabled: true
+        - name: surface
+          value: tab
+          type: path
+          description: Surface identifier.
+          disabled: true
+      body:
+        type: json
+        data: |-
+          {
+            "ifVersion": 0,
+            "schemaVersion": 0,
+            "payload": ""
+          }
+    response:
+      status: 422
+      statusText: Unprocessable Entity
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

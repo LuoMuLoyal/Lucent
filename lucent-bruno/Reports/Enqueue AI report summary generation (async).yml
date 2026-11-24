@@ -1,0 +1,83 @@
+info:
+  name: Enqueue AI report summary generation (async)
+  type: http
+  seq: 3
+  tags:
+    - Reports
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/reports/summary/generate/async'
+  body:
+    type: json
+    data: |-
+      {
+        "range": "last_7_days",
+        "startDate": "",
+        "endDate": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: When a queue is configured, accepted with a `jobId` for polling; otherwise the summary is generated synchronously and returned.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reports/summary/generate/async'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "range": "last_7_days",
+            "startDate": "",
+            "endDate": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "jobId": "",
+            "result": {
+              "range": "last_7_days",
+              "startDate": "",
+              "endDate": "",
+              "generatedAt": "",
+              "summary": "",
+              "coverage": {
+                "medication": {
+                  "trackedDays": 0,
+                  "totalDays": 0
+                },
+                "water": {
+                  "trackedDays": 0,
+                  "totalDays": 0
+                },
+                "sleep": {
+                  "trackedDays": 0,
+                  "totalDays": 0
+                }
+              },
+              "observedPattern": {
+                "kind": "medication",
+                "text": "",
+                "source": ""
+              },
+              "lowRiskAction": {
+                "label": "",
+                "text": ""
+              },
+              "disclaimer": ""
+            }
+          }

@@ -1,0 +1,126 @@
+info:
+  name: Record a local notification delivery receipt (idempotent)
+  type: http
+  seq: 2
+  tags:
+    - Reminder_Deliveries
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/reminder-deliveries/receipts'
+  body:
+    type: json
+    data: |-
+      {
+        "reminderId": "",
+        "scheduledDate": "",
+        "scheduledTime": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The recorded delivery row.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reminder-deliveries/receipts'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "reminderId": "",
+            "scheduledDate": "",
+            "scheduledTime": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "item": {
+              "id": "",
+              "reminderId": "",
+              "deviceId": "",
+              "channel": "",
+              "status": "",
+              "scheduledFor": "",
+              "deliveredAt": "",
+              "errorMessage": "",
+              "createdAt": ""
+            }
+          }
+  - name: 403 Response
+    description: Reminder belongs to another user (FORBIDDEN)
+    request:
+      url: '{{baseUrl}}/api/v1/user/reminder-deliveries/receipts'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "reminderId": "",
+            "scheduledDate": "",
+            "scheduledTime": ""
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Reminder not found (RESOURCE_NOT_FOUND)
+    request:
+      url: '{{baseUrl}}/api/v1/user/reminder-deliveries/receipts'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "reminderId": "",
+            "scheduledDate": "",
+            "scheduledTime": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

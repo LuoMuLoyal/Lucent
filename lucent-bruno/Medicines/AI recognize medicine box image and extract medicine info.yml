@@ -1,0 +1,51 @@
+info:
+  name: AI recognize medicine box image and extract medicine info
+  type: http
+  seq: 8
+  tags:
+    - Medicines
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/medicines/recognize'
+  body:
+    type: json
+    data: |-
+      {
+        "imageUrl": "https://cdn.lumos.example/medicines/amoxicillin-box.jpg"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Recognized medicine fields, null when not extractable.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/recognize'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "imageUrl": "https://cdn.lumos.example/medicines/amoxicillin-box.jpg"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "name": "",
+            "approvalNumber": "",
+            "specification": "",
+            "manufacturer": ""
+          }

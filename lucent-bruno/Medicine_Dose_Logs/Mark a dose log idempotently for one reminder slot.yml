@@ -1,0 +1,184 @@
+info:
+  name: Mark a dose log idempotently for one reminder slot
+  type: http
+  seq: 3
+  tags:
+    - Medicine_Dose_Logs
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/mark'
+  body:
+    type: json
+    data: |-
+      {
+        "currentMedicineId": "",
+        "reminderId": "",
+        "healthEventId": "",
+        "status": "taken",
+        "scheduledFor": "",
+        "scheduledTime": "",
+        "doseText": "",
+        "note": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The created or updated dose log for the slot.
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/mark'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "reminderId": "",
+            "healthEventId": "",
+            "status": "taken",
+            "scheduledFor": "",
+            "scheduledTime": "",
+            "doseText": "",
+            "note": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "id": "",
+            "healthEventId": "",
+            "currentMedicineId": "",
+            "reminderId": "",
+            "status": "taken",
+            "scheduledFor": "",
+            "scheduledTime": "",
+            "doseText": "",
+            "note": "",
+            "source": "",
+            "createdAt": "",
+            "updatedAt": ""
+          }
+  - name: 400 Response
+    description: Missing slot identifier or invalid slot identity (VALIDATION_FAILED)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/mark'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "reminderId": "",
+            "healthEventId": "",
+            "status": "taken",
+            "scheduledFor": "",
+            "scheduledTime": "",
+            "doseText": "",
+            "note": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 404 Response
+    description: Reminder or current medicine not found (RESOURCE_NOT_FOUND)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/mark'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "reminderId": "",
+            "healthEventId": "",
+            "status": "taken",
+            "scheduledFor": "",
+            "scheduledTime": "",
+            "doseText": "",
+            "note": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: Duplicate dose log for the same slot (RESOURCE_CONFLICT, race)
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-dose-logs/mark'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "currentMedicineId": "",
+            "reminderId": "",
+            "healthEventId": "",
+            "status": "taken",
+            "scheduledFor": "",
+            "scheduledTime": "",
+            "doseText": "",
+            "note": ""
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

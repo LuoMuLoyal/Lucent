@@ -1,0 +1,99 @@
+info:
+  name: Readiness probe for critical runtime dependencies
+  type: http
+  seq: 3
+  tags:
+    - Health
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/health/ready'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: All critical dependencies (database, cache) are up.
+    request:
+      url: '{{baseUrl}}/api/v1/health/ready'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "info": {
+              "database": {
+                "status": "up"
+              },
+              "cache": {
+                "status": "up"
+              },
+              "app": {
+                "status": "up"
+              }
+            },
+            "error": {},
+            "details": {
+              "database": {
+                "status": "up"
+              },
+              "cache": {
+                "status": "up"
+              },
+              "app": {
+                "status": "up"
+              }
+            }
+          }
+  - name: 503 Response
+    description: At least one critical dependency is unavailable.
+    request:
+      url: '{{baseUrl}}/api/v1/health/ready'
+      method: GET
+    response:
+      status: 503
+      statusText: Service Unavailable
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "info": {
+              "database": {
+                "status": "up"
+              },
+              "cache": {
+                "status": "up"
+              },
+              "app": {
+                "status": "up"
+              }
+            },
+            "error": {},
+            "details": {
+              "database": {
+                "status": "up"
+              },
+              "cache": {
+                "status": "up"
+              },
+              "app": {
+                "status": "up"
+              }
+            }
+          }

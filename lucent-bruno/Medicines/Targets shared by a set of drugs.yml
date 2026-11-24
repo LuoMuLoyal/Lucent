@@ -1,0 +1,55 @@
+info:
+  name: Targets shared by a set of drugs
+  type: http
+  seq: 12
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/shared-targets'
+  params:
+    - name: drugbankIds
+      value: ''
+      type: query
+      description: Comma-separated DrugBank ids (2-10)
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Shared targets, or a status explaining why none.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/shared-targets'
+      method: GET
+      params:
+        - name: drugbankIds
+          value: ''
+          type: query
+          description: Comma-separated DrugBank ids (2-10)
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "targets": [
+              {
+                "targetGene": "",
+                "targetName": "",
+                "drugCount": 0,
+                "drugIds": [],
+                "drugNames": []
+              }
+            ]
+          }

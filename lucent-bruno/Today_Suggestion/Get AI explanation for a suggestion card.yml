@@ -1,0 +1,54 @@
+info:
+  name: Get AI explanation for a suggestion card
+  type: http
+  seq: 3
+  tags:
+    - Today_Suggestion
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/today/suggestions/:id/explain'
+  headers:
+    - name: accept-language
+      value: ''
+  params:
+    - name: id
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: The AI explanation for the suggestion card.
+    request:
+      url: '{{baseUrl}}/api/v1/user/today/suggestions/:id/explain'
+      method: POST
+      headers:
+        - name: accept-language
+          value: ''
+      params:
+        - name: id
+          value: ''
+          type: path
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "suggestionId": "sug_9f2c1e4a",
+            "reason": "",
+            "boundary": "",
+            "aiGenerated": false,
+            "locale": ""
+          }

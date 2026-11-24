@@ -1,0 +1,69 @@
+info:
+  name: Get the current active health event
+  type: http
+  seq: 3
+  tags:
+    - Health_Events
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/health-events/active'
+  params:
+    - name: date
+      value: ''
+      type: query
+      description: Calendar date in YYYY-MM-DD format.
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: The active health event, or null when none is active.
+    request:
+      url: '{{baseUrl}}/api/v1/user/health-events/active'
+      method: GET
+      params:
+        - name: date
+          value: ''
+          type: query
+          description: Calendar date in YYYY-MM-DD format.
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "kind": "symptom",
+            "id": "",
+            "title": "",
+            "status": "active",
+            "startedAt": "",
+            "endedAt": "",
+            "outcome": "improved",
+            "reasonRecordId": "",
+            "currentMedicineIds": [],
+            "checkIn": {
+              "id": "",
+              "eventId": "",
+              "date": "",
+              "outcome": "improved",
+              "createdAt": "",
+              "updatedAt": ""
+            },
+            "coverage": {
+              "checkInCount": 0,
+              "firstCheckInDate": "",
+              "lastCheckInDate": ""
+            }
+          }

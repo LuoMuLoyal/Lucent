@@ -1,0 +1,38 @@
+info:
+  name: Revoke a clinic summary share (current user owns the share)
+  type: http
+  seq: 10
+  tags:
+    - Reports
+
+http:
+  method: DELETE
+  url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/shares/:shareId'
+  params:
+    - name: shareId
+      value: ''
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Share revoked; the shared URL now returns 404.
+    request:
+      url: '{{baseUrl}}/api/v1/user/reports/clinic-summary/shares/:shareId'
+      method: DELETE
+      params:
+        - name: shareId
+          value: ''
+          type: path
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ''

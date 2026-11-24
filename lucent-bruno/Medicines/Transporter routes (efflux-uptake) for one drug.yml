@@ -1,0 +1,53 @@
+info:
+  name: Transporter routes (efflux/uptake) for one drug
+  type: http
+  seq: 18
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/transport-routes'
+  params:
+    - name: drugbankId
+      value: ''
+      type: query
+      description: DrugBank id
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Transporter routes, with edge direction.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/transport-routes'
+      method: GET
+      params:
+        - name: drugbankId
+          value: ''
+          type: query
+          description: DrugBank id
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "routes": [
+              {
+                "transporterGene": "",
+                "transporterName": "",
+                "inverted": false
+              }
+            ]
+          }

@@ -1,0 +1,42 @@
+info:
+  name: Get enablement of the optional assistant sidecars
+  type: http
+  seq: 3
+  tags:
+    - Admin
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/admin/dependencies"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Sidecar enablement flags (flags only, no endpoints or keys).
+    request:
+      url: "{{baseUrl}}/api/v1/admin/dependencies"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "lightrag": {
+              "enabled": true
+            },
+            "semantica": {
+              "enabled": false
+            },
+            "generatedAt": "2026-01-16T08:30:00.000Z"
+          }

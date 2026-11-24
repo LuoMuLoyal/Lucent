@@ -1,0 +1,59 @@
+info:
+  name: Create a signed URL for daily record image upload
+  type: http
+  seq: 5
+  tags:
+    - Daily_Records
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/user/daily-records/attachments/images/presign-upload'
+  body:
+    type: json
+    data: |-
+      {
+        "contentType": "image/jpeg",
+        "sizeBytes": 245760,
+        "fileName": "photo.jpg"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Presigned upload metadata for direct object storage upload.
+    request:
+      url: '{{baseUrl}}/api/v1/user/daily-records/attachments/images/presign-upload'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "contentType": "image/jpeg",
+            "sizeBytes": 245760,
+            "fileName": "photo.jpg"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "provider": "",
+            "bucket": "",
+            "objectKey": "",
+            "uploadUrl": "",
+            "headers": {},
+            "publicUrl": "",
+            "expiresAt": "",
+            "maxSizeBytes": 0
+          }

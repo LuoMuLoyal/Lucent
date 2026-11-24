@@ -1,0 +1,64 @@
+info:
+  name: Get authenticated user assistant capabilities and permissions
+  type: http
+  seq: 1
+  tags:
+    - Assistant
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/assistant/capabilities'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Assistant capabilities payload.
+    request:
+      url: '{{baseUrl}}/api/v1/user/assistant/capabilities'
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "phase": "foundation",
+            "assistantEnabled": false,
+            "assistantMemoryEnabled": false,
+            "assistantContext": {
+              "healthProfile": false,
+              "dailyRecords": false,
+              "sleepRecords": false,
+              "currentMedicines": false
+            },
+            "chatModelConfigured": false,
+            "interactiveChatReady": false,
+            "langGraphReady": false,
+            "streamingSupported": false,
+            "streamingTransport": "sse",
+            "markdownRenderingRecommended": false,
+            "ragEnabled": false,
+            "tools": [
+              {
+                "name": "get_today_records",
+                "requiredContextSources": [
+                  "health_profile"
+                ],
+                "permittedByUser": false,
+                "enabled": false,
+                "implemented": false,
+                "disabledReason": "chat_disabled"
+              }
+            ],
+            "updatedAt": ""
+          }

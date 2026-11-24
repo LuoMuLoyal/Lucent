@@ -1,0 +1,266 @@
+info:
+  name: Apple Sign-In callback
+  type: http
+  seq: 11
+  tags:
+    - Auth
+
+http:
+  method: POST
+  url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+  body:
+    type: json
+    data: |-
+      {
+        "identityToken": "",
+        "authorizationCode": "",
+        "givenName": "",
+        "familyName": ""
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Authenticated user with token pair.
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "user": {
+              "id": "",
+              "email": "",
+              "nickname": "",
+              "avatar": "",
+              "isEmailVerified": false,
+              "emailVerifiedAt": "",
+              "createdAt": "",
+              "updatedAt": ""
+            },
+            "tokens": {
+              "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMSJ9",
+              "refreshToken": "rt_9f8c7b6a5d4e3f2a1b0c9d8e7f6a5b4c",
+              "expiresIn": 900
+            }
+          }
+  - name: 400 Response
+    description: Missing or invalid identity token
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 401 Response
+    description: OAuth sign-in failed
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 409 Response
+    description: OAuth identity is already linked to another account
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 502 Response
+    description: OAuth provider rejected the exchange or returned an unusable profile
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 502
+      statusText: Bad Gateway
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 503 Response
+    description: Authentication method unavailable
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 503
+      statusText: Service Unavailable
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+  - name: 504 Response
+    description: OAuth provider timed out
+    request:
+      url: '{{baseUrl}}/api/v1/auth/oauth/apple/callback'
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "identityToken": "",
+            "authorizationCode": "",
+            "givenName": "",
+            "familyName": ""
+          }
+    response:
+      status: 504
+      statusText: Gateway Timeout
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "https://api.lumos.example/problems/resource-not-found",
+            "title": "Resource not found",
+            "detail": "The requested resource could not be found.",
+            "code": "RESOURCE_NOT_FOUND",
+            "errors": {},
+            "retryable": false,
+            "retryAfter": 60,
+            "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }

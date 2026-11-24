@@ -1,0 +1,65 @@
+info:
+  name: List all active legal documents
+  type: http
+  seq: 1
+  tags:
+    - Legal_Documents
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/legal-documents'
+  params:
+    - name: lang
+      value: zh
+      type: query
+      description: "Content language: 'zh' or 'en'. Default: 'zh'."
+      disabled: true
+    - name: lang
+      value: en
+      type: query
+      description: "Content language: 'zh' or 'en'. Default: 'zh'."
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Active legal documents with list-level update timestamp.
+    request:
+      url: '{{baseUrl}}/api/v1/legal-documents'
+      method: GET
+      params:
+        - name: lang
+          value: zh
+          type: query
+          description: "Content language: 'zh' or 'en'. Default: 'zh'."
+          disabled: true
+        - name: lang
+          value: en
+          type: query
+          description: "Content language: 'zh' or 'en'. Default: 'zh'."
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "docType": "",
+                "title": "",
+                "updatedAt": ""
+              }
+            ],
+            "updatedAt": "2026-06-01T09:00:00.000Z"
+          }

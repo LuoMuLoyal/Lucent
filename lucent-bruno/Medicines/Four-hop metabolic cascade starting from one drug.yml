@@ -1,0 +1,55 @@
+info:
+  name: Four-hop metabolic cascade starting from one drug
+  type: http
+  seq: 13
+  tags:
+    - Medicines
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/medicines/relations/cascade-paths'
+  params:
+    - name: drugbankId
+      value: ''
+      type: query
+      description: Starting DrugBank id
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Cascade chains, or a status explaining why none.
+    request:
+      url: '{{baseUrl}}/api/v1/medicines/relations/cascade-paths'
+      method: GET
+      params:
+        - name: drugbankId
+          value: ''
+          type: query
+          description: Starting DrugBank id
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "status": "ok",
+            "cascades": [
+              {
+                "startDrug": "",
+                "enzymeOne": "",
+                "middleDrug": "",
+                "enzymeTwo": "",
+                "endDrug": ""
+              }
+            ]
+          }

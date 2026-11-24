@@ -1,0 +1,63 @@
+info:
+  name: List medicine reminder schedules
+  type: http
+  seq: 1
+  tags:
+    - Medicine_Reminders
+
+http:
+  method: GET
+  url: '{{baseUrl}}/api/v1/user/medicine-reminders'
+  params:
+    - name: activeOnly
+      value: ''
+      type: query
+      description: Set to true to return active reminders only.
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Medicine reminder schedules.
+    request:
+      url: '{{baseUrl}}/api/v1/user/medicine-reminders'
+      method: GET
+      params:
+        - name: activeOnly
+          value: ''
+          type: query
+          description: Set to true to return active reminders only.
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "items": [
+              {
+                "id": "",
+                "currentMedicineId": "",
+                "label": "",
+                "scheduledHour": 0,
+                "scheduledMinute": 0,
+                "daysOfWeek": [],
+                "startDate": "",
+                "endDate": "",
+                "isActive": false,
+                "note": "",
+                "createdAt": "",
+                "updatedAt": ""
+              }
+            ]
+          }
