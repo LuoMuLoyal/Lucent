@@ -7,7 +7,7 @@ import { ExportController } from './export.controller.js';
 import { CreateDataExportRequest } from '../../application/use_cases/create-export-request.js';
 import type {
   CreateDataExportRequestDto,
-  DataExportRequestDataDto,
+  ExportRequestDataDto,
 } from './dto/export-response.js';
 
 const mockRequest = {
@@ -132,8 +132,8 @@ describe('ExportController', () => {
 });
 
 function makeExportRequest(
-  overrides: Partial<DataExportRequestDataDto> = {},
-): DataExportRequestDataDto {
+  overrides: Partial<ExportRequestDataDto> = {},
+): ExportRequestDataDto {
   return {
     id: 'export-1',
     kind: 'hospital',

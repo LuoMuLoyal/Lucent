@@ -28,7 +28,7 @@ import {
  * `@prisma/client`——`arch:check` 会拦，且那也确实不是应用层该知道的。
  */
 @Injectable()
-export class PrismaProductEvents extends ProductEventLog {
+export class PrismaProductEventLog extends ProductEventLog {
   constructor(private readonly prisma: PrismaService) {
     super();
   }

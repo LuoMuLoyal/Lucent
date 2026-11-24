@@ -38,7 +38,7 @@ function buildPublisher() {
   } as unknown as DomainEventPublisher;
 }
 
-function buildProductEvents() {
+function buildProductEventLog() {
   return {
     emitServerEvent: vi.fn().mockResolvedValue(undefined),
   } as unknown as ProductEventLogService;
@@ -104,7 +104,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await collectResult(
@@ -143,7 +143,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await collectResult(
@@ -166,7 +166,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -186,7 +186,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -208,7 +208,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -236,7 +236,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -257,7 +257,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -279,7 +279,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await collectResult(
@@ -309,7 +309,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await expect(
@@ -322,7 +322,7 @@ describe('CheckInsService', () => {
 
   it('emits health_event_outcome_confirmed with the check-in outcome after the upsert succeeds', async () => {
     const repository = buildRepository();
-    const productEventLog = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildPublisher(),
@@ -347,7 +347,7 @@ describe('CheckInsService', () => {
 
   it('does not emit the product event when the check-in write fails', async () => {
     const repository = buildRepository();
-    const productEventLog = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.upsertCheckIn.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;

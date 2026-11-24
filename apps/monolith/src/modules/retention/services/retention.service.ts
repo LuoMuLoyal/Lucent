@@ -46,7 +46,7 @@ export class RetentionService {
     await this.cleanupExpiredSessions(currentTime);
     await this.cleanupOldReadNotifications(currentTime);
     await this.cleanupExpiredFeedback(currentTime);
-    await this.cleanupExpiredProductEvents(currentTime);
+    await this.cleanupExpiredProductEventLog(currentTime);
     await this.cleanupSoftDeletedAccounts(currentTime);
   }
 
@@ -119,7 +119,7 @@ export class RetentionService {
   }
 
   /** Deletes raw product events older than the 90-day retention window. */
-  private async cleanupExpiredProductEvents(currentTime: Date): Promise<void> {
+  private async cleanupExpiredProductEventLog(currentTime: Date): Promise<void> {
     try {
       const threshold = new Date(currentTime);
       threshold.setUTCDate(

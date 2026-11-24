@@ -7,10 +7,10 @@ import {
 } from '../../../../common/result/index.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import {
-  DataExportRequests,
+  ExportRequests,
   type ExportRequestCompletion,
-  type DataExportRequestRow,
-  type NewDataExportRequest,
+  type ExportRequestRow,
+  type NewExportRequest,
 } from '../../application/ports/export-requests.js';
 
 /** 读侧固定选取的列。与端点的响应字段一一对应。 */
@@ -30,7 +30,7 @@ const ROW_SELECT = {
 } satisfies Prisma.DataExportRequestSelect;
 
 /**
- * `DataExportRequests` 端口的 Prisma 实现。
+ * `ExportRequests` 端口的 Prisma 实现。
  *
  * ## 只做映射
  *
@@ -40,12 +40,12 @@ const ROW_SELECT = {
  * - Prisma 异常折成 `DEPENDENCY_UNAVAILABLE`（依赖故障，不是业务失败）。
  */
 @Injectable()
-export class PrismaDataExportRequests extends DataExportRequests {
+export class PrismaExportRequests extends ExportRequests {
   constructor(private readonly prisma: PrismaService) {
     super();
   }
 
-  async create(input: NewDataExportRequest): Promise<DataExportRequestRow> {
+  async create(input: NewExportRequest): Promise<ExportRequestRow> {
     try {
       return await this.prisma.dataExportRequest.create({
         data: {
@@ -65,7 +65,7 @@ export class PrismaDataExportRequests extends DataExportRequests {
     }
   }
 
-  async findById(id: string): Promise<DataExportRequestRow | null> {
+  async findById(id: string): Promise<ExportRequestRow | null> {
     try {
       return await this.prisma.dataExportRequest.findUnique({
         where: { id },
@@ -76,7 +76,7 @@ export class PrismaDataExportRequests extends DataExportRequests {
     }
   }
 
-  async findLatestByUser(userId: string): Promise<DataExportRequestRow | null> {
+  async findLatestByUser(userId: string): Promise<ExportRequestRow | null> {
     try {
       return await this.prisma.dataExportRequest.findFirst({
         where: { userId },

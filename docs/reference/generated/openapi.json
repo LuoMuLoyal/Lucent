@@ -8553,7 +8553,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataExportRequestResponse"
+                  "$ref": "#/components/schemas/ExportRequestResponse"
                 }
               }
             }
@@ -8618,7 +8618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataExportRequestData"
+                  "$ref": "#/components/schemas/ExportRequestData"
                 }
               }
             }
@@ -12569,7 +12569,7 @@
         ],
         "additionalProperties": false
       },
-      "DataExportRequestResponse": {
+      "ExportRequestResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -12638,7 +12638,7 @@
         ],
         "additionalProperties": false
       },
-      "DataExportRequestData": {
+      "ExportRequestData": {
         "nullable": true,
         "type": "object",
         "properties": {

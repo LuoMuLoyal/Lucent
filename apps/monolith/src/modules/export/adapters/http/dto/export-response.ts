@@ -58,11 +58,11 @@ export type CreateDataExportRequestDto = z.infer<
  * `POST /export-requests` result and the payload of
  * `GET /export-requests/latest`).
  *
- * Replaces the former `DataExportRequestDataDto` response class. Response
+ * Replaces the former `ExportRequestDataDto` response class. Response
  * schemas intentionally carry no `.strict()` / `.default()` so outbound
  * parsing tolerates whatever the service layer produces.
  */
-export const DataExportRequestDataSchema = z.object({
+export const ExportRequestDataSchema = z.object({
   id: z.string().describe('Unique request identifier.'),
   kind: z.enum(DATA_EXPORT_KINDS),
   format: z.enum(DATA_EXPORT_FORMATS),
@@ -79,8 +79,8 @@ export const DataExportRequestDataSchema = z.object({
 });
 
 /** Strongly typed single data export request resource. */
-export type DataExportRequestDataDto = z.infer<
-  typeof DataExportRequestDataSchema
+export type ExportRequestDataDto = z.infer<
+  typeof ExportRequestDataSchema
 >;
 
 /**
@@ -88,7 +88,7 @@ export type DataExportRequestDataDto = z.infer<
  * resolves to a request resource or `null` when no request exists yet.
  */
 export const exportRequestLatestResponseSchema =
-  DataExportRequestDataSchema.nullable();
+  ExportRequestDataSchema.nullable();
 
 /** Strongly typed result of the latest-request lookup. */
 export type ExportRequestLatestResponseDto = z.infer<
@@ -96,4 +96,4 @@ export type ExportRequestLatestResponseDto = z.infer<
 >;
 
 /** Backwards-compatible response alias kept for the former DTO class name. */
-export type DataExportRequestResponseDto = DataExportRequestDataDto;
+export type ExportRequestResponseDto = ExportRequestDataDto;

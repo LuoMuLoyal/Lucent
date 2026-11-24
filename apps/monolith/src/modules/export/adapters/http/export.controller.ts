@@ -30,7 +30,7 @@ import { CreateDataExportRequest } from '../../application/use_cases/create-expo
 import {
   createDataExportRequestSchema,
   exportRequestLatestResponseSchema,
-  DataExportRequestDataSchema,
+  ExportRequestDataSchema,
 } from './dto/export-response.js';
 import type { CreateDataExportRequestDto } from './dto/export-response.js';
 import type { CreateDataExportCommand } from '../../application/commands/create-export.js';
@@ -87,7 +87,7 @@ export class ExportController {
     type: ProblemDetailsDto,
     description: 'Object storage backend is not reachable.',
   })
-  @SerializeOptions({ schema: DataExportRequestDataSchema })
+  @SerializeOptions({ schema: ExportRequestDataSchema })
   async createRequest(
     @CurrentUser() user: UserPayload,
     @Body({ schema: createDataExportRequestSchema })
@@ -132,15 +132,15 @@ export class ExportController {
 registerResponseSchema({
   path: '/api/v1/user/export-requests',
   method: 'post',
-  componentName: 'DataExportRequestResponse',
-  schema: DataExportRequestDataSchema,
+  componentName: 'ExportRequestResponse',
+  schema: ExportRequestDataSchema,
   description: 'Data export request created.',
 });
 
 registerResponseSchema({
   path: '/api/v1/user/export-requests/latest',
   method: 'get',
-  componentName: 'DataExportRequestData',
+  componentName: 'ExportRequestData',
   schema: exportRequestLatestResponseSchema,
   description: 'Latest data export request, or null when none exists.',
 });

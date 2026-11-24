@@ -30,8 +30,8 @@ import { PrismaObjectStorage } from './infrastructure/storage/object-storage.js'
 import { BullmqExportQueue } from './adapters/queue/export-queue.js';
 import { ObjectStorage } from './application/ports/object-storage.js';
 import { ExportQueue } from './application/ports/export-queue.js';
-import { DataExportRequests } from './application/ports/export-requests.js';
-import { PrismaDataExportRequests } from './infrastructure/persistence/export-requests.js';
+import { ExportRequests } from './application/ports/export-requests.js';
+import { PrismaExportRequests } from './infrastructure/persistence/export-requests.js';
 import { ReportExportPdfService } from './infrastructure/pdf/report-pdf.js';
 import { ReportPdf } from './application/ports/report-pdf.js';
 
@@ -41,8 +41,8 @@ import { ReportPdf } from './application/ports/report-pdf.js';
   providers: [
     PrismaObjectStorage,
     { provide: ObjectStorage, useExisting: PrismaObjectStorage },
-    { provide: DataExportRequests, useClass: PrismaDataExportRequests },
-    PrismaDataExportRequests,
+    { provide: ExportRequests, useClass: PrismaExportRequests },
+    PrismaExportRequests,
     ReportExportPdfService,
     // `ProcessExport` injects the port token, not the concrete class: without
     // this binding Nest reports `can't resolve ... ReportPdf at index [3]`.

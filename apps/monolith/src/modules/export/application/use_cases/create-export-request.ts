@@ -13,8 +13,8 @@ import {
 } from '../../../../common/result/index.js';
 import { PasswordReauthService } from '../../../auth/index.js';
 import {
-  DataExportRequests,
-  type DataExportRequestRow,
+  ExportRequests,
+  type ExportRequestRow,
 } from '../ports/export-requests.js';
 import type {
   CreateDataExportCommand,
@@ -33,7 +33,7 @@ const MONTHLY_EXPORT_RANGE = 'last_30_days';
  * ## 分层
  *
  * 它只编排：密码重验 → 建行 → 入队或回退同步处理 → 投影成响应。所有 IO
- * 走端口（`DataExportRequests` / `ObjectStorage` / `ExportQueue`），
+ * 走端口（`ExportRequests` / `ObjectStorage` / `ExportQueue`），
  * **不 import Prisma、不 import infrastructure**（`arch:check` 会拦）。
  *
  * ## 名字的边界
@@ -53,7 +53,7 @@ export class CreateDataExportRequest {
   private readonly logger = new Logger(CreateDataExportRequest.name);
 
   constructor(
-    private readonly requests: DataExportRequests,
+    private readonly requests: ExportRequests,
     private readonly storage: ObjectStorage,
     private readonly queue: ExportQueue,
     private readonly processExport: ProcessExport,
@@ -125,7 +125,7 @@ export class CreateDataExportRequest {
    * 代价是请求变慢——原实现就是这个取舍，保留。
    */
   private dispatchOrProcessInline(
-    created: DataExportRequestRow,
+    created: ExportRequestRow,
     userId: string,
     language: string,
   ): ResultAsync<ExportRequestResult, DomainFailure> {
@@ -133,7 +133,7 @@ export class CreateDataExportRequest {
       return this.processInline(created, userId, language);
     }
 
-    const work = (async (): Promise<DataExportRequestRow> => {
+    const work = (async (): Promise<ExportRequestRow> => {
       try {
         await this.queue.enqueue({
           exportRequestId: created.id,
@@ -164,11 +164,11 @@ export class CreateDataExportRequest {
 
   /** 同步内联处理（队列不可用时的兜底）。 */
   private processInline(
-    created: DataExportRequestRow,
+    created: ExportRequestRow,
     userId: string,
     language: string,
   ): ResultAsync<ExportRequestResult, DomainFailure> {
-    const work = (async (): Promise<DataExportRequestRow> => {
+    const work = (async (): Promise<ExportRequestRow> => {
       await this.processExport.process({
         exportRequestId: created.id,
         userId,
@@ -182,7 +182,7 @@ export class CreateDataExportRequest {
     ).andThen((row) => this.toDto(row));
   }
 
-  private async reloadOrThrow(id: string): Promise<DataExportRequestRow> {
+  private async reloadOrThrow(id: string): Promise<ExportRequestRow> {
     const row = await this.requests.findById(id);
     if (row === null) {
       // 行在派发与回读之间消失（保留任务清理）——依赖故障，不是业务失败。
@@ -198,7 +198,7 @@ export class CreateDataExportRequest {
   }
 
   private toDto(
-    row: DataExportRequestRow,
+    row: ExportRequestRow,
   ): ResultAsync<ExportRequestResult, DomainFailure> {
     const downloadUrlResult =
       row.downloadUrl != null

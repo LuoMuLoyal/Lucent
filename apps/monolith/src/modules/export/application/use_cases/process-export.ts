@@ -3,7 +3,7 @@ import { I18nService } from 'nestjs-i18n';
 import { INotificationSender } from '../../../notifications/index.js';
 import { ReportsService } from '../../../reports/index.js';
 import { ObjectStorage } from '../ports/object-storage.js';
-import { DataExportRequests } from '../ports/export-requests.js';
+import { ExportRequests } from '../ports/export-requests.js';
 import { ReportPdf } from '../ports/report-pdf.js';
 import {
   formatDateOnly,
@@ -33,7 +33,7 @@ export class ProcessExport {
   private readonly logger = new Logger(ProcessExport.name);
 
   constructor(
-    private readonly requests: DataExportRequests,
+    private readonly requests: ExportRequests,
     private readonly reportsService: ReportsService,
     private readonly storage: ObjectStorage,
     private readonly reportPdf: ReportPdf,

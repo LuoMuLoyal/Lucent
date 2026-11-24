@@ -1,5 +1,5 @@
 import { ProcessExport } from './process-export.js';
-import type { DataExportRequests } from '../ports/export-requests.js';
+import type { ExportRequests } from '../ports/export-requests.js';
 import type { ObjectStorage } from '../ports/object-storage.js';
 import type { ReportsService } from '../../../reports/index.js';
 
@@ -284,7 +284,7 @@ function createProcessor() {
   };
 
   const processor = new ProcessExport(
-    prisma as unknown as DataExportRequests,
+    prisma as unknown as ExportRequests,
     reportsService as unknown as ReportsService,
     storageService as unknown as ObjectStorage,
     pdfService as unknown as ReportPdf,

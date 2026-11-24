@@ -24,7 +24,7 @@ export type ExportRequestStatus =
   | 'unavailable';
 
 /** 一条导出请求（读侧形状）。 */
-export interface DataExportRequestRow {
+export interface ExportRequestRow {
   id: string;
   kind: string;
   format: string;
@@ -40,7 +40,7 @@ export interface DataExportRequestRow {
 }
 
 /** 创建一条请求的输入。 */
-export interface NewDataExportRequest {
+export interface NewExportRequest {
   userId: string;
   kind: string;
   format: string;
@@ -65,17 +65,17 @@ export interface ExportRequestCompletion {
  * 方法返回 Promise：失败以异常抛出，由应用层映射成 `DomainFailure`
  * （与 `Sessions` / `Accounts` 端口同一约定）。
  */
-export abstract class DataExportRequests {
+export abstract class ExportRequests {
   /** 创建一条请求并返回它。 */
-  abstract create(input: NewDataExportRequest): Promise<DataExportRequestRow>;
+  abstract create(input: NewExportRequest): Promise<ExportRequestRow>;
 
   /** 按 id 取请求；查不到返回 `null`。 */
-  abstract findById(id: string): Promise<DataExportRequestRow | null>;
+  abstract findById(id: string): Promise<ExportRequestRow | null>;
 
   /** 取该用户最近一条请求；没有返回 `null`。 */
   abstract findLatestByUser(
     userId: string,
-  ): Promise<DataExportRequestRow | null>;
+  ): Promise<ExportRequestRow | null>;
 
   /** 把请求标记为 `processing`（清空上一次的错误）。 */
   abstract markProcessing(id: string): Promise<void>;

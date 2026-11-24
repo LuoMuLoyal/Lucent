@@ -37,7 +37,7 @@ function buildPublisher() {
   } as unknown as DomainEventPublisher;
 }
 
-function buildProductEvents() {
+function buildProductEventLog() {
   return {
     emitServerEvent: vi.fn().mockResolvedValue(undefined),
     recordServerEvents: vi.fn().mockResolvedValue({ received: 1, recorded: 1 }),
@@ -87,7 +87,7 @@ function buildService(repository: ReturnType<typeof buildRepository>) {
   return new EventsService(
     repository as unknown as HealthEventRepositoryPort,
     buildPublisher(),
-    buildProductEvents(),
+    buildProductEventLog(),
   );
 }
 
@@ -124,7 +124,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await collectResult(service.create(USER_ID, { title: 'Headache' }));
@@ -246,7 +246,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     const result = await collectResult(
@@ -288,7 +288,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await expect(
@@ -308,7 +308,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       publisher,
-      buildProductEvents(),
+      buildProductEventLog(),
     );
 
     await expect(
@@ -359,7 +359,7 @@ describe('EventsService', () => {
 
   it('emits health_event_started after the create write succeeds', async () => {
     const repository = buildRepository();
-    const productEventLog = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     const startedAt = new Date('2026-07-20T00:30:00.000Z');
     repository.create.mockReturnValue(okAsync(event({ startedAt })));
     const service = new EventsService(
@@ -383,7 +383,7 @@ describe('EventsService', () => {
 
   it('emits health_event_ended with the chosen outcome as result', async () => {
     const repository = buildRepository();
-    const productEventLog = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.update.mockReturnValue(
       okAsync(
         event({
@@ -418,7 +418,7 @@ describe('EventsService', () => {
 
   it('does not emit product events when the create write fails', async () => {
     const repository = buildRepository();
-    const productEventLog = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.create.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;
@@ -438,7 +438,7 @@ describe('EventsService', () => {
 
   it('does not emit product events when the end write fails', async () => {
     const repository = buildRepository();
-    const productEventLog = buildProductEvents();
+    const productEventLog = buildProductEventLog();
     repository.update.mockReturnValue(
       fromPromise(Promise.reject(new Error('write failed')), (error) => {
         throw error;

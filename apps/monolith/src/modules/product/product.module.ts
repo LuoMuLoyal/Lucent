@@ -5,14 +5,14 @@ import { ProductController } from './adapters/http/product.controller.js';
 import { ProductEventLogService } from './application/use_cases/events.js';
 import { ProductFunnelService } from './application/use_cases/funnel.js';
 import { ProductEventLog } from './application/ports/product-event.js';
-import { PrismaProductEvents } from './infrastructure/persistence/product-event.js';
+import { PrismaProductEventLog } from './infrastructure/persistence/product-event.js';
 
 @Module({
   imports: [PrismaModule, AdminModule],
   controllers: [ProductController],
   providers: [
-    PrismaProductEvents,
-    { provide: ProductEventLog, useExisting: PrismaProductEvents },
+    PrismaProductEventLog,
+    { provide: ProductEventLog, useExisting: PrismaProductEventLog },
     ProductEventLogService,
     ProductFunnelService,
   ],
