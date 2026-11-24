@@ -52,12 +52,17 @@ const MAX_READER_FACTS = 500;
 /**
  * Name of the partial unique index that guards one slot.
  *
- * Kept in sync with migration `20261124120000_add_dose_log_slot_uniq`. A literal
- * here is deliberate: P2002 does not distinguish constraints structurally, and
- * the alternative — treating *every* P2002 as "slot taken" — would turn an
+ * Created by migration `20261124120000_add_dose_log_slot_uniq` (where it was
+ * still named after the long module name) and renamed to this short name by
+ * `20261124150000_rename_tables_to_short_module_names`. A literal here is
+ * deliberate: P2002 does not distinguish constraints structurally, and the
+ * alternative — treating *every* P2002 as "slot taken" — would turn an
  * unrelated conflict into a silent overwrite.
+ *
+ * Exported so the spec can assert it against the migration text rather than
+ * restating it (a restated literal stays green even after one side drifts).
  */
-const DOSE_LOG_SLOT_INDEX = 'dose_logs_slot_uniq';
+export const DOSE_LOG_SLOT_INDEX = 'dose_logs_slot_uniq';
 
 /**
  * Whether a write failed because another row already owns the slot.
@@ -107,10 +112,7 @@ const doseLogFactSelect = {
 } satisfies Prisma.UserDoseLogSelect;
 
 @Injectable()
-export class PrismaDoseLogs
-  extends DoseLogs
-  implements DoseLogEntryReaderPort
-{
+export class PrismaDoseLogs extends DoseLogs implements DoseLogEntryReaderPort {
   constructor(private readonly prisma: PrismaService) {
     super();
   }
@@ -379,9 +381,7 @@ export class PrismaDoseLogs
   }
 }
 
-function toRecord(
-  row: Prisma.UserDoseLogGetPayload<object>,
-): DoseLogRecord {
+function toRecord(row: Prisma.UserDoseLogGetPayload<object>): DoseLogRecord {
   return {
     id: row.id,
     userId: row.userId,

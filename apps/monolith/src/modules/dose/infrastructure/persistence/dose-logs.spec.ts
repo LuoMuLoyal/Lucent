@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { Prisma } from '#generated/prisma/client.js';
 
 import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
 import { DomainFailureException } from '../../../../common/result/index.js';
 import type { PrismaService } from '../../../../prisma/index.js';
-import { PrismaDoseLogs } from './dose-logs.js';
+import { DOSE_LOG_SLOT_INDEX, PrismaDoseLogs } from './dose-logs.js';
 
 /**
  * `PrismaDoseLogs` — the persistence adapter behind both the write-side
@@ -53,8 +56,8 @@ function prismaError(
   return error;
 }
 
-/** The slot index name the adapter matches on. */
-const SLOT_INDEX = 'user_medicine_dose_logs_slot_uniq';
+/** The slot index name the adapter matches on — the adapter's own constant. */
+const SLOT_INDEX = DOSE_LOG_SLOT_INDEX;
 
 function doseLogRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -226,9 +229,7 @@ describe('PrismaDoseLogs', () => {
 
   describe('listByDate', () => {
     it('pages the requested date and reports the unpaged total', async () => {
-      prisma.userDoseLog.findMany.mockResolvedValue([
-        doseLogRow(),
-      ] as never);
+      prisma.userDoseLog.findMany.mockResolvedValue([doseLogRow()] as never);
       prisma.userDoseLog.count.mockResolvedValue(11 as never);
 
       const result = await repository.listByDate(
@@ -421,9 +422,7 @@ describe('PrismaDoseLogs', () => {
     };
 
     it('returns the inserted row when the slot is free', async () => {
-      prisma.userDoseLog.create.mockResolvedValue(
-        doseLogRow() as never,
-      );
+      prisma.userDoseLog.create.mockResolvedValue(doseLogRow() as never);
 
       const result = await repository.createOrUpdateOnSlot(input, {
         status: 'skipped',
@@ -442,9 +441,7 @@ describe('PrismaDoseLogs', () => {
       prisma.userDoseLog.create.mockRejectedValue(
         prismaError('P2002', [SLOT_INDEX]),
       );
-      prisma.userDoseLog.findFirst.mockResolvedValue(
-        doseLogRow() as never,
-      );
+      prisma.userDoseLog.findFirst.mockResolvedValue(doseLogRow() as never);
       prisma.userDoseLog.update.mockResolvedValue(
         doseLogRow({ status: 'skipped' }) as never,
       );
@@ -506,9 +503,7 @@ describe('PrismaDoseLogs', () => {
     it('writes only the keys present in the patch', async () => {
       // `undefined` means "leave alone"; `null` is a real value. Collapsing the
       // two would clear columns the caller never mentioned.
-      prisma.userDoseLog.update.mockResolvedValue(
-        doseLogRow() as never,
-      );
+      prisma.userDoseLog.update.mockResolvedValue(doseLogRow() as never);
 
       await repository.update('dose-1', {
         status: 'skipped',
@@ -555,9 +550,7 @@ describe('PrismaDoseLogs', () => {
   describe('softDelete', () => {
     it('stamps deletedAt rather than removing the row', async () => {
       // History is preserved so a slot can be re-marked as a new row later.
-      prisma.userDoseLog.update.mockResolvedValue(
-        doseLogRow() as never,
-      );
+      prisma.userDoseLog.update.mockResolvedValue(doseLogRow() as never);
       const at = new Date('2026-07-09T00:00:00.000Z');
 
       await repository.softDelete('dose-1', at);
@@ -586,9 +579,7 @@ describe('PrismaDoseLogs', () => {
         scheduledHour: 8,
         scheduledMinute: 30,
       });
-      expect(
-        prisma.nonDeleted.userReminder.findFirst,
-      ).toHaveBeenCalledWith({
+      expect(prisma.nonDeleted.userReminder.findFirst).toHaveBeenCalledWith({
         where: { id: 'reminder-1', userId: 'user-1' },
         select: {
           userId: true,
@@ -609,6 +600,39 @@ describe('PrismaDoseLogs', () => {
         where: { id: 'medicine-9', userId: 'user-1' },
         select: { userId: true },
       });
+    });
+  });
+
+  // ── Index-name agreement ──────────────────────────────────────────────────
+  // `isSlotConflict` narrows by literal name, so the constant above is a
+  // contract with the migrations: `20261124120000` creates the index (under the
+  // long module name of the time) and `20261124150000` renames it when the
+  // module became `dose`. If either side drifts, P2002 stops being recognized
+  // and a lost insert race degrades from "converge on the winner" to a 409 —
+  // a failure that only shows up under concurrency, never in these mocks.
+
+  describe('slot index name (migration agreement)', () => {
+    const migrationDir = path.join('prisma', 'migrations');
+
+    const readMigration = (dir: string): string =>
+      readFileSync(path.join(migrationDir, dir, 'migration.sql'), 'utf8');
+
+    it('is created by the slot-unique migration', () => {
+      const sql = readMigration('20261124120000_add_dose_log_slot_uniq');
+
+      expect(sql).toContain('CREATE UNIQUE INDEX');
+      // The migration is historical and must not be edited, so it still spells
+      // the index the long way; the rename below is what brings it to us.
+      expect(sql).toContain(`"user_medicine_dose_logs_slot_uniq"`);
+    });
+
+    it('is renamed to the name the adapter matches on', () => {
+      const sql = readMigration(
+        '20261124150000_rename_tables_to_short_module_names',
+      );
+
+      expect(sql).toContain(`['user_medicine_dose_logs_slot_uniq',`);
+      expect(sql).toContain(`'${DOSE_LOG_SLOT_INDEX}'`);
     });
   });
 });
