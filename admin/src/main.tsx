@@ -113,9 +113,9 @@ if (!rootElement.innerHTML) {
                   { name: 'data', list: '/data' },
                   { name: 'audit-logs', list: '/audit-logs' },
                   {
-                    name: 'legal-documents',
-                    list: '/content/legal-documents',
-                    edit: '/content/legal-documents/:id',
+                    name: 'legal',
+                    list: '/content/legal',
+                    edit: '/content/legal/:id',
                   },
                   {
                     name: 'safety-tips',

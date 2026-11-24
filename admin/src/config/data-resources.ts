@@ -32,7 +32,7 @@ export const DATA_RESOURCES: DataResource[] = [
     idField: 'userId',
   },
   { key: 'user-sessions', label: 'User sessions', group: 'Accounts' },
-  { key: 'user-settings', label: 'User settings', group: 'Accounts' },
+  { key: 'settings', label: 'User settings', group: 'Accounts' },
   { key: 'accounts', label: 'Accounts', group: 'Accounts' },
   {
     key: 'admin-users',
@@ -57,7 +57,7 @@ export const DATA_RESOURCES: DataResource[] = [
 
   // Medication & records
   {
-    key: 'user-medicine-reminders',
+    key: 'user-reminder',
     label: 'Medicine reminders',
     group: 'Medication & records',
   },
@@ -67,12 +67,12 @@ export const DATA_RESOURCES: DataResource[] = [
     group: 'Medication & records',
   },
   {
-    key: 'user-medicine-dose-logs',
+    key: 'user-dose',
     label: 'Dose logs',
     group: 'Medication & records',
   },
   {
-    key: 'user-daily-records',
+    key: 'user-record',
     label: 'Daily records',
     group: 'Medication & records',
   },
@@ -119,8 +119,8 @@ export const DATA_RESOURCES: DataResource[] = [
     group: 'Suggestions & analysis',
   },
   {
-    key: 'user-today-analysis-materializations',
-    label: 'Today analysis materializations',
+    key: 'user-analysis-materializations',
+    label: 'Analysis materializations',
     group: 'Suggestions & analysis',
   },
   {
@@ -146,11 +146,6 @@ export const DATA_RESOURCES: DataResource[] = [
     group: 'Assistant',
   },
   {
-    key: 'assistant-memories',
-    label: 'Assistant memories',
-    group: 'Assistant',
-  },
-  {
     key: 'assistant-regenerations',
     label: 'Assistant regenerations',
     group: 'Assistant',
@@ -158,7 +153,7 @@ export const DATA_RESOURCES: DataResource[] = [
 
   // Notifications & privacy
   {
-    key: 'user-notification-preferences',
+    key: 'user-notification',
     label: 'Notification preferences',
     group: 'Notifications & privacy',
     idField: 'userId',
@@ -169,7 +164,7 @@ export const DATA_RESOURCES: DataResource[] = [
     group: 'Notifications & privacy',
   },
   {
-    key: 'data-export-requests',
+    key: 'export-requests',
     label: 'Data export requests',
     group: 'Notifications & privacy',
   },
@@ -181,7 +176,7 @@ export const DATA_RESOURCES: DataResource[] = [
 
   // Telemetry & logs
   {
-    key: 'user-product-events',
+    key: 'user-product',
     label: 'Product events',
     group: 'Telemetry & logs',
     readOnly: true,
@@ -194,7 +189,7 @@ export const DATA_RESOURCES: DataResource[] = [
   },
 
   // Content
-  { key: 'legal-documents', label: 'Legal documents', group: 'Content' },
+  { key: 'legal', label: 'Legal documents', group: 'Content' },
   { key: 'medicine-safety-tips', label: 'Safety tips', group: 'Content' },
   { key: 'medical-qa-chunks', label: 'Medical QA chunks', group: 'Content' },
 
