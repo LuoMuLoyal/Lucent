@@ -120,7 +120,7 @@ deepagents 线程。顺序按「哪个线程真的挂着」决定，而不是按
 
 三个组成部分：
 
-- `tool-bridge.ts` —— 把 24 个既有工具包成 `StructuredTool`，实现**调用既有
+- `tool-bridge.ts` —— 把 25 个既有工具包成 `StructuredTool`，实现**调用既有
   `executeMany`**。参数 schema 用 zod 手写（只有 6 个工具带参数），上界读同一份
   运行时预算，模型看到的范围与服务端夹紧一致。不要在这里重写执行逻辑：提案信封
   与超时契约都在原执行器里，第二份执行器必然漂移。
@@ -387,6 +387,9 @@ sidecar 的部署与独立配置（`deploy/lightrag/`、`LIGHTRAG_*` 变量）�
 `search_cn_knowledge`（`query` / `source` / `mode` / `limit`）、
 `resolve_drugbank`（`query`，只给药品名而非整句）、
 `search_drugbank`（`query` + `drugbankId` / `drugName`）、
+`search_adverse_reactions`（`direction` + `drugbankId` / `rxnormCui` / `meddraId` /
+`limit`；一个工具三个方向，因为三个近乎同名的兄弟工具会让模型选错，而它们回答的
+是同一个问题）、
 `reason_ontology`（`question` / `limit`）与 `reason_rules`
 （`intent` / `query` / `drug_names` / `atc_prefixes` / `limit`）。以 `get_meal_digest` 为例：`days` / `limit`
 由模型给出，服务端封顶最近 `15` 天、最多 `20` 餐（封顶写进 envelope 的
