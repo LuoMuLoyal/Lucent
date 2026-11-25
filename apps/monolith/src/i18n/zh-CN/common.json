@@ -84,6 +84,16 @@
   "problem_generative_prompt_empty_detail": "生成前需要先输入一句指示。",
   "problem_generative_prompt_too_long_title": "指示过长",
   "problem_generative_prompt_too_long_detail": "请把指示控制在 {maxLength} 个字符以内。",
+  "problem_generative_turn_empty_title": "没有可回应的操作",
+  "problem_generative_turn_empty_detail": "这次交互没有携带任何操作，无法继续。",
+  "problem_generative_turn_too_large_title": "一次交互太多",
+  "problem_generative_turn_too_large_detail": "一次最多提交 {maxMessages} 个操作。",
+  "problem_generative_document_empty_title": "没有可继续的界面",
+  "problem_generative_document_empty_detail": "界面文档为空，没有可继续的界面。",
+  "problem_generative_capabilities_invalid_title": "能力描述无法读取",
+  "problem_generative_capabilities_invalid_detail": "能力描述无法解析。这是客户端的问题。",
+  "problem_generative_capabilities_too_large_title": "能力描述过大",
+  "problem_generative_capabilities_too_large_detail": "请把目录描述控制在 {maxBytes} 字节以内。",
   "problem_generative_output_rejected_title": "生成结果未通过校验",
-  "problem_generative_output_rejected_detail": "结果未通过安全检查，已不予展示。可以换个说法再试一次。"
+  "problem_generative_output_rejected_detail": "结果不是合法的 A2UI 文档，已不予展示。请再试一次。"
 }

@@ -236,9 +236,72 @@ const definitions = {
     retryable: false,
   },
   /**
-   * The model produced a tree that violates the admission policy — an unknown
-   * component, a fabricated numeric value, or a property a domain component
-   * does not allow.
+   * The interaction round carried no renderer-to-agent messages.
+   *
+   * 422 rather than 400: the body parses, it just describes nothing to react to
+   * — an action list of length zero cannot be answered.
+   */
+  GENERATIVE_TURN_EMPTY: {
+    status: 422,
+    titleKey: 'common.problem_generative_turn_empty_title',
+    detailKey: 'common.problem_generative_turn_empty_detail',
+    retryable: false,
+  },
+  /**
+   * The interaction round carried more messages than one turn accepts.
+   *
+   * 422 rather than 400: a batch that large is well-formed but would cost more
+   * than a single round is allowed to.
+   */
+  GENERATIVE_TURN_TOO_LARGE: {
+    status: 422,
+    titleKey: 'common.problem_generative_turn_too_large_title',
+    detailKey: 'common.problem_generative_turn_too_large_detail',
+    retryable: false,
+  },
+  /**
+   * The interaction round carried no document.
+   *
+   * 422 rather than 400: the server is stateless, so a round without the document
+   * cannot continue the surface the user is looking at. Composing a fresh one
+   * instead would silently replace their screen.
+   */
+  GENERATIVE_DOCUMENT_EMPTY: {
+    status: 422,
+    titleKey: 'common.problem_generative_document_empty_title',
+    detailKey: 'common.problem_generative_document_empty_detail',
+    retryable: false,
+  },
+  /**
+   * The client's capabilities document could not be serialized.
+   *
+   * 400: the caller sent something that is not a JSON object, so the prompt
+   * cannot be built from it.
+   */
+  GENERATIVE_CAPABILITIES_INVALID: {
+    status: 400,
+    titleKey: 'common.problem_generative_capabilities_invalid_title',
+    detailKey: 'common.problem_generative_capabilities_invalid_detail',
+    retryable: false,
+  },
+  /**
+   * The client's capabilities document exceeds
+   * `GENERATIVE_CAPABILITIES_MAX_BYTES`.
+   *
+   * 422 rather than 413: the request is readable, it is just larger than the
+   * server lets the catalog be. The client owns the vocabulary, so this ceiling
+   * is the only bound the server can put on it.
+   */
+  GENERATIVE_CAPABILITIES_TOO_LARGE: {
+    status: 422,
+    titleKey: 'common.problem_generative_capabilities_too_large_title',
+    detailKey: 'common.problem_generative_capabilities_too_large_detail',
+    retryable: false,
+  },
+  /**
+   * The model produced a tree that violates the envelope check — a non-v1.0
+   * message, a message with no (or several) body keys, no `createSurface`, or no
+   * component with id `root`.
    *
    * 502 rather than 400: the caller's request was fine, the *dependency*
    * misbehaved. The client keeps the previously rendered surface, so this is
@@ -369,8 +432,17 @@ export class ProblemCatalog {
     return this.isKnown(code) && definitions[code].status === status;
   }
 
+  /**
+   * HTTP status for a registered code.
+   *
+   * `throw new Error` is deliberate: this is a **programmer invariant** (every
+   * code reaching here is registered by construction), not a domain failure —
+   * wrapping it in `DomainFailureException` would make an internal coding bug
+   * look like something the client could act on.
+   */
   statusFor(code: string): number {
     if (!this.isKnown(code)) {
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- registration invariant, not a domain failure
       throw new Error(`Unknown Problem Details code: ${code}`);
     }
     return definitions[code].status;
@@ -378,6 +450,9 @@ export class ProblemCatalog {
 
   build(code: string, options: ProblemCatalogOptions): ProblemDetails {
     if (!this.isKnown(code)) {
+      // Same invariant as `statusFor`: an unregistered code must never reach
+      // the wire, so this fails loudly rather than falling back silently.
+      // eslint-disable-next-line error-handling/no-bare-throw-error -- registration invariant, not a domain failure
       throw new Error(`Unknown Problem Details code: ${code}`);
     }
     const definition = definitions[code];

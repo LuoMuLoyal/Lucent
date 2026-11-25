@@ -84,6 +84,16 @@
   "problem_generative_prompt_empty_detail": "Enter an instruction before generating.",
   "problem_generative_prompt_too_long_title": "Instruction is too long",
   "problem_generative_prompt_too_long_detail": "Keep the instruction under {maxLength} characters.",
+  "problem_generative_turn_empty_title": "Nothing to respond to",
+  "problem_generative_turn_empty_detail": "The interaction carried no actions, so there was nothing to continue from.",
+  "problem_generative_turn_too_large_title": "Too many interactions at once",
+  "problem_generative_turn_too_large_detail": "Send at most {maxMessages} actions in one round.",
+  "problem_generative_document_empty_title": "Nothing to continue",
+  "problem_generative_document_empty_detail": "The screen document was empty, so there was no surface to continue.",
+  "problem_generative_capabilities_invalid_title": "Unsupported capability description",
+  "problem_generative_capabilities_invalid_detail": "The capability description could not be read. This is a client bug.",
+  "problem_generative_capabilities_too_large_title": "Capability description is too large",
+  "problem_generative_capabilities_too_large_detail": "Keep the catalog description under {maxBytes} bytes.",
   "problem_generative_output_rejected_title": "The generated layout was rejected",
-  "problem_generative_output_rejected_detail": "The result did not pass the safety check, so it was not shown. Try rephrasing your instruction."
+  "problem_generative_output_rejected_detail": "The result was not a valid A2UI document, so it was not shown. Try again."
 }
