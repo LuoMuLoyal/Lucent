@@ -64,6 +64,7 @@ import { AssistantToolRuleReasoningService } from './adapters/acl/tools/ontology
 
 import { AssistantToolMedicineLookupService } from './adapters/acl/tools/medicine/lookup.service.js';
 import { AssistantDrugbankLookupService } from './adapters/acl/tools/medicine/drugbank-lookup.service.js';
+import { AssistantToolOnsidesService } from './adapters/acl/tools/medicine/onsides.service.js';
 
 import { AssistantToolProposalService } from './adapters/acl/tools/proposal/proposal.service.js';
 import { AssistantDailyRecordProposalService } from './adapters/acl/tools/proposal/daily-record-proposal.service.js';
@@ -131,6 +132,7 @@ import { VectorStoreFactory } from './adapters/acl/tools/vector/vector-store.fac
     AssistantToolRuleReasoningService,
     AssistantToolMedicineLookupService,
     AssistantDrugbankLookupService,
+    AssistantToolOnsidesService,
     AssistantToolDrugbankEntityResolveService,
     AssistantToolDrugbankSearchService,
     AssistantProposalConfirmService,

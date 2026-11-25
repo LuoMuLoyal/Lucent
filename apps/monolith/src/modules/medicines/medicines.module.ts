@@ -127,6 +127,9 @@ import { PrismaOnsidesReactions } from './infrastructure/persistence/onsides.js'
     },
   ],
   exports: [
+    // The assistant's OnSIDES tool injects the reader port directly, so the
+    // module publishes the token as well as the concrete implementation.
+    ONSIDES_REACTIONS_READER,
     DrugbankMedicinesService,
     CnMedicinesService,
     MedicineRiskCheckService,

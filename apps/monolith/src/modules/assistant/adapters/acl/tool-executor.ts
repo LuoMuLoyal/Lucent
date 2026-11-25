@@ -34,6 +34,7 @@ import {
 } from './tools/drugbank/entity-resolve.service.js';
 import { AssistantToolDrugbankSearchService } from './tools/drugbank/search.service.js';
 import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service.js';
+import { AssistantToolOnsidesService } from './tools/medicine/onsides.service.js';
 import { AssistantToolOntologyReasoningService } from './tools/ontology/ontology-reasoning.service.js';
 import { AssistantToolRuleReasoningService } from './tools/ontology/rule-reasoning.service.js';
 import { AssistantToolProposalService } from './tools/proposal/proposal.service.js';
@@ -53,6 +54,7 @@ const KNOWLEDGE_TOOL_NAMES = new Set<ToolName>([
   'resolve_drugbank',
   'get_drugbank_detail',
   'search_drugbank',
+  'search_adverse_reactions',
   'reason_ontology',
   'reason_rules',
 ]);
@@ -112,6 +114,7 @@ export class AssistantToolService {
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly medicineLookupService: AssistantToolMedicineLookupService,
+    private readonly onsidesService: AssistantToolOnsidesService,
     private readonly ontologyReasoningService: AssistantToolOntologyReasoningService,
     private readonly ruleReasoningService: AssistantToolRuleReasoningService,
     private readonly proposalService: AssistantToolProposalService,
@@ -620,6 +623,11 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.drugbankSearchService.search(context),
+        };
+      case 'search_adverse_reactions':
+        return {
+          name: toolName,
+          data: await this.onsidesService.search(context),
         };
       case 'reason_ontology':
         return {

@@ -200,12 +200,15 @@ describe('AssistantToolService', () => {
     // OAG 工具桩：本用例只关心 dispatch 与缓存键，不跑真实的生成 + sidecar 往返。
     const ontologyReasoningService = { reasonOverOntology: vi.fn() };
     const ruleReasoningService = { reasonOverRules: vi.fn() };
+    // OnSIDES 工具桩：同上，只验证 dispatch。
+    const onsidesService = { search: vi.fn() };
     const service = new AssistantToolService(
       readService,
       knowledgeRetrievalService as never,
       drugbankEntityResolveService,
       drugbankSearchService,
       medicineLookupService as never,
+      onsidesService as never,
       ontologyReasoningService as never,
       ruleReasoningService as never,
       proposalService,
