@@ -166,7 +166,10 @@ export const surfaceStreamResultSchema = z
             version: '1.0',
             createSurface: {
               surfaceId: 'generative.review',
-              catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+              // Placeholder: the real id is whatever the client advertised in
+              // its `capabilities` document (optionally pinned by the
+              // deployment's `A2UI_CATALOG_ID`). Not a server constant.
+              catalogId: '<catalog id from the client capabilities>',
               sendDataModel: true,
             },
           },

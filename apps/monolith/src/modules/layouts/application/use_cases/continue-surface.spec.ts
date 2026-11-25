@@ -1,4 +1,8 @@
+import type { ConfigService } from '@nestjs/config';
+
 import { DomainFailureException } from '../../../../common/result/index.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
+import type { GenerativeSurfaceConfig } from '../../../../config/services/generative-surface.config.js';
 import type {
   SurfaceGenerator,
   SurfaceGenerationOutput,
@@ -86,7 +90,10 @@ const validOutput: SurfaceGenerationOutput = {
 function build(generator: SurfaceGenerator): ContinueSurface {
   // The envelope check lives on GenerateSurface so both endpoints share one
   // definition of "well-formed v1.0 surface".
-  return new ContinueSurface(generator, new GenerateSurface(generator));
+  return new ContinueSurface(
+    generator,
+    new GenerateSurface(generator, stubConfig()),
+  );
 }
 
 describe('ContinueSurface', () => {
@@ -180,3 +187,15 @@ describe('ContinueSurface', () => {
     });
   });
 });
+
+/** ConfigService stub: the catalog id is deployment config, not a test concern. */
+function stubConfig(): ConfigService {
+  const config: GenerativeSurfaceConfig = { catalogId: '' };
+  return {
+    // key is typed string by the ConfigService signature while the enum's own type
+    // is a string literal union; the comparison is exact, so no coercion is needed.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- see above
+    get: (key: string) =>
+      key === ConfigKey.GenerativeSurface ? config : undefined,
+  } as unknown as ConfigService;
+}

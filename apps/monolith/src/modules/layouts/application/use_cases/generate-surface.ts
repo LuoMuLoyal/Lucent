@@ -25,12 +25,15 @@
  */
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import type { DomainFailure } from '../../../../common/result/index.js';
 import {
   createDomainFailure,
   DomainFailureException,
 } from '../../../../common/result/index.js';
+import type { GenerativeSurfaceConfig } from '../../../../config/services/generative-surface.config.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
 import { checkSurfaceProduction } from '../../domain/generative/a2ui-envelope.js';
 import type {
   A2uiMessage,
@@ -79,7 +82,26 @@ export class GenerateSurface {
   constructor(
     @Inject(SURFACE_GENERATOR)
     private readonly generator: SurfaceGenerator,
+    /**
+     * Source of `A2UI_CATALOG_ID`. Injected rather than read from `process.env`
+     * so tests and forks can override it the same way as any other setting.
+     */
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Catalog id the model should use, from deployment config.
+   *
+   * Empty is a valid state: a deployment that publishes no catalog gets a prompt
+   * naming none, rather than one asserting an identifier it never chose.
+   */
+  get catalogId(): string {
+    return (
+      this.configService.get<GenerativeSurfaceConfig>(
+        ConfigKey.GenerativeSurface,
+      )?.catalogId ?? ''
+    );
+  }
 
   /**
    * Runs the whole pipeline.
@@ -115,6 +137,7 @@ export class GenerateSurface {
       ...(input.capabilities == null
         ? {}
         : { capabilities: input.capabilities }),
+      ...(this.catalogId.length === 0 ? {} : { catalogId: this.catalogId }),
     };
 
     const output = await this.generator.generateWithStream(context, onMessage);

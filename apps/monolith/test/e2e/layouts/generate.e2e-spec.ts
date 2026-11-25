@@ -30,7 +30,7 @@ const VALID_MESSAGES = [
     version: '1.0',
     createSurface: {
       surfaceId: 'generative-review',
-      catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+      catalogId: 'https://example.test/a2ui/catalog/v1.json',
       sendDataModel: true,
     },
   },
@@ -225,10 +225,10 @@ describe('Layouts generative endpoints (e2e)', () => {
   it('forwards the client capabilities to the generator', async () => {
     const capabilities = {
       '1.0': {
-        supportedCatalogIds: ['https://luminous.app/a2ui/catalog/v1.json'],
+        supportedCatalogIds: ['https://example.test/a2ui/catalog/v1.json'],
         inlineCatalogs: [
           {
-            catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+            catalogId: 'https://example.test/a2ui/catalog/v1.json',
             components: { Text: {}, Button: {} },
           },
         ],

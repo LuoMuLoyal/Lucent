@@ -22,6 +22,14 @@ export interface SurfaceGenerationContext {
   readonly language: string;
   readonly range?: string;
   /**
+   * Catalog id the model should write into `createSurface.catalogId`.
+   *
+   * Comes from `A2UI_CATALOG_ID` (deployment config), not from code: the id is a
+   * published identifier, so naming it is a deployment decision. Empty when the
+   * deployment names none.
+   */
+  readonly catalogId?: string;
+  /**
    * The client's catalog document.
    *
    * The prompt's component vocabulary is generated from this, so the model can
@@ -45,6 +53,8 @@ export interface SurfaceTurnContext {
   readonly document: SurfaceDocument;
   readonly language: string;
   readonly capabilities?: SurfaceCapabilities;
+  /** See `SurfaceGenerationContext.catalogId`. */
+  readonly catalogId?: string;
 }
 
 /** Structured output the model must produce. */

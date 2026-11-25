@@ -63,6 +63,9 @@ export class LlmSurfaceGenerator
    */
   private capabilities: SurfaceGenerationContext['capabilities'];
 
+  /** See `SurfaceGenerationContext.catalogId`. */
+  private catalogId: string | undefined;
+
   public constructor(
     llmRuntimeService: LlmRuntimeService,
     metricsService: MetricsService,
@@ -80,10 +83,12 @@ export class LlmSurfaceGenerator
     onMessage: (message: A2uiMessage) => void | Promise<void>,
   ): Promise<SurfaceGenerationOutput> {
     this.capabilities = context.capabilities;
+    this.catalogId = context.catalogId;
     try {
       return await this.runStream(context, {}, onMessage);
     } finally {
       this.capabilities = undefined;
+      this.catalogId = undefined;
     }
   }
 
@@ -92,6 +97,7 @@ export class LlmSurfaceGenerator
     onMessage: (message: A2uiMessage) => void | Promise<void>,
   ): Promise<SurfaceGenerationOutput> {
     this.capabilities = context.capabilities;
+    this.catalogId = context.catalogId;
     try {
       // The base class is generic over one context type; a turn is passed as a
       // generation context because the two share every field the streaming
@@ -101,6 +107,7 @@ export class LlmSurfaceGenerator
       return await this.runStream(turnContext, {}, onMessage);
     } finally {
       this.capabilities = undefined;
+      this.catalogId = undefined;
     }
   }
 
@@ -143,7 +150,7 @@ export class LlmSurfaceGenerator
     // The vocabulary comes from the client's advertised catalog. It is not
     // routed through the runtime prompt override for that reason: the override
     // is server config, and the catalog is client state.
-    return buildSurfaceSystemPrompt(this.capabilities);
+    return buildSurfaceSystemPrompt(this.capabilities, this.catalogId);
   }
 
   protected buildUserPrompt(

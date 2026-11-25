@@ -67,6 +67,7 @@ const GENERIC_VOCABULARY =
 
 export function buildSurfaceSystemPrompt(
   capabilities?: SurfaceCapabilities,
+  catalogId?: string,
 ): string {
   return [
     'You compose a small, presentational screen for a personal health app.',
@@ -81,6 +82,13 @@ export function buildSurfaceSystemPrompt(
     '  updateDataModel, deleteSurface, callRendererFunction, agentFunctionResponse.',
     '- createSurface carries { surfaceId, catalogId, sendDataModel?, components?,',
     '  dataModel? }. v1.0 may inline the whole tree and its data in it.',
+    // The id is deployment config, never invented here. When a deployment names
+    // none, the model is told to copy the client's id instead of making one up —
+    // a made-up id does not resolve against the renderer's catalog.
+    catalogId == null || catalogId.length === 0
+      ? '- Use exactly the catalogId the client sent in its capabilities; never' +
+        '\n  invent one.'
+      : `- Use this catalogId verbatim in createSurface: ${catalogId}`,
     '- updateComponents carries { surfaceId, components: [...] } as a FLAT list;',
     '  parents name children by id. Exactly one component must have id "root".',
     '- Binding: a property that may be dynamic takes either a literal, or',

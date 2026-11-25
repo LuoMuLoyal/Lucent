@@ -19,7 +19,7 @@ function createSurface(
     version: A2UI_PROTOCOL_VERSION,
     createSurface: {
       surfaceId,
-      catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+      catalogId: 'https://example.test/a2ui/catalog/v1.json',
     },
   };
 }
@@ -54,7 +54,7 @@ describe('checkSurfaceProduction', () => {
           version: A2UI_PROTOCOL_VERSION,
           createSurface: {
             surfaceId: 'generative.review',
-            catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+            catalogId: 'https://example.test/a2ui/catalog/v1.json',
             components: [rootColumn, leafText],
             dataModel: {},
           },

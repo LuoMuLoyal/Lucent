@@ -81,6 +81,7 @@ export class ContinueSurface {
       );
     }
 
+    const catalogId = this.generateSurface.catalogId;
     const context: SurfaceTurnContext = {
       surface,
       messages: input.messages,
@@ -89,6 +90,7 @@ export class ContinueSurface {
       ...(input.capabilities == null
         ? {}
         : { capabilities: input.capabilities }),
+      ...(catalogId.length === 0 ? {} : { catalogId }),
     };
 
     const output = await this.generator.continueWithStream(context, onMessage);

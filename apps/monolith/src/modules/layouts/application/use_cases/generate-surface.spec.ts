@@ -1,4 +1,8 @@
+import type { ConfigService } from '@nestjs/config';
+
 import { DomainFailureException } from '../../../../common/result/index.js';
+import type { GenerativeSurfaceConfig } from '../../../../config/services/generative-surface.config.js';
+import { ConfigKey } from '../../../../config/env/config-keys.enum.js';
 import type {
   SurfaceGenerator,
   SurfaceGenerationContext,
@@ -71,7 +75,7 @@ const validMessages = [
     version: '1.0',
     createSurface: {
       surfaceId: 'generative.review',
-      catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+      catalogId: 'https://example.test/a2ui/catalog/v1.json',
       sendDataModel: true,
     },
   },
@@ -100,7 +104,7 @@ describe('GenerateSurface', () => {
   };
 
   it('returns the produced messages with usage', async () => {
-    const useCase = new GenerateSurface(new FakeGenerator(validOutput));
+    const useCase = build(new FakeGenerator(validOutput));
     const result = await useCase.execute(input, () => {});
 
     expect(result.surface).toBe('review');
@@ -110,7 +114,7 @@ describe('GenerateSurface', () => {
 
   it('streams each message to the callback', async () => {
     const seen: unknown[] = [];
-    const useCase = new GenerateSurface(new FakeGenerator(validOutput));
+    const useCase = build(new FakeGenerator(validOutput));
 
     await useCase.execute(input, (message) => {
       seen.push(message);
@@ -123,10 +127,7 @@ describe('GenerateSurface', () => {
     // The language decides the copy of the *generated* strings, so dropping it
     // here would silently produce English surfaces for zh-CN clients.
     const generator = new FakeGenerator(validOutput);
-    await new GenerateSurface(generator).execute(
-      { ...input, language: 'zh-CN' },
-      () => {},
-    );
+    await build(generator).execute({ ...input, language: 'zh-CN' }, () => {});
 
     expect(generator.contexts[0]?.language).toBe('zh-CN');
   });
@@ -137,21 +138,43 @@ describe('GenerateSurface', () => {
     // render.
     const capabilities = {
       '1.0': {
-        supportedCatalogIds: ['https://luminous.app/a2ui/catalog/v1.json'],
+        supportedCatalogIds: ['https://example.test/a2ui/catalog/v1.json'],
       },
     };
     const generator = new FakeGenerator(validOutput);
-    await new GenerateSurface(generator).execute(
-      { ...input, capabilities },
-      () => {},
-    );
+    await build(generator).execute({ ...input, capabilities }, () => {});
 
     expect(generator.contexts[0]?.capabilities).toEqual(capabilities);
   });
 
+  it('passes the configured catalog id to the generator', async () => {
+    // The id is deployment config (A2UI_CATALOG_ID), so the prompt can only
+    // name it if the use case forwards it.
+    const generator = new FakeGenerator(validOutput);
+    await new GenerateSurface(
+      generator,
+      stubConfigId('https://example.test/c.json'),
+    ).execute(input, () => {});
+
+    expect(generator.contexts[0]?.catalogId).toBe(
+      'https://example.test/c.json',
+    );
+  });
+
+  it('omits the catalog id when the deployment configures none', async () => {
+    // Empty must stay absent rather than becoming an empty string the prompt
+    // would render as a real instruction.
+    const generator = new FakeGenerator(validOutput);
+    await new GenerateSurface(generator, stubConfigId('')).execute(
+      input,
+      () => {},
+    );
+
+    expect(generator.contexts[0]?.catalogId).toBeUndefined();
+  });
   it('does not call the model when the request is invalid', async () => {
     const generator = new FakeGenerator(validOutput);
-    const useCase = new GenerateSurface(generator);
+    const useCase = build(generator);
 
     await expect(
       useCase.execute({ ...input, prompt: '   ' }, () => {}),
@@ -162,7 +185,7 @@ describe('GenerateSurface', () => {
 
   it('does not call the model when no model is configured', async () => {
     const generator = new FakeGenerator(validOutput, false);
-    const useCase = new GenerateSurface(generator);
+    const useCase = build(generator);
 
     await expect(useCase.execute(input, () => {})).rejects.toMatchObject({
       failure: { code: 'LLM_NOT_CONFIGURED' },
@@ -172,7 +195,7 @@ describe('GenerateSurface', () => {
   });
 
   it('fails the whole generation when the envelope is wrong', async () => {
-    const useCase = new GenerateSurface(
+    const useCase = build(
       new FakeGenerator({
         summary: 'bad',
         messages: [
@@ -195,7 +218,7 @@ describe('GenerateSurface', () => {
   it('rejects a sequence that streams clean but has no root', async () => {
     // A partially streamed tree can look valid; the check runs on the full
     // sequence, so a missing root still fails the request.
-    const useCase = new GenerateSurface(
+    const useCase = build(
       new FakeGenerator({
         summary: 'bad',
         messages: [
@@ -220,7 +243,7 @@ describe('GenerateSurface', () => {
   });
 
   it('accepts a Button — 1.0 dropped the writable-action ban', async () => {
-    const useCase = new GenerateSurface(
+    const useCase = build(
       new FakeGenerator({
         summary: 'interactive',
         messages: [
@@ -249,7 +272,7 @@ describe('GenerateSurface', () => {
   it('accepts a metric_card carrying an explicit value', async () => {
     // The "no numbers" rule belonged to the v0.9 admission policy. A2UI 1.0 has
     // no such rule; the client's schema decides what a component may carry.
-    const useCase = new GenerateSurface(
+    const useCase = build(
       new FakeGenerator({
         summary: 'numbers allowed',
         messages: [
@@ -282,7 +305,7 @@ describe('GenerateSurface', () => {
   it('rejects an oversized capabilities document', async () => {
     const generator = new FakeGenerator(validOutput);
     await expect(
-      new GenerateSurface(generator).execute(
+      build(generator).execute(
         {
           ...input,
           capabilities: { blob: 'x'.repeat(300 * 1024) },
@@ -296,3 +319,26 @@ describe('GenerateSurface', () => {
     expect(generator.calls).toBe(0);
   });
 });
+
+/**
+ * Builds the use case with a stub `ConfigService`.
+ *
+ * The catalog id comes from `A2UI_CATALOG_ID` at runtime; these cases exercise
+ * the pipeline, not the deployment's configuration, so the stub answers with an
+ * empty id (which is itself a supported state).
+ */
+function build(generator: SurfaceGenerator): GenerateSurface {
+  return new GenerateSurface(generator, stubConfigId(''));
+}
+
+/** ConfigService stub that answers `A2UI_CATALOG_ID` with [catalogId]. */
+function stubConfigId(catalogId: string): ConfigService {
+  const config: GenerativeSurfaceConfig = { catalogId };
+  return {
+    // key is typed string by the ConfigService signature while the enum's own type
+    // is a string literal union; the comparison is exact, so no coercion is needed.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- see above
+    get: (key: string) =>
+      key === ConfigKey.GenerativeSurface ? config : undefined,
+  } as unknown as ConfigService;
+}
