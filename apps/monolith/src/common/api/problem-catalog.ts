@@ -442,7 +442,6 @@ export class ProblemCatalog {
    */
   statusFor(code: string): number {
     if (!this.isKnown(code)) {
-      // eslint-disable-next-line error-handling/no-bare-throw-error -- registration invariant, not a domain failure
       throw new Error(`Unknown Problem Details code: ${code}`);
     }
     return definitions[code].status;
@@ -452,7 +451,6 @@ export class ProblemCatalog {
     if (!this.isKnown(code)) {
       // Same invariant as `statusFor`: an unregistered code must never reach
       // the wire, so this fails loudly rather than falling back silently.
-      // eslint-disable-next-line error-handling/no-bare-throw-error -- registration invariant, not a domain failure
       throw new Error(`Unknown Problem Details code: ${code}`);
     }
     const definition = definitions[code];

@@ -130,16 +130,22 @@ export default tseslint.config(
     // 以下文件仍有 ADR-0012 违规（裸 throw new Error / 空 catch），
     // 暂时关闭规则。每修复一个文件就从此列表中删除对应条目。
     // TODO: 清理完毕后删除整个 override 块。
+    //
+    // `**/` 前缀是必需的：本配置被两条路径调用——`pnpm --filter monolith
+    // lint:check` 以 app 目录为 cwd（路径是 `src/...`），而 lint-staged 以仓库根
+    // 为 cwd（路径是 `apps/monolith/src/...`）。只写 `src/...` 时后者匹配不到，
+    // 规则对同一文件在两条路径下一开一关：加 disable 注释会在前者报 unused
+    // warning，不加又在后者报 error。
     files: [
-      'src/common/api/problem-catalog.ts',
-      'src/common/helpers/format/json.utils.ts',
-      'src/common/helpers/infra/redis-url.ts',
-      'src/common/helpers/infra/retry.utils.ts',
-      'src/common/queue/queue.factory.ts',
-      'src/config/env/environment.validation.ts',
-      'src/mail/mail-transport.service.ts',
-      'src/modules/legal/services/documents.service.ts',
-      'src/setup-app.ts',
+      '**/src/common/api/problem-catalog.ts',
+      '**/src/common/helpers/format/json.utils.ts',
+      '**/src/common/helpers/infra/redis-url.ts',
+      '**/src/common/helpers/infra/retry.utils.ts',
+      '**/src/common/queue/queue.factory.ts',
+      '**/src/config/env/environment.validation.ts',
+      '**/src/mail/mail-transport.service.ts',
+      '**/src/modules/legal/services/documents.service.ts',
+      '**/src/setup-app.ts',
     ],
     rules: {
       'error-handling/no-bare-throw-error': 'off',

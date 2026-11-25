@@ -675,7 +675,6 @@ export function validateEnvironment(
     // Startup-time env validation, which runs before `ApiExceptionFilter` is
     // wired — the process must die with a readable message rather than a
     // Problem Details response nobody can receive.
-    // eslint-disable-next-line error-handling/no-bare-throw-error -- pre-DI startup failure, no HTTP layer yet
     throw new Error(`Environment validation failed: ${issues}`);
   }
 
