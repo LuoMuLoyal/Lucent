@@ -338,6 +338,12 @@ const envSchema = z.object({
   [EnvKey.TURNSTILE_SECRET_KEY]: optionalString,
   [EnvKey.TURNSTILE_SITE_KEY]: optionalString,
 
+  // ── A2UI generative surfaces ────────────────────────────────────
+  // The catalog id the client advertises as the model's `createSurface.catalogId`.
+  // Optional: empty means "not configured", and the prompt then avoids pinning
+  // an id instead of inventing one. Deployments that publish a catalog set it.
+  [EnvKey.A2UI_CATALOG_ID]: optionalString,
+
   // ── Tencent COS (secrets in .env; region/expiry non-sensitive defaults) ──
   [EnvKey.TENCENT_COS_SECRET_ID]: optionalString,
   [EnvKey.TENCENT_COS_SECRET_KEY]: optionalString,
@@ -666,6 +672,10 @@ export function validateEnvironment(
     const issues = parsed.error.issues
       .map((i) => `${i.path.join('.')}: ${i.message}`)
       .join('; ');
+    // Startup-time env validation, which runs before `ApiExceptionFilter` is
+    // wired — the process must die with a readable message rather than a
+    // Problem Details response nobody can receive.
+    // eslint-disable-next-line error-handling/no-bare-throw-error -- pre-DI startup failure, no HTTP layer yet
     throw new Error(`Environment validation failed: ${issues}`);
   }
 

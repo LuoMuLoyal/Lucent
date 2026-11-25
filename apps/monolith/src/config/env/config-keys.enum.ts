@@ -22,6 +22,14 @@ export enum ConfigKey {
   /** Cloudflare Turnstile human-verification configuration */
   Turnstile = 'turnstile',
 
+  /**
+   * A2UI generative-surface configuration (the advertised catalog id).
+   *
+   * Separate from `Llm`: the catalog id is a client/protocol fact, not a model
+   * provider setting — a deployment can change one without the other.
+   */
+  GenerativeSurface = 'generativeSurface',
+
   /** Tencent Cloud COS upload configuration */
   TencentCos = 'tencentCos',
 

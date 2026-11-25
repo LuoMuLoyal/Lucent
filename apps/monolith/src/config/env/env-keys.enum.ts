@@ -84,6 +84,11 @@ export enum EnvKey {
   GOOGLE_REDIRECT_URI = 'GOOGLE_REDIRECT_URI',
   TURNSTILE_SECRET_KEY = 'TURNSTILE_SECRET_KEY',
   TURNSTILE_SITE_KEY = 'TURNSTILE_SITE_KEY',
+
+  // A2UI: the catalog id the client advertises and the model is told to use.
+  // Empty means "no id configured"; the prompt then describes the catalog
+  // without pinning one. Set it in deployments that publish a catalog.
+  A2UI_CATALOG_ID = 'A2UI_CATALOG_ID',
   TENCENT_COS_SECRET_ID = 'TENCENT_COS_SECRET_ID',
   TENCENT_COS_SECRET_KEY = 'TENCENT_COS_SECRET_KEY',
   TENCENT_COS_BUCKET = 'TENCENT_COS_BUCKET',
