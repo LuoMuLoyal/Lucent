@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: howto
-updated: 2026-11-24
+updated: 2026-11-25
 ---
 
 # How-To: 运行药品数据导入
@@ -48,6 +48,17 @@ pnpm import:medicine:all
 | DrugBank 专利        | `--command drugbank-patents`                                                                                                                                                                                                                | 按到期日可查                                    |
 | DrugBank 属性        | `--command drugbank-experimental-properties` / `drugbank-calculated-properties`                                                                                                                                                             | 键值对，保留来源                                |
 | DrugBank 关系表      | `--command drugbank-groups` / `drugbank-classification` / `drugbank-synonyms` / `drugbank-external-identifiers` / `drugbank-dosages` / `drugbank-manufacturers` / `drugbank-packagers` / `drugbank-products` / `drugbank-drug-interactions` | 由 JsonB 提升而来，均对 `drugbank_drugs` 有外键 |
+| OnSIDES 不良反应     | `--command onsides-reactions` → `onsides-effects`（或 `pnpm import:onsides:reactions` / `pnpm import:onsides`）                                                                                                                             | 读 CSV 目录；字典必须先跑，事实表对它有外键     |
+
+**OnSIDES 与其它数据源的三处不同**：
+
+- **源是目录不是文件**，`--source` 要指向 `.../v3.1.1/csv`；默认从 `ONSIDES_DATA_DIR`
+  （缺省 `DrugDataBase/raw/onsides`）下的 `<版本>/csv` 取。数据不在 git 内。
+- **解析器用 DuckDB 直接扫 CSV**，不做 parquet 中间产物，因此 `requirements.txt` 之外
+  还需要 `duckdb`。缺它报 `ModuleNotFoundError: No module named 'duckdb'`。
+- **产物是聚合结果**：693 万行 label 级配对在解析时按 `(成分 CUI, MedDRA 术语)` 上溯聚合，
+  所以 `--limit` 限制的是**源行数**而不是落库行数（`--limit 200` 可能只写出几十个配对，
+  因为很多源行会并进同一配对）。
 
 可用命令完整列表见 `import-medicine-knowledge.ts` 的 `COMMANDS` 注册表。
 
@@ -74,6 +85,20 @@ pnpm import:medicine:all -- --command drugbank-synonyms --limit 100
 
 不设置时回落到 `python`；缺依赖的表现是 `ModuleNotFoundError: No module named 'pyarrow'`
 后接 `Parser exited with code 1`——不是数据问题，换解释器即可。
+
+### 数据集位置：`DRUG_DATA_ROOT`
+
+导入脚本默认按 `<workspace>/{Lucent,DrugDataBase}` 平铺布局解析数据目录
+（仓库根三级上跳）。**数据集不放在仓库旁边时用 `DRUG_DATA_ROOT` 指向它**：
+
+```powershell
+$env:DRUG_DATA_ROOT = "D:\datasets\DrugDataBase"
+pnpm import:medicine:all -- --command drugbank-synonyms --limit 100
+```
+
+不要改脚本里的路径表达式来适配本机布局——那会让所有导入在别人的机器上失效。
+（这个默认值曾在 2026-11-17 单体迁入 `apps/monolith` 后算错两级，症状是
+`ENOENT: no such file or directory ... apps/DrugDataBase`。）
 
 ### 指纹导入的可选 ID 白名单：`DRUGBANK_ONLY_IDS`
 

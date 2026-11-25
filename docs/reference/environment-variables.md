@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-11-16
+updated: 2026-11-25
 ---
 
 # Environment Variables
@@ -53,6 +53,11 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
 - `pnpm dev:stack:down` / `dev:stack:reset` — 停止 / 重建本地 Docker dev 栈
 - `pnpm db:reset:dev` / `db:reset:test` — 重置对应数据库(`prisma migrate reset --force`)
 - `pnpm import:medicine:all` — 药品知识库默认导入序列(数据源细节见模块 README 与导入脚本)
+- `pnpm import:onsides:reactions` / `pnpm import:onsides` — OnSIDES 不良反应两张表(先字典后事实表)
+- 导入脚本读的是**仓库旁边**的 `DrugDataBase/`(解压件与派生 parquet 都不入库),默认按
+  `<workspace>/{Lucent,DrugDataBase}` 平铺布局解析;数据集在别处时用 `DRUG_DATA_ROOT` 指向它。
+  OnSIDES 另有 `ONSIDES_DATA_DIR`(默认 `$DRUG_DATA_ROOT/raw/onsides`),路径下按 `<版本>/csv` 找文件。
+  Python 解析器用 `PYTHON_BIN` 指定解释器(默认 `python`),需要装有 duckdb / pyarrow 的那个 venv
 - 部署见 [deployment.md](deployment.md) 与 [../howto/deploy.md](../howto/deploy.md):
   三台机器各跑一份仓库内 compose(鲲鹏主站 / 腾讯云 Neo4j+semantica / 阿里云监控栈),
   用 `docker compose up -d` 直接管理;跨云走公网,访问控制由云安全组限源承担
