@@ -170,6 +170,7 @@ const TOOL_TITLES: Record<McpToolName, string> = {
   resolve_drugbank: 'Resolve DrugBank entity',
   get_drugbank_detail: 'Get DrugBank drug detail',
   search_drugbank: 'Search DrugBank passages',
+  search_adverse_reactions: 'Search label-stated adverse reactions',
   reason_ontology: 'Reason over DrugBank graph',
   reason_rules: 'Derive facts from DrugBank graph',
 };

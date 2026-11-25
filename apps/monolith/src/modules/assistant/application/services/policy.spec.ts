@@ -34,6 +34,7 @@ describe('AssistantPolicyService', () => {
           'resolve_drugbank',
           'get_drugbank_detail',
           'search_drugbank',
+          'search_adverse_reactions',
           'reason_ontology',
           'reason_rules',
           'create_record_draft',
@@ -60,6 +61,7 @@ describe('AssistantPolicyService', () => {
           'resolve_drugbank',
           'get_drugbank_detail',
           'search_drugbank',
+          'search_adverse_reactions',
           'reason_ontology',
           'reason_rules',
           'create_record_draft',
@@ -111,6 +113,7 @@ describe('AssistantPolicyService', () => {
       'resolve_drugbank',
       'get_drugbank_detail',
       'search_drugbank',
+      'search_adverse_reactions',
       'reason_ontology',
       'reason_rules',
       'create_record_draft',
@@ -131,6 +134,7 @@ describe('AssistantPolicyService', () => {
       'resolve_drugbank',
       'get_drugbank_detail',
       'search_drugbank',
+      'search_adverse_reactions',
       'reason_ontology',
       'reason_rules',
       'create_record_draft',
@@ -282,6 +286,14 @@ describe('AssistantPolicyService', () => {
         disabledReason: null,
       },
       {
+        name: 'search_adverse_reactions',
+        requiredContextSources: [],
+        permittedByUser: true,
+        implemented: true,
+        enabled: true,
+        disabledReason: null,
+      },
+      {
         name: 'reason_ontology',
         requiredContextSources: [],
         permittedByUser: true,
@@ -353,6 +365,7 @@ describe('AssistantPolicyService', () => {
     'resolve_drugbank',
     'get_drugbank_detail',
     'search_drugbank',
+    'search_adverse_reactions',
     'reason_ontology',
     'reason_rules',
     'create_record_draft',
@@ -397,13 +410,8 @@ describe('AssistantPolicyService', () => {
       currentMedicines: boolean;
     }> = {},
   ) {
-    const {
-      healthProfile,
-      records,
-      sleepRecords,
-      currentMedicines,
-      ...rest
-    } = overrides;
+    const { healthProfile, records, sleepRecords, currentMedicines, ...rest } =
+      overrides;
     return {
       aiSummariesEnabled: true,
       dataSharingConsent: false,
@@ -579,12 +587,8 @@ describe('AssistantPolicyService', () => {
     );
 
     expect(policy.enabledContextSources).toEqual(['sleep_records']);
-    expect(policy.contextPermittedToolNames).toContain(
-      'get_sleep_summary',
-    );
+    expect(policy.contextPermittedToolNames).toContain('get_sleep_summary');
     expect(policy.contextPermittedToolNames).not.toContain('get_user_profile');
-    expect(policy.contextPermittedToolNames).not.toContain(
-      'get_medicines',
-    );
+    expect(policy.contextPermittedToolNames).not.toContain('get_medicines');
   });
 });

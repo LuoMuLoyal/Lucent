@@ -25,6 +25,10 @@ import {
   LIGHTRAG_SOURCES,
 } from '../../../../application/ports/retrieval.js';
 import {
+  DEFAULT_REACTION_DRUG_LIMIT,
+  MAX_REACTION_DRUG_LIMIT,
+} from '../../../../../medicines/application/ports/onsides.js';
+import {
   SEMANTICA_DEFAULT_LIMIT,
   SEMANTICA_MAX_LIMIT,
   SEMANTICA_REASON_DEFAULT_LIMIT,
@@ -252,6 +256,51 @@ const DRUGBANK_PASSAGE_PARAMETERS = {
 } as const;
 
 /**
+ * OnSIDES adverse-reaction lookup.
+ *
+ * One tool with a required `direction` discriminator rather than three
+ * near-identical tools: a model facing three sibling lookups picks the wrong one
+ * routinely, and all three answer the same question about the same evidence.
+ * Each direction's key is declared here and checked by the service, so a call
+ * naming the wrong key gets an empty envelope that says which one it needed
+ * rather than a silent miss.
+ */
+const ADVERSE_REACTION_PARAMETERS = {
+  type: 'object',
+  properties: {
+    direction: {
+      type: 'string',
+      enum: ['by_drug', 'by_ingredient', 'by_reaction'],
+      description:
+        "Which way to read the evidence. by_drug = what this drug's labels state (needs drugbankId). by_ingredient = what this ingredient's labels state (needs rxnormCui). by_reaction = which drugs' labels state this reaction (needs meddraId).",
+    },
+    drugbankId: {
+      type: 'string',
+      description:
+        'DrugBank id, required for direction=by_drug (e.g. "DB01050"). Prefer an id from resolve_drugbank; a drug with no RxNorm cross-reference returns an empty result.',
+    },
+    rxnormCui: {
+      type: 'string',
+      description:
+        'RxNorm ingredient CUI, required for direction=by_ingredient (e.g. "5640" for ibuprofen). This is the key OnSIDES itself uses.',
+    },
+    meddraId: {
+      type: 'string',
+      description:
+        'MedDRA term id, required for direction=by_reaction (e.g. "10037844"). Take it from a by_drug or by_ingredient result rather than inventing one.',
+    },
+    limit: {
+      type: 'integer',
+      minimum: 1,
+      maximum: MAX_REACTION_DRUG_LIMIT,
+      description: `Maximum rows to return (1-${String(MAX_REACTION_DRUG_LIMIT)}). Defaults to ${String(DEFAULT_REACTION_DRUG_LIMIT)}. Applies to reactions in the ingredient directions and to drugs in the reaction direction.`,
+    },
+  },
+  required: ['direction'],
+  additionalProperties: false,
+} as const;
+
+/**
  * Parameter schemas for the tools that take arguments.
  *
  * Built per call rather than once at module load: the advertised maxima are
@@ -266,6 +315,7 @@ function buildToolParameters(
     search_cn_knowledge: buildCnMedicineKnowledgeParameters(budgets),
     resolve_drugbank: DRUGBANK_ENTITY_PARAMETERS,
     search_drugbank: DRUGBANK_PASSAGE_PARAMETERS,
+    search_adverse_reactions: ADVERSE_REACTION_PARAMETERS,
     reason_ontology: buildOntologyReasoningParameters(budgets),
     reason_rules: buildRuleReasoningParameters(budgets),
   };

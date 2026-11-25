@@ -37,6 +37,7 @@ export const MCP_TOOL_NAMES = [
   'resolve_drugbank',
   'get_drugbank_detail',
   'search_drugbank',
+  'search_adverse_reactions',
   'reason_ontology',
   'reason_rules',
 ] as const;

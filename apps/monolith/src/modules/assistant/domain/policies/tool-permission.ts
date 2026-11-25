@@ -79,6 +79,7 @@ export const TOOL_NAMES = [
   'resolve_drugbank',
   'get_drugbank_detail',
   'search_drugbank',
+  'search_adverse_reactions',
   'reason_ontology',
   'reason_rules',
   'create_record_draft',
@@ -109,6 +110,7 @@ export const READ_TOOL_NAMES = [
   'resolve_drugbank',
   'get_drugbank_detail',
   'search_drugbank',
+  'search_adverse_reactions',
   'reason_ontology',
   'reason_rules',
 ] as const satisfies readonly ToolName[];
@@ -164,6 +166,7 @@ export const TOOL_REQUIRED_SOURCES = {
   resolve_drugbank: [],
   get_drugbank_detail: [],
   search_drugbank: [],
+  search_adverse_reactions: [],
   reason_ontology: [],
   reason_rules: [],
   create_record_draft: [],
@@ -243,7 +246,7 @@ export const TOOL_DESCRIPTIONS: Record<ToolName, string> = {
   get_sleep_summary:
     "Read the user's sleep summaries across a date range. Distinct from daily records, which carry sleep entries only as part of a day.",
   get_meal_digest:
-    "Read already-computed meal analyses for a lookback window: energy interval plus ranked findings per meal. Pass days and limit to size it. Does not re-derive nutrition from record text.",
+    'Read already-computed meal analyses for a lookback window: energy interval plus ranked findings per meal. Pass days and limit to size it. Does not re-derive nutrition from record text.',
 
   // ── Chinese product catalogue (SQL key lookup) ─────────────────────
   search_cn_products:
@@ -262,6 +265,10 @@ export const TOOL_DESCRIPTIONS: Record<ToolName, string> = {
     'Read structured DrugBank fields for one resolved entity: mechanism, pharmacokinetics, interactions. Requires a resolved entity — use resolve_drugbank first, and search_drugbank for narrative passages.',
   search_drugbank:
     'Search narrative DrugBank passages for interaction and mechanism evidence. Scope it with drugbankId or drugName from resolve_drugbank. Use get_drugbank_detail for structured fields and reason_ontology for typed edges.',
+
+  // ── Adverse reactions (OnSIDES, label-stated) ──────────────────────
+  search_adverse_reactions:
+    'Read label-stated adverse reactions from OnSIDES by `direction`: by_drug (drugbankId), by_ingredient (rxnormCui), by_reaction (meddraId). What labels state, not observed incidence; an empty by_drug result usually means no RxNorm cross-reference. Use search_drugbank for interaction prose.',
 
   // ── Ontology reasoning (Semantica sidecar) ─────────────────────────
   reason_ontology:

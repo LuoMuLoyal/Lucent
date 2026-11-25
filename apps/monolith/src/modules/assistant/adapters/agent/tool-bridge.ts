@@ -48,6 +48,10 @@ import {
   SEMANTICA_DEFAULT_LIMIT,
   SEMANTICA_REASON_DEFAULT_LIMIT,
 } from '../../application/ports/semantica.types.js';
+import {
+  DEFAULT_REACTION_DRUG_LIMIT,
+  MAX_REACTION_DRUG_LIMIT,
+} from '../../../medicines/application/ports/onsides.js';
 
 /**
  * Builds the zod schema for a tool that takes arguments.
@@ -139,6 +143,42 @@ function buildParameters(
           .optional()
           .describe(
             'Drug name to scope the search to when you have no DrugBank id yet. Ignored when drugbankId is given.',
+          ),
+      });
+
+    case 'search_adverse_reactions':
+      return z.object({
+        direction: z
+          .enum(['by_drug', 'by_ingredient', 'by_reaction'])
+          .describe(
+            'Which way to read the evidence. by_drug needs drugbankId, by_ingredient needs rxnormCui, by_reaction needs meddraId.',
+          ),
+        drugbankId: z
+          .string()
+          .optional()
+          .describe(
+            'DrugBank id, required for direction=by_drug (e.g. "DB01050").',
+          ),
+        rxnormCui: z
+          .string()
+          .optional()
+          .describe(
+            'RxNorm ingredient CUI, required for direction=by_ingredient (e.g. "5640").',
+          ),
+        meddraId: z
+          .string()
+          .optional()
+          .describe(
+            'MedDRA term id, required for direction=by_reaction. Take it from a previous result.',
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(MAX_REACTION_DRUG_LIMIT)
+          .optional()
+          .describe(
+            `Maximum rows to return (1-${String(MAX_REACTION_DRUG_LIMIT)}). Defaults to ${String(DEFAULT_REACTION_DRUG_LIMIT)}.`,
           ),
       });
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { MCP_TOOL_NAMES, isMcpToolName } from './exposure.js';
-import { TOOL_NAMES, TOOL_REQUIRED_SOURCES } from '../policies/tool-permission.js';
+import {
+  TOOL_NAMES,
+  TOOL_REQUIRED_SOURCES,
+} from '../policies/tool-permission.js';
 
 describe('MCP exposure', () => {
   it('exposes only tools that read no user data', () => {
@@ -33,6 +36,7 @@ describe('MCP exposure', () => {
         'search_cn_knowledge',
         'search_cn_products',
         'search_drugbank',
+        'search_adverse_reactions',
       ].sort(),
     );
   });

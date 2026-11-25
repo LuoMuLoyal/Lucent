@@ -135,6 +135,7 @@ describe('AssistantRuntimeGraph', () => {
       'resolve_drugbank',
       'get_drugbank_detail',
       'search_drugbank',
+      'search_adverse_reactions',
       'reason_ontology',
       'reason_rules',
       'create_record_draft',
@@ -263,10 +264,7 @@ describe('AssistantRuntimeGraph', () => {
 
     expect(executeTools).toHaveBeenCalledTimes(2);
     expect(result.selectedTools).toEqual(
-      expect.arrayContaining([
-        'get_today_records',
-        'search_cn_knowledge',
-      ]),
+      expect.arrayContaining(['get_today_records', 'search_cn_knowledge']),
     );
     expect(result.finalContent).toBe('综合来看……');
     expect(result.stopReason).toBe('answered');
