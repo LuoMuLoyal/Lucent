@@ -1,14 +1,30 @@
 import { z } from 'zod';
 
 /**
- * Standard Schema for `POST /layouts/:surface/generate`.
+ * Standard Schema for `POST /layouts/:surface/generate` and
+ * `POST /layouts/:surface/turn`.
  *
  * `prompt` bounds are declared here as well as in the domain: this layer gives
  * the client a fast, field-targeted 400 before the request reaches the use
- * case, while the domain rule remains the authority (it also runs for calls
- * that bypass HTTP, e.g. tests). The two use the same constant so they cannot
- * drift apart.
+ * case, while the domain rule remains the authority (it also runs for calls that
+ * bypass HTTP, e.g. tests). The two use the same constant so they cannot drift
+ * apart.
  */
+
+/**
+ * The client's catalog document.
+ *
+ * Loose on purpose: the client owns the vocabulary, so the server cannot model
+ * it. The only bound is size, enforced in the domain — a schema here would
+ * become the second copy A2UI 1.0 set out to delete.
+ */
+export const surfaceCapabilitiesSchema = z
+  .record(z.string(), z.unknown())
+  .describe(
+    'The renderer capabilities document the client advertised (A2UI v1.0). ' +
+      'Its inline catalogs define the component vocabulary the model may use.',
+  );
+
 export const generateSurfaceSchema = z
   .object({
     prompt: z
@@ -24,35 +40,88 @@ export const generateSurfaceSchema = z
       .optional()
       .describe('Preferred time range; the model may ignore it.')
       .meta({ example: '7d' }),
+    capabilities: surfaceCapabilitiesSchema.optional(),
   })
   .describe('Instruction for one generative surface.');
 
 export type GenerateSurfaceDto = z.infer<typeof generateSurfaceSchema>;
 
 /**
- * One A2UI v0.9 message.
+ * One A2UI v1.0 message.
  *
  * Kept as a loose record on purpose: the message shape is owned by the A2UI
- * spec and enforced by the client's renderer plus the server's admission
- * policy, not by this transport schema. Modelling it here would create a third
- * definition to keep in sync.
+ * spec and enforced by the client's renderer plus the server's envelope check,
+ * not by this transport schema.
  */
 export const a2uiMessageSchema = z
   .record(z.string(), z.unknown())
-  .describe('One A2UI v0.9 message object.')
+  .describe('One A2UI v1.0 message object.')
   .meta({
     example: {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'generative.review',
         components: [
           { id: 'root', component: 'Column', children: ['title', 'water'] },
-          { id: 'title', component: 'Text', text: '本周概览', variant: 'h4' },
+          { id: 'title', component: 'Text', text: '本周概览' },
           { id: 'water', component: 'metric_card', kind: 'water', range: '7d' },
         ],
       },
     },
   });
+
+/** The surface document as the client holds it. */
+export const surfaceDocumentSchema = z
+  .object({
+    messages: z
+      .array(a2uiMessageSchema)
+      .describe('Agent-to-renderer messages, in arrival order.'),
+    dataModel: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        'Data model snapshot, present when a surface was created with sendDataModel.',
+      ),
+  })
+  .describe('The A2UI document the interaction happened on.');
+
+export type SurfaceDocumentDto = z.infer<typeof surfaceDocumentSchema>;
+
+/**
+ * Standard Schema for `POST /layouts/:surface/turn`.
+ *
+ * Carries the renderer's outbound messages and the document they act on: the
+ * server is stateless, so a round must be self-contained.
+ */
+export const surfaceTurnSchema = z
+  .object({
+    messages: z
+      .array(a2uiMessageSchema)
+      // No `.min(1)`: an empty round is a *domain* rejection
+      // (`GENERATIVE_TURN_EMPTY`, 422), and a schema bound here would turn it
+      // into a generic `VALIDATION_FAILED` 400 before the domain ever saw it.
+      .describe(
+        'Renderer-to-agent messages (action / callAgentFunction / ' +
+          'rendererFunctionResponse / error) that the user interaction produced.',
+      )
+      .meta({
+        example: [
+          {
+            version: '1.0',
+            action: {
+              name: 'confirm_dose',
+              surfaceId: 'generative.medicine',
+              context: { dose: 2 },
+            },
+          },
+        ],
+      }),
+    document: surfaceDocumentSchema,
+    capabilities: surfaceCapabilitiesSchema.optional(),
+  })
+  .describe('One interaction round for a generated surface.');
+
+export type SurfaceTurnDto = z.infer<typeof surfaceTurnSchema>;
 
 /** Token accounting for one generation. */
 export const surfaceStreamUsageSchema = z
@@ -94,15 +163,19 @@ export const surfaceStreamResultSchema = z
       .meta({
         example: [
           {
-            version: 'v0.9',
+            version: '1.0',
             createSurface: {
               surfaceId: 'generative.review',
-              catalogId: 'com.luminous.generative',
-              sendDataModel: false,
+              catalogId: 'https://luminous.app/a2ui/catalog/v1.json',
+              sendDataModel: true,
             },
           },
         ],
       }),
+    dataModel: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe('Data model snapshot the client should keep alongside.'),
     usage: surfaceStreamUsageSchema,
   })
   .describe('The completed generation.');
