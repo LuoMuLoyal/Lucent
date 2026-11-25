@@ -8996,7 +8996,7 @@
               "text/event-stream": {
                 "schema": {
                   "type": "string",
-                  "description": "Each frame is UTF-8 SSE text. event=chunk data=A2uiMessage; event=result data=SurfaceStreamResult; event=error data=ProblemDetails; event=done data={}."
+                  "description": "Each frame is UTF-8 SSE text. event=chunk data=A2uiMessage (v1.0); event=result data=SurfaceStreamResult; event=error data=ProblemDetails; event=done data={}."
                 }
               }
             }
@@ -9012,7 +9012,7 @@
             }
           },
           "422": {
-            "description": "Prompt exceeds the length bound (GENERATIVE_PROMPT_TOO_LONG)",
+            "description": "Prompt exceeds the length bound, or the capabilities document is too large (GENERATIVE_PROMPT_TOO_LONG / GENERATIVE_CAPABILITIES_TOO_LARGE)",
             "content": {
               "application/json": {
                 "schema": {
@@ -9022,7 +9022,7 @@
             }
           },
           "502": {
-            "description": "Model output rejected by the catalog (GENERATIVE_OUTPUT_REJECTED)",
+            "description": "Model output was not a well-formed v1.0 surface (GENERATIVE_OUTPUT_REJECTED)",
             "content": {
               "application/json": {
                 "schema": {
@@ -9048,6 +9048,93 @@
           }
         ],
         "summary": "Stream an AI-composed A2UI surface for this screen",
+        "tags": ["Layouts"]
+      }
+    },
+    "/api/v1/layouts/{surface}/turn": {
+      "post": {
+        "operationId": "runLayoutSurfaceTurn",
+        "parameters": [
+          {
+            "name": "surface",
+            "required": true,
+            "in": "path",
+            "description": "Surface the interaction happened on.",
+            "schema": {
+              "enum": ["today", "record", "medicine", "review", "mine"],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunLayoutSurfaceTurnRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream, same four frames as /generate (chunk | result | error | done). `result` carries the complete sequence.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Each frame is UTF-8 SSE text. event=chunk data=A2uiMessage (v1.0); event=result data=SurfaceStreamResult; event=error data=ProblemDetails; event=done data={}."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Surface cannot be composed (GENERATIVE_SURFACE_UNSUPPORTED / LAYOUT_SURFACE_UNKNOWN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Empty turn, too many messages, or an empty document (GENERATIVE_TURN_EMPTY / GENERATIVE_TURN_TOO_LARGE / GENERATIVE_DOCUMENT_EMPTY)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Model output was not a well-formed v1.0 surface (GENERATIVE_OUTPUT_REJECTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No model configured (LLM_NOT_CONFIGURED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Stream the agent continuation for one interaction on a surface",
         "tags": ["Layouts"]
       }
     }
@@ -15588,10 +15675,75 @@
             "example": "7d",
             "type": "string",
             "enum": ["7d", "30d"]
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The renderer capabilities document the client advertised (A2UI v1.0). Its inline catalogs define the component vocabulary the model may use."
           }
         },
         "required": ["prompt"],
         "description": "Instruction for one generative surface."
+      },
+      "RunLayoutSurfaceTurnRequest": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "One A2UI v1.0 message object.",
+              "example": {
+                "version": "1.0",
+                "updateComponents": {
+                  "surfaceId": "generative.review",
+                  "components": [
+                    {
+                      "id": "root",
+                      "component": "Column",
+                      "children": ["title", "water"]
+                    },
+                    {
+                      "id": "title",
+                      "component": "Text",
+                      "text": "本周概览"
+                    },
+                    {
+                      "id": "water",
+                      "component": "metric_card",
+                      "kind": "water",
+                      "range": "7d"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Renderer-to-agent messages (action / callAgentFunction / rendererFunctionResponse / error) that the user interaction produced.",
+            "example": [
+              {
+                "version": "1.0",
+                "action": {
+                  "name": "confirm_dose",
+                  "surfaceId": "generative.medicine",
+                  "context": {
+                    "dose": 2
+                  }
+                }
+              }
+            ]
+          },
+          "document": {
+            "$ref": "#/components/schemas/RunLayoutSurfaceTurnRequestDocument"
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The renderer capabilities document the client advertised (A2UI v1.0). Its inline catalogs define the component vocabulary the model may use."
+          }
+        },
+        "required": ["messages", "document"],
+        "description": "One interaction round for a generated surface."
       },
       "NotificationListResponseItems": {
         "type": "object",
@@ -23503,6 +23655,51 @@
         },
         "required": ["scheduledHour", "scheduledMinute"],
         "additionalProperties": false
+      },
+      "RunLayoutSurfaceTurnRequestDocument": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "One A2UI v1.0 message object.",
+              "example": {
+                "version": "1.0",
+                "updateComponents": {
+                  "surfaceId": "generative.review",
+                  "components": [
+                    {
+                      "id": "root",
+                      "component": "Column",
+                      "children": ["title", "water"]
+                    },
+                    {
+                      "id": "title",
+                      "component": "Text",
+                      "text": "本周概览"
+                    },
+                    {
+                      "id": "water",
+                      "component": "metric_card",
+                      "kind": "water",
+                      "range": "7d"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Agent-to-renderer messages, in arrival order."
+          },
+          "dataModel": {
+            "description": "Data model snapshot, present when a surface was created with sendDataModel.",
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": ["messages"],
+        "description": "The A2UI document the interaction happened on."
       },
       "SessionListItemEntry": {
         "type": "object",
