@@ -7,6 +7,7 @@ import { MedicinesCacheService } from './infrastructure/cache/store.js';
 import { MedicinesCacheMaintenanceService } from './infrastructure/cache/maintenance.js';
 import { MedicinesController } from './adapters/http/medicines.controller.js';
 import { MedicinesRelationsController } from './adapters/http/medicines-relations.controller.js';
+import { OnsidesController } from './adapters/http/onsides.controller.js';
 import { MedicationOverviewController } from './adapters/http/medication-overview.controller.js';
 import { MedicationOverviewService } from './application/use_cases/medication-overview.js';
 import { MedicinesService } from './application/use_cases/medicines.js';
@@ -47,12 +48,15 @@ import { Neo4jGraphReader } from './infrastructure/graph/reader.js';
 import { MEDICINES_NETWORK_READER } from './application/ports/network.js';
 import { PrismaMedicineNetworkReader } from './infrastructure/persistence/network.js';
 import { ReadMedicineNetwork } from './application/use_cases/read-network.js';
+import { ONSIDES_REACTIONS_READER } from './application/ports/onsides.js';
+import { PrismaOnsidesReactions } from './infrastructure/persistence/onsides.js';
 
 @Module({
   imports: [LlmRuntimeModule, LlmCommonModule],
   controllers: [
     MedicinesController,
     MedicinesRelationsController,
+    OnsidesController,
     MedicationOverviewController,
   ],
   providers: [
@@ -84,10 +88,15 @@ import { ReadMedicineNetwork } from './application/use_cases/read-network.js';
     Neo4jGraphReader,
     ReadMedicineNetwork,
     PrismaMedicineNetworkReader,
+    PrismaOnsidesReactions,
     { provide: MEDICINES_GRAPH_READER, useExisting: Neo4jGraphReader },
     {
       provide: MEDICINES_NETWORK_READER,
       useExisting: PrismaMedicineNetworkReader,
+    },
+    {
+      provide: ONSIDES_REACTIONS_READER,
+      useExisting: PrismaOnsidesReactions,
     },
     { provide: MEDICINES_KNOWLEDGE_CACHE, useExisting: MedicinesCacheService },
     { provide: CN_MEDICINES_READER, useExisting: CnMedicinesService },

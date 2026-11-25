@@ -4845,6 +4845,117 @@
         "tags": ["Medicines"]
       }
     },
+    "/api/v1/medicines/ingredients/{rxnormCui}/reactions": {
+      "get": {
+        "operationId": "listIngredientReactions",
+        "parameters": [
+          {
+            "name": "rxnormCui",
+            "required": true,
+            "in": "path",
+            "description": "RxNorm ingredient CUI (e.g. 5640 for ibuprofen)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Adverse reactions stated by product labels for the ingredient, strongest evidence first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientReactionsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No OnSIDES rows for this ingredient CUI."
+          }
+        },
+        "summary": "Label-stated adverse reactions for one RxNorm ingredient",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/drugs/{drugbankId}/reactions": {
+      "get": {
+        "operationId": "listDrugReactions",
+        "parameters": [
+          {
+            "name": "drugbankId",
+            "required": true,
+            "in": "path",
+            "description": "DrugBank drug id (e.g. DB01050)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Adverse reactions resolved through the drug's RxCUI cross-reference.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientReactionsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The drug has no RxCUI cross-reference to bridge through, or the ingredient has no statements. The bridge covers 8.2% of DrugBank rows at drug level (92.62% of OnSIDES pairs), so this is a normal outcome, not an error condition to retry."
+          }
+        },
+        "summary": "Label-stated adverse reactions for one DrugBank drug",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/reactions/{meddraId}/drugs": {
+      "get": {
+        "operationId": "listReactionDrugs",
+        "parameters": [
+          {
+            "name": "meddraId",
+            "required": true,
+            "in": "path",
+            "description": "MedDRA term id (e.g. 10037844)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Maximum drugs to return (1-200, default 50)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Drugs whose labels state the reaction, most-labelled first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactionDrugsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown MedDRA term id."
+          }
+        },
+        "summary": "Drugs whose labels state a given MedDRA reaction",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/medicines/medication-overview": {
       "get": {
         "operationId": "getMedicationOverview",
@@ -10173,6 +10284,61 @@
           "duplicates",
           "sourceOverlaps"
         ],
+        "additionalProperties": false
+      },
+      "IngredientReactionsResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["onsides"],
+            "description": "Knowledge source discriminator."
+          },
+          "rxnormCui": {
+            "type": "string",
+            "description": "RxNorm ingredient CUI the rows are keyed by."
+          },
+          "sourceVersion": {
+            "type": "string",
+            "description": "Upstream OnSIDES version the rows were imported from."
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngredientReactionsResponseReactions"
+            },
+            "description": "Label-stated adverse reactions for this ingredient, strongest evidence first. Empty when the ingredient exists but has no statements."
+          }
+        },
+        "required": ["source", "rxnormCui", "sourceVersion", "reactions"],
+        "additionalProperties": false
+      },
+      "ReactionDrugsResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["onsides"],
+            "description": "Knowledge source discriminator."
+          },
+          "meddraId": {
+            "type": "string",
+            "description": "MedDRA term id the rows are keyed by."
+          },
+          "meddraName": {
+            "nullable": true,
+            "description": "MedDRA term name.",
+            "type": "string"
+          },
+          "drugs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReactionDrugsResponseDrugs"
+            },
+            "description": "Drugs whose labels state this reaction, most-labelled first. Sorted by label count, not by importance."
+          }
+        },
+        "required": ["source", "meddraId", "meddraName", "drugs"],
         "additionalProperties": false
       },
       "AdminMetricsOverview": {
@@ -17295,6 +17461,84 @@
           }
         },
         "required": ["source", "medicineCount", "displayNames"],
+        "additionalProperties": false
+      },
+      "IngredientReactionsResponseReactions": {
+        "type": "object",
+        "properties": {
+          "meddraId": {
+            "type": "string",
+            "description": "MedDRA term id."
+          },
+          "name": {
+            "type": "string",
+            "description": "MedDRA term name."
+          },
+          "termType": {
+            "type": "string",
+            "description": "MedDRA term type (LLT today)."
+          },
+          "labelCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of distinct product labels that stated this reaction for the ingredient. A count of label statements, not an incidence."
+          },
+          "labelSections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Label sections the statement came from (AR / WP / NA / BW), AR first."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regulatory sources of those labels (US / JP / UK / EU)."
+          },
+          "confidenceMax": {
+            "nullable": true,
+            "description": "Highest extraction confidence across the statements. Null means unscored (the source omits a score), not a low score. Clients decide the threshold; the backend never filters.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "meddraId",
+          "name",
+          "termType",
+          "labelCount",
+          "labelSections",
+          "sources",
+          "confidenceMax"
+        ],
+        "additionalProperties": false
+      },
+      "ReactionDrugsResponseDrugs": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "description": "DrugBank drug id that could cause the reaction."
+          },
+          "name": {
+            "type": "string",
+            "description": "Drug display name."
+          },
+          "labelCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of distinct labels linking this drug to the reaction."
+          },
+          "confidenceMax": {
+            "nullable": true,
+            "description": "Highest extraction confidence among those links; null = unscored.",
+            "type": "number"
+          }
+        },
+        "required": ["drugbankId", "name", "labelCount", "confidenceMax"],
         "additionalProperties": false
       },
       "AdminMetricsOverviewUsers": {

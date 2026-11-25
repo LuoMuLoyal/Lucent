@@ -39,7 +39,8 @@ model DrugSourceImport {
   drugbankExternalIds      DrugbankExternalIdentifier[]
   drugbankClassifications  DrugbankClassification[]
   drugbankGroups           DrugbankGroup[]
-  onsidesAdverseReactions  OnsidesAdverseReaction[]
+  /// Only the fact table carries an import run: the MedDRA dictionary is a shared
+  /// vocabulary, so it has no run back-reference (adding one invents a column).
   onsidesIngredientEffects OnsidesIngredientAdverseEffect[]
 
   @@index([sourceKey, createdAt])
@@ -803,9 +804,7 @@ model OnsidesAdverseReaction {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  effectLinks        OnsidesIngredientAdverseEffect[]
-  drugSourceImport   DrugSourceImport?                @relation(fields: [drugSourceImportId], references: [id])
-  drugSourceImportId String?
+  effectLinks OnsidesIngredientAdverseEffect[]
 
   @@map("onsides_adverse_reactions")
 }

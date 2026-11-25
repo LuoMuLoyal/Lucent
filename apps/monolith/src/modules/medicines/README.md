@@ -167,6 +167,35 @@ summary/tags/imageUrl/matchedBy` + `pagination`。
 2. **`INTERACTS_WITH` 在库中单向**（2,534 条），反向边由 semantica 出图时合成，
    直连走不到。涉及相互作用必须用无向匹配 `-[r]-`。
 
+## 不良反应查询（`/api/v1/medicines/{ingredients,drugs,reactions}/*`）
+
+OnSIDES 是**第三个知识源**，不是 DrugBank 详情里的一个字段。它的键是
+**RxNorm 成分 CUI + MedDRA 术语**，没有药名、适应症、相互作用图；内容是
+「这些说明书声称这个成分会引起这些反应」。把它并进 `GET /medicines/:id` 会让那个响应的
+形状取决于某个药恰好有没有 RxCUI 映射——所以它有自己的 reader 和自己的端点。
+
+| 端点                                              | 回答什么                          |
+| ------------------------------------------------- | --------------------------------- |
+| `GET /medicines/ingredients/:rxnormCui/reactions` | 该成分被说明书声称会引起哪些反应  |
+| `GET /medicines/drugs/:drugbankId/reactions`      | 同上，经该药的 RxCUI 桥接解析成分 |
+| `GET /medicines/reactions/:meddraId/drugs?limit=` | **反向**：哪些药可能引起这个反应  |
+
+**口径必须写清楚**：`labelCount` 是「有多少份说明书这样声称」，**不是发病率或频次**，
+也不是「有多少人报告」。客户端把它渲染成「发生率」就是在做数据不支持的医学断言。
+
+- `confidenceMax` 取 **max(pred1)**，不是 `pred0`：`pred0` 在源数据里 44.5% 是 0
+  （表示未给出分数）、36% 大于 1，不能当 0–1 概率。可空——`null` = 未给出分数，
+  和「分数很低」是两回事。阈值由客户端决定，**后端不过滤**。
+- `labelSections` / `sources` 是 JsonB（见「持久表清单」），展示时 AR 优先。
+- 响应按 `confidenceMax desc, labelCount desc` 排序，客户端不需要自己再排一次。
+
+**404 是常态而不是错误**：DrugBank 里只有 8.2% 的条目带 RxCUI（配对级覆盖 92.62%），
+所以 `drugs/:id/reactions` 对大多数药返回 404。返回 200 + `[]` 会把「没有桥」
+说成「桥上了但没有反应」，那是两句话。**不要对 404 做重试**。
+
+**为什么没有桥接表**：桥就是既有的 `drugbank_external_identifiers`
+（`resource = 'RxCUI'`）。再建一张只会多一处要同步的真相。
+
 ## 用药全景（`GET /api/v1/medicines/medication-overview`）
 
 回答「**我实际在吃什么组合**」，而 `/risk-check` 回答「这一组药有没有冲突」。
