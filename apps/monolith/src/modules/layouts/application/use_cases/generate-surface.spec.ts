@@ -335,10 +335,10 @@ function build(generator: SurfaceGenerator): GenerateSurface {
 function stubConfigId(catalogId: string): ConfigService {
   const config: GenerativeSurfaceConfig = { catalogId };
   return {
-    // key is typed string by the ConfigService signature while the enum's own type
-    // is a string literal union; the comparison is exact, so no coercion is needed.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- see above
+    // `key` is typed `string` by the ConfigService signature while the enum's own
+    // type is a string literal union; the comparison is exact by construction.
     get: (key: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- exact literal comparison
       key === ConfigKey.GenerativeSurface ? config : undefined,
   } as unknown as ConfigService;
 }
