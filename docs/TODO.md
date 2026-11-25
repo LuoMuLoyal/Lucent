@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-10-25
+updated: 2026-11-25
 ---
 
 # Lucent TODO
 
 本文件是唯一 TODO 台账,条目完成即删行。
 
-Last updated: 2026-10-25
+Last updated: 2026-11-25
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -263,3 +263,25 @@ multi-tenant」列为不适用场景，而 assistant 正是这一类。三大模
 **真正隔离需要每会话一个容器**（独立命名空间、无网络、只挂临时卷），那是独立的基础设施
 改动，不是本模块能长出来的一层围栏。验收：shell 默认只能读；写只能落 workspace；
 越界被拒绝且以结果事实呈现，升级需要一句话理由；无 runner 时报错而不是静默直跑。
+
+## OnSIDES 不良反应遗留（2026-11-25，原计划两阶段均已落地）
+
+数据导入与查询端点都已上线（`onsides_*` 两张表、三个读端点、`import:onsides*`）。
+下面三项**未做**，不是漏掉：
+
+- **成分别名表回收 7.38% 未映射配对。** 缺口高度集中：191 个 numeric 成分（阿奇霉素、
+  丙戊酸、他克莫司、阿托伐他汀、阿莫西林、达沙替尼、赖诺普利、多西他赛等常用药）贡献了
+  几乎全部 511,188 条未映射配对。根因是 DrugBank 自己的 RxCUI 粒度不一致——部分记录的是
+  临床药品 CUI（lisinopril 记 `1546022` 而非成分 CUI `29046`）。补一张 191 行的成分别名表
+  即可回收绝大部分，验收看 `rxnorm_drugbank_coverage.py` 的配对级覆盖率（当前基线 92.62%）
+  应上升。
+- **全量导入。** 当前 dev 库只有 200 行源数据的样量（142 个配对）。全量是 693 万行源行、
+  聚合后落库行数远小于此。跑之前确认 `DrugDataBase/raw/onsides/v3.1.1/csv/` 就位，
+  顺序必须是 `onsides-reactions` → `onsides-effects`（事实表对字典有外键）。
+- **客户端接线与 CI 契约同步。** 三个端点已进 `openapi.json`，但 Luminous 尚未
+  `bootstrap.dart` 重生成（Flutter 客户端本来就还没接这个源），Lumine 也未 `pnpm contract`。
+  **注意**：11-24 的模块短名改名让接口路径发生破坏性变更，客户端重生成应与那批一起做，
+  不要只为本功能单独跑一次。
+
+另有一条**口径**必须延续：`labelCount` 是「多少份说明书这样声称」，不是发病率/频次；
+`confidenceMax` 取 `pred1` 而非 `pred0`（后者 44.5% 为零、36% 大于 1）。
