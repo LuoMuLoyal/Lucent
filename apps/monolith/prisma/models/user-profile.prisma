@@ -22,19 +22,19 @@ enum ActivityLevel {
 }
 
 model UserProfile {
-  userId                String          @id @map("user_id")
-  birthDate             DateTime?       @map("birth_date") @db.Date
-  sexAtBirth            SexAtBirth?     @map("sex_at_birth")
-  heightCm              Int?            @map("height_cm")
+  userId                String         @id @map("user_id")
+  birthDate             DateTime?      @map("birth_date") @db.Date
+  sexAtBirth            SexAtBirth?    @map("sex_at_birth")
+  heightCm              Int?           @map("height_cm")
   locale                String?
   timezone              String?
-  unitSystem            UnitSystem?     @map("unit_system")
-  activityLevel         ActivityLevel?  @map("activity_level")
-  onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
-  extras                Json?           @db.JsonB
-  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitSystem            UnitSystem?    @map("unit_system")
+  activityLevel         ActivityLevel? @map("activity_level")
+  onboardingCompletedAt DateTime?      @map("onboarding_completed_at") @db.Timestamptz(3)
+  extras                Json?          @db.JsonB
+  createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }

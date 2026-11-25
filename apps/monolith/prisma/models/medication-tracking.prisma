@@ -15,24 +15,24 @@ enum DoseLogStatus {
 }
 
 model UserCurrentMedicine {
-  id            String                @id @default(uuid())
-  userId        String                @map("user_id")
-  source        MedicineSource
-  sourceRefId   String?               @map("source_ref_id")
-  displayName   String                @map("display_name")
-  strengthText  String?               @map("strength_text")
-  doseText      String?               @map("dose_text")
-  route         String?
-  startedAt     DateTime?             @map("started_at") @db.Date
-  endedAt       DateTime?             @map("ended_at") @db.Date
-  isCurrent     Boolean               @default(true) @map("is_current")
-  note          String?
-  sourcePayload Json?                 @map("source_payload") @db.JsonB
-  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  doseLogs      UserDoseLog[]
-  reminders     UserReminder[]
+  id                   String                   @id @default(uuid())
+  userId               String                   @map("user_id")
+  source               MedicineSource
+  sourceRefId          String?                  @map("source_ref_id")
+  displayName          String                   @map("display_name")
+  strengthText         String?                  @map("strength_text")
+  doseText             String?                  @map("dose_text")
+  route                String?
+  startedAt            DateTime?                @map("started_at") @db.Date
+  endedAt              DateTime?                @map("ended_at") @db.Date
+  isCurrent            Boolean                  @default(true) @map("is_current")
+  note                 String?
+  sourcePayload        Json?                    @map("source_payload") @db.JsonB
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doseLogs             UserDoseLog[]
+  reminders            UserReminder[]
   healthEventMedicines HealthEventMedicine[]
   notifyMarks          UserMedicineNotifyMark[]
 
@@ -42,22 +42,22 @@ model UserCurrentMedicine {
 }
 
 model UserReminder {
-  id                String               @id @default(uuid())
-  userId            String               @map("user_id")
-  currentMedicineId String?              @map("current_medicine_id")
+  id                String                 @id @default(uuid())
+  userId            String                 @map("user_id")
+  currentMedicineId String?                @map("current_medicine_id")
   label             String?
-  scheduledHour     Int                  @map("scheduled_hour")
-  scheduledMinute   Int                  @map("scheduled_minute")
-  daysOfWeek        Json?                @map("days_of_week") @db.JsonB
-  startDate         DateTime?            @map("start_date") @db.Date
-  endDate           DateTime?            @map("end_date") @db.Date
-  isActive          Boolean              @default(true) @map("is_active")
+  scheduledHour     Int                    @map("scheduled_hour")
+  scheduledMinute   Int                    @map("scheduled_minute")
+  daysOfWeek        Json?                  @map("days_of_week") @db.JsonB
+  startDate         DateTime?              @map("start_date") @db.Date
+  endDate           DateTime?              @map("end_date") @db.Date
+  isActive          Boolean                @default(true) @map("is_active")
   note              String?
-  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
-  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+  deletedAt         DateTime?              @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine?   @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
   deliveries        UserReminderDelivery[]
   doseLogs          UserDoseLog[]
 
@@ -69,17 +69,17 @@ model UserReminder {
 }
 
 model UserReminderDelivery {
-  id           String                @id @default(uuid())
-  userId       String                @map("user_id")
-  reminderId   String?               @map("reminder_id")
-  deviceId     String?               @map("device_id")
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  reminderId   String?       @map("reminder_id")
+  deviceId     String?       @map("device_id")
   channel      String
   status       String
-  scheduledFor DateTime              @map("scheduled_for") @db.Timestamptz(3)
-  deliveredAt  DateTime?             @map("delivered_at") @db.Timestamptz(3)
-  errorMessage String?               @map("error_message")
-  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduledFor DateTime      @map("scheduled_for") @db.Timestamptz(3)
+  deliveredAt  DateTime?     @map("delivered_at") @db.Timestamptz(3)
+  errorMessage String?       @map("error_message")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   reminder     UserReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
   // 一个提醒事件（userId+reminderId+scheduledFor）允许 in_app/local/push 各一行，
@@ -110,7 +110,7 @@ model UserDoseLog {
   updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
-  reminder          UserReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  reminder          UserReminder?        @relation(fields: [reminderId], references: [id], onDelete: SetNull)
   healthEvent       HealthEvent?         @relation("HealthEventDoseLogs", fields: [healthEventId], references: [id], onDelete: SetNull)
 
   @@index([userId, scheduledFor])

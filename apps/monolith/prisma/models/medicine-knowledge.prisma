@@ -2,75 +2,77 @@
 // Owning module: medicines (adapters)
 
 model DrugSourceImport {
-  id               String                 @id @default(uuid())
-  sourceKey        String                 @map("source_key")
-  sourceName       String                 @map("source_name")
-  sourceVersion    String?                @map("source_version")
-  sourceFileName   String?                @map("source_file_name")
-  sourceFileHash   String?                @map("source_file_hash")
-  sourceExportedAt DateTime?              @map("source_exported_at") @db.Timestamptz(3)
-  status           String                 @default("completed")
-  rawRowCount      Int?                   @map("raw_row_count")
-  importedRowCount Int?                   @map("imported_row_count")
-  rejectedRowCount Int?                   @map("rejected_row_count")
-  rejectionSummary Json?                  @map("rejection_summary") @db.JsonB
-  note             String?
-  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  cnProducts            CnMedicineProduct[]
-  cnLeaflets            CnMedicineLeaflet[]
-  cnProductLeafletLinks CnMedicineProductLeafletLink[]
-  drugbankDrugs         DrugbankDrug[]
-  drugbankLinks         DrugbankExternalLink[]
-  drugbankTargets       DrugbankTarget[]
-  drugbankDrugTargets   DrugbankDrugTarget[]
-  drugbankTargetSeqs    DrugbankTargetSequence[]
-  drugbankDrugSeqs      DrugbankDrugSequence[]
-  drugbankStructures    DrugbankStructure[]
-  drugbankPatents       DrugbankPatent[]
-  drugbankProperties    DrugbankProperty[]
-  drugbankFingerprints  DrugbankFingerprint[]
-  drugbankInteractions  DrugbankDrugInteraction[]
-  drugbankProducts      DrugbankProduct[]
-  drugbankSynonyms      DrugbankSynonym[]
-  drugbankManufacturers DrugbankManufacturer[]
-  drugbankPackagers     DrugbankPackager[]
-  drugbankDosages       DrugbankDosage[]
-  drugbankExternalIds   DrugbankExternalIdentifier[]
-  drugbankClassifications DrugbankClassification[]
-  drugbankGroups        DrugbankGroup[]
+  id                       String                           @id @default(uuid())
+  sourceKey                String                           @map("source_key")
+  sourceName               String                           @map("source_name")
+  sourceVersion            String?                          @map("source_version")
+  sourceFileName           String?                          @map("source_file_name")
+  sourceFileHash           String?                          @map("source_file_hash")
+  sourceExportedAt         DateTime?                        @map("source_exported_at") @db.Timestamptz(3)
+  status                   String                           @default("completed")
+  rawRowCount              Int?                             @map("raw_row_count")
+  importedRowCount         Int?                             @map("imported_row_count")
+  rejectedRowCount         Int?                             @map("rejected_row_count")
+  rejectionSummary         Json?                            @map("rejection_summary") @db.JsonB
+  note                     String?
+  createdAt                DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cnProducts               CnMedicineProduct[]
+  cnLeaflets               CnMedicineLeaflet[]
+  cnProductLeafletLinks    CnMedicineProductLeafletLink[]
+  drugbankDrugs            DrugbankDrug[]
+  drugbankLinks            DrugbankExternalLink[]
+  drugbankTargets          DrugbankTarget[]
+  drugbankDrugTargets      DrugbankDrugTarget[]
+  drugbankTargetSeqs       DrugbankTargetSequence[]
+  drugbankDrugSeqs         DrugbankDrugSequence[]
+  drugbankStructures       DrugbankStructure[]
+  drugbankPatents          DrugbankPatent[]
+  drugbankProperties       DrugbankProperty[]
+  drugbankFingerprints     DrugbankFingerprint[]
+  drugbankInteractions     DrugbankDrugInteraction[]
+  drugbankProducts         DrugbankProduct[]
+  drugbankSynonyms         DrugbankSynonym[]
+  drugbankManufacturers    DrugbankManufacturer[]
+  drugbankPackagers        DrugbankPackager[]
+  drugbankDosages          DrugbankDosage[]
+  drugbankExternalIds      DrugbankExternalIdentifier[]
+  drugbankClassifications  DrugbankClassification[]
+  drugbankGroups           DrugbankGroup[]
+  onsidesAdverseReactions  OnsidesAdverseReaction[]
+  onsidesIngredientEffects OnsidesIngredientAdverseEffect[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
 }
 
 model CnMedicineProduct {
-  id                     String            @id @default(uuid())
-  importRunId            String?           @map("import_run_id")
-  sourceName             String            @map("source_name")
-  sourceRowNumber        Int?              @map("source_row_number")
-  name                   String
-  imageUrl               String?           @map("image_url")
-  priceText              String?           @map("price_text")
-  packageSpec            String?           @map("package_spec")
-  approvalNumber         String?           @map("approval_number")
-  manufacturer           String?
-  drugType               String?           @map("drug_type")
-  mainCategory           String?           @map("main_category")
-  subcategory            String?
-  sourceUrl              String?           @map("source_url")
-  brandName              String?           @map("brand_name")
-  overdose               String?
-  barcode                String?
-  nationalDrugCode       String?           @map("national_drug_code")
-  manufacturerClean      String?           @map("manufacturer_clean")
-  approvalCodes          Json?             @map("approval_codes") @db.JsonB
-  searchText             String?           @map("search_text")
-  extras                 Json?             @db.JsonB
-  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun              DrugSourceImport?             @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  leafletLinks           CnMedicineProductLeafletLink[]
+  id                String                         @id @default(uuid())
+  importRunId       String?                        @map("import_run_id")
+  sourceName        String                         @map("source_name")
+  sourceRowNumber   Int?                           @map("source_row_number")
+  name              String
+  imageUrl          String?                        @map("image_url")
+  priceText         String?                        @map("price_text")
+  packageSpec       String?                        @map("package_spec")
+  approvalNumber    String?                        @map("approval_number")
+  manufacturer      String?
+  drugType          String?                        @map("drug_type")
+  mainCategory      String?                        @map("main_category")
+  subcategory       String?
+  sourceUrl         String?                        @map("source_url")
+  brandName         String?                        @map("brand_name")
+  overdose          String?
+  barcode           String?
+  nationalDrugCode  String?                        @map("national_drug_code")
+  manufacturerClean String?                        @map("manufacturer_clean")
+  approvalCodes     Json?                          @map("approval_codes") @db.JsonB
+  searchText        String?                        @map("search_text")
+  extras            Json?                          @db.JsonB
+  createdAt         DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun         DrugSourceImport?              @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  leafletLinks      CnMedicineProductLeafletLink[]
 
   @@index([name])
   @@index([approvalNumber])
@@ -83,39 +85,39 @@ model CnMedicineProduct {
 }
 
 model CnMedicineLeaflet {
-  id                     String                        @id @default(uuid())
-  importRunId            String?                       @map("import_run_id")
-  instructionId          String                        @unique @map("instruction_id")
-  sourceRow              Int?                          @map("source_row")
-  sourceUrl              String?                       @map("source_url")
-  genericName            String?                       @map("generic_name")
-  brandName              String?                       @map("brand_name")
-  approvalText           String?                       @map("approval_text")
-  approvalCodes          Json?                         @map("approval_codes") @db.JsonB
+  id                     String                         @id @default(uuid())
+  importRunId            String?                        @map("import_run_id")
+  instructionId          String                         @unique @map("instruction_id")
+  sourceRow              Int?                           @map("source_row")
+  sourceUrl              String?                        @map("source_url")
+  genericName            String?                        @map("generic_name")
+  brandName              String?                        @map("brand_name")
+  approvalText           String?                        @map("approval_text")
+  approvalCodes          Json?                          @map("approval_codes") @db.JsonB
   category               String?
   manufacturer           String?
-  manufacturerClean      String?                       @map("manufacturer_clean")
-  regulatoryClass        String?                       @map("regulatory_class")
-  relatedDiseases        String?                       @map("related_diseases")
+  manufacturerClean      String?                        @map("manufacturer_clean")
+  regulatoryClass        String?                        @map("regulatory_class")
+  relatedDiseases        String?                        @map("related_diseases")
   appearance             String?
   ingredients            String?
   indications            String?
-  packageSpec            String?                       @map("package_spec")
-  adverseReactions       String?                       @map("adverse_reactions")
+  packageSpec            String?                        @map("package_spec")
+  adverseReactions       String?                        @map("adverse_reactions")
   dosage                 String?
   contraindications      String?
   precautions            String?
-  pregnancyLactation     String?                       @map("pregnancy_lactation")
-  pediatricUse           String?                       @map("pediatric_use")
-  geriatricUse           String?                       @map("geriatric_use")
-  drugInteractions       String?                       @map("drug_interactions")
-  pharmacologyToxicology String?                       @map("pharmacology_toxicology")
+  pregnancyLactation     String?                        @map("pregnancy_lactation")
+  pediatricUse           String?                        @map("pediatric_use")
+  geriatricUse           String?                        @map("geriatric_use")
+  drugInteractions       String?                        @map("drug_interactions")
+  pharmacologyToxicology String?                        @map("pharmacology_toxicology")
   pharmacokinetics       String?
   storage                String?
-  validityPeriod         String?                       @map("validity_period")
-  createdAt              DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun              DrugSourceImport?             @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  validityPeriod         String?                        @map("validity_period")
+  createdAt              DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun              DrugSourceImport?              @relation(fields: [importRunId], references: [id], onDelete: SetNull)
   productLinks           CnMedicineProductLeafletLink[]
   chunks                 MedicineLeafletChunk[]
 
@@ -125,19 +127,19 @@ model CnMedicineLeaflet {
 }
 
 model CnMedicineProductLeafletLink {
-  id              String            @id @default(uuid())
-  importRunId     String?           @map("import_run_id")
-  productId       String            @map("product_id")
-  leafletId       String            @map("leaflet_id")
-  matchType       String?           @map("match_type")
-  matchKey        String?           @map("match_key")
-  matchScore      Int?              @map("match_score")
-  isBestMatch     Boolean?          @map("is_best_match")
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun       DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  product         CnMedicineProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  leaflet         CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
+  id          String            @id @default(uuid())
+  importRunId String?           @map("import_run_id")
+  productId   String            @map("product_id")
+  leafletId   String            @map("leaflet_id")
+  matchType   String?           @map("match_type")
+  matchKey    String?           @map("match_key")
+  matchScore  Int?              @map("match_score")
+  isBestMatch Boolean?          @map("is_best_match")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  product     CnMedicineProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  leaflet     CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
 
   @@unique([productId, leafletId])
   @@index([leafletId])
@@ -165,81 +167,81 @@ model MedicineLeafletChunk {
 }
 
 model MedicalQaChunk {
-  id           String   @id @default(uuid())
-  qaId         String   @unique @map("qa_id")
-  question     String
-  answer       String
-  safetyLabel  String   @map("safety_label")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id          String   @id @default(uuid())
+  qaId        String   @unique @map("qa_id")
+  question    String
+  answer      String
+  safetyLabel String   @map("safety_label")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([safetyLabel])
   @@map("medicine_qa_chunks")
 }
 
 model DrugbankDrug {
-  drugbankId           String                 @id @map("drugbank_id")
-  importRunId          String?                @map("import_run_id")
-  secondaryDrugbankIds Json?                  @map("secondary_drugbank_ids") @db.JsonB
-  drugType             String?                @map("drug_type")
-  sourceCreatedAt      DateTime?              @map("source_created_at") @db.Timestamptz(3)
-  sourceUpdatedAt      DateTime?              @map("source_updated_at") @db.Timestamptz(3)
-  name                 String
-  description          String?
-  casNumber            String?                @map("cas_number")
-  unii                 String?
-  state                String?
-  indication           String?
-  pharmacodynamics     String?
-  mechanismOfAction    String?                @map("mechanism_of_action")
-  toxicity             String?
-  metabolism           String?
-  absorption           String?
-  halfLife             String?                @map("half_life")
-  proteinBinding       String?                @map("protein_binding")
-  routeOfElimination   String?                @map("route_of_elimination")
-  volumeOfDistribution String?                @map("volume_of_distribution")
-  clearance            String?
+  drugbankId             String                       @id @map("drugbank_id")
+  importRunId            String?                      @map("import_run_id")
+  secondaryDrugbankIds   Json?                        @map("secondary_drugbank_ids") @db.JsonB
+  drugType               String?                      @map("drug_type")
+  sourceCreatedAt        DateTime?                    @map("source_created_at") @db.Timestamptz(3)
+  sourceUpdatedAt        DateTime?                    @map("source_updated_at") @db.Timestamptz(3)
+  name                   String
+  description            String?
+  casNumber              String?                      @map("cas_number")
+  unii                   String?
+  state                  String?
+  indication             String?
+  pharmacodynamics       String?
+  mechanismOfAction      String?                      @map("mechanism_of_action")
+  toxicity               String?
+  metabolism             String?
+  absorption             String?
+  halfLife               String?                      @map("half_life")
+  proteinBinding         String?                      @map("protein_binding")
+  routeOfElimination     String?                      @map("route_of_elimination")
+  volumeOfDistribution   String?                      @map("volume_of_distribution")
+  clearance              String?
   /// International brand names. Kept as JSON: 11% coverage, read as a whole block.
-  internationalBrands  Json?                  @map("international_brands") @db.JsonB
+  internationalBrands    Json?                        @map("international_brands") @db.JsonB
   /// MeSH-style therapeutic categories. Kept as JSON: used as display tags only.
-  categories           Json?                  @db.JsonB
+  categories             Json?                        @db.JsonB
   /// ATC codes. Kept as JSON: ≤1 per drug, read as a whole block.
-  atcCodes             Json?                  @map("atc_codes") @db.JsonB
-  foodInteractions     Json?                  @map("food_interactions") @db.JsonB
-  externalLinks        Json?                  @map("external_links") @db.JsonB
+  atcCodes               Json?                        @map("atc_codes") @db.JsonB
+  foodInteractions       Json?                        @map("food_interactions") @db.JsonB
+  externalLinks          Json?                        @map("external_links") @db.JsonB
   /// SMPDB pathways. Kept as JSON because coverage is ~3% of drugs and the only
   /// read pattern is "fetch the whole block for one drug" — see PRODUCT §3.
-  pathways             Json?                  @db.JsonB
+  pathways               Json?                        @db.JsonB
   /// Stepwise metabolic reaction chains. JSON because the chains are variable
   /// length and their intermediate products are DBMET metabolic entities, not
   /// drugs, so normalising them would require a second entity table.
-  reactions            Json?                  @db.JsonB
+  reactions              Json?                        @db.JsonB
   /// Pharmacogenomic variant effects (rsID, gene, allele, PubMed). JSON because
   /// only 80 drugs carry this data; it is display-only, never an analysis input.
-  snpEffects           Json?                  @map("snp_effects") @db.JsonB
-  snpAdverseEffects    Json?                  @map("snp_adverse_effects") @db.JsonB
-  searchText           String?                @map("search_text")
-  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun            DrugSourceImport?      @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  externalLinkRows     DrugbankExternalLink[]
-  targetRelations      DrugbankDrugTarget[]
-  passageChunks        DrugbankPassageChunk[]
-  sequences            DrugbankDrugSequence[]
-  structure            DrugbankStructure?
-  patents              DrugbankPatent[]
-  properties           DrugbankProperty[]
-  fingerprint          DrugbankFingerprint?
-  interactions         DrugbankDrugInteraction[]
-  products             DrugbankProduct[]
-  synonymRows          DrugbankSynonym[]
-  manufacturers        DrugbankManufacturer[]
-  packagers            DrugbankPackager[]
-  dosageRows           DrugbankDosage[]
+  snpEffects             Json?                        @map("snp_effects") @db.JsonB
+  snpAdverseEffects      Json?                        @map("snp_adverse_effects") @db.JsonB
+  searchText             String?                      @map("search_text")
+  createdAt              DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun              DrugSourceImport?            @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  externalLinkRows       DrugbankExternalLink[]
+  targetRelations        DrugbankDrugTarget[]
+  passageChunks          DrugbankPassageChunk[]
+  sequences              DrugbankDrugSequence[]
+  structure              DrugbankStructure?
+  patents                DrugbankPatent[]
+  properties             DrugbankProperty[]
+  fingerprint            DrugbankFingerprint?
+  interactions           DrugbankDrugInteraction[]
+  products               DrugbankProduct[]
+  synonymRows            DrugbankSynonym[]
+  manufacturers          DrugbankManufacturer[]
+  packagers              DrugbankPackager[]
+  dosageRows             DrugbankDosage[]
   externalIdentifierRows DrugbankExternalIdentifier[]
-  classificationRow    DrugbankClassification?
-  groupRows            DrugbankGroup[]
+  classificationRow      DrugbankClassification?
+  groupRows              DrugbankGroup[]
 
   @@index([name])
   @@index([casNumber])
@@ -421,44 +423,44 @@ model DrugbankDrugSequence {
 /// The molblock itself (atoms/bonds coordinates) is not stored: the file is
 /// 2D only, so there is no conformer data to consume.
 model DrugbankStructure {
-  drugbankId                             String            @id @map("drugbank_id")
-  importRunId                            String?           @map("import_run_id")
-  smiles                                 String?
-  inchiIdentifier                        String?           @map("inchi_identifier")
-  inchiKey                               String?           @map("inchi_key")
-  formula                                String?
-  molecularWeight                        Float?            @map("molecular_weight")
-  exactMass                              Float?            @map("exact_mass")
-  jchemIupac                             String?           @map("jchem_iupac")
-  alogpsSolubility                       String?           @map("alogps_solubility")
-  salts                                  Json?             @db.JsonB
-  jchemAtomCount                         Int?              @map("jchem_atom_count")
-  jchemFormalCharge                      Int?              @map("jchem_formal_charge")
-  jchemGhoseFilter                       Int?              @map("jchem_ghose_filter")
-  jchemRuleOfFive                        Int?              @map("jchem_rule_of_five")
-  jchemAcceptorCount                     Int?              @map("jchem_acceptor_count")
-  jchemDonorCount                        Int?              @map("jchem_donor_count")
-  jchemBioavailability                   Int?              @map("jchem_bioavailability")
-  jchemMddrLikeRule                      Int?              @map("jchem_mddr_like_rule")
-  jchemNumberOfRings                     Int?              @map("jchem_number_of_rings")
-  jchemRotatableBondCount                Int?              @map("jchem_rotatable_bond_count")
-  jchemVeberRule                         Int?              @map("jchem_veber_rule")
-  jchemPhysiologicalCharge               Int?              @map("jchem_physiological_charge")
-  jchemNeutralCharge                     Int?              @map("jchem_neutral_charge")
-  jchemAveragePolarizability             Float?            @map("jchem_average_polarizability")
-  jchemPolarSurfaceArea                  Float?            @map("jchem_polar_surface_area")
-  jchemRefractivity                      Float?            @map("jchem_refractivity")
-  jchemLogp                              Float?            @map("jchem_logp")
-  jchemPka                               Float?            @map("jchem_pka")
-  jchemPkaStrongestAcidic                Float?            @map("jchem_pka_strongest_acidic")
-  jchemPkaStrongestBasic                 Float?            @map("jchem_pka_strongest_basic")
-  jchemAverageNeutralMicrospeciesCharge  Float?            @map("jchem_average_neutral_microspecies_charge")
-  alogpsLogp                             Float?            @map("alogps_logp")
-  alogpsLogs                             Float?            @map("alogps_logs")
-  createdAt                              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                              DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun                              DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  drug                                   DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+  drugbankId                            String            @id @map("drugbank_id")
+  importRunId                           String?           @map("import_run_id")
+  smiles                                String?
+  inchiIdentifier                       String?           @map("inchi_identifier")
+  inchiKey                              String?           @map("inchi_key")
+  formula                               String?
+  molecularWeight                       Float?            @map("molecular_weight")
+  exactMass                             Float?            @map("exact_mass")
+  jchemIupac                            String?           @map("jchem_iupac")
+  alogpsSolubility                      String?           @map("alogps_solubility")
+  salts                                 Json?             @db.JsonB
+  jchemAtomCount                        Int?              @map("jchem_atom_count")
+  jchemFormalCharge                     Int?              @map("jchem_formal_charge")
+  jchemGhoseFilter                      Int?              @map("jchem_ghose_filter")
+  jchemRuleOfFive                       Int?              @map("jchem_rule_of_five")
+  jchemAcceptorCount                    Int?              @map("jchem_acceptor_count")
+  jchemDonorCount                       Int?              @map("jchem_donor_count")
+  jchemBioavailability                  Int?              @map("jchem_bioavailability")
+  jchemMddrLikeRule                     Int?              @map("jchem_mddr_like_rule")
+  jchemNumberOfRings                    Int?              @map("jchem_number_of_rings")
+  jchemRotatableBondCount               Int?              @map("jchem_rotatable_bond_count")
+  jchemVeberRule                        Int?              @map("jchem_veber_rule")
+  jchemPhysiologicalCharge              Int?              @map("jchem_physiological_charge")
+  jchemNeutralCharge                    Int?              @map("jchem_neutral_charge")
+  jchemAveragePolarizability            Float?            @map("jchem_average_polarizability")
+  jchemPolarSurfaceArea                 Float?            @map("jchem_polar_surface_area")
+  jchemRefractivity                     Float?            @map("jchem_refractivity")
+  jchemLogp                             Float?            @map("jchem_logp")
+  jchemPka                              Float?            @map("jchem_pka")
+  jchemPkaStrongestAcidic               Float?            @map("jchem_pka_strongest_acidic")
+  jchemPkaStrongestBasic                Float?            @map("jchem_pka_strongest_basic")
+  jchemAverageNeutralMicrospeciesCharge Float?            @map("jchem_average_neutral_microspecies_charge")
+  alogpsLogp                            Float?            @map("alogps_logp")
+  alogpsLogs                            Float?            @map("alogps_logs")
+  createdAt                             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun                             DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug                                  DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
 
   @@index([inchiKey])
   @@map("drugbank_structures")
@@ -472,18 +474,18 @@ model DrugbankStructure {
 /// freedom-to-operate determination: process patents, data exclusivity and
 /// indication patents are not represented here.
 model DrugbankPatent {
-  id                       String            @id @default(uuid())
-  importRunId              String?           @map("import_run_id")
-  drugbankId               String            @map("drugbank_id")
-  patentNumber             String            @map("patent_number")
-  country                  String?
-  approvedOn               DateTime?         @map("approved_on") @db.Date
-  expiresOn                DateTime?         @map("expires_on") @db.Date
-  hasPediatricExtension    Boolean?          @map("has_pediatric_extension")
-  createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun                DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  drug                     DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+  id                    String            @id @default(uuid())
+  importRunId           String?           @map("import_run_id")
+  drugbankId            String            @map("drugbank_id")
+  patentNumber          String            @map("patent_number")
+  country               String?
+  approvedOn            DateTime?         @map("approved_on") @db.Date
+  expiresOn             DateTime?         @map("expires_on") @db.Date
+  hasPediatricExtension Boolean?          @map("has_pediatric_extension")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun             DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug                  DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
 
   @@unique([drugbankId, patentNumber, country])
   @@index([expiresOn])
@@ -500,19 +502,19 @@ model DrugbankPatent {
 /// `valueNum` is populated only when that string parses cleanly, so numeric
 /// comparisons are possible without ever overwriting the original text.
 model DrugbankProperty {
-  id          String            @id @default(uuid())
-  importRunId String?           @map("import_run_id")
-  drugbankId  String            @map("drugbank_id")
-  kind        String
-  valueText   String            @map("value_text")
-  valueNum    Float?            @map("value_num")
-  unit        String?
-  source      String?
-  isExperimental Boolean        @default(true) @map("is_experimental")
-  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun   DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-  drug        DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+  id             String            @id @default(uuid())
+  importRunId    String?           @map("import_run_id")
+  drugbankId     String            @map("drugbank_id")
+  kind           String
+  valueText      String            @map("value_text")
+  valueNum       Float?            @map("value_num")
+  unit           String?
+  source         String?
+  isExperimental Boolean           @default(true) @map("is_experimental")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun      DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug           DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
 
   @@unique([drugbankId, kind, source])
   @@index([kind, valueNum])
@@ -776,6 +778,77 @@ model DrugbankGroup {
   @@unique([drugbankId, groupName])
   @@index([groupName])
   @@map("drugbank_groups")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OnSIDES v3.1.1 — structured "ingredient -> adverse reaction" facts.
+//
+// Replaces the prose-only `CnMedicineLeaflet.adverseReactions`, which could not be
+// filtered by reaction, counted across drugs, or grouped by label section.
+//
+// The bridge to our drug rows is the existing `drugbank_external_identifiers`
+// (resource = 'RxCUI'), so no mapping table is introduced here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// MedDRA term dictionary. Measured: 6,423 LLT-level terms.
+///
+/// `meddraTermType` is stored even though today's feed is LLT-only: a future
+/// PT-level feed would otherwise need a migration just to add a column.
+model OnsidesAdverseReaction {
+  id             String   @id @default(uuid())
+  /// MedDRA code, string because the code is numeric and may carry leading zeros.
+  meddraId       String   @unique @map("meddra_id")
+  meddraName     String   @map("meddra_name")
+  meddraTermType String   @map("meddra_term_type")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  effectLinks        OnsidesIngredientAdverseEffect[]
+  drugSourceImport   DrugSourceImport?                @relation(fields: [drugSourceImportId], references: [id])
+  drugSourceImportId String?
+
+  @@map("onsides_adverse_reactions")
+}
+
+/// Ingredient x reaction facts, aggregated up from label-level pairs.
+///
+/// The source carries 6.93M label rows; the import walks label -> product ->
+/// ingredient and dedupes to (rxnormCui, reaction), so this table is orders of
+/// magnitude smaller and both directions are indexable.
+model OnsidesIngredientAdverseEffect {
+  id            String  @id @default(uuid())
+  importRunId   String? @map("import_run_id")
+  /// RxNorm ingredient CUI; joins `drugbank_external_identifiers` where resource = 'RxCUI'.
+  rxnormCui     String  @map("rxnorm_cui")
+  reactionId    String  @map("reaction_id")
+  /// Number of distinct labels that reported this pair — used as a weight.
+  labelCount    Int     @map("label_count")
+  /// Distinct label sections (AR / WP / NA / BW), sorted. Json rather than a
+  /// String[] to match how every other array-valued column in this schema is
+  /// stored: the shared importer binds arrays as JSON text, which Postgres
+  /// rejects for a real array column ('["AR"]' is not a valid array literal).
+  labelSections Json    @map("label_sections") @db.JsonB
+  /// Distinct regulatory sources (US / JP / UK / EU), sorted.
+  sources       Json    @map("sources") @db.JsonB
+  /// max(pred1) over all hits. pred1, not pred0: pred0 is 0 for 44.5% of source
+  /// rows and above 1 for 36%, so it cannot carry a threshold. Nullable because
+  /// a pair can arrive with no score at all.
+  confidenceMax Float?  @map("confidence_max")
+  /// max of the non-zero pred0 values, provenance only. Never sorted or filtered on.
+  pred0Max      Float?  @map("pred0_max")
+  /// Upstream data version, so a re-import can be told apart from the old rows.
+  sourceVersion String  @map("source_version")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  importRun DrugSourceImport?      @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  reaction  OnsidesAdverseReaction @relation(fields: [reactionId], references: [id], onDelete: Cascade)
+
+  @@unique([rxnormCui, reactionId])
+  @@index([rxnormCui])
+  @@index([reactionId])
+  @@map("onsides_ingredient_adverse_effects")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

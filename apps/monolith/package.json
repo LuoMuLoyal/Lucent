@@ -64,6 +64,8 @@
     "db:reset:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate reset --force",
     "db:reset:test": "cross-env NODE_ENV=test pnpm exec prisma migrate reset --force",
     "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
+    "import:onsides": "node scripts/import/medicine/import-medicine-knowledge.ts onsides-effects",
+    "import:onsides:reactions": "node scripts/import/medicine/import-medicine-knowledge.ts onsides-reactions",
     "import:lightrag": "node scripts/import/medicine/rebuild-lightrag-index.ts",
     "import:lightrag:leaflets": "node scripts/import/medicine/import-lightrag-leaflets.ts",
     "openapi:export": "cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",

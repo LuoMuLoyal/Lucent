@@ -27,7 +27,20 @@ export {
   stableUuid,
 };
 
-const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
+/**
+ * Root of the sibling `DrugDataBase/` dataset checkout.
+ *
+ * `REPO_ROOT` is `apps/monolith` (the script moved into the Turborepo layout on
+ * 2026-11-17, when the single Nest app became `apps/monolith`), so the dataset is
+ * three levels up: `<workspace>/{Lucent,DrugDataBase}`. This used to be one level
+ * up, which silently resolved to `Lucent/apps/DrugDataBase` and made every import
+ * fail with ENOENT.
+ *
+ * A `DRUG_DATA_ROOT` override wins when the dataset does not sit beside the repo.
+ */
+const DATA_ROOT = process.env.DRUG_DATA_ROOT?.trim()
+  ? path.resolve(process.env.DRUG_DATA_ROOT.trim())
+  : path.resolve(REPO_ROOT, '..', '..', '..', 'DrugDataBase');
 /**
  * 外部来源的 DrugBank 解压件。
  *
@@ -44,8 +57,34 @@ const DRUGBANK_DIR = path.join(DATA_ROOT, 'raw', 'drugbank');
  * XML 里那 99.4 万条 `<pathways>` 内嵌引用的干扰。
  */
 const DRUGBANK_DERIVED_DIR = path.join(DATA_ROOT, 'derived', 'drugbank');
-/** V3 去重产物（原 `DrugEntityDedup/`，现位于 `derived/v3-dedup/`）。 */
+/** V3 deduplicated products (originally `DrugEntityDedup/`, now `derived/v3-dedup/`). */
 const V3_DEDUP_DIR = path.join(DATA_ROOT, 'derived', 'v3-dedup');
+/**
+ * OnSIDES CSV directory.
+ *
+ * Data is not in git (490 MB, `DrugDataBase/raw/onsides/v3.1.1/`), so the path is
+ * overridable via `ONSIDES_DATA_DIR`; the default points at the checked-out layout.
+ * The parser reads the CSVs directly with DuckDB instead of asking for a parquet
+ * intermediate: the aggregation needs a 4-way join over a 400 MB file, which is
+ * exactly what DuckDB is good at, and it avoids making the dataset mandatory.
+ */
+const ONSIDES_CSV_DIR = process.env.ONSIDES_DATA_DIR?.trim()
+  ? path.join(
+      path.resolve(process.env.ONSIDES_DATA_DIR.trim()),
+      'v3.1.1',
+      'csv',
+    )
+  : path.join(DATA_ROOT, 'raw', 'onsides', 'v3.1.1', 'csv');
+/** Upstream OnSIDES version stamped onto every fact row. */
+const ONSIDES_SOURCE_VERSION = 'v3.1.1';
+/** `sourceKey` shared by both OnSIDES commands. */
+const ONSIDES_SOURCE_KEY = 'onsides-v3.1.1';
+/**
+ * Fact table name, used in `flushBatch` to decide whether a row needs the dataset
+ * version stamped onto it. The MedDRA dictionary shares `ONSIDES_SOURCE_KEY` but
+ * has no `source_version` column, so gating on the source key alone would break it.
+ */
+const ONSIDES_EFFECTS_TABLE = 'onsides_ingredient_adverse_effects';
 const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
 const IMPORT_RUNS_TABLE = 'drug_source_imports';
 
@@ -990,6 +1029,55 @@ const COMMANDS = {
     conflictColumns: ['id'],
     updateColumns: ['import_run_id'],
   },
+
+  // ─── OnSIDES v3.1.1 (structured adverse reactions) ───────────
+  // Source is a directory of CSVs, not a parquet file: the 6.93M-row label table
+  // is only ever aggregated up to (ingredient CUI, MedDRA term), so the parser
+  // does that walk in DuckDB and emits one row per pair. Two passes over the same
+  // source produce the two tables — the dictionary must land first because the
+  // fact table holds a foreign key onto it.
+  'onsides-reactions': {
+    parser: path.join(thisDir, 'parsers', 'onsides_adverse_effects.py'),
+    defaultSourcePath: ONSIDES_CSV_DIR,
+    sourceKey: ONSIDES_SOURCE_KEY,
+    sourceName: 'onsides_meddra_terms_csv',
+    tableName: 'onsides_adverse_reactions',
+    parserArgs: ['--part', 'reactions'],
+    columns: ['id', 'meddra_id', 'meddra_name', 'meddra_term_type'],
+    conflictColumns: ['id'],
+    updateColumns: ['meddra_name', 'meddra_term_type'],
+  },
+
+  'onsides-effects': {
+    parser: path.join(thisDir, 'parsers', 'onsides_adverse_effects.py'),
+    defaultSourcePath: ONSIDES_CSV_DIR,
+    sourceKey: ONSIDES_SOURCE_KEY,
+    sourceName: 'onsides_ingredient_adverse_effects_csv',
+    tableName: 'onsides_ingredient_adverse_effects',
+    parserArgs: ['--part', 'effects'],
+    columns: [
+      'id',
+      'import_run_id',
+      'rxnorm_cui',
+      'reaction_id',
+      'label_count',
+      'label_sections',
+      'sources',
+      'confidence_max',
+      'pred0_max',
+      'source_version',
+    ],
+    conflictColumns: ['rxnorm_cui', 'reaction_id'],
+    updateColumns: [
+      'import_run_id',
+      'label_count',
+      'label_sections',
+      'sources',
+      'confidence_max',
+      'pred0_max',
+      'source_version',
+    ],
+  },
 };
 
 function printUsage() {
@@ -1459,6 +1547,18 @@ async function runImport(command, cliOptions) {
               drugbankId: record.drugbank_id,
               targets: xmlTargets,
             });
+          }
+          // `source_version` is a property of the dataset, not of the emitted row:
+          // stamping it here keeps the parser free of import-run bookkeeping and
+          // makes a re-import overwrite the old rows instead of duplicating them.
+          // Gated on the fact table, not on sourceKey: the MedDRA dictionary shares
+          // the same sourceKey but has no `source_version` column.
+          if (config.tableName === ONSIDES_EFFECTS_TABLE) {
+            return {
+              ...rest,
+              import_run_id: importRunId,
+              source_version: ONSIDES_SOURCE_VERSION,
+            };
           }
           return { ...rest, import_run_id: importRunId };
         });

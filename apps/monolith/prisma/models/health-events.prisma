@@ -21,7 +21,7 @@ model HealthEvent {
   id             String                @id @default(uuid())
   userId         String                @map("user_id")
   title          String
-  kind           HealthEventKind     @default(symptom)
+  kind           HealthEventKind       @default(symptom)
   status         HealthEventStatus     @default(active)
   startedAt      DateTime              @map("started_at") @db.Timestamptz(3)
   endedAt        DateTime?             @map("ended_at") @db.Timestamptz(3)
@@ -31,11 +31,11 @@ model HealthEvent {
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reasonRecord   UserRecord?      @relation("HealthEventReasonRecord", fields: [reasonRecordId], references: [id], onDelete: SetNull)
+  reasonRecord   UserRecord?           @relation("HealthEventReasonRecord", fields: [reasonRecordId], references: [id], onDelete: SetNull)
   checkIns       HealthEventCheckIn[]
   medicines      HealthEventMedicine[]
-  dailyRecords   UserRecord[]     @relation("HealthEventDailyRecords")
-  doseLogs       UserDoseLog[] @relation("HealthEventDoseLogs")
+  dailyRecords   UserRecord[]          @relation("HealthEventDailyRecords")
+  doseLogs       UserDoseLog[]         @relation("HealthEventDoseLogs")
 
   @@index([userId, status, startedAt])
   @@index([userId, deletedAt])
@@ -43,13 +43,13 @@ model HealthEvent {
 }
 
 model HealthEventCheckIn {
-  id        String            @id @default(uuid())
-  eventId   String            @map("event_id")
-  date      DateTime          @db.Date
+  id        String             @id @default(uuid())
+  eventId   String             @map("event_id")
+  date      DateTime           @db.Date
   outcome   HealthEventOutcome
-  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  event     HealthEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  event     HealthEvent        @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, date])
   @@map("health_event_check_ins")

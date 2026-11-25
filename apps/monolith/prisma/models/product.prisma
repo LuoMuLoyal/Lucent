@@ -44,19 +44,19 @@ enum ProductEventLogResult {
 /// deleted after 90 days (retention scans by `occurredAt`) and immediately on
 /// account hard-delete (FK onDelete: Cascade).
 model UserProductEventLog {
-  id                 String              @id @default(uuid())
-  userId             String              @map("user_id")
-  clientEventId      String              @map("client_event_id")
+  id                 String                 @id @default(uuid())
+  userId             String                 @map("user_id")
+  clientEventId      String                 @map("client_event_id")
   name               ProductEventLogName
   surface            ProductEventLogSurface
   result             ProductEventLogResult
-  eventStatus        HealthEventStatus?  @map("event_status")
-  suggestionRuleCode String?             @map("suggestion_rule_code")
-  appVersion         String              @map("app_version")
+  eventStatus        HealthEventStatus?     @map("event_status")
+  suggestionRuleCode String?                @map("suggestion_rule_code")
+  appVersion         String                 @map("app_version")
   platform           UserDevicePlatform
-  occurredAt         DateTime            @map("occurred_at") @db.Timestamptz(3)
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurredAt         DateTime               @map("occurred_at") @db.Timestamptz(3)
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Client retry idempotency: same (userId, clientEventId) never double-inserts
   @@unique([userId, clientEventId])

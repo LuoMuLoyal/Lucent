@@ -235,6 +235,35 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
 一药一行）、`drugbank_passage_chunks`（DrugBank RAG）、
 `drug_source_imports`（导入元数据：来源/版本/哈希/行数/拒绝样本）。
 
+### OnSIDES：结构化「成分 — 不良反应」（2026-11-25）
+
+在既有 DrugBank / 中文说明书之外补齐**「这个药本身会带来什么风险」**这一维。
+`cn_medicine_leaflets.adverse_reactions` 是一段 String，只能做语义检索，无法按反应反查
+药品、无法跨药计数、也无法按章节或置信度分层。
+
+| 表                                   | 规模（全量预期）  | 用途               |
+| ------------------------------------ | ----------------- | ------------------ |
+| `onsides_adverse_reactions`          | ~6.4K MedDRA 术语 | 术语字典（LLT 级） |
+| `onsides_ingredient_adverse_effects` | 成分 × 反应配对   | 事实表，双向索引   |
+
+- **桥接不建表**：成分标识是 RxNorm CUI，桥就是既有的
+  `drugbank_external_identifiers`（`resource = 'RxCUI'`）。配对级命中 **92.62%**，
+  药物级只有 8.2%，原因是 DrugBank 的 RxCUI 粒度不一致（部分是成分 CUI、部分是临床药品
+  CUI），未映射的 7.38% 集中在 191 个常用成分，补一张成分别名表即可回收。
+- **落库的是聚合结果，不是 label 明细**：源数据 693 万行是 (标签, 术语) 粒度，导入时按
+  `(rxnorm_cui, reaction)` 上溯聚合，`label_count` / `label_sections` / `sources` 折成计数
+  与集合。
+- **置信度取 `pred1` 不是 `pred0`**。抽样 10 万行实测：`pred0` 有 44.5% 是 0（表示未给出
+  分数）、36% 大于 1，不能当 0–1 概率；`pred1` 值域连续（3.26–6.02）。`pred0_max` 只作
+  溯源保留，是可空列，不参与排序与过滤。**不要**按 `pred0 ≥ 0.5` 过滤。
+- **`label_sections` / `sources` 是 JsonB**，不是 `String[]`：共享导入器把数组绑成 JSON
+  文本，Postgres 对真数组列会拒绝 `'["AR"]'`（22P02）。本 schema 里所有多值列都是这个形状。
+- **`match_method` 不落列**：全量只有 `PMB` 一个取值（150 万行抽样无第二种）。
+
+导入入口：`pnpm import:onsides:reactions`（字典，必须先跑）→ `pnpm import:onsides`
+（事实表）。两者读 `DrugDataBase/raw/onsides/v3.1.1/csv/`，不预转 parquet——解析器用
+DuckDB 直接做四表上溯，路径可用 `ONSIDES_DATA_DIR` 覆盖。数据不在 git 内。
+
 ### DrugBank 多值字段：关系表（2026-10-27 由 JsonB 提升）
 
 下列九张表取代了 `drugbank_drugs` 上原有的同名字段 JsonB 列（列已删除）。判断依据是
@@ -293,9 +322,12 @@ CN 源查不到详情）计入前者、不计入后者，**不让整体失败**�
   snp-effects → snp-adverse-effects → fingerprints →
   **groups → classification → synonyms → external-identifiers → dosages →
   manufacturers → packagers → products → drug-interactions** →
-  cn-v3-leaflets → cn-v3-products → cn-v3-product-leaflet-links
+  cn-v3-leaflets → cn-v3-products → cn-v3-product-leaflet-links →
+  **onsides-reactions → onsides-effects**
   （顺序源于外键依赖：药序列、patents、properties 以及上列九张关系表都对
-  `drugbank_drugs` 有外键，故排在药物之后）；批量按目标表冲突键去重后 upsert，幂等。
+  `drugbank_drugs` 有外键，故排在药物之后；OnSIDES 对 DrugBank 没有外键，故排最后——
+  它的数据目录可能不在本机，缺席时不该拦住前面的导入）；
+  批量按目标表冲突键去重后 upsert，幂等。
 - **导入路径（仅 V3）**：`DrugEntityDedup/products_dedup.parquet` 等 Parquet 文件，
   已做去重 + 保健品删除 + 名称冲突修正 + 条码/国药码并集；导入命令为
   `cn-v3-products` / `cn-v3-leaflets` / `cn-v3-product-leaflet-links`，

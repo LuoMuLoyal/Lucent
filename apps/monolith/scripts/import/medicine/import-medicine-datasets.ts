@@ -44,6 +44,10 @@ const VALID_COMMANDS = new Set([
   'drugbank-packagers',
   'drugbank-products',
   'drugbank-drug-interactions',
+  // OnSIDES structured adverse reactions. Two commands because they write two
+  // tables; the dictionary has to land first (the fact table references it).
+  'onsides-reactions',
+  'onsides-effects',
 ]);
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
@@ -119,6 +123,10 @@ function main() {
           'cn-v3-leaflets',
           'cn-v3-products',
           'cn-v3-product-leaflet-links',
+          // OnSIDES is last: it has no foreign key onto any DrugBank table, and it
+          // reads a separate dataset directory that may not be present locally.
+          'onsides-reactions',
+          'onsides-effects',
         ]
       : [command];
 

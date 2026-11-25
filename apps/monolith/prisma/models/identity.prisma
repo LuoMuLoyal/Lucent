@@ -34,55 +34,55 @@ enum UserDevicePlatform {
 }
 
 model User {
-  id                     String                      @id @default(uuid())
+  id                             String                              @id @default(uuid())
   // Nullable: OAuth-only accounts (e.g. WeChat) may have no email at all.
   // `@unique` still holds DB-wide because PostgreSQL treats NULLs as distinct,
   // so any number of email-less accounts can coexist while real addresses stay
   // unique. Callers MUST NOT query `where: { email: someNullableValue }` with a
   // null — that would match an arbitrary email-less user; see
   // `AuthIdentityService.findByEmail` for the null-guarded form.
-  email                  String?                     @unique
-  isEmailVerified        Boolean                     @default(false) @map("is_email_verified") @db.Boolean
-  nickname               String?
-  avatar                 String?
-  status                 UserStatus                  @default(active)
-  emailVerifiedAt        DateTime?                   @map("email_verified_at") @db.Timestamptz(3)
-  lastLoginAt            DateTime?                   @map("last_login_at") @db.Timestamptz(3)
-  deletedAt                DateTime?                   @map("deleted_at") @db.Timestamptz(3)
-  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  profile                UserProfile?
-  adminUser              AdminUser?
-  lucentSessions         UserSession[]               @relation("lucentSessions")
-  accounts               Account[]
-  allergies              UserAllergy[]
-  conditions             UserCondition[]
-  currentMedicines       UserCurrentMedicine[]
-  medicineReminders      UserReminder[]
-  reminderDeliveries     UserReminderDelivery[]
-  dailyRecords           UserRecord[]
-  dailyRecordAttachments UserRecordAttachment[]
-  doseLogs               UserDoseLog[]
-  settings               UserSetting[]
-  dataExportRequests     ExportRequest[]
-  assistantConversations AssistantConversation[]
-  assistantMessages      AssistantMessage[]
-  assistantRegenerations AssistantRegeneration[]
-  assistantSummaryHistories AssistantSummaryHistory[]
-  notifications          UserNotification[]
-  notificationPreference  UserNotificationSettings?
-  suggestions            UserSuggestion[]
-  suggestionBaselines    UserSuggestionBaseline[]
+  email                          String?                             @unique
+  isEmailVerified                Boolean                             @default(false) @map("is_email_verified") @db.Boolean
+  nickname                       String?
+  avatar                         String?
+  status                         UserStatus                          @default(active)
+  emailVerifiedAt                DateTime?                           @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt                    DateTime?                           @map("last_login_at") @db.Timestamptz(3)
+  deletedAt                      DateTime?                           @map("deleted_at") @db.Timestamptz(3)
+  createdAt                      DateTime                            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                      DateTime                            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile                        UserProfile?
+  adminUser                      AdminUser?
+  lucentSessions                 UserSession[]                       @relation("lucentSessions")
+  accounts                       Account[]
+  allergies                      UserAllergy[]
+  conditions                     UserCondition[]
+  currentMedicines               UserCurrentMedicine[]
+  medicineReminders              UserReminder[]
+  reminderDeliveries             UserReminderDelivery[]
+  dailyRecords                   UserRecord[]
+  dailyRecordAttachments         UserRecordAttachment[]
+  doseLogs                       UserDoseLog[]
+  settings                       UserSetting[]
+  dataExportRequests             ExportRequest[]
+  assistantConversations         AssistantConversation[]
+  assistantMessages              AssistantMessage[]
+  assistantRegenerations         AssistantRegeneration[]
+  assistantSummaryHistories      AssistantSummaryHistory[]
+  notifications                  UserNotification[]
+  notificationPreference         UserNotificationSettings?
+  suggestions                    UserSuggestion[]
+  suggestionBaselines            UserSuggestionBaseline[]
   suggestionBaselineObservations UserSuggestionBaselineObservation[]
-  suggestionFeedbacks    UserSuggestionFeedback[]
-  suggestionMaterializations UserSuggestionMaterialization[]
-  medicineNotifyMarks    UserMedicineNotifyMark[]
-  todayAnalysisMaterializations UserAnalysisMaterialization[]
-  medicineRiskCheckRecords MedicineRiskCheckRecord[]
-  healthEvents           HealthEvent[]
-  clinicSummaryShares    UserClinicSummaryShare[]
-  productEvents          UserProductEventLog[]
-  layouts                Layout[]
+  suggestionFeedbacks            UserSuggestionFeedback[]
+  suggestionMaterializations     UserSuggestionMaterialization[]
+  medicineNotifyMarks            UserMedicineNotifyMark[]
+  todayAnalysisMaterializations  UserAnalysisMaterialization[]
+  medicineRiskCheckRecords       MedicineRiskCheckRecord[]
+  healthEvents                   HealthEvent[]
+  clinicSummaryShares            UserClinicSummaryShare[]
+  productEvents                  UserProductEventLog[]
+  layouts                        Layout[]
 
   // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
@@ -101,7 +101,7 @@ model UserSession {
   context          Json?                  @db.JsonB
   lastUsedAt       DateTime?              @map("last_used_at") @db.Timestamptz(3)
   expiresAt        DateTime               @map("expires_at") @db.Timestamptz(3)
-  revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(3)
+  revokedAt        DateTime?              @map("revoked_at") @db.Timestamptz(3)
   /// Token family root: every session produced by successive rotations shares
   /// it. Reuse of an already-rotated refresh token is treated as theft and
   /// revokes the whole family (see AuthTokenService.rotateSession).
