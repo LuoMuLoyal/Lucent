@@ -4,6 +4,7 @@ import { LlmCommonModule } from '../../common/index.js';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { LayoutsController } from './adapters/http/layouts.controller.js';
+import { ContinueSurface } from './application/use_cases/continue-surface.js';
 import { GenerateSurface } from './application/use_cases/generate-surface.js';
 import { SURFACE_GENERATOR } from './application/ports/surface-generator.js';
 import { ReadLayouts } from './application/use_cases/read-layouts.js';
@@ -41,6 +42,7 @@ import { PrismaLayouts } from './infrastructure/persistence/layouts.js';
     ReadLayouts,
     SaveLayout,
     GenerateSurface,
+    ContinueSurface,
     LlmSurfaceGenerator,
     {
       provide: SURFACE_GENERATOR,

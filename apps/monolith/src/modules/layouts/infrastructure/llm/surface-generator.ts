@@ -7,6 +7,7 @@ import type {
   SurfaceGenerator,
   SurfaceGenerationContext,
   SurfaceGenerationOutput,
+  SurfaceTurnContext,
 } from '../../application/ports/surface-generator.js';
 import type { A2uiMessage } from '../../domain/generative/generated-surface.js';
 import {
@@ -15,6 +16,7 @@ import {
 } from './schemas/surface.js';
 import {
   buildSurfaceSystemPrompt,
+  buildSurfaceTurnUserPrompt,
   buildSurfaceUserPrompt,
   type SurfacePromptCopy,
 } from './prompts/surface.js';
@@ -51,6 +53,16 @@ export class LlmSurfaceGenerator
     streamName: 'Generative surface',
   } as const;
 
+  /**
+   * The context the current call was made with.
+   *
+   * `buildSystemPrompt` gets no arguments, but the vocabulary it renders comes
+   * from the client's capabilities document — which is per-request. Set on each
+   * entry point; reading it is safe because one instance serves one call at a
+   * time per invocation (the base class awaits the stream to completion).
+   */
+  private capabilities: SurfaceGenerationContext['capabilities'];
+
   public constructor(
     llmRuntimeService: LlmRuntimeService,
     metricsService: MetricsService,
@@ -67,6 +79,37 @@ export class LlmSurfaceGenerator
     context: SurfaceGenerationContext,
     onMessage: (message: A2uiMessage) => void | Promise<void>,
   ): Promise<SurfaceGenerationOutput> {
+    this.capabilities = context.capabilities;
+    try {
+      return await this.runStream(context, {}, onMessage);
+    } finally {
+      this.capabilities = undefined;
+    }
+  }
+
+  async continueWithStream(
+    context: SurfaceTurnContext,
+    onMessage: (message: A2uiMessage) => void | Promise<void>,
+  ): Promise<SurfaceGenerationOutput> {
+    this.capabilities = context.capabilities;
+    try {
+      // The base class is generic over one context type; a turn is passed as a
+      // generation context because the two share every field the streaming
+      // machinery reads (prompt copy is empty, messages come from the schema).
+      // `buildUserPrompt` below branches on the extra turn fields.
+      const turnContext = context as unknown as SurfaceGenerationContext;
+      return await this.runStream(turnContext, {}, onMessage);
+    } finally {
+      this.capabilities = undefined;
+    }
+  }
+
+  /** Shared streaming body: forwards each newly complete message. */
+  private async runStream(
+    context: SurfaceGenerationContext,
+    copy: SurfacePromptCopy,
+    onMessage: (message: A2uiMessage) => void | Promise<void>,
+  ): Promise<SurfaceGenerationOutput> {
     // Every already-forwarded element is tracked by index: a partial parse can
     // only ever extend the array, so remembering the count is enough to emit
     // each element exactly once.
@@ -74,7 +117,7 @@ export class LlmSurfaceGenerator
 
     const output = await super.generateStream(
       context,
-      {},
+      copy,
       // `summary` is progress metadata only; the surface is the product.
       () => {},
       async (partial) => {
@@ -97,18 +140,27 @@ export class LlmSurfaceGenerator
   }
 
   protected buildSystemPrompt(): string {
-    // Deliberately not routed through the runtime prompt override: the
-    // component vocabulary here must match the client catalog exactly, so
-    // it is not something the config centre may tune.
-    return buildSurfaceSystemPrompt();
+    // The vocabulary comes from the client's advertised catalog. It is not
+    // routed through the runtime prompt override for that reason: the override
+    // is server config, and the catalog is client state.
+    return buildSurfaceSystemPrompt(this.capabilities);
   }
 
   protected buildUserPrompt(
     context: SurfaceGenerationContext,
     _copy: SurfacePromptCopy,
   ): string {
-    return buildSurfaceUserPrompt(context);
+    return isTurnContext(context)
+      ? buildSurfaceTurnUserPrompt(context)
+      : buildSurfaceUserPrompt(context);
   }
+}
+
+/** Whether the context is a continuation round. */
+function isTurnContext(
+  context: SurfaceGenerationContext,
+): context is SurfaceGenerationContext & SurfaceTurnContext {
+  return 'document' in context && 'messages' in context;
 }
 
 /**
@@ -129,6 +181,8 @@ function isCompleteMessage(value: unknown): value is A2uiMessage {
     ('createSurface' in record ||
       'updateComponents' in record ||
       'updateDataModel' in record ||
-      'deleteSurface' in record)
+      'deleteSurface' in record ||
+      'callRendererFunction' in record ||
+      'agentFunctionResponse' in record)
   );
 }

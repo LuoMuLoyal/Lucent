@@ -5,7 +5,7 @@ import { z } from 'zod';
  *
  * `summary` exists only because `BaseLlmGeneratorService` reads it to report
  * stream progress — it is not shown to the user and never leaves the server.
- * `messages` is the actual product: A2UI v0.9 message objects in order.
+ * `messages` is the actual product: A2UI v1.0 message objects in order.
  *
  * The element type is deliberately `record(unknown)` rather than a modelled
  * A2UI schema. Two reasons:
@@ -13,7 +13,7 @@ import { z } from 'zod';
  * 1. A2UI's own schema is the source of truth (the client validates against it
  *    when rendering); duplicating it here would create a second definition that
  *    drifts.
- * 2. The safety rules are enforced by `checkSurfaceProduction` on the produced
+ * 2. The envelope rules are enforced by `checkSurfaceProduction` on the produced
  *    messages — a stricter zod schema would reject at parse time with a generic
  *    "invalid output", losing the specific violation kind we log and map to
  *    `GENERATIVE_OUTPUT_REJECTED`.
