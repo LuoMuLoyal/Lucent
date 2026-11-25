@@ -123,25 +123,32 @@ infrastructure/persistence/
 
 - `domain/layout/layout.spec.ts` — 形状校验、版本前置条件、`nextVersion`
 - `domain/layout/schema-version.spec.ts` — 区间边界（MIN-1 / MIN / MAX / MAX+1）
-- `test/layouts/` — e2e：跨用户 404、版本冲突 409、`schemaVersion` 422、未知 surface 400
+- `test/e2e/layouts/` — e2e：跨用户 404、版本冲突 409、`schemaVersion` 422、未知 surface 400；`generate.e2e-spec.ts` 覆盖两个生成式端点（帧序、信封拒绝、回合参数、语言转发）。
 
-## 生成式端点：`POST /layouts/:surface/generate`
+## 生成式端点（A2UI 1.0）
 
-按用户的自然语言指示，让模型在**受限词汇表**内拼装一棵 A2UI 树，以 SSE 流式返回。
+两个端点，同一套 SSE 帧：`/generate` 从一句指示起一棵树，`/turn` 把一次交互的结果
+续写到**同一棵**树上。
 
 ```text
 POST /layouts/:surface/generate
-  body: { prompt: string, range?: "7d" | "30d" }
+  body: { prompt: string, range?: "7d" | "30d", capabilities?: object }
   → 200 text/event-stream
-       event: chunk  data: <一条 A2UI 消息>
+       event: chunk  data: <一条 A2UI v1.0 agent→renderer 消息>
        event: result data: { surface, messages, usage }
        event: error  data: ProblemDetails
        event: done   data: {}
+
+POST /layouts/:surface/turn
+  body: { messages: object[], document: { messages: object[], dataModel?: object },
+          capabilities?: object }
+  → 200 text/event-stream（同上四帧）
 ```
 
 | operationId             | 端点                              |
 | ----------------------- | --------------------------------- |
 | `generateLayoutSurface` | `POST /layouts/:surface/generate` |
+| `runLayoutSurfaceTurn`  | `POST /layouts/:surface/turn`     |
 
 `surface` 只接受 `today` / `record` / `medicine` / `review` / `mine` ——
 `tab` 是底部栏不是页面，生成一棵树没有地方挂。这与存储端点的六值词表
@@ -153,19 +160,49 @@ POST /layouts/:surface/generate
 `payload` 同性质），不是对话消息。`analysis` 同样调 LLM 却自成模块 ——
 「要调模型」不等于「属于 assistant 域」。
 
-### 三条安全边界
+### 词汇表由客户端下发，服务端不存第二份
 
-模型只决定**展示什么、怎么排**，不决定数值，也不能生成动作：
+`capabilities` 是客户端的 A2UI renderer capabilities 文档（`{ "1.0": {
+supportedCatalogIds, inlineCatalogs } }`）。提示词的组件段落**由它生成**：加一个客户端
+组件不需要服务端发版。服务端对这个文档只有三条形状检查——是对象、可序列化、序列化后
+不超过 `GENERATIVE_CAPABILITIES_MAX_BYTES`（256 KiB）。**不看组件名，不看属性。**
 
-| 风险            | 落点                                                                            |
-| --------------- | ------------------------------------------------------------------------------- |
-| AI 编造健康数值 | `domain/generative/surface-policy.ts`：领域组件只接受引用键，任何数值一律判违规 |
-| AI 生成可写动作 | catalog 不含 `Button` / `TextField` / 表单                                      |
-| AI 改写医学结论 | `finding` 只接受 `findingId`，任何文案属性都在白名单外                          |
+服务端不提供兜底词表：客户端没发 capabilities 时提示词只说「按协议用通用布局组件」，
+而不是编一份清单——否则清单又成了第二份事实源。
 
-提示词让违规**不太可能**，准入校验让违规**不可能上线**。违规时**整次生成失败**
-（`GENERATIVE_OUTPUT_REJECTED`），而不是剔除坏组件继续——剔除等于替模型猜意图，
-而最危险的一类（编造数值）被悄悄删掉后，剩下的内容会显得像完整结论。
+### 准入：只剩信封结构
+
+v0.9 时代的 `surface-policy.ts` 有三条内容规则（禁数值、禁写动作、finding 只认 id）。
+**1.0 起整份删除**：客户端的 catalog 是全量的（Button / TextField / Slider / Modal 都在
+注册表里），agent 下发的可写动作是用户本来就要点的。现在留下的检查在
+`domain/generative/a2ui-envelope.ts`：
+
+| 检查                                 | 为什么                                                       |
+| ------------------------------------ | ------------------------------------------------------------ |
+| 每条消息是对象、`version` 为 `"1.0"` | v1.0 的 `@path` 绑定与 v0.9 不通用，混版本两边都不认         |
+| 恰好一个 body key（六个之一）        | 一条消息带两个变体，解析器只能猜                             |
+| 有 `createSurface`                   | 没有它，后续消息找不到 surface                               |
+| 有 `id == "root"` 的组件             | 没有根，渲染出来是空白页，看起来像「生成成功但什么都没生成」 |
+
+违规仍让**整次生成失败**（`GENERATIVE_OUTPUT_REJECTED`，502），而不是剔除坏消息：
+半棵树配上一个能显示的页码，比一块明确的失败更难排查。
+
+六个 body key 是 v1.0 的：`createSurface` / `updateComponents` / `updateDataModel` /
+`deleteSurface` / **`callRendererFunction`** / **`agentFunctionResponse`**（后两个是 1.0
+新增的双向函数调用）。
+
+### 交互回合：服务端无状态
+
+`/turn` 每次带**完整文档**（消息序列 + 可选 dataModel）与渲染端产出的消息。这换来三件事：
+
+- 重启不丢东西；
+- 第二台设备用自己那份继续，不需要对账；
+- 没有会话过期、淘汰、跨用户串会话要推理。
+
+代价是每轮多传一份文档。比起维护会话存储，这是更便宜的选择。
+
+**`result` 是完整序列，不是增量**：客户端拿它覆盖同一 surface。这样一次丢帧可以自愈，
+也不用区分「首次生成」与「续写」。
 
 ### 语言
 
@@ -178,25 +215,24 @@ POST /layouts/:surface/generate
 
 **「值」与「键」分开**：展示文字跟随语言，`component` 名与 `kind` / `kinds` /
 `range` / `findingId` 的取值必须保持固定 ASCII —— 否则模型会把 `water`
-「翻译」成中文，整棵树解析不了。
-
-`finding` 是唯一例外：它的文案来自后端原文，**不翻译**。
+「翻译」成中文，整棵树解析不了。`finding` 的文案来自后端原文，**不翻译**。
 
 ## 生成式的结构
 
 ```text
 domain/generative/
-  generation-request.ts  请求校验（surface 可生成性、prompt 边界）+ 纯失败形状
-  surface-policy.ts      A2UI 消息准入规则（安全边界，纯函数）
+  generation-request.ts  请求校验（surface 可生成性、prompt 边界、capabilities 上限）
+  a2ui-envelope.ts       A2UI v1.0 消息信封检查（结构，纯函数）
   generated-surface.ts   产物值类型（消息序列 + usage）
 application/
-  ports/surface-generator.ts  模型端口
-  use_cases/generate-surface.ts  校验 → 可用性 → 生成 → 准入
+  ports/surface-generator.ts   模型端口（首次生成 + 交互回合）
+  use_cases/generate-surface.ts  校验 → 可用性 → 生成 → 信封检查
+  use_cases/continue-surface.ts  同上，输入换成「消息 + 文档」
 adapters/http/dto/
-  generate-surface.ts    请求 schema + 流式响应 schema（带 describe/example）
+  generate-surface.ts    两个端点的请求 schema + 流式响应 schema（带 describe/example）
 infrastructure/llm/
   surface-generator.ts   LlmSurfaceGenerator（extends BaseLlmGeneratorService）
-  prompts/surface.ts     系统提示词（词汇表 + 语言规则）与 toContentLocale
+  prompts/surface.ts     系统提示词（由 capabilities 生成词汇表）与 toContentLocale
   schemas/surface.ts     模型结构化输出 schema
 ```
 
@@ -211,5 +247,26 @@ infrastructure/llm/
 
 ### 与客户端的契约
 
-服务端提示词里的组件词汇表必须与客户端 `GenerativeCatalog.typeNames` 一致。
-两边各存一份（跨端共享包要求后端引入 TS 共享包，超出本模块范围），靠测试快照对账。
+服务端不再维护组件词汇表，两边唯一的对账点是客户端的 `capabilities` 文档。原先守
+「服务端词表 = 客户端词表」的那份契约 e2e 随规则一起删除：那份约束的前提（服务端也有
+一份清单）已经不存在。
+
+## 生成式错误码
+
+| 场景                    | HTTP | code                                |
+| ----------------------- | ---- | ----------------------------------- |
+| 未知 `surface`          | 400  | `LAYOUT_SURFACE_UNKNOWN`            |
+| `tab` 不可生成          | 400  | `GENERATIVE_SURFACE_UNSUPPORTED`    |
+| 空指示                  | 400  | `GENERATIVE_PROMPT_EMPTY`           |
+| 指示过长                | 422  | `GENERATIVE_PROMPT_TOO_LONG`        |
+| capabilities 不可序列化 | 400  | `GENERATIVE_CAPABILITIES_INVALID`   |
+| capabilities 超上限     | 422  | `GENERATIVE_CAPABILITIES_TOO_LARGE` |
+| 回合没有消息            | 422  | `GENERATIVE_TURN_EMPTY`             |
+| 回合消息过多            | 422  | `GENERATIVE_TURN_TOO_LARGE`         |
+| 回合没有文档            | 422  | `GENERATIVE_DOCUMENT_EMPTY`         |
+| 模型输出不是合法 v1.0   | 502  | `GENERATIVE_OUTPUT_REJECTED`        |
+| 未配置模型              | 503  | `LLM_NOT_CONFIGURED`                |
+
+**为什么空回合是 422 而不是 400**：请求体解析得了，只是它描述不了任何要回应的事。
+DTO 因此**不在 `messages` 上加 `.min(1)`** —— schema 层的下界会把领域码挡成通用的
+`VALIDATION_FAILED` 400，客户端就丢失了「你这次交互没带操作」这条信息。
