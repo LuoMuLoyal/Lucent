@@ -612,6 +612,26 @@ docker compose -f compose.dev.yaml --profile lightrag up -d lightrag
 `LIGHTRAG_BASE_URL` 在 dev 走 `http://127.0.0.1:9621`（compose profile 发布到回环），
 在 production 走默认的容器名地址（同 compose 网络）。
 
+### A2UI generative surfaces — 客户端目录标识
+
+```text
+A2UI_CATALOG_ID
+```
+
+可选。它是客户端在 `capabilities` 里广播的 catalog 标识，也是模型应当写进
+`createSurface.catalogId` 的值（`POST /layouts/:surface/generate` 与 `/turn`）。
+
+A2UI 规范只把 `catalogId` 当作字符串标识，不要求它能解析出内容，所以它不必是
+真实 URL。但它**是对外发布的标识符**：命名空间了这个客户端能渲染的组件词汇表，
+并出现在模型产出的每一条 `createSurface` 里。因此它是**部署事实**，不是代码常量
+——fork、白标或自建实例不需要打补丁就能用自己的标识。
+
+留空是**受支持的状态**：提示词不写具体 id，而是要求模型照抄客户端 `capabilities`
+里给的那个，而不是自己编一个。自建部署通常保持留空即可。
+
+**不要**把某个域名直接写进代码充当这个值——那样等于替部署方选定了它可能并不
+拥有的域名。
+
 ### Semantica sidecar — 英文侧 OAG（本体推理）
 
 ```text
