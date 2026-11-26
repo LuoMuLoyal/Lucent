@@ -17,6 +17,17 @@
 文档门禁（`docs:verify` / `docs:links`）在本地 `pre-push` 与 `pnpm check` 里跑，
 不占 Actions 配额，故没有 `docs.yml`。
 
+## `ci.yml` 的三个 job 互不 `needs`
+
+`lint-typecheck` / `unit` / `e2e` 三者并行且互不阻断：lint 挂掉不影响单测与 e2e 跑完，
+一次 push 就能同时拿到三份结论。代价是 `pnpm install` + `prisma:generate` 各跑一遍
+（靠 pnpm store 与 SWC 缓存摊薄），但失败定位比「全塞进一个 job」清楚得多。
+
+`e2e` job 内部的步骤顺序有一个不显然的约束：`Verify OpenAPI spec is committed` 排在
+`E2E tests` **之后**。它只是 `git diff --exit-code`，与 e2e 无数据依赖——排在前面的话，
+一次「忘了提交 openapi.json」会让整轮 e2e 白跑，且报错停在契约漂移上，看不到测试结论。
+`Export OpenAPI spec` 必须仍在 `E2E tests` 之前（契约测试启动时加载那份 json）。
+
 ## 安全类 workflow（三件套的分工）
 
 三者**不重叠**，分别对应三个层面的风险：

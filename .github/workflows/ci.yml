@@ -218,22 +218,21 @@ jobs:
       - name: Export OpenAPI spec
         run: pnpm --filter monolith openapi:export
 
+      - name: E2E tests
+        run: pnpm --filter monolith test:e2e:ci
+
       # G3: fail when the code changed but the regenerated spec was not
       # committed. Without this, a stale openapi.json passes CI as long as the
       # E2E contract tests can still load it — the drift only surfaces later,
       # when a client is generated from the wrong contract.
+      #
+      # 放在 E2E **之后**：本条只是 `git diff --exit-code`，与 E2E 无数据依赖
+      # （E2E 只需要上面 Export 产出的文件，读的是工作区现成的那份）。排在前面的
+      # 话，一次「忘了提交 openapi.json」会让整轮 E2E 白跑，拿到的报错也停在
+      # 契约漂移上，看不到测试本身的结论。
       - name: Verify OpenAPI spec is committed
         run: |
           if ! git diff --exit-code -- docs/reference/generated/openapi.json; then
             echo "::error::openapi.json differs from the committed version — run 'pnpm export:openapi' and commit the result."
             exit 1
           fi
-
-      - name: E2E tests
-        run: pnpm --filter monolith test:e2e:ci
-
-  # Go contract bindings. Separate job on purpose: it needs the Go toolchain, and
-  # its only concern is that `packages/contracts/go` still matches the published
-  # OpenAPI document. The backend's own "spec is committed" step above proves the
-  # JSON is fresh; this proves the Go copy followed it. Without both, a DTO rename
-  # can land with a stale Go struct that compiles fine and fails at runtime.
