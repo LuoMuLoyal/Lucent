@@ -57,7 +57,7 @@ function thinkingBaseline(roleKey: EnvKey): () => ThinkingMode {
   };
 }
 
-export const aiRuntimeFields = {
+export const localRuntimeFields = {
   // ── Per-role endpoint and model ────────────────────────────────────
   [EnvKey.AI_ANALYSIS_MODEL]: nullableStringField({ family: 'ai' }),
   [EnvKey.AI_ANALYSIS_BASE_URL]: nullableStringField({

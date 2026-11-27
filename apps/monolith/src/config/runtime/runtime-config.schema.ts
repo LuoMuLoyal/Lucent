@@ -16,7 +16,7 @@
  * and the document may hold prompt text.
  */
 
-import { aiRuntimeFields } from './schema/ai.schema.js';
+import { localRuntimeFields } from './schema/llm.schema.js';
 import { appInfoRuntimeFields } from './schema/app-info.schema.js';
 import { authRuntimeFields } from './schema/auth.schema.js';
 import { cacheRuntimeFields } from './schema/cache.schema.js';
@@ -29,7 +29,7 @@ import { storageRuntimeFields } from './schema/storage.schema.js';
 
 /** Every tunable key, in one flat map: key -> family + baseline + parser. */
 export const RUNTIME_CONFIG_FIELDS = {
-  ...aiRuntimeFields,
+  ...localRuntimeFields,
   ...retrievalRuntimeFields,
   ...mealRuntimeFields,
   ...queueRuntimeFields,
@@ -79,10 +79,7 @@ const REVISION_PATTERN = /^[A-Za-z0-9._-]{1,64}$/u;
 
 /** Why a document was rejected; the caller keeps using the previous snapshot. */
 export type RuntimeConfigRejectionReason =
-  | 'invalid_syntax'
-  | 'invalid_schema'
-  | 'unsupported_version'
-  | 'duplicate_key';
+  'invalid_syntax' | 'invalid_schema' | 'unsupported_version' | 'duplicate_key';
 
 export type RuntimeConfigDocumentParseResult =
   | {
