@@ -121,7 +121,7 @@ describe('UserSettingsReadModel', () => {
   it('serves a cache hit without re-assembling the aggregate', async () => {
     const { cache, readModel } = build();
     const cached: UserSettingsView = {
-      aiSummariesEnabled: false,
+      digestEnabled: false,
       dataSharingConsent: true,
       assistantEnabled: false,
       assistantMemoryEnabled: true,
@@ -171,7 +171,7 @@ describe('UpdateUserSettings use case', () => {
     expect(repository.upserts).toEqual([]);
     expect(cache.invalidations).toEqual([]);
     expect(events.published).toEqual([]);
-    expect(view.aiSummariesEnabled).toBe(true);
+    expect(view.digestEnabled).toBe(true);
   });
 
   it('writes assistant context toggles as individual rows', async () => {

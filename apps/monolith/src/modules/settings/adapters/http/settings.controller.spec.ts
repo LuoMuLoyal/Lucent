@@ -18,7 +18,7 @@ function makeSettings(
   overrides: Partial<UserSettingsDataDto> = {},
 ): UserSettingsDataDto {
   return {
-    aiSummariesEnabled: true,
+    digestEnabled: true,
     dataSharingConsent: false,
     assistantEnabled: true,
     assistantMemoryEnabled: false,
@@ -70,16 +70,16 @@ describe('UserSettingsController', () => {
 
   it('unwraps a successful update', async () => {
     service.updateSettings.mockReturnValue(
-      okAsync(makeSettings({ aiSummariesEnabled: false })),
+      okAsync(makeSettings({ digestEnabled: false })),
     );
 
     const result = await controller.updateSettings(USER as never, {
-      aiSummariesEnabled: false,
+      digestEnabled: false,
     });
 
-    expect(result.aiSummariesEnabled).toBe(false);
+    expect(result.digestEnabled).toBe(false);
     expect(service.updateSettings).toHaveBeenCalledWith('u1', {
-      aiSummariesEnabled: false,
+      digestEnabled: false,
     });
   });
 

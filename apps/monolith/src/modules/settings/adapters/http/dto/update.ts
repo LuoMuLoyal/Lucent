@@ -36,7 +36,7 @@ const updateAssistantContextSettingsSchema = z
 
 export const updateUserSettingsSchema = z
   .object({
-    aiSummariesEnabled: z
+    digestEnabled: z
       .boolean()
       .describe('Allow AI-generated summaries and advice.')
       .optional(),

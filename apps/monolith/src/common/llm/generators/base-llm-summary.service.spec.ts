@@ -67,7 +67,7 @@ class TestSummaryService extends BaseLlmSummaryService<
   }
 
   /** Template-method hook: the base class asks, this subclass answers. */
-  protected isAiSummariesEnabled(_userId: string): Promise<boolean> {
+  protected isDigestEnabled(_userId: string): Promise<boolean> {
     return this.enabledForTests();
   }
 
@@ -86,7 +86,7 @@ class TestSummaryService extends BaseLlmSummaryService<
     _context: TestContext,
     output: TestOutput,
     _metadata: unknown,
-    _aiGenerated: boolean,
+    _briefingGenerated: boolean,
   ): TestDataDto {
     return output;
   }
@@ -103,7 +103,7 @@ class TestSummaryService extends BaseLlmSummaryService<
 // ── Mock factory ───────────────────────────────────────────────────────────
 
 function createMocks() {
-  const aiSummariesEnabled = vi.fn().mockResolvedValue(true);
+  const digestEnabled = vi.fn().mockResolvedValue(true);
 
   const copyService: vi.Mocked<LlmSummaryCopyService<TestContext, TestOutput>> =
     {
@@ -133,7 +133,7 @@ function createMocks() {
   } as unknown as vi.Mocked<LlmSafetyPolicyService>;
 
   return {
-    aiSummariesEnabled,
+    digestEnabled,
     copyService,
     generatorService,
     policyService,
@@ -149,7 +149,7 @@ describe('BaseLlmSummaryService', () => {
   beforeEach(() => {
     mocks = createMocks();
     service = new TestSummaryService(
-      mocks.aiSummariesEnabled,
+      mocks.digestEnabled,
       mocks.copyService,
       mocks.generatorService,
       mocks.policyService,
@@ -216,7 +216,7 @@ describe('BaseLlmSummaryService', () => {
     });
 
     it('throws DomainFailureException when AI summaries are disabled', async () => {
-      mocks.aiSummariesEnabled.mockResolvedValue(false);
+      mocks.digestEnabled.mockResolvedValue(false);
 
       await expect(
         service.generate('user-1', { targetId: 'rec-1' }, 'zh'),
@@ -224,7 +224,7 @@ describe('BaseLlmSummaryService', () => {
     });
 
     it('proceeds when user setting is not found (default enabled)', async () => {
-      mocks.aiSummariesEnabled.mockResolvedValue(true);
+      mocks.digestEnabled.mockResolvedValue(true);
       mocks.generatorService.generate.mockResolvedValue(generatedOutput);
 
       const result = await service.generate(

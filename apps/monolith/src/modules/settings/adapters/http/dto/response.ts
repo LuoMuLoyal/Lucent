@@ -45,7 +45,7 @@ export type AssistantContextSettingsDto = z.infer<
  */
 const userSettingsShape = z
   .object({
-    aiSummariesEnabled: z
+    digestEnabled: z
       .boolean()
       .describe('Allow AI-generated summaries and advice.'),
     dataSharingConsent: z

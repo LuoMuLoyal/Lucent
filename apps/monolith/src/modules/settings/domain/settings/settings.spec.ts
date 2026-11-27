@@ -10,7 +10,7 @@ describe('UserSettings aggregate', () => {
       const snapshot = UserSettings.fromRows('user-1', []).toSnapshot();
 
       expect(snapshot).toEqual({
-        aiSummariesEnabled: true,
+        digestEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: true,
         assistantMemoryEnabled: false,
@@ -35,7 +35,7 @@ describe('UserSettings aggregate', () => {
         row('dataSharingConsent', true, '2026-06-16T08:00:00.000Z'),
       ]).toSnapshot();
 
-      expect(snapshot.aiSummariesEnabled).toBe(true);
+      expect(snapshot.digestEnabled).toBe(true);
       expect(snapshot.dataSharingConsent).toBe(true);
       expect(snapshot.assistantEnabled).toBe(false);
       expect(snapshot.assistantMemoryEnabled).toBe(true);
@@ -53,11 +53,11 @@ describe('UserSettings aggregate', () => {
       // A hand-edited or half-migrated row must not turn `true` into `"true"`,
       // nor let a string reach a numeric field.
       const snapshot = UserSettings.fromRows('user-1', [
-        row('aiSummariesEnabled', 'yes', '2026-06-17T11:00:00.000Z'),
+        row('digestEnabled', 'yes', '2026-06-17T11:00:00.000Z'),
         row('waterTargetCount', null, '2026-06-17T10:00:00.000Z'),
       ]).toSnapshot();
 
-      expect(snapshot.aiSummariesEnabled).toBe(true);
+      expect(snapshot.digestEnabled).toBe(true);
       expect(snapshot.waterTargetCount).toBe(8);
       // The row still exists, so the resource has been written before.
       expect(snapshot.updatedAt).not.toBeNull();

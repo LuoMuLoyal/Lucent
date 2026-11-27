@@ -73,8 +73,8 @@ export class UserSettingsService extends IUserSettingsPort {
  */
 function toPatch(dto: UpdateUserSettingsCommand): UserSettingsPatch {
   const patch: UserSettingsPatch = {};
-  if (dto.aiSummariesEnabled !== undefined) {
-    patch.aiSummariesEnabled = dto.aiSummariesEnabled;
+  if (dto.digestEnabled !== undefined) {
+    patch.digestEnabled = dto.digestEnabled;
   }
   if (dto.dataSharingConsent !== undefined) {
     patch.dataSharingConsent = dto.dataSharingConsent;

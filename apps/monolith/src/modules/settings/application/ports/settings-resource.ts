@@ -42,7 +42,7 @@ export interface AssistantContextPermissionsPatch {
 
 /** The authenticated user's settings resource (`GET`/`PATCH /user/settings`). */
 export interface UserSettingsResource {
-  aiSummariesEnabled: boolean;
+  digestEnabled: boolean;
   dataSharingConsent: boolean;
   assistantEnabled: boolean;
   assistantMemoryEnabled: boolean;
@@ -66,7 +66,7 @@ export interface UserSettingsResource {
  * The web layer validates the body with a zod schema, and `z.infer` of an
  * optional key yields `T | undefined`. Under `exactOptionalPropertyTypes` that
  * is a *different* type from a bare optional `T`, so a `PATCH` body could not be
- * handed to a command typed `aiSummariesEnabled?: boolean`.
+ * handed to a command typed `digestEnabled?: boolean`.
  *
  * Rather than let the application layer import the zod schema (which would point
  * the dependency outward and put a validation library in the application
@@ -76,7 +76,7 @@ export interface UserSettingsResource {
  * are mutually assignable. `settings-resource.spec.ts` asserts that.
  */
 export interface UpdateUserSettingsCommand {
-  aiSummariesEnabled?: boolean | undefined;
+  digestEnabled?: boolean | undefined;
   dataSharingConsent?: boolean | undefined;
   assistantEnabled?: boolean | undefined;
   assistantMemoryEnabled?: boolean | undefined;

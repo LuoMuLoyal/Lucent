@@ -7,7 +7,7 @@
  * `modules/settings`.
  */
 
-export const AI_SUMMARIES_ENABLED_SETTING_KEY = 'aiSummariesEnabled';
+export const DIGEST_ENABLED_SETTING_KEY = 'digestEnabled';
 export const DATA_SHARING_CONSENT_SETTING_KEY = 'dataSharingConsent';
 export const ASSISTANT_ENABLED_SETTING_KEY = 'assistantEnabled';
 export const ASSISTANT_MEMORY_ENABLED_SETTING_KEY = 'assistantMemoryEnabled';

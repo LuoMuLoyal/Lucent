@@ -5,7 +5,7 @@
  *
  * The stored key strings also exist in
  * `src/common/constants/user-setting-keys.ts`, because `common/llm` must read
- * `aiSummariesEnabled` without depending on this module. The domain cannot
+ * `digestEnabled` without depending on this module. The domain cannot
  * import from `common/` either (D1: `domain/**` is pure), so the literal values
  * are restated here.
  *
@@ -15,7 +15,7 @@
  */
 
 export const USER_SETTING_KEYS = {
-  aiSummariesEnabled: 'aiSummariesEnabled',
+  digestEnabled: 'digestEnabled',
   dataSharingConsent: 'dataSharingConsent',
   assistantEnabled: 'assistantEnabled',
   assistantMemoryEnabled: 'assistantMemoryEnabled',
@@ -47,7 +47,7 @@ export const ASSISTANT_CONTEXT_SETTING_KEYS = {
 } as const;
 
 export const USER_SETTINGS_DEFAULTS = {
-  aiSummariesEnabled: true,
+  digestEnabled: true,
   dataSharingConsent: false,
   assistantEnabled: true,
   assistantMemoryEnabled: false,
@@ -101,8 +101,8 @@ export function listDefaultBooleanUserSettings(): Array<{
 }> {
   return [
     {
-      key: USER_SETTING_KEYS.aiSummariesEnabled,
-      value: USER_SETTINGS_DEFAULTS.aiSummariesEnabled,
+      key: USER_SETTING_KEYS.digestEnabled,
+      value: USER_SETTINGS_DEFAULTS.digestEnabled,
     },
     {
       key: USER_SETTING_KEYS.assistantEnabled,

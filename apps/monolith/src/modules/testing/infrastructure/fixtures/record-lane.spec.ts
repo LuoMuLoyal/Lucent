@@ -128,12 +128,12 @@ describe('TestingService', () => {
       where: {
         userId_key: {
           userId: 'user-1',
-          key: 'aiSummariesEnabled',
+          key: 'digestEnabled',
         },
       },
       create: {
         userId: 'user-1',
-        key: 'aiSummariesEnabled',
+        key: 'digestEnabled',
         value: true,
       },
       update: {
@@ -246,12 +246,12 @@ describe('TestingService', () => {
       where: {
         userId_key: {
           userId: 'user-1',
-          key: 'aiSummariesEnabled',
+          key: 'digestEnabled',
         },
       },
       create: {
         userId: 'user-1',
-        key: 'aiSummariesEnabled',
+        key: 'digestEnabled',
         value: true,
       },
       update: {

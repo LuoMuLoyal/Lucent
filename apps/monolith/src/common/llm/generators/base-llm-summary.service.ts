@@ -44,7 +44,7 @@ export interface LlmStructuredOutput extends Record<string, unknown> {
  * `userSetting` table. Every new summary feature then inherited a data-access
  * capability it had no business having.
  *
- * The switch is now a **template-method hook**: {@link isAiSummariesEnabled} is
+ * The switch is now a **template-method hook**: {@link isDigestEnabled} is
  * abstract, and the subclass — which already lives in a module and already knows
  * its own context — answers it. This class keeps the flow and the LLM calls; the
  * data source belongs to whoever owns the data.
@@ -75,9 +75,9 @@ export abstract class BaseLlmSummaryService<
     language: string,
   ): Promise<TDataDto> {
     const locale = this.copyService.resolveLocale(language);
-    await this.assertAiSummariesEnabled(userId, locale);
+    await this.assertDigestEnabled(userId, locale);
     const prepared = await this.prepare(userId, dto, locale);
-    const { output, aiGenerated } = await this.generateStructuredOutput(
+    const { output, briefingGenerated } = await this.generateStructuredOutput(
       prepared.context,
       prepared.locale,
     );
@@ -85,7 +85,7 @@ export abstract class BaseLlmSummaryService<
       prepared.context,
       output,
       prepared.metadata as TMetadata,
-      aiGenerated,
+      briefingGenerated,
     );
     await this.persistSummary(userId, data);
     await this.afterPersist(userId, data, locale);
@@ -99,18 +99,19 @@ export abstract class BaseLlmSummaryService<
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
   ): Promise<TDataDto> {
     const locale = this.copyService.resolveLocale(language);
-    await this.assertAiSummariesEnabled(userId, locale);
+    await this.assertDigestEnabled(userId, locale);
     const prepared = await this.prepare(userId, dto, locale);
-    const { output, aiGenerated } = await this.generateStructuredOutputStream(
-      prepared.context,
-      prepared.locale,
-      onSummary,
-    );
+    const { output, briefingGenerated } =
+      await this.generateStructuredOutputStream(
+        prepared.context,
+        prepared.locale,
+        onSummary,
+      );
     const data = this.toDataDto(
       prepared.context,
       output,
       prepared.metadata as TMetadata,
-      aiGenerated,
+      briefingGenerated,
     );
     await this.persistSummary(userId, data);
     await this.afterPersist(userId, data, locale);
@@ -127,7 +128,7 @@ export abstract class BaseLlmSummaryService<
     context: TContext,
     output: TOutput,
     metadata: TMetadata,
-    aiGenerated: boolean,
+    briefingGenerated: boolean,
   ): TDataDto;
 
   protected abstract persistSummary(
@@ -145,7 +146,7 @@ export abstract class BaseLlmSummaryService<
    * "disabled means forbidden, with localized copy" decision stays here so every
    * summary feature refuses the same way.
    */
-  protected abstract isAiSummariesEnabled(userId: string): Promise<boolean>;
+  protected abstract isDigestEnabled(userId: string): Promise<boolean>;
 
   private extractTexts(output: TOutput): string[] {
     const texts: string[] = [output.summary];
@@ -175,11 +176,11 @@ export abstract class BaseLlmSummaryService<
     // to the fallback.
   }
 
-  private async assertAiSummariesEnabled(
+  private async assertDigestEnabled(
     userId: string,
     locale: string,
   ): Promise<void> {
-    const enabled = await this.isAiSummariesEnabled(userId);
+    const enabled = await this.isDigestEnabled(userId);
     if (!enabled) {
       throw new DomainFailureException(
         createDomainFailure({
@@ -194,14 +195,14 @@ export abstract class BaseLlmSummaryService<
   private async generateStructuredOutput(
     context: TContext,
     locale: string,
-  ): Promise<{ output: TOutput; aiGenerated: boolean }> {
+  ): Promise<{ output: TOutput; briefingGenerated: boolean }> {
     if (!this.generatorService.hasAnalysisModel()) {
       this.logger.warn(
         `Model is not configured for ${this.buildLogContext(context)}; falling back`,
       );
       return {
         output: this.copyService.buildFallback(context, locale),
-        aiGenerated: false,
+        briefingGenerated: false,
       };
     }
 
@@ -211,7 +212,7 @@ export abstract class BaseLlmSummaryService<
         this.copyService.buildPromptCopy(locale),
       );
       if (this.policyService.isSafe(this.extractTexts(raw))) {
-        return { output: raw, aiGenerated: true };
+        return { output: raw, briefingGenerated: true };
       }
 
       this.logger.warn(
@@ -226,7 +227,7 @@ export abstract class BaseLlmSummaryService<
 
     return {
       output: this.copyService.buildFallback(context, locale),
-      aiGenerated: false,
+      briefingGenerated: false,
     };
   }
 
@@ -234,14 +235,14 @@ export abstract class BaseLlmSummaryService<
     context: TContext,
     locale: string,
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
-  ): Promise<{ output: TOutput; aiGenerated: boolean }> {
+  ): Promise<{ output: TOutput; briefingGenerated: boolean }> {
     if (!this.generatorService.hasAnalysisModel()) {
       this.logger.warn(
         `Model is not configured for ${this.buildLogContext(context)}; falling back`,
       );
       const fallback = this.copyService.buildFallback(context, locale);
       await this.emitGuaranteedSummary(fallback.summary, false, onSummary);
-      return { output: fallback, aiGenerated: false };
+      return { output: fallback, briefingGenerated: false };
     }
 
     let emittedSummary = false;
@@ -265,7 +266,7 @@ export abstract class BaseLlmSummaryService<
           emittedSummary,
           onSummary,
         );
-        return { output: raw, aiGenerated: true };
+        return { output: raw, briefingGenerated: true };
       }
 
       this.logger.warn(
@@ -284,7 +285,7 @@ export abstract class BaseLlmSummaryService<
       emittedSummary,
       onSummary,
     );
-    return { output: fallback, aiGenerated: false };
+    return { output: fallback, briefingGenerated: false };
   }
 
   private async emitGuaranteedSummary(

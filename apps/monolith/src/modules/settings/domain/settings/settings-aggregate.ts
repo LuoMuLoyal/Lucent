@@ -41,7 +41,7 @@ export interface StoredSettingRow {
 
 /** The assembled settings resource (shapes the HTTP response). */
 export interface UserSettingsSnapshot {
-  aiSummariesEnabled: boolean;
+  digestEnabled: boolean;
   dataSharingConsent: boolean;
   assistantEnabled: boolean;
   assistantMemoryEnabled: boolean;
@@ -61,7 +61,7 @@ export interface UserSettingsSnapshot {
  * without touching the rule that turns fields into rows.
  */
 export interface UserSettingsPatch {
-  aiSummariesEnabled?: boolean;
+  digestEnabled?: boolean;
   dataSharingConsent?: boolean;
   assistantEnabled?: boolean;
   assistantMemoryEnabled?: boolean;
@@ -71,7 +71,7 @@ export interface UserSettingsPatch {
 }
 
 const TOP_LEVEL_FIELDS: readonly UserSettingField[] = [
-  'aiSummariesEnabled',
+  'digestEnabled',
   'dataSharingConsent',
   'assistantEnabled',
   'assistantMemoryEnabled',
@@ -134,9 +134,9 @@ export class UserSettings {
     };
 
     const snapshot: UserSettingsSnapshot = {
-      aiSummariesEnabled: boolOf(
-        USER_SETTING_KEYS.aiSummariesEnabled,
-        USER_SETTINGS_DEFAULTS.aiSummariesEnabled,
+      digestEnabled: boolOf(
+        USER_SETTING_KEYS.digestEnabled,
+        USER_SETTINGS_DEFAULTS.digestEnabled,
       ),
       dataSharingConsent: boolOf(
         USER_SETTING_KEYS.dataSharingConsent,

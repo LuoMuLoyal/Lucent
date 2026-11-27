@@ -10,7 +10,7 @@ describe('settings keys', () => {
   describe('USER_SETTING_KEYS', () => {
     it('contains the six top-level settings', () => {
       expect(Object.keys(USER_SETTING_KEYS)).toHaveLength(6);
-      expect(USER_SETTING_KEYS.aiSummariesEnabled).toBeDefined();
+      expect(USER_SETTING_KEYS.digestEnabled).toBeDefined();
       expect(USER_SETTING_KEYS.dataSharingConsent).toBeDefined();
       expect(USER_SETTING_KEYS.assistantEnabled).toBeDefined();
       expect(USER_SETTING_KEYS.assistantMemoryEnabled).toBeDefined();
@@ -48,11 +48,11 @@ describe('settings keys', () => {
   describe('listDefaultBooleanUserSettings', () => {
     it('covers the top-level booleans plus the four context toggles', () => {
       const defaults = listDefaultBooleanUserSettings();
-      // aiSummariesEnabled, assistantEnabled, assistantMemoryEnabled + 4 context
+      // digestEnabled, assistantEnabled, assistantMemoryEnabled + 4 context
       expect(defaults).toHaveLength(7);
       const keys = defaults.map((entry) => entry.key);
       expect(new Set(keys).size).toBe(keys.length);
-      expect(keys).toContain(USER_SETTING_KEYS.aiSummariesEnabled);
+      expect(keys).toContain(USER_SETTING_KEYS.digestEnabled);
       expect(keys).toContain(ASSISTANT_CONTEXT_SETTING_KEYS.currentMedicines);
     });
 

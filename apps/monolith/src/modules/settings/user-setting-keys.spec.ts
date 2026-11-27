@@ -1,5 +1,5 @@
 import {
-  AI_SUMMARIES_ENABLED_SETTING_KEY,
+  DIGEST_ENABLED_SETTING_KEY,
   ASSISTANT_AGENT_MODE_SETTING_KEY,
   ASSISTANT_CONTEXT_CURRENT_MEDICINES_SETTING_KEY,
   ASSISTANT_CONTEXT_DAILY_RECORDS_SETTING_KEY,
@@ -19,14 +19,14 @@ import {
  * Pins the domain's literal key strings to the `common/` constants.
  *
  * The same nine strings necessarily exist in two places: `common/` needs them
- * to read `aiSummariesEnabled` from `common/llm`, and `domain/` is not allowed
+ * to read `digestEnabled` from `common/llm`, and `domain/` is not allowed
  * to import from `common/` (ADR-0024 D1). This test is what keeps the copies
  * equal — a drift here would silently write a setting row nobody reads back.
  */
 describe('user-setting key strings match common/constants', () => {
   it('matches the six top-level keys', () => {
     expect(USER_SETTING_KEYS).toEqual({
-      aiSummariesEnabled: AI_SUMMARIES_ENABLED_SETTING_KEY,
+      digestEnabled: DIGEST_ENABLED_SETTING_KEY,
       dataSharingConsent: DATA_SHARING_CONSENT_SETTING_KEY,
       assistantEnabled: ASSISTANT_ENABLED_SETTING_KEY,
       assistantMemoryEnabled: ASSISTANT_MEMORY_ENABLED_SETTING_KEY,
