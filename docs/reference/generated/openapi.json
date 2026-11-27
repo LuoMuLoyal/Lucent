@@ -11804,7 +11804,7 @@
       "UserSettingsResponse": {
         "type": "object",
         "properties": {
-          "aiSummariesEnabled": {
+          "digestEnabled": {
             "type": "boolean",
             "description": "Allow AI-generated summaries and advice."
           },
@@ -11843,7 +11843,7 @@
           }
         },
         "required": [
-          "aiSummariesEnabled",
+          "digestEnabled",
           "dataSharingConsent",
           "assistantEnabled",
           "assistantMemoryEnabled",
@@ -12108,7 +12108,7 @@
               "$ref": "#/components/schemas/ReportDashboardResponsePatterns"
             }
           },
-          "aiSummaryEnabled": {
+          "digestEnabled": {
             "type": "boolean"
           }
         },
@@ -12121,7 +12121,7 @@
           "trends",
           "findings",
           "patterns",
-          "aiSummaryEnabled"
+          "digestEnabled"
         ],
         "additionalProperties": false
       },
@@ -12643,7 +12643,7 @@
             "type": "string",
             "description": "AI-enhanced or original boundary / disclaimer text"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean",
             "description": "Whether the AI model was used to generate the explanation"
           },
@@ -12652,7 +12652,7 @@
             "type": "string"
           }
         },
-        "required": ["suggestionId", "reason", "boundary", "aiGenerated"],
+        "required": ["suggestionId", "reason", "boundary", "briefingGenerated"],
         "additionalProperties": false
       },
       "SuggestionExplanationJobResponse": {
@@ -13226,7 +13226,7 @@
           "confidenceNote": {
             "type": "string"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean"
           },
           "metrics": {
@@ -13244,7 +13244,7 @@
           "actionLabel",
           "action",
           "confidenceNote",
-          "aiGenerated"
+          "briefingGenerated"
         ],
         "additionalProperties": false
       },
@@ -13357,7 +13357,7 @@
                   "confidenceNote": {
                     "type": "string"
                   },
-                  "aiGenerated": {
+                  "briefingGenerated": {
                     "type": "boolean"
                   },
                   "metrics": {
@@ -13375,7 +13375,7 @@
                   "actionLabel",
                   "action",
                   "confidenceNote",
-                  "aiGenerated"
+                  "briefingGenerated"
                 ],
                 "additionalProperties": false
               },
@@ -14641,7 +14641,7 @@
       "UpdateSettingsRequest": {
         "type": "object",
         "properties": {
-          "aiSummariesEnabled": {
+          "digestEnabled": {
             "type": "boolean",
             "description": "Allow AI-generated summaries and advice."
           },
@@ -19653,6 +19653,7 @@
               "resolve_drugbank",
               "get_drugbank_detail",
               "search_drugbank",
+              "search_adverse_reactions",
               "reason_ontology",
               "reason_rules",
               "create_record_draft",
@@ -22527,7 +22528,7 @@
             "type": "string",
             "description": "AI-enhanced or original boundary / disclaimer text"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean",
             "description": "Whether the AI model was used to generate the explanation"
           },
@@ -22536,7 +22537,7 @@
             "type": "string"
           }
         },
-        "required": ["suggestionId", "reason", "boundary", "aiGenerated"],
+        "required": ["suggestionId", "reason", "boundary", "briefingGenerated"],
         "additionalProperties": false
       },
       "AccountResponseLinkedIdentities": {
@@ -22684,7 +22685,7 @@
           "confidenceNote": {
             "type": "string"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean"
           },
           "metrics": {
@@ -22702,7 +22703,7 @@
           "actionLabel",
           "action",
           "confidenceNote",
-          "aiGenerated"
+          "briefingGenerated"
         ],
         "additionalProperties": false
       },
@@ -22889,7 +22890,7 @@
           "confidenceNote": {
             "type": "string"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean"
           },
           "metrics": {
@@ -22907,7 +22908,7 @@
           "actionLabel",
           "action",
           "confidenceNote",
-          "aiGenerated"
+          "briefingGenerated"
         ],
         "additionalProperties": false
       },
@@ -23017,7 +23018,7 @@
           "confidenceNote": {
             "type": "string"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean"
           },
           "metrics": {
@@ -23035,7 +23036,7 @@
           "actionLabel",
           "action",
           "confidenceNote",
-          "aiGenerated"
+          "briefingGenerated"
         ],
         "additionalProperties": false
       },
@@ -23222,7 +23223,7 @@
           "confidenceNote": {
             "type": "string"
           },
-          "aiGenerated": {
+          "briefingGenerated": {
             "type": "boolean"
           },
           "metrics": {
@@ -23240,7 +23241,7 @@
           "actionLabel",
           "action",
           "confidenceNote",
-          "aiGenerated"
+          "briefingGenerated"
         ],
         "additionalProperties": false
       },
