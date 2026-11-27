@@ -21,10 +21,7 @@ import type { ReportRange } from './report-range.js';
 
 /** Source kinds an observation can come from. */
 export type ReportObservedSourceKind =
-  | 'manual'
-  | 'health_platform'
-  | 'reminder_plan'
-  | 'derived';
+  'manual' | 'health_platform' | 'reminder_plan' | 'derived';
 
 /** Reliability of the observations behind a metric. */
 export type ReportCoverage = 'sufficient' | 'partial' | 'none';
@@ -34,20 +31,14 @@ export type ReportMetricDirection = 'up' | 'down' | 'flat';
 
 /** Qualitative state of a metric or pattern. */
 export type ReportMetricStatus =
-  | 'good'
-  | 'stable'
-  | 'needs_attention'
-  | 'insufficient_data';
+  'good' | 'stable' | 'needs_attention' | 'insufficient_data';
 
 /** Which tracked dimension an item describes. */
 export type ReportMetricKind = 'medication' | 'water' | 'sleep';
 
 /** Which advice family a finding or pattern belongs to. */
 export type ReportFindingKind =
-  | 'medication'
-  | 'hydration'
-  | 'sleep'
-  | 'general';
+  'medication' | 'hydration' | 'sleep' | 'general';
 
 /** The source-backed observation block — the primary read model. */
 export interface ReportObservedMetric {
@@ -109,5 +100,5 @@ export interface ReportDashboardData {
   trends: ReportTrend[];
   findings: ReportFinding[];
   patterns: ReportPattern[];
-  aiSummaryEnabled: boolean;
+  digestEnabled: boolean;
 }

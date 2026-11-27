@@ -12,7 +12,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client.js';
+import { DigestHistoryKind, type Prisma } from '#generated/prisma/client.js';
 import { PrismaService } from '../../../../prisma/index.js';
 import { formatDateOnly, parseDateOnly } from '../../../../common/index.js';
 import { mayReplaceSummary, scopeKeyOf } from '../../domain/summary/summary.js';
@@ -130,7 +130,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
     limit: number,
   ): Promise<TodaySummaryRecord[]> {
     const rows = await this.prisma.assistantSummaryHistory.findMany({
-      where: { userId, kind: AiSummaryHistoryKind.today },
+      where: { userId, kind: DigestHistoryKind.today },
       orderBy: [{ generatedAt: 'desc' }],
       take: limit,
     });
@@ -142,7 +142,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
     limit: number,
   ): Promise<ReportSummaryRecord[]> {
     const rows = await this.prisma.assistantSummaryHistory.findMany({
-      where: { userId, kind: AiSummaryHistoryKind.report },
+      where: { userId, kind: DigestHistoryKind.report },
       orderBy: [{ generatedAt: 'desc' }],
       take: limit,
     });
@@ -156,7 +156,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
     const row = await this.prisma.assistantSummaryHistory.findFirst({
       where: {
         userId,
-        kind: AiSummaryHistoryKind.today,
+        kind: DigestHistoryKind.today,
         date: parseDate(date),
       },
       orderBy: [{ generatedAt: 'desc' }],
@@ -171,7 +171,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
     const row = await this.prisma.assistantSummaryHistory.findFirst({
       where: {
         userId,
-        kind: AiSummaryHistoryKind.report,
+        kind: DigestHistoryKind.report,
         ...(query.rangeKey != null ? { rangeKey: query.rangeKey } : {}),
         ...(query.startDate != null
           ? { startDate: parseDate(query.startDate) }
@@ -212,7 +212,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
 
     const data: Prisma.AssistantSummaryHistoryUncheckedCreateInput = {
       userId: write.userId,
-      kind: isToday ? AiSummaryHistoryKind.today : AiSummaryHistoryKind.report,
+      kind: isToday ? DigestHistoryKind.today : DigestHistoryKind.report,
       scopeKey,
       date: parseDate(scope.date),
       rangeKey: scope.rangeKey ?? null,
@@ -224,7 +224,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
       actionLabel: isToday ? (write.actionLabel ?? '') : '',
       action: isToday ? (write.action ?? '') : '',
       confidenceNote: isToday ? (write.confidenceNote ?? '') : '',
-      aiGenerated: write.aiGenerated ?? false,
+      briefingGenerated: write.briefingGenerated ?? false,
       sourceVersion: write.sourceVersion ?? null,
     };
 
@@ -257,7 +257,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
     actionLabel: string;
     action: string;
     confidenceNote: string;
-    aiGenerated: boolean;
+    briefingGenerated: boolean;
     sourceVersion: number | null;
   }): TodaySummaryRecord {
     return {
@@ -268,7 +268,7 @@ export class PrismaSummaries implements SummaryRepositoryPort {
       actionLabel: row.actionLabel,
       action: row.action,
       confidenceNote: row.confidenceNote,
-      aiGenerated: row.aiGenerated,
+      briefingGenerated: row.briefingGenerated,
       sourceVersion: row.sourceVersion,
     };
   }

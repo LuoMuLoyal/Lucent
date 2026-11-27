@@ -25,7 +25,7 @@ const mockContextNoSleep: AssistantToolExecutionContext = {
 describe('AssistantToolReadService', () => {
   let service: AssistantToolReadService;
   let prisma: DeepMocked<PrismaService>;
-  let aiSummary: vi.Mocked<HistoricalAiSummaryService>;
+  let digest: vi.Mocked<HistoricalAiSummaryService>;
   let context: vi.Mocked<UserContextService>;
   let reminders: vi.Mocked<IMedicineReminderReader>;
   let userSettings: vi.Mocked<UserSettingsService>;
@@ -36,7 +36,7 @@ describe('AssistantToolReadService', () => {
       user: { findFirstOrThrow: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
 
-    aiSummary = {
+    digest = {
       getLatestTodaySummaryByDate: vi.fn(),
       getLatestReportSummaryByRange: vi.fn(),
       listRecentTodaySummaries: vi.fn(),
@@ -64,7 +64,7 @@ describe('AssistantToolReadService', () => {
 
     service = new AssistantToolReadService(
       prisma,
-      aiSummary,
+      digest,
       context,
       reminders,
       userSettings,
@@ -143,7 +143,7 @@ describe('AssistantToolReadService', () => {
         matchedBy: ['fallback'],
         ambiguities: [],
       });
-      aiSummary.getLatestTodaySummaryByDate.mockResolvedValue({
+      digest.getLatestTodaySummaryByDate.mockResolvedValue({
         date: '2026-07-10',
         generatedAt: '2026-07-10T08:00:00.000Z',
         summary: 'Summary',
@@ -166,7 +166,7 @@ describe('AssistantToolReadService', () => {
         matchedBy: ['fallback'],
         ambiguities: [],
       });
-      aiSummary.getLatestTodaySummaryByDate.mockResolvedValue(null);
+      digest.getLatestTodaySummaryByDate.mockResolvedValue(null);
 
       const result = await service.getTodaySummaryByDate(mockContext);
 
@@ -177,7 +177,7 @@ describe('AssistantToolReadService', () => {
 
   describe('getReportSummaryByRange', () => {
     it('returns found report summary with rangeKey', async () => {
-      aiSummary.getLatestReportSummaryByRange.mockResolvedValue({
+      digest.getLatestReportSummaryByRange.mockResolvedValue({
         rangeKey: 'last_7_days',
         startDate: '2026-07-04',
         endDate: '2026-07-10',
@@ -199,7 +199,7 @@ describe('AssistantToolReadService', () => {
     });
 
     it('returns not found when no summary', async () => {
-      aiSummary.getLatestReportSummaryByRange.mockResolvedValue(null);
+      digest.getLatestReportSummaryByRange.mockResolvedValue(null);
 
       const result = await service.getReportSummaryByRange({
         ...mockContext,
@@ -212,7 +212,7 @@ describe('AssistantToolReadService', () => {
 
   describe('getRecentTodaySummaries', () => {
     it('returns list of recent summaries', async () => {
-      aiSummary.listRecentTodaySummaries.mockResolvedValue([
+      digest.listRecentTodaySummaries.mockResolvedValue([
         {
           date: '2026-07-10',
           generatedAt: '2026-07-10T08:00:00.000Z',
@@ -232,7 +232,7 @@ describe('AssistantToolReadService', () => {
     });
 
     it('returns empty coverage when no summaries', async () => {
-      aiSummary.listRecentTodaySummaries.mockResolvedValue([]);
+      digest.listRecentTodaySummaries.mockResolvedValue([]);
 
       const result = await service.getRecentTodaySummaries(mockContext);
 
@@ -242,7 +242,7 @@ describe('AssistantToolReadService', () => {
 
   describe('getRecentReportSummaries', () => {
     it('returns list of recent report summaries', async () => {
-      aiSummary.listRecentReportSummaries.mockResolvedValue([]);
+      digest.listRecentReportSummaries.mockResolvedValue([]);
 
       const result = await service.getRecentReportSummaries(mockContext);
 
@@ -289,7 +289,7 @@ describe('AssistantToolReadService', () => {
   describe('getUserSettings', () => {
     it('returns assistant-related settings', async () => {
       userSettings.getSettings.mockResolvedValue({
-        aiSummariesEnabled: true,
+        digestEnabled: true,
         dataSharingConsent: true,
         assistantEnabled: true,
         assistantMemoryEnabled: false,

@@ -23,7 +23,7 @@ describe('ReportsComputationService', () => {
     startDate: new Date('2026-07-04'),
     endDate: new Date('2026-07-10'),
     generatedAt: '2026-07-10T08:00:00.000Z',
-    aiSummaryEnabled: false,
+    digestEnabled: false,
     medicationSeries: [80, 85, 90, 75, 60, 95, 100],
     waterSeries: [1.5, 2.0, 1.8, 1.2, 2.5, 1.9, 1.7],
     sleepSeries: [7, 6.5, 8, 5.5, 7.5, 6, 7],

@@ -55,7 +55,7 @@ describe('ReportsController', () => {
   let clinicSummaryController: ClinicSummaryController;
   let eventReviewController: EventReviewController;
   let service: vi.Mocked<ReportsService>;
-  let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
+  let digestService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
   let clinicSummaryPdfService: vi.Mocked<ClinicSummaryPdf>;
   let shareService: vi.Mocked<ShareService>;
@@ -185,7 +185,7 @@ describe('ReportsController', () => {
     clinicSummaryController = module.get(ClinicSummaryController);
     eventReviewController = module.get(EventReviewController);
     service = module.get(ReportsService);
-    aiSummaryService = module.get(ReportsAiSummaryService);
+    digestService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
     clinicSummaryPdfService = module.get(CLINIC_SUMMARY_PDF);
     shareService = module.get(ShareService);
@@ -249,7 +249,7 @@ describe('ReportsController', () => {
 
   it('should return the report summary resource', async () => {
     const summary = makeSummary();
-    aiSummaryService.generate.mockResolvedValue(summary);
+    digestService.generate.mockResolvedValue(summary);
 
     expect(
       await controller.generateSummary(
@@ -258,7 +258,7 @@ describe('ReportsController', () => {
         'zh-CN',
       ),
     ).toEqual(summary);
-    expect(aiSummaryService.generate).toHaveBeenCalledWith(
+    expect(digestService.generate).toHaveBeenCalledWith(
       'u1',
       {
         range: REPORT_RANGE_LAST_30_DAYS,
@@ -271,7 +271,7 @@ describe('ReportsController', () => {
 
   it('writes SSE events for summary, result, and done on success', async () => {
     const summaryResult = makeSummary();
-    aiSummaryService.generateStream.mockImplementation(
+    digestService.generateStream.mockImplementation(
       async (_userId, _dto, _lang, onSummary) => {
         await onSummary({ summary: 'partial text' });
         return summaryResult;
@@ -317,7 +317,7 @@ describe('ReportsController', () => {
   });
 
   it('writes SSE error event when service throws', async () => {
-    aiSummaryService.generateStream.mockRejectedValue(new Error('LLM down'));
+    digestService.generateStream.mockRejectedValue(new Error('LLM down'));
 
     const events: Array<{ event: string; data: unknown }> = [];
     const reply = makeMockReply(events);
@@ -987,7 +987,7 @@ function makeDashboard(
     trends: [],
     findings: [],
     patterns: [],
-    aiSummaryEnabled: false,
+    digestEnabled: false,
     ...overrides,
   };
 }

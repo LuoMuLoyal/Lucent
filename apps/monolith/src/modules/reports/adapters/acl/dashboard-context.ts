@@ -87,7 +87,7 @@ export class ReportsContextService implements DashboardContextPort {
       startDate,
       endDate,
       generatedAt: nowIsoString(),
-      aiSummaryEnabled: settings.aiSummariesEnabled,
+      digestEnabled: settings.digestEnabled,
       // Scalar series remain for metric sparkline and presenter
       // (findings/patterns). Trend values are extracted from
       // observedMedicationSeries in computation.service.ts to

@@ -501,7 +501,7 @@ function makeAnalysis(
     actionLabel: '查看今日记录',
     action: 'today',
     confidenceNote: '仅基于今日已记录数据生成，不构成诊断或治疗建议。',
-    aiGenerated: true,
+    briefingGenerated: true,
     ...overrides,
   };
 }

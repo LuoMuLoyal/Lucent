@@ -44,7 +44,7 @@ export interface ExplanationResult {
   reason: string;
   boundary: string;
   /** Whether the AI model was used (false = fallback to persisted copy text). */
-  aiGenerated: boolean;
+  briefingGenerated: boolean;
 }
 
 /**
@@ -132,7 +132,7 @@ export class ExplanationService {
       suggestionId,
       reason: output.reason,
       boundary: output.boundary,
-      aiGenerated: output.aiGenerated,
+      briefingGenerated: output.briefingGenerated,
     };
   }
 
@@ -140,7 +140,7 @@ export class ExplanationService {
     context: ExplanationContext,
     promptCopy: ExplanationPromptCopy,
     suggestionId: string,
-  ): Promise<{ reason: string; boundary: string; aiGenerated: boolean }> {
+  ): Promise<{ reason: string; boundary: string; briefingGenerated: boolean }> {
     // If no model configured, return original rule text immediately.
     if (!this.generatorService.hasAnalysisModel()) {
       this.logger.debug(
@@ -149,7 +149,7 @@ export class ExplanationService {
       return {
         reason: context.originalReason,
         boundary: context.originalBoundary,
-        aiGenerated: false,
+        briefingGenerated: false,
       };
     }
 
@@ -161,7 +161,7 @@ export class ExplanationService {
         return {
           reason: raw.reason,
           boundary: raw.boundary,
-          aiGenerated: true,
+          briefingGenerated: true,
         };
       }
 
@@ -178,7 +178,7 @@ export class ExplanationService {
     return {
       reason: context.originalReason,
       boundary: context.originalBoundary,
-      aiGenerated: false,
+      briefingGenerated: false,
     };
   }
 
@@ -214,10 +214,9 @@ export class ExplanationService {
       tone: this.i18n.t('suggestion.prompt.explanation_tone', {
         lang: locale,
       }),
-      constraints: this.i18n.t(
-        'suggestion.prompt.explanation_constraints',
-        { lang: locale },
-      ),
+      constraints: this.i18n.t('suggestion.prompt.explanation_constraints', {
+        lang: locale,
+      }),
       factsLabel: this.i18n.t('suggestion.prompt.facts_label', {
         lang: locale,
       }),

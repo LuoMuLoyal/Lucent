@@ -14,7 +14,7 @@ describe('ReportsService', () => {
         startDate: new Date('2026-06-06T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
         generatedAt: '2026-06-12T08:00:00.000Z',
-        aiSummaryEnabled: true,
+        digestEnabled: true,
         medicationSeries: [50, 100, 0, 0, 0, 0, 0],
         waterSeries: [1.5, 0, 0, 0, 0, 0, 0],
         sleepSeries: [0, 0, 0, 0, 0, 0, 0],
@@ -117,7 +117,7 @@ describe('ReportsService', () => {
     expect(dashboard.metrics[0]?.kind).toBe('medication');
     expect(dashboard.metrics[1]?.kind).toBe('water');
     expect(dashboard.metrics[2]?.kind).toBe('sleep');
-    expect(dashboard.aiSummaryEnabled).toBe(true);
+    expect(dashboard.digestEnabled).toBe(true);
     expect(dashboard.trends[1]?.values[0]).toBe(1.5);
     expect(dashboard.findings.length).toBeGreaterThan(0);
     expect(contextService.build).toHaveBeenCalledWith('u1', {
@@ -136,7 +136,7 @@ describe('ReportsService', () => {
         startDate: new Date('2026-05-14T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
         generatedAt: '2026-06-12T08:00:00.000Z',
-        aiSummaryEnabled: true,
+        digestEnabled: true,
         medicationSeries: Array(30).fill(100),
         waterSeries: Array(30).fill(1.8),
         sleepSeries: Array(30).fill(0),
@@ -187,7 +187,7 @@ describe('ReportsService', () => {
         startDate: new Date('2026-06-06T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
         generatedAt: '2026-06-12T08:00:00.000Z',
-        aiSummaryEnabled: false,
+        digestEnabled: false,
         medicationSeries: Array(7).fill(0),
         waterSeries: Array(7).fill(0),
         sleepSeries,
@@ -263,7 +263,7 @@ describe('ReportsService', () => {
         startDate: new Date('2026-06-06T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
         generatedAt: '2026-06-12T08:00:00.000Z',
-        aiSummaryEnabled: true,
+        digestEnabled: true,
         medicationSeries: [50, 100],
         waterSeries: [1.5, 0],
         sleepSeries: [0, 0],
@@ -301,7 +301,7 @@ describe('ReportsService', () => {
     );
 
     expect(dashboard.range).toBe(REPORT_RANGE_LAST_7_DAYS);
-    expect(dashboard.aiSummaryEnabled).toBe(true);
+    expect(dashboard.digestEnabled).toBe(true);
   });
 
   it('recomputes from the DB when the cache get fails (fail-open)', async () => {
@@ -311,7 +311,7 @@ describe('ReportsService', () => {
         startDate: new Date('2026-06-06T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
         generatedAt: '2026-06-12T08:00:00.000Z',
-        aiSummaryEnabled: true,
+        digestEnabled: true,
         medicationSeries: [50, 100],
         waterSeries: [1.5, 0],
         sleepSeries: [0, 0],
@@ -354,6 +354,6 @@ describe('ReportsService', () => {
     });
     expect(computationService.compute).toHaveBeenCalled();
     expect(dashboard.range).toBe(REPORT_RANGE_LAST_7_DAYS);
-    expect(dashboard.aiSummaryEnabled).toBe(true);
+    expect(dashboard.digestEnabled).toBe(true);
   });
 });

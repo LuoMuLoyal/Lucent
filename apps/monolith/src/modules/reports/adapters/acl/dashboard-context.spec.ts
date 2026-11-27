@@ -29,7 +29,7 @@ describe('ReportsContextService', () => {
   const buildMocks = () => ({
     userSettingsService: {
       getSettings: vi.fn().mockResolvedValue({
-        aiSummariesEnabled: true,
+        digestEnabled: true,
       }),
     },
     dailyRecordReader: {
@@ -53,7 +53,7 @@ describe('ReportsContextService', () => {
       range: REPORT_RANGE_LAST_7_DAYS,
     });
 
-    expect(context.aiSummaryEnabled).toBe(true);
+    expect(context.digestEnabled).toBe(true);
     expect(userSettingsService.getSettings).toHaveBeenCalledWith('u1');
   });
 
@@ -61,7 +61,7 @@ describe('ReportsContextService', () => {
     const { userSettingsService, dailyRecordReader, doseLogReader } =
       buildMocks();
     userSettingsService.getSettings = vi.fn().mockResolvedValue({
-      aiSummariesEnabled: false,
+      digestEnabled: false,
     });
     const service = new ReportsContextService(
       userSettingsService as never,
@@ -73,7 +73,7 @@ describe('ReportsContextService', () => {
       range: REPORT_RANGE_LAST_7_DAYS,
     });
 
-    expect(context.aiSummaryEnabled).toBe(false);
+    expect(context.digestEnabled).toBe(false);
   });
 
   it('resolves last_30_days start date', async () => {

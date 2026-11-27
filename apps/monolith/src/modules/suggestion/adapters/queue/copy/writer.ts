@@ -100,7 +100,7 @@ export class SuggestionCopyService {
         reason: cached.reason,
         boundary: cached.boundary,
         actionLabel: cached.actionLabel,
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: true,
       };
     }
@@ -157,7 +157,7 @@ export class SuggestionCopyService {
         reason: cached.reason,
         boundary: cached.boundary,
         actionLabel: cached.actionLabel,
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: true,
       };
     }
@@ -182,7 +182,7 @@ export class SuggestionCopyService {
       reason: generated.reason,
       boundary: generated.boundary,
       actionLabel: generated.actionLabel,
-      aiGenerated: true,
+      briefingGenerated: true,
       fromCache: false,
     };
   }
@@ -210,7 +210,7 @@ export class SuggestionCopyService {
         reason: cached.reason,
         boundary: cached.boundary,
         actionLabel: cached.actionLabel,
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: true,
       };
     }
@@ -230,7 +230,7 @@ export class SuggestionCopyService {
         reason: generated.reason,
         boundary: generated.boundary,
         actionLabel: generated.actionLabel,
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: false,
       };
     } catch (error) {
@@ -291,7 +291,7 @@ export class SuggestionCopyService {
         reason: fallback.reason,
         boundary: fallback.boundary,
         actionLabel: fallback.actionLabel,
-        aiGenerated: false,
+        briefingGenerated: false,
         fromCache: false,
       };
     }
@@ -305,7 +305,7 @@ export class SuggestionCopyService {
       actionLabel: this.i18n.t('suggestion.fallback.action_label', {
         lang: locale,
       }),
-      aiGenerated: false,
+      briefingGenerated: false,
       fromCache: false,
     };
   }

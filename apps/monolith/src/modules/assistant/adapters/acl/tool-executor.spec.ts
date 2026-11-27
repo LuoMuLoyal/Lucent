@@ -62,7 +62,7 @@ describe('AssistantToolService', () => {
   }
 
   function buildExecutor(runtime?: RuntimeConfigPort) {
-    const aiSummaryHistoryService = {
+    const digestHistoryService = {
       getLatestTodaySummaryByDate: vi.fn(),
       getLatestReportSummaryByRange: vi.fn(),
       listRecentTodaySummaries: vi.fn(),
@@ -93,7 +93,7 @@ describe('AssistantToolService', () => {
     );
     const readService = new AssistantToolReadService(
       {} as never,
-      aiSummaryHistoryService as never,
+      digestHistoryService as never,
       userContextService as never,
       remindersService as never,
       userSettingsService as never,
@@ -220,7 +220,7 @@ describe('AssistantToolService', () => {
     return {
       service,
       deps: {
-        aiSummaryHistoryService,
+        digestHistoryService,
         cache,
         dailyRecordCandidatesService,
         dailyRecordProposalService,
@@ -353,7 +353,7 @@ describe('AssistantToolService', () => {
 
   it('returns one persisted today summary for a specific date', async () => {
     const { service, deps } = buildExecutor();
-    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockResolvedValue({
+    deps.digestHistoryService.getLatestTodaySummaryByDate.mockResolvedValue({
       date: '2026-06-17',
       generatedAt: '2026-06-17T09:00:00.000Z',
       summary: 'Yesterday was steadier.',
@@ -368,7 +368,7 @@ describe('AssistantToolService', () => {
     );
 
     expect(
-      deps.aiSummaryHistoryService.getLatestTodaySummaryByDate,
+      deps.digestHistoryService.getLatestTodaySummaryByDate,
     ).toHaveBeenCalledWith('user-1', '2026-06-17');
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({
@@ -609,7 +609,7 @@ describe('AssistantToolService', () => {
 
   it('returns a timeout envelope when a tool exceeds the per-tool timeout (F-6)', async () => {
     const { service, deps } = buildExecutor();
-    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+    deps.digestHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
       new Promise(() => {
         // never settles
       }),
@@ -639,7 +639,7 @@ describe('AssistantToolService', () => {
     const { service, deps } = buildExecutor(
       runtimeWith({ [EnvKey.ASSISTANT_TOOL_TIMEOUT_MS]: 5_000 }),
     );
-    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+    deps.digestHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
       new Promise(() => {
         // never settles
       }),
@@ -663,7 +663,7 @@ describe('AssistantToolService', () => {
   it('logs the duration when a timed-out tool rejects late', async () => {
     const { service, deps } = buildExecutor();
     let rejectLate!: (reason: unknown) => void;
-    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+    deps.digestHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
       new Promise((_, reject) => {
         rejectLate = reject;
       }),
@@ -744,7 +744,7 @@ describe('AssistantToolService', () => {
     const summaryGate = new Promise((resolve) => {
       releaseSummary = resolve;
     });
-    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+    deps.digestHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
       summaryGate.then(() => ({
         date: '2026-06-17',
         generatedAt: '2026-06-17T09:00:00.000Z',
@@ -764,7 +764,7 @@ describe('AssistantToolService', () => {
     // Both read tools must already be running while the summary tool is still
     // blocked on its gate — evidence of parallel start, not serial execution.
     expect(
-      deps.aiSummaryHistoryService.getLatestTodaySummaryByDate,
+      deps.digestHistoryService.getLatestTodaySummaryByDate,
     ).toHaveBeenCalled();
     expect(deps.recordsService.list).toHaveBeenCalled();
 

@@ -8,10 +8,7 @@ import type { ReportRange } from './report-range.js';
 import type { ObservedMetric } from '../../../../../common/index.js';
 
 export type MetricStatus =
-  | 'good'
-  | 'stable'
-  | 'needs_attention'
-  | 'insufficient_data';
+  'good' | 'stable' | 'needs_attention' | 'insufficient_data';
 
 export type MetricDirection = 'up' | 'down' | 'flat';
 
@@ -27,7 +24,7 @@ export interface ReportDashboardFacts {
   startDate: Date;
   endDate: Date;
   generatedAt: string;
-  aiSummaryEnabled: boolean;
+  digestEnabled: boolean;
   medicationSeries: number[];
   waterSeries: number[];
   sleepSeries: number[];

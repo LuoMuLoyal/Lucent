@@ -20,7 +20,7 @@ describe('HistoricalAiSummaryService', () => {
     actionLabel: 'Log more water',
     action: '/record/water',
     confidenceNote: 'high confidence',
-    aiGenerated: true,
+    briefingGenerated: true,
   };
 
   const mockReportRow: ReportSummaryRecord = {
@@ -62,7 +62,7 @@ describe('HistoricalAiSummaryService', () => {
         actionLabel: 'Act',
         action: '/go',
         confidenceNote: 'ok',
-        aiGenerated: true,
+        briefingGenerated: true,
       };
 
       await service.save(input);

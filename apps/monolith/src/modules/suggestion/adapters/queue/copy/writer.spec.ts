@@ -89,7 +89,7 @@ describe('SuggestionCopyService', () => {
 
       const result = await service.getOrEnqueue(buildRequest(), queue);
 
-      expect(result.aiGenerated).toBe(true);
+      expect(result.briefingGenerated).toBe(true);
       expect(result.fromCache).toBe(true);
       expect(result.title).toBe(generatedCopy.title);
       expect(queueMock.enqueue).not.toHaveBeenCalled();
@@ -98,7 +98,7 @@ describe('SuggestionCopyService', () => {
     it('returns fallback and enqueues on cache miss when queue is configured', async () => {
       const result = await service.getOrEnqueue(buildRequest(), queue);
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(result.fromCache).toBe(false);
       expect(queueMock.enqueue).toHaveBeenCalledTimes(1);
 
@@ -114,7 +114,7 @@ describe('SuggestionCopyService', () => {
 
       const result = await service.getOrEnqueue(buildRequest(), queue);
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(queueMock.enqueue).not.toHaveBeenCalled();
     });
 
@@ -124,7 +124,7 @@ describe('SuggestionCopyService', () => {
         queue,
       );
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(queueMock.enqueue).not.toHaveBeenCalled();
     });
   });
@@ -143,7 +143,7 @@ describe('SuggestionCopyService', () => {
       queue,
     );
 
-    expect(result.aiGenerated).toBe(false);
+    expect(result.briefingGenerated).toBe(false);
     expect(queueMock.enqueue).not.toHaveBeenCalled();
   });
 
@@ -182,7 +182,7 @@ describe('SuggestionCopyService', () => {
         evidence: [],
       });
 
-      expect(result.aiGenerated).toBe(true);
+      expect(result.briefingGenerated).toBe(true);
       expect(result.fromCache).toBe(false);
       expect(llmServiceMock.generate).toHaveBeenCalledTimes(1);
       expect(cacheMock.setCopy).toHaveBeenCalledTimes(1);
@@ -201,7 +201,7 @@ describe('SuggestionCopyService', () => {
         evidence: [],
       });
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(llmServiceMock.generate).not.toHaveBeenCalled();
     });
   });
@@ -214,7 +214,7 @@ describe('SuggestionCopyService', () => {
 
       const result = await service.generateSync(buildRequest());
 
-      expect(result.aiGenerated).toBe(true);
+      expect(result.briefingGenerated).toBe(true);
       expect(result.fromCache).toBe(true);
       expect(llmServiceMock.generate).not.toHaveBeenCalled();
     });
@@ -222,7 +222,7 @@ describe('SuggestionCopyService', () => {
     it('calls LLM and stores result in cache on miss', async () => {
       const result = await service.generateSync(buildRequest());
 
-      expect(result.aiGenerated).toBe(true);
+      expect(result.briefingGenerated).toBe(true);
       expect(result.fromCache).toBe(false);
       expect(llmServiceMock.generate).toHaveBeenCalledTimes(1);
       expect(cacheMock.setCopy).toHaveBeenCalledTimes(1);
@@ -239,7 +239,7 @@ describe('SuggestionCopyService', () => {
 
       const result = await service.generateSync(buildRequest());
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(llmServiceMock.generate).not.toHaveBeenCalled();
     });
 
@@ -248,7 +248,7 @@ describe('SuggestionCopyService', () => {
 
       const result = await service.generateSync(buildRequest());
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
     });
   });
 });

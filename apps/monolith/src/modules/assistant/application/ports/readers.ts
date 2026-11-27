@@ -11,7 +11,7 @@ import type { GenerateDailyRecordCandidatesDto } from '../../../record/index.js'
  * UserSettingsDataDto class in the settings module.
  */
 export interface IAssistantUserSettings {
-  aiSummariesEnabled: boolean;
+  digestEnabled: boolean;
   dataSharingConsent?: boolean;
   assistantEnabled: boolean;
   assistantMemoryEnabled: boolean;

@@ -38,7 +38,7 @@ export class AssistantToolReadService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
+    private readonly digestHistoryService: HistoricalAiSummaryService,
     private readonly userContextService: IUserContextReader,
     @Inject(MEDICINE_REMINDER_READER)
     private readonly remindersService: IMedicineReminderReader,
@@ -178,11 +178,10 @@ export class AssistantToolReadService {
       defaultAmbiguity:
         'No explicit date detected, so the Today summary lookup defaulted to today.',
     });
-    const summary =
-      await this.aiSummaryHistoryService.getLatestTodaySummaryByDate(
-        context.userId,
-        dateResolution.date,
-      );
+    const summary = await this.digestHistoryService.getLatestTodaySummaryByDate(
+      context.userId,
+      dateResolution.date,
+    );
     return buildReadEnvelope({
       toolName: 'get_today_summary',
       query: {
@@ -224,7 +223,7 @@ export class AssistantToolReadService {
         ? resolveReportRangeFromKey(rangeKey)
         : resolveDateRange(context.userMessage);
     const summary =
-      await this.aiSummaryHistoryService.getLatestReportSummaryByRange(
+      await this.digestHistoryService.getLatestReportSummaryByRange(
         context.userId,
         rangeKey != null
           ? { rangeKey }
@@ -269,11 +268,10 @@ export class AssistantToolReadService {
   async getRecentTodaySummaries(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const summaries =
-      await this.aiSummaryHistoryService.listRecentTodaySummaries(
-        context.userId,
-        DEFAULT_HISTORY_LIMIT,
-      );
+    const summaries = await this.digestHistoryService.listRecentTodaySummaries(
+      context.userId,
+      DEFAULT_HISTORY_LIMIT,
+    );
     return buildReadEnvelope({
       toolName: 'get_today_summaries',
       query: { limit: DEFAULT_HISTORY_LIMIT },
@@ -298,11 +296,10 @@ export class AssistantToolReadService {
   async getRecentReportSummaries(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const summaries =
-      await this.aiSummaryHistoryService.listRecentReportSummaries(
-        context.userId,
-        DEFAULT_HISTORY_LIMIT,
-      );
+    const summaries = await this.digestHistoryService.listRecentReportSummaries(
+      context.userId,
+      DEFAULT_HISTORY_LIMIT,
+    );
     return buildReadEnvelope({
       toolName: 'get_report_summaries',
       query: { limit: DEFAULT_HISTORY_LIMIT },
@@ -393,7 +390,7 @@ export class AssistantToolReadService {
       query: { scope: 'assistant_related_settings' },
       result: {
         settings: {
-          aiSummariesEnabled: settings.aiSummariesEnabled,
+          digestEnabled: settings.digestEnabled,
           dataSharingConsent: settings.dataSharingConsent,
           assistantEnabled: settings.assistantEnabled,
           assistantMemoryEnabled: settings.assistantMemoryEnabled,
@@ -427,10 +424,7 @@ export class AssistantToolReadService {
           return null;
         },
       );
-    const reminders = await this.remindersService.list(
-      context.userId,
-      true,
-    );
+    const reminders = await this.remindersService.list(context.userId, true);
     const remindersByMedicineId = new Map<string, typeof reminders.items>();
     for (const reminder of reminders.items) {
       if (reminder.currentMedicineId == null) continue;

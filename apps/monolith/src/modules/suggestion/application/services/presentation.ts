@@ -139,7 +139,7 @@ export class SuggestionPresentationService {
         reason: fallback.reason,
         boundary: fallback.boundary,
         actionLabel: fallback.actionLabel,
-        aiGenerated: false,
+        briefingGenerated: false,
         fromCache: false,
       };
     }
@@ -155,7 +155,7 @@ export class SuggestionPresentationService {
       actionLabel: this.i18n.t('suggestion.fallback.action_label', {
         lang: locale,
       }),
-      aiGenerated: false,
+      briefingGenerated: false,
       fromCache: false,
     };
   }

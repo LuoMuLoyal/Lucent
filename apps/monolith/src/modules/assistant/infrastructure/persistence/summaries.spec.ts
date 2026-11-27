@@ -7,7 +7,7 @@
  * context consumes.
  */
 import type { DeepMocked } from '../../../../common/types/deep-mocked.js';
-import { AiSummaryHistoryKind } from '#generated/prisma/client.js';
+import { DigestHistoryKind } from '#generated/prisma/client.js';
 import { PrismaSummaries } from './summaries.js';
 import type { PrismaService } from '../../../../prisma/index.js';
 
@@ -24,7 +24,7 @@ function todayWrite(overrides: Record<string, unknown> = {}) {
     actionLabel: 'a',
     action: 'b',
     confidenceNote: 'c',
-    aiGenerated: true,
+    briefingGenerated: true,
     ...overrides,
   };
 }
@@ -119,7 +119,7 @@ describe('PrismaSummaries', () => {
         actionLabel: 'a',
         action: 'b',
         confidenceNote: 'c',
-        aiGenerated: true,
+        briefingGenerated: true,
         sourceVersion: 2,
       },
     ] as never);
@@ -142,7 +142,7 @@ describe('PrismaSummaries', () => {
 
     expect(prisma.assistantSummaryHistory.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: 'user-1', kind: AiSummaryHistoryKind.report },
+        where: { userId: 'user-1', kind: DigestHistoryKind.report },
       }),
     );
   });

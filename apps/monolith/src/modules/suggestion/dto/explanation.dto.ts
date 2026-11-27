@@ -14,7 +14,7 @@ export const suggestionExplanationDataSchema = z.object({
   boundary: z
     .string()
     .describe('AI-enhanced or original boundary / disclaimer text'),
-  aiGenerated: z
+  briefingGenerated: z
     .boolean()
     .describe('Whether the AI model was used to generate the explanation'),
   locale: z

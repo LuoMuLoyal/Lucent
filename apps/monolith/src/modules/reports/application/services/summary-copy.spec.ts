@@ -69,11 +69,10 @@ describe('ReportsLlmSummaryCopyService', () => {
   describe('summariesDisabled', () => {
     it('returns scoped translation for summaries_disabled', () => {
       const result = service.summariesDisabled('zh-CN');
-      expect(i18n.t).toHaveBeenCalledWith(
-        'reports-ai-summary.summaries_disabled',
-        { lang: 'zh-CN' },
-      );
-      expect(result).toBe('reports-ai-summary.summaries_disabled');
+      expect(i18n.t).toHaveBeenCalledWith('reports-digest.summaries_disabled', {
+        lang: 'zh-CN',
+      });
+      expect(result).toBe('reports-digest.summaries_disabled');
     });
   });
 
@@ -247,7 +246,7 @@ describe('ReportsLlmSummaryCopyService', () => {
 
       service.buildFallback(ctx, 'en');
       expect(i18n.t).toHaveBeenCalledWith(
-        'reports-ai-summary.fallback.summary_needs_attention',
+        'reports-digest.fallback.summary_needs_attention',
         expect.objectContaining({ lang: 'en' }),
       );
     });
@@ -284,7 +283,7 @@ describe('ReportsLlmSummaryCopyService', () => {
 
       service.buildFallback(ctx, 'en');
       expect(i18n.t).toHaveBeenCalledWith(
-        'reports-ai-summary.fallback.summary_stable',
+        'reports-digest.fallback.summary_stable',
         expect.objectContaining({ lang: 'en' }),
       );
     });
@@ -299,7 +298,7 @@ describe('ReportsLlmSummaryCopyService', () => {
       });
       service.buildFallback(ctx, 'zh-CN');
       expect(i18n.t).toHaveBeenCalledWith(
-        'reports-ai-summary.fallback.disclaimer',
+        'reports-digest.fallback.disclaimer',
         expect.objectContaining({
           args: expect.objectContaining({ dayCount: 30 }),
         }),

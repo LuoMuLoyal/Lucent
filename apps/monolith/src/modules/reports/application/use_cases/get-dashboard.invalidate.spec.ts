@@ -38,7 +38,7 @@ function makeContextService(label: string) {
       startDate: new Date('2026-06-06T00:00:00.000Z'),
       endDate: new Date('2026-06-12T00:00:00.000Z'),
       generatedAt: '2026-06-12T08:00:00.000Z',
-      aiSummaryEnabled: true,
+      digestEnabled: true,
       label,
       medicationSeries: [50, 100, 0, 0, 0, 0, 0],
       waterSeries: [1.5, 0, 0, 0, 0, 0, 0],

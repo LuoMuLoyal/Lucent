@@ -80,11 +80,11 @@ export class AnalysisService extends BaseLlmSummaryService<
   /**
    * Own Prisma handle: this service needs it for its own date/user lookups, and
    * it is also the source of the AI-summary switch (see
-   * `isAiSummariesEnabled`). The base class no longer carries one.
+   * `isDigestEnabled`). The base class no longer carries one.
    */
 
   constructor(
-    private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
+    private readonly digestHistoryService: HistoricalAiSummaryService,
     @Inject(ANALYSIS_CONTEXT_SOURCE)
     private readonly contextService: AnalysisContextSource,
     private readonly context: IUserContextReader,
@@ -297,11 +297,10 @@ export class AnalysisService extends BaseLlmSummaryService<
             computedAt: null,
           }
         : await this.materializationStore.readStatus(userId, date);
-    const summary =
-      await this.aiSummaryHistoryService.getLatestTodaySummaryByDate(
-        userId,
-        date,
-      );
+    const summary = await this.digestHistoryService.getLatestTodaySummaryByDate(
+      userId,
+      date,
+    );
     const analysis =
       summary != null &&
       status.status === 'ready' &&
@@ -322,7 +321,7 @@ export class AnalysisService extends BaseLlmSummaryService<
             actionLabel: summary.actionLabel,
             action: summary.action,
             confidenceNote: summary.confidenceNote,
-            aiGenerated: summary.aiGenerated ?? false,
+            briefingGenerated: summary.briefingGenerated ?? false,
           } satisfies AnalysisDataDto)
         : null;
 
@@ -374,7 +373,7 @@ export class AnalysisService extends BaseLlmSummaryService<
     context: AnalysisContext,
     output: AnalysisStructuredOutput,
     metadata: AnalysisMetadata,
-    aiGenerated: boolean,
+    briefingGenerated: boolean,
   ): AnalysisDataDto {
     return {
       date: context.date,
@@ -387,7 +386,7 @@ export class AnalysisService extends BaseLlmSummaryService<
       actionLabel: output.actionLabel,
       action: output.action,
       confidenceNote: output.confidenceNote,
-      aiGenerated,
+      briefingGenerated,
     };
   }
 
@@ -395,7 +394,7 @@ export class AnalysisService extends BaseLlmSummaryService<
     userId: string,
     data: AnalysisDataDto,
   ): Promise<void> {
-    await this.aiSummaryHistoryService.save({
+    await this.digestHistoryService.save({
       userId,
       kind: 'today',
       scopeKey: `today:${data.date}`,
@@ -406,7 +405,7 @@ export class AnalysisService extends BaseLlmSummaryService<
       actionLabel: data.actionLabel,
       action: data.action,
       confidenceNote: data.confidenceNote,
-      aiGenerated: data.aiGenerated,
+      briefingGenerated: data.briefingGenerated,
       sourceVersion: data.sourceVersion ?? null,
     });
   }
@@ -417,9 +416,9 @@ export class AnalysisService extends BaseLlmSummaryService<
    * The switch lives on `userSetting`; this context owns its own reads, so it
    * answers here instead of the base class reaching into the table.
    */
-  protected async isAiSummariesEnabled(userId: string): Promise<boolean> {
+  protected async isDigestEnabled(userId: string): Promise<boolean> {
     const settings = await this.userSettings.getSettings(userId);
-    return settings.aiSummariesEnabled;
+    return settings.digestEnabled;
   }
 
   protected buildLogContext(context: AnalysisContext): string {

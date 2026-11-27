@@ -38,7 +38,7 @@ export interface TodaySummaryRecord {
   actionLabel: string;
   action: string;
   confidenceNote: string;
-  aiGenerated?: boolean;
+  briefingGenerated?: boolean;
   sourceVersion?: number | null;
 }
 
@@ -82,7 +82,7 @@ export interface SummaryWrite {
   scopeKey?: string;
   generatedAt: string;
   summary: string;
-  aiGenerated?: boolean;
+  briefingGenerated?: boolean;
   sourceVersion?: number | null;
   /** Today-summary fields (ignored for `kind='report'`). */
   bullets?: SummaryBullet[];

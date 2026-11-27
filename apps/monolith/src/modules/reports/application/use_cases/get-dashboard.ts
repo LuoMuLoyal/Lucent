@@ -77,7 +77,7 @@ export class ReportsService {
       trends: computed.trends,
       findings: computed.findings,
       patterns: computed.patterns,
-      aiSummaryEnabled: facts.aiSummaryEnabled,
+      digestEnabled: facts.digestEnabled,
     };
 
     try {

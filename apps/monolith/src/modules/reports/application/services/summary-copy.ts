@@ -6,7 +6,7 @@ import type { PromptCopy } from '../../../../common/index.js';
 
 @Injectable()
 export class ReportsLlmSummaryCopyService extends LocalizedCopyService<PromptCopy> {
-  protected readonly scope = 'reports-ai-summary';
+  protected readonly scope = 'reports-digest';
 
   summariesDisabled(locale: string): string {
     return this.t(locale, 'summaries_disabled');

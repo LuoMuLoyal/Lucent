@@ -43,7 +43,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
 
   constructor(
     private readonly userSettings: IUserSettingsPort,
-    private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
+    private readonly digestHistoryService: HistoricalAiSummaryService,
     @Inject(REPORT_DASHBOARD_CONTEXT)
     private readonly reportsContextService: DashboardContextPort,
     private readonly reportsComputationService: ReportsComputationService,
@@ -84,7 +84,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     context: ReportsAiSummaryContext,
     output: ReportSummaryStructuredOutput,
     _metadata: unknown,
-    _aiGenerated: boolean,
+    _briefingGenerated: boolean,
   ): ReportSummaryDataDto {
     return {
       range: context.range,
@@ -107,7 +107,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     userId: string,
     data: ReportSummaryDataDto,
   ): Promise<void> {
-    await this.aiSummaryHistoryService.save({
+    await this.digestHistoryService.save({
       userId,
       kind: 'report',
       scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
@@ -131,9 +131,9 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
    * a cross-context read outside ADR-0009 — invisible to the dependency rules
    * (a Prisma call is not an import) but still a boundary violation.
    */
-  protected async isAiSummariesEnabled(userId: string): Promise<boolean> {
+  protected async isDigestEnabled(userId: string): Promise<boolean> {
     const settings = await this.userSettings.getSettings(userId);
-    return settings.aiSummariesEnabled;
+    return settings.digestEnabled;
   }
 
   protected buildLogContext(context: ReportsAiSummaryContext): string {

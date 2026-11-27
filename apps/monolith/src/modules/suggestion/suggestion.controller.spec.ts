@@ -48,7 +48,7 @@ const mockExplanationResult = {
   suggestionId: 'sug-1',
   reason: 'AI生成的解释',
   boundary: 'AI生成的边界',
-  aiGenerated: true,
+  briefingGenerated: true,
 };
 
 const mockHistoryResult = {
@@ -244,7 +244,7 @@ describe('SuggestionController', () => {
         suggestionId: 'sug-1',
         reason: 'AI生成的解释',
         boundary: 'AI生成的边界',
-        aiGenerated: true,
+        briefingGenerated: true,
       });
     });
 

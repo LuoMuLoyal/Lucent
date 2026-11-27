@@ -15,7 +15,7 @@ const mockCopyResult: CopyGenerationResult = {
   reason: 'AI Reason',
   boundary: 'AI Boundary',
   actionLabel: 'Go',
-  aiGenerated: true,
+  briefingGenerated: true,
   fromCache: false,
 };
 

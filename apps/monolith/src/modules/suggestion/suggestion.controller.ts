@@ -156,7 +156,7 @@ export class SuggestionController {
       suggestionId: result.suggestionId,
       reason: result.reason,
       boundary: result.boundary,
-      aiGenerated: result.aiGenerated,
+      briefingGenerated: result.briefingGenerated,
     };
 
     return response;

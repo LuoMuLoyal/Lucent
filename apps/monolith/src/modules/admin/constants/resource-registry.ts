@@ -516,7 +516,7 @@ export const ADMIN_RESOURCES: readonly AdminResource[] = [
       'action',
       'confidenceNote',
       'payload',
-      'aiGenerated',
+      'briefingGenerated',
       'sourceVersion',
     ],
   }),

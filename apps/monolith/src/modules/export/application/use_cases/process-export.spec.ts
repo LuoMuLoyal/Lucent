@@ -308,7 +308,7 @@ function sampleReport() {
     startDate: '2026-06-09',
     endDate: '2026-06-15',
     generatedAt: '2026-06-15T09:30:00.000Z',
-    aiSummaryEnabled: true,
+    digestEnabled: true,
     metrics: [],
     trends: [],
     findings: [],

@@ -16,7 +16,7 @@ const mockCopyResult: CopyGenerationResult = {
   reason: 'AI Reason',
   boundary: 'AI Boundary',
   actionLabel: 'Go',
-  aiGenerated: true,
+  briefingGenerated: true,
   fromCache: false,
 };
 
@@ -248,7 +248,7 @@ describe('SuggestionPresentationService', () => {
         'zh-CN',
       );
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(result.fromCache).toBe(false);
       expect(result.title).toBeDefined();
     });
@@ -263,7 +263,7 @@ describe('SuggestionPresentationService', () => {
         'zh-CN',
       );
 
-      expect(result.aiGenerated).toBe(false);
+      expect(result.briefingGenerated).toBe(false);
       expect(result.title).toContain('fallback.title');
     });
   });
@@ -286,7 +286,7 @@ describe('SuggestionPresentationService', () => {
         reason: 'Reason',
         boundary: 'Boundary',
         actionLabel: 'Action',
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: false,
       };
 
@@ -324,7 +324,7 @@ describe('SuggestionPresentationService', () => {
         reason: 'R',
         boundary: 'B',
         actionLabel: 'AI Label',
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: false,
       };
 
@@ -350,7 +350,7 @@ describe('SuggestionPresentationService', () => {
         reason: 'R',
         boundary: 'B',
         actionLabel: 'log_dose',
-        aiGenerated: true,
+        briefingGenerated: true,
         fromCache: false,
       };
 
@@ -376,7 +376,7 @@ describe('SuggestionPresentationService', () => {
         reason: 'R',
         boundary: 'B',
         actionLabel: '',
-        aiGenerated: false,
+        briefingGenerated: false,
         fromCache: false,
       };
 
@@ -401,7 +401,7 @@ describe('SuggestionPresentationService', () => {
         reason: 'R',
         boundary: 'B',
         actionLabel: '',
-        aiGenerated: false,
+        briefingGenerated: false,
         fromCache: false,
       };
 
@@ -427,7 +427,7 @@ describe('SuggestionPresentationService', () => {
         reason: 'R',
         boundary: 'B',
         actionLabel: '',
-        aiGenerated: false,
+        briefingGenerated: false,
         fromCache: false,
       };
 

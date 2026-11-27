@@ -60,7 +60,7 @@ export const analysisDataSchema = z.object({
   actionLabel: z.string(),
   action: z.string(),
   confidenceNote: z.string(),
-  aiGenerated: z.boolean(),
+  briefingGenerated: z.boolean(),
   metrics: z.array(analysisMetricSchema).optional(),
 });
 
@@ -81,9 +81,7 @@ export const analysisReadDataSchema = z.object({
 });
 
 /** Strongly typed persisted Today-analysis read state. */
-export type AnalysisReadDataDto = z.infer<
-  typeof analysisReadDataSchema
->;
+export type AnalysisReadDataDto = z.infer<typeof analysisReadDataSchema>;
 
 /**
  * Backwards-compatible response alias for `GET /analysis`; identical to

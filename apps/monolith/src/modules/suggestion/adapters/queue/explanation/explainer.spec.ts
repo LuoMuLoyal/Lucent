@@ -80,7 +80,7 @@ describe('ExplanationService', () => {
       expect(result!.suggestionId).toBe('sug-123');
       expect(result!.reason).toBe('AI生成的解释');
       expect(result!.boundary).toBe('AI生成的边界');
-      expect(result!.aiGenerated).toBe(true);
+      expect(result!.briefingGenerated).toBe(true);
     });
 
     it('falls back to original text when model is not configured', async () => {
@@ -92,7 +92,7 @@ describe('ExplanationService', () => {
 
       expect(result!.reason).toBe('规则生成的原始原因');
       expect(result!.boundary).toBe('规则生成的原始边界');
-      expect(result!.aiGenerated).toBe(false);
+      expect(result!.briefingGenerated).toBe(false);
       expect(generatorMock.generate).not.toHaveBeenCalled();
     });
 
@@ -105,7 +105,7 @@ describe('ExplanationService', () => {
 
       expect(result!.reason).toBe('规则生成的原始原因');
       expect(result!.boundary).toBe('规则生成的原始边界');
-      expect(result!.aiGenerated).toBe(false);
+      expect(result!.briefingGenerated).toBe(false);
       expect(safetyMock.isSafe).toHaveBeenCalledWith([
         'AI生成的解释',
         'AI生成的边界',
@@ -144,7 +144,7 @@ describe('ExplanationService', () => {
 
       expect(result!.reason).toBe('规则生成的原始原因');
       expect(result!.boundary).toBe('规则生成的原始边界');
-      expect(result!.aiGenerated).toBe(false);
+      expect(result!.briefingGenerated).toBe(false);
     });
 
     it('returns SUGGESTION_NOT_FOUND when suggestion does not exist', async () => {

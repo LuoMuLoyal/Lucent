@@ -77,7 +77,7 @@ describe('AssistantPolicyService', () => {
         ],
       },
       {
-        aiSummariesEnabled: true,
+        digestEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: true,
         assistantMemoryEnabled: false,
@@ -400,7 +400,7 @@ describe('AssistantPolicyService', () => {
 
   function buildSettings(
     overrides: Partial<{
-      aiSummariesEnabled: boolean;
+      digestEnabled: boolean;
       dataSharingConsent: boolean;
       assistantEnabled: boolean;
       assistantMemoryEnabled: boolean;
@@ -413,7 +413,7 @@ describe('AssistantPolicyService', () => {
     const { healthProfile, records, sleepRecords, currentMedicines, ...rest } =
       overrides;
     return {
-      aiSummariesEnabled: true,
+      digestEnabled: true,
       dataSharingConsent: false,
       assistantEnabled: true,
       assistantMemoryEnabled: false,

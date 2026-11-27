@@ -120,7 +120,7 @@ export const reportDashboardDataSchema = z.object({
   trends: z.array(reportTrendSchema),
   findings: z.array(reportFindingSchema),
   patterns: z.array(reportPatternSchema),
-  aiSummaryEnabled: z.boolean(),
+  digestEnabled: z.boolean(),
 });
 
 /** Strongly typed report dashboard data payload. */

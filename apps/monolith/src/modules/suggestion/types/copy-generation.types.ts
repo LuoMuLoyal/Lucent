@@ -49,6 +49,6 @@ export interface CopyGenerationResult {
   reason: string;
   boundary: string;
   actionLabel: string;
-  aiGenerated: boolean;
+  briefingGenerated: boolean;
   fromCache: boolean;
 }

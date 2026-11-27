@@ -159,7 +159,7 @@ describe('AnalysisService', () => {
 
     expect(result.summary).toBe(modelOutput.summary);
     expect(result.bullets).toEqual(modelOutput.bullets);
-    expect(result.aiGenerated).toBe(true);
+    expect(result.briefingGenerated).toBe(true);
     expect(notifySpy).toHaveBeenCalledTimes(1);
     expect(notifySpy).toHaveBeenCalledWith(
       'u1',
@@ -184,7 +184,7 @@ describe('AnalysisService', () => {
     });
   });
 
-  it('marks aiGenerated as false when using fallback', async () => {
+  it('marks briefingGenerated as false when using fallback', async () => {
     const service = createService({
       config: {
         ...baseConfig,
@@ -203,7 +203,7 @@ describe('AnalysisService', () => {
       'zh-CN',
     );
 
-    expect(result.aiGenerated).toBe(false);
+    expect(result.briefingGenerated).toBe(false);
     expect(notifySpy).toHaveBeenCalledTimes(1);
   });
 
@@ -220,11 +220,11 @@ describe('AnalysisService', () => {
     const modelSpy = modelGenerateSpy(service);
     const notifySpy = notificationCreateOrReplaceScopedSpy(service);
     const pushSpy = pushDeliverySendToUserSpy(service);
-    const aiSummaryHistoryService = (
+    const digestHistoryService = (
       service as unknown as {
-        aiSummaryHistoryService: { save: vi.Mock };
+        digestHistoryService: { save: vi.Mock };
       }
-    ).aiSummaryHistoryService;
+    ).digestHistoryService;
 
     const result = await service.generateForVersion(
       'u1',
@@ -238,10 +238,10 @@ describe('AnalysisService', () => {
     expect(modelSpy).not.toHaveBeenCalled();
     expect(notifySpy).not.toHaveBeenCalled();
     expect(pushSpy).not.toHaveBeenCalled();
-    expect(aiSummaryHistoryService.save).not.toHaveBeenCalled();
+    expect(digestHistoryService.save).not.toHaveBeenCalled();
   });
 
-  it('readCurrent includes aiGenerated from persisted summary', async () => {
+  it('readCurrent includes briefingGenerated from persisted summary', async () => {
     const service = createService({
       materializationStatus: {
         status: 'ready',
@@ -253,9 +253,9 @@ describe('AnalysisService', () => {
     });
     (
       service as unknown as {
-        aiSummaryHistoryService: { getLatestTodaySummaryByDate: vi.Mock };
+        digestHistoryService: { getLatestTodaySummaryByDate: vi.Mock };
       }
-    ).aiSummaryHistoryService.getLatestTodaySummaryByDate.mockResolvedValue({
+    ).digestHistoryService.getLatestTodaySummaryByDate.mockResolvedValue({
       date: '2026-08-10',
       generatedAt: '2026-08-10T08:00:00.000Z',
       summary: '旧摘要',
@@ -263,13 +263,13 @@ describe('AnalysisService', () => {
       actionLabel: '查看今日记录',
       action: 'today',
       confidenceNote: '仅供参考。',
-      aiGenerated: true,
+      briefingGenerated: true,
       sourceVersion: 2,
     });
 
     const result = await service.readCurrent('u1', '2026-08-10');
 
-    expect(result.analysis?.aiGenerated).toBe(true);
+    expect(result.analysis?.briefingGenerated).toBe(true);
   });
 
   it('characterizes explicit generate as the current model execution entrypoint', async () => {
@@ -337,8 +337,8 @@ describe('AnalysisService', () => {
     });
     modelGenerateSpy(service).mockResolvedValue(versionedOutput);
     (
-      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockReturnValue(
+      service as unknown as { digestHistoryService: { save: vi.Mock } }
+    ).digestHistoryService.save.mockReturnValue(
       fromPromise(Promise.reject(new Error('persist failed')), (error) => {
         throw error;
       }),
@@ -390,8 +390,8 @@ describe('AnalysisService', () => {
     });
     modelGenerateStreamSpy(service).mockResolvedValue(versionedOutput);
     (
-      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockReturnValue(
+      service as unknown as { digestHistoryService: { save: vi.Mock } }
+    ).digestHistoryService.save.mockReturnValue(
       fromPromise(Promise.reject(new Error('persist failed')), (error) => {
         throw error;
       }),
@@ -429,8 +429,8 @@ describe('AnalysisService', () => {
       'error',
     );
     (
-      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockReturnValue(
+      service as unknown as { digestHistoryService: { save: vi.Mock } }
+    ).digestHistoryService.save.mockReturnValue(
       fromPromise(Promise.reject(originalError), (error) => {
         throw error;
       }),
@@ -462,8 +462,8 @@ describe('AnalysisService', () => {
       'error',
     );
     (
-      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
-    ).aiSummaryHistoryService.save.mockReturnValue(
+      service as unknown as { digestHistoryService: { save: vi.Mock } }
+    ).digestHistoryService.save.mockReturnValue(
       fromPromise(Promise.reject(originalError), (error) => {
         throw error;
       }),
@@ -797,13 +797,13 @@ describe('AnalysisService', () => {
     expect(notifySpy).toHaveBeenCalledTimes(1);
   });
 
-  it('includes confidenceNote and aiGenerated in the persisted data', async () => {
+  it('includes confidenceNote and briefingGenerated in the persisted data', async () => {
     const service = createService();
-    const aiSummaryHistoryService = (
+    const digestHistoryService = (
       service as unknown as {
-        aiSummaryHistoryService: { save: vi.Mock };
+        digestHistoryService: { save: vi.Mock };
       }
-    ).aiSummaryHistoryService;
+    ).digestHistoryService;
 
     modelGenerateSpy(service).mockResolvedValue({
       summary: '今日状态良好。',
@@ -818,10 +818,10 @@ describe('AnalysisService', () => {
 
     await service.generate('u1', { date: '2026-06-12' }, 'zh-CN');
 
-    expect(aiSummaryHistoryService.save).toHaveBeenCalledWith(
+    expect(digestHistoryService.save).toHaveBeenCalledWith(
       expect.objectContaining({
         confidenceNote: '高置信度。',
-        aiGenerated: true,
+        briefingGenerated: true,
       }),
     );
   });
@@ -844,7 +844,7 @@ describe('AnalysisService', () => {
     // doubles are port-shaped instead of Prisma-shaped.
     const userSettings = {
       getSettings: vi.fn().mockResolvedValue({
-        aiSummariesEnabled: options?.userSettingValue ?? true,
+        digestEnabled: options?.userSettingValue ?? true,
       }),
     };
     const context = {
@@ -858,7 +858,7 @@ describe('AnalysisService', () => {
     const contextService = {
       build: vi.fn().mockResolvedValue(options?.context ?? baseContext),
     } as unknown as AnalysisContextSource;
-    const aiSummaryHistoryService = {
+    const digestHistoryService = {
       save: vi.fn().mockReturnValue(okAsync(undefined)),
       getLatestTodaySummaryByDate: vi.fn().mockResolvedValue(
         options?.summary == null
@@ -871,7 +871,7 @@ describe('AnalysisService', () => {
               actionLabel: '查看今日记录',
               action: 'today',
               confidenceNote: '仅供参考。',
-              aiGenerated: false,
+              briefingGenerated: false,
               sourceVersion: options.summary.sourceVersion,
             },
       ),
@@ -1017,7 +1017,7 @@ describe('AnalysisService', () => {
       sendToUser: vi.fn().mockResolvedValue({ sent: true }),
     } as unknown as PushDeliveryService;
     return new AnalysisService(
-      aiSummaryHistoryService as never,
+      digestHistoryService as never,
       contextService,
       context as never,
       userSettings as never,

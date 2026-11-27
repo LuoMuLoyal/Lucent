@@ -44,7 +44,7 @@ describe('ReportsAiSummaryService', () => {
     startDate: new Date('2026-06-06T00:00:00.000Z'),
     endDate: new Date('2026-06-12T00:00:00.000Z'),
     generatedAt: '2026-06-12T08:00:00.000Z',
-    aiSummaryEnabled: true,
+    digestEnabled: true,
     medicationSeries: [100, 50, 100, 0, 100, 50, 100],
     waterSeries: [1.8, 1.4, 1.7, 1.2, 1.6, 1.1, 1.5],
     sleepSeries: [0, 0, 0, 0, 0, 0, 0],
@@ -354,10 +354,10 @@ describe('ReportsAiSummaryService', () => {
   }) {
     const userSettings = {
       getSettings: vi.fn().mockResolvedValue({
-        aiSummariesEnabled: options?.userSettingValue ?? true,
+        digestEnabled: options?.userSettingValue ?? true,
       }),
     };
-    const aiSummaryHistoryService = {
+    const digestHistoryService = {
       save: vi.fn().mockReturnValue(okAsync(undefined)),
     };
 
@@ -457,7 +457,7 @@ describe('ReportsAiSummaryService', () => {
     } as unknown as ReportsAiSummaryService['generatorService'];
     return new ReportsAiSummaryService(
       userSettings as never,
-      aiSummaryHistoryService as never,
+      digestHistoryService as never,
       reportsContextService,
       reportsComputationService,
       reportsAiSummaryContextService,
