@@ -12,7 +12,7 @@ enum AssistantMessageRole {
   assistant
 }
 
-enum AiSummaryHistoryKind {
+enum DigestHistoryKind {
   today
   report
 }
@@ -54,7 +54,7 @@ model AssistantMessage {
 model AssistantSummaryHistory {
   id             String               @id @default(uuid())
   userId         String               @map("user_id")
-  kind           AiSummaryHistoryKind
+  kind           DigestHistoryKind
   scopeKey       String               @map("scope_key")
   date           DateTime?            @db.Date
   rangeKey       String?              @map("range_key")
@@ -67,7 +67,7 @@ model AssistantSummaryHistory {
   action         String               @map("action")
   confidenceNote String               @map("confidence_note")
   payload        Json?                @db.JsonB
-  aiGenerated    Boolean              @default(false) @map("ai_generated")
+  briefingGenerated Boolean           @default(false) @map("briefing_generated")
   sourceVersion  Int?                 @map("source_version")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
