@@ -126,4 +126,44 @@ describe('RuntimeThrottlerGuard', () => {
     expect(increment.mock.calls[0]![1]).toBe(60_000);
     expect(increment.mock.calls[0]![2]).toBe(100);
   });
+
+  describe('THROTTLE_DISABLED', () => {
+    const original = process.env[EnvKey.THROTTLE_DISABLED];
+
+    afterEach(() => {
+      // 不用 `delete process.env[...]`（oxlint 的 no-dynamic-delete）：赋 `undefined`
+      // 在 Node 里同样让该键“不存在”，`process.env.X === undefined` 成立。
+      process.env[EnvKey.THROTTLE_DISABLED] = original;
+    });
+
+    it('skips the guard entirely, never touching storage', async () => {
+      process.env[EnvKey.THROTTLE_DISABLED] = 'true';
+      const { guard, increment } = createHarness({ blocked: true });
+      await guard.onModuleInit();
+
+      await expect(guard.canActivate(createContext())).resolves.toBe(true);
+      // 即使快照里配额已被打满（harness 的 blocked=true 会得到 429），
+      // 这个开关也必须让请求直接通过，且不产生任何计数。
+      expect(increment).not.toHaveBeenCalled();
+    });
+
+    it('keeps enforcing the limit when explicitly false', async () => {
+      process.env[EnvKey.THROTTLE_DISABLED] = 'false';
+      const { guard, increment } = createHarness();
+      await guard.onModuleInit();
+
+      await expect(guard.canActivate(createContext())).resolves.toBe(true);
+      expect(increment).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps enforcing the limit when unset', async () => {
+      process.env[EnvKey.THROTTLE_DISABLED] = undefined;
+      const { guard } = createHarness({ blocked: true });
+      await guard.onModuleInit();
+
+      await expect(guard.canActivate(createContext())).rejects.toMatchObject({
+        status: 429,
+      });
+    });
+  });
 });

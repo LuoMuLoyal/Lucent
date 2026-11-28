@@ -42,6 +42,16 @@ export class RuntimeThrottlerGuard extends ThrottlerGuard {
   }
 
   override async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 压测/演练开关：`THROTTLE_DISABLED=true` 时整体跳过限流。
+    //
+    // 读 `process.env` 而不是 runtime-config 快照，是刻意的：这个开关的用途是
+    // 「在压测环境里彻底移除限流」，它本身不该受另一套热更新机制影响（否则压测
+    // 脚本要同时依赖 rnacos 与 env 两处状态）。启动时由 environment.validation
+    // 校验成 'true' | 'false' 之一，因此这里只需一次字符串比较。
+    if (process.env[EnvKey.THROTTLE_DISABLED] === 'true') {
+      return true;
+    }
+
     const values = this.runtimeConfig?.getSnapshot().values;
     const ttl = values?.[EnvKey.THROTTLE_TTL_MS];
     const limit = values?.[EnvKey.THROTTLE_LIMIT];

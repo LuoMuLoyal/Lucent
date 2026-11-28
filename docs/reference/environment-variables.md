@@ -836,6 +836,7 @@ SLOW_QUERY_THRESHOLD_MS
 METRICS_ENABLED
 THROTTLE_TTL_MS
 THROTTLE_LIMIT
+THROTTLE_DISABLED
 METRICS_USER
 METRICS_PASSWORD
 OTEL_ENABLED
@@ -873,6 +874,14 @@ VICTORIALOGS_URL
   Range: 1000–3600000.
 - `THROTTLE_LIMIT` — requests allowed per window per client. Default: `100`.
   Range: 1–1000. Route-level `@Throttle(...)` overrides still win over this value.
+- `THROTTLE_DISABLED` — 整体跳过限流守卫。Default: `false`。
+  `true` 时 `RuntimeThrottlerGuard.canActivate` 直接返回 `true`，请求不再计数、不再返回
+  429。**只允许在压测 / 故障演练环境开启**：它与上面两项是两回事——`THROTTLE_TTL_MS` /
+  `THROTTLE_LIMIT` 只调窗口与配额（`limit` 的 schema 上限是 1000，因此靠它们无法真正
+  "无限"），而本项把守卫短路，不受 schema 上下限约束。当前拓扑无反代，置 `true` 后
+  唯一的流量防线只剩云安全组，故生产必须保持 `false`。
+  与运行时文档（`THROTTLE_*` 可经 rnacos 热更新）不同，本项**只从环境变量读**、
+  不进运行时快照，避免压测脚本同时依赖两处状态。
 - `METRICS_USER` — Basic Auth username for `/metrics`. When set together with
   `METRICS_PASSWORD`, the `/metrics` endpoint requires HTTP Basic Auth.
 - `METRICS_PASSWORD` — Basic Auth password for `/metrics`. Must be set together

@@ -190,6 +190,10 @@ const envSchema = z.object({
     .min(1)
     .max(1_000)
     .default(100),
+  // 压测开关：整体跳过限流守卫。**仅用于压测/故障演练环境**，默认为 false，
+  // 生产必须留空。与上面的 TTL/LIMIT 是两回事：那两个只调窗口与配额，这个直接
+  // 把守卫短路，故不受 schema 上下限约束。
+  [EnvKey.THROTTLE_DISABLED]: z.enum(['true', 'false']).default('false'),
 
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,
