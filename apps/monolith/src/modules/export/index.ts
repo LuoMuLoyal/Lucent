@@ -16,4 +16,4 @@ export {
   drawPageChrome,
   wrapText,
 } from './infrastructure/pdf/draw.js';
-export { CJK_FONT_PATH, CJK_FONT_SUBSETTABLE } from './pdf-fonts.js';
+export { CJK_FONT_PATH, embedReportFont } from './pdf-fonts.js';

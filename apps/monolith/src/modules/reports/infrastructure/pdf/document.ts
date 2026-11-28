@@ -2,7 +2,6 @@ import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { readFile } from 'node:fs/promises';
 import type { ClinicSummaryDto } from '../../application/read_models/clinic-summary-response.js';
 import {
   CONTENT_WIDTH,
@@ -18,8 +17,7 @@ import {
   drawPageDecorations,
   drawPageChrome,
   wrapText,
-  CJK_FONT_PATH,
-  CJK_FONT_SUBSETTABLE,
+  embedReportFont,
 } from '../../../export/index.js';
 import type { ClinicSummaryOptions } from '../../application/use_cases/build-clinic-summary.js';
 import { ClinicSummaryService } from '../../application/use_cases/build-clinic-summary.js';
@@ -81,8 +79,7 @@ export class ClinicSummaryPdfService {
 
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
-    const fontBytes = await readFile(CJK_FONT_PATH);
-    const cjkFont = await pdf.embedFont(fontBytes, { subset: CJK_FONT_SUBSETTABLE });
+    const cjkFont = await embedReportFont(pdf);
 
     const title = t('title');
     this.applyMetadata(pdf, title, summary, t);

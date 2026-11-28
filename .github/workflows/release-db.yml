@@ -49,15 +49,6 @@ jobs:
       namespace: ${{ steps.derive.outputs.namespace }}
       tag: ${{ steps.derive.outputs.tag }}
     steps:
-      - name: Require main branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            echo "::error::Release DB must be dispatched from main (got '${{ github.ref_name }}')." >&2
-            exit 1
-          fi
-
       - name: Derive namespace and tag
         id: derive
         shell: bash

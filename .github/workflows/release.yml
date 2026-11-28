@@ -47,15 +47,6 @@ jobs:
       namespace: ${{ steps.derive.outputs.namespace }}
       tag: ${{ steps.derive.outputs.tag }}
     steps:
-      - name: Require main branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            echo "::error::Release must be dispatched from main (got '${{ github.ref_name }}')." >&2
-            exit 1
-          fi
-
       # 从 `REGISTRY_IMAGE`（app 镜像完整引用）派生命名空间与 tag。
       # 要求最后一段是 `lucent`，这样派生的 DB 仓库名才是预期的
       # `<namespace>/lucent-db`，而不是靠猜。

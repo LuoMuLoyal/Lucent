@@ -23,31 +23,38 @@
  * 用法：
  *     node tools/fonts/fetch-pdf-font.mjs          # 缺失时下载
  *     node tools/fonts/fetch-pdf-font.mjs --force  # 强制重新下载
+ *
+ * ## 失败策略：降级，不阻断构建
+ *
+ * 字体缺失时**不让构建失败**。`pdf-fonts.ts` 会按顺序回退：
+ * 静态字体 → 可变字体（CJK 正常但 PDF 大）→ `StandardFonts.Helvetica`
+ * （**只剩 ASCII，中文会缺字**）。因此下载失败只会让 PDF 变大或丢中文，
+ * 不会让整条发布流水线卡在字体上。
  */
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(HERE, '..', '..');
+const REPO_ROOT = join(HERE, "..", "..");
 const TARGET = join(
   REPO_ROOT,
-  'apps',
-  'monolith',
-  'assets',
-  'fonts',
-  'SourceHanSansSC-Regular.ttf',
+  "apps",
+  "monolith",
+  "assets",
+  "fonts",
+  "SourceHanSansSC-Regular.ttf",
 );
 
 /** Google Fonts 官方发布的 Noto Sans SC 静态实例（TrueType/glyf）。 */
 const SOURCE_URL =
-  'https://fonts.gstatic.com/s/notosanssc/v37/' +
-  'k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS5HE.ttf';
+  "https://fonts.gstatic.com/s/notosanssc/v37/" +
+  "k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS5HE.ttf";
 
 /** 固定校验和：URL 内容变了（字体升级）必须人工确认，不能悄悄换字体。 */
 const EXPECTED_SHA256 =
-  '5cf8b2a0576d5680284ab03a7a8219499d59bbe981a79bb3dc0031f251c39736';
+  "5cf8b2a0576d5680284ab03a7a8219499d59bbe981a79bb3dc0031f251c39736";
 
 /** CJK 基本区与扩展 A 的首尾码位，用于覆盖断言。 */
 const CJK_RANGES = [
@@ -57,7 +64,7 @@ const CJK_RANGES = [
 
 /** 抽样汉字：覆盖常用药名与生僻字，缺任何一个即判定字体不可用。 */
 const SAMPLE_CHARS =
-  '氨氯地平缬沙坦二甲双胍蒽醌哌嗪噻唑吡啶羧巯嘌呤羟磺肼胺阿莫西林布洛芬对乙酰氨基酚';
+  "氨氯地平缬沙坦二甲双胍蒽醌哌嗪噻唑吡啶羧巯嘌呤羟磺肼胺阿莫西林布洛芬对乙酰氨基酚";
 
 /**
  * 极简 TT 解析：只读 `cmap` format 4/12 的码位集合。
@@ -68,13 +75,13 @@ function readCmapCodepoints(buf) {
   let cmapOffset = -1;
   for (let i = 0; i < numTables; i += 1) {
     const rec = 12 + i * 16;
-    if (buf.toString('ascii', rec, rec + 4) === 'cmap') {
+    if (buf.toString("ascii", rec, rec + 4) === "cmap") {
       cmapOffset = buf.readUInt32BE(rec + 8);
       break;
     }
   }
   if (cmapOffset < 0) {
-    throw new Error('font has no cmap table');
+    throw new Error("font has no cmap table");
   }
 
   const numSubtables = buf.readUInt16BE(cmapOffset + 2);
@@ -121,7 +128,7 @@ async function download() {
 }
 
 async function main() {
-  const force = process.argv.includes('--force');
+  const force = process.argv.includes("--force");
   if (existsSync(TARGET) && !force) {
     console.log(`font already present: ${TARGET}`);
     return;
@@ -133,11 +140,11 @@ async function main() {
     throw new Error(`download too small (${String(bytes.length)} bytes)`);
   }
 
-  const sha = createHash('sha256').update(bytes).digest('hex');
-  if (EXPECTED_SHA256 !== 'PLACEHOLDER' && sha !== EXPECTED_SHA256) {
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  if (EXPECTED_SHA256 !== "PLACEHOLDER" && sha !== EXPECTED_SHA256) {
     console.warn(
       `WARNING: font checksum changed (${sha}). ` +
-        'Google may have republished the file — verify glyph coverage before merging.',
+        "Google may have republished the file — verify glyph coverage before merging.",
     );
   }
 
@@ -153,7 +160,9 @@ async function main() {
   }
   for (const ch of SAMPLE_CHARS) {
     if (!codepoints.has(ch.codePointAt(0))) {
-      throw new Error(`font is missing sample char "${ch}" — refusing to install`);
+      throw new Error(
+        `font is missing sample char "${ch}" — refusing to install`,
+      );
     }
   }
 
@@ -167,6 +176,10 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`font fetch failed: ${error.message}`);
-  process.exitCode = 1;
+  // 降级，不失败：字体拉不到就让 PDF 走 Helvetica（中文缺字），
+  // 而不是把整条构建/发布卡在字体下载上。
+  console.warn(
+    `[font:build] skipped — ${error.message}\n` +
+      "[font:build] PDF will fall back: static font → variable font → Helvetica (ASCII only).",
+  );
 });

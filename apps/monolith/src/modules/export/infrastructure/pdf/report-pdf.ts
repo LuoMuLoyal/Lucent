@@ -2,7 +2,6 @@ import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { readFile } from 'node:fs/promises';
 import { resolveLocale } from '../../../../common/index.js';
 import type { ReportDashboardDataDto } from '../../../reports/index.js';
 import { ReportPdf } from '../../application/ports/report-pdf.js';
@@ -11,7 +10,7 @@ import {
   statusLabel,
   statusPalette,
 } from '../../utils/report-pdf.theme.js';
-import { CJK_FONT_PATH, CJK_FONT_SUBSETTABLE } from '../../pdf-fonts.js';
+import { embedReportFont } from '../../pdf-fonts.js';
 import {
   createPdfTranslator,
   type PdfTranslator,
@@ -89,8 +88,7 @@ export class ReportExportPdfService extends ReportPdf {
   ): Promise<Buffer> {
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
-    const fontBytes = await readFile(CJK_FONT_PATH);
-    const cjkFont = await pdf.embedFont(fontBytes, { subset: CJK_FONT_SUBSETTABLE });
+    const cjkFont = await embedReportFont(pdf);
     this.applyMetadata(pdf, title, kind, report, t);
 
     const headerSubtitle = t('header.range_and_generated', {
