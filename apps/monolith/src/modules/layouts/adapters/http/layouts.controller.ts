@@ -30,7 +30,7 @@ import { registerResponseSchema } from '../../../../common/api/response-schema.r
 import {
   endSse,
   extractErrorInfo,
-  prepareSse,
+  openSse,
   ProblemDetailsDto,
   SseConnectionRegistry,
   SseProblemDetailsMapper,
@@ -242,7 +242,7 @@ export class LayoutsController {
     // Language decides the copy of BOTH the errors and the generated strings:
     // it is forwarded to the generator through the use case, and to the error
     // mapper below. Dropping it here would show English errors to a zh-CN user.
-    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+    openSse(reply, this.sseRegistry, language, user.sub);
 
     try {
       const result = await this.generateSurface.execute(
@@ -361,7 +361,7 @@ export class LayoutsController {
       throw new DomainFailureException(shapeFailure);
     }
 
-    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+    openSse(reply, this.sseRegistry, language, user.sub);
 
     try {
       const result = await this.continueSurface.execute(

@@ -194,6 +194,20 @@ const envSchema = z.object({
   // 生产必须留空。与上面的 TTL/LIMIT 是两回事：那两个只调窗口与配额，这个直接
   // 把守卫短路，故不受 schema 上下限约束。
   [EnvKey.THROTTLE_DISABLED]: z.enum(['true', 'false']).default('false'),
+  // SSE 长连接并发上限。长连接不占 CPU 但持续占内存，无上限时单机可被拖爆
+  // （每条连接持有 response 缓冲与流上下文）。上限按实例计。
+  [EnvKey.SSE_MAX_CONNECTIONS]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100_000)
+    .default(500),
+  [EnvKey.SSE_MAX_CONNECTIONS_PER_USER]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1_000)
+    .default(3),
 
   // ── Database / Redis (sensitive, in .env) ────────────────────────
   [EnvKey.DATABASE_URL]: postgresUrl,

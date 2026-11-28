@@ -306,4 +306,11 @@ export enum EnvKey {
   THROTTLE_TTL_MS = 'THROTTLE_TTL_MS',
   THROTTLE_LIMIT = 'THROTTLE_LIMIT',
   THROTTLE_DISABLED = 'THROTTLE_DISABLED',
+  /**
+   * 单实例允许同时打开的 SSE 连接总数。超过即拒绝新连接（503），
+   * 避免长连接把进程内存拖爆。见 `SseConnectionRegistry`。
+   */
+  SSE_MAX_CONNECTIONS = 'SSE_MAX_CONNECTIONS',
+  /** 单个用户允许同时打开的 SSE 连接数，防止单账号刷爆总配额。 */
+  SSE_MAX_CONNECTIONS_PER_USER = 'SSE_MAX_CONNECTIONS_PER_USER',
 }

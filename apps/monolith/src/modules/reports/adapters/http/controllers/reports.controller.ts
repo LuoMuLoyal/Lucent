@@ -24,7 +24,7 @@ import { RouteConfig } from '@nestjs/platform-fastify';
 import { registerResponseSchema } from '../../../../../common/api/response-schema.registry.js';
 import {
   endSse,
-  prepareSse,
+  openSse,
   SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
@@ -178,7 +178,7 @@ export class ReportsController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+    openSse(reply, this.sseRegistry, language, user.sub);
 
     try {
       const result = await this.reportsAiSummaryService.generateStream(

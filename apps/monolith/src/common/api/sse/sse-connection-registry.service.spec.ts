@@ -40,6 +40,9 @@ describe('SseConnectionRegistry', () => {
       new SseProblemDetailsMapper(
         new ProblemCatalog({ t: vi.fn((key: string) => key) } as never),
       ),
+      {
+        get: vi.fn(() => undefined),
+      } as never,
     );
   });
 
@@ -151,6 +154,96 @@ describe('SseConnectionRegistry', () => {
 
       expect(end).toHaveBeenCalled();
       expect(registry.size).toBe(0);
+    });
+  });
+
+  describe('admission control', () => {
+    function registryWithLimits(
+      limits: { max: number; maxPerUser: number },
+      metrics?: { setSseActiveConnections: ReturnType<typeof vi.fn> },
+    ) {
+      return new SseConnectionRegistry(
+        new SseProblemDetailsMapper(
+          new ProblemCatalog({ t: vi.fn((key: string) => key) } as never),
+        ),
+        {
+          get: vi.fn((key: string) => {
+            if (key.includes('PER_USER')) return String(limits.maxPerUser);
+            return String(limits.max);
+          }),
+        } as never,
+        metrics as never,
+      );
+    }
+
+    it('accepts connections below the instance limit', () => {
+      const r = registryWithLimits({ max: 2, maxPerUser: 10 });
+
+      expect(r.tryRegister(createMockResponse().response).accepted).toBe(true);
+      expect(r.tryRegister(createMockResponse().response).accepted).toBe(true);
+    });
+
+    it('rejects with global_limit once the instance cap is reached', () => {
+      const r = registryWithLimits({ max: 1, maxPerUser: 10 });
+      r.tryRegister(createMockResponse().response);
+
+      const result = r.tryRegister(createMockResponse().response);
+
+      expect(result).toEqual({ accepted: false, reason: 'global_limit' });
+      expect(r.size).toBe(1);
+    });
+
+    it('rejects with user_limit once one user exceeds their per-user cap', () => {
+      const r = registryWithLimits({ max: 100, maxPerUser: 1 });
+      r.tryRegister(createMockResponse().response, 'en', 'user-a');
+
+      const result = r.tryRegister(
+        createMockResponse().response,
+        'en',
+        'user-a',
+      );
+
+      expect(result).toEqual({ accepted: false, reason: 'user_limit' });
+    });
+
+    it('does not count rejected connections against the user budget', () => {
+      const r = registryWithLimits({ max: 100, maxPerUser: 1 });
+      const first = createMockResponse().response;
+      r.tryRegister(first, 'en', 'user-a');
+      r.tryRegister(createMockResponse().response, 'en', 'user-a'); // rejected
+
+      // 释放第一条后，同一用户应能重新建立
+      r.unregister(first);
+      expect(
+        r.tryRegister(createMockResponse().response, 'en', 'user-a'),
+      ).toEqual({ accepted: true });
+    });
+
+    it('frees the user slot on unregister', () => {
+      const r = registryWithLimits({ max: 100, maxPerUser: 1 });
+      const { response } = createMockResponse();
+      r.tryRegister(response, 'en', 'user-a');
+
+      r.unregister(response);
+
+      expect(
+        r.tryRegister(createMockResponse().response, 'en', 'user-a'),
+      ).toEqual({ accepted: true });
+    });
+
+    it('publishes the active-connection gauge on register and unregister', () => {
+      const setSseActiveConnections = vi.fn();
+      const r = registryWithLimits(
+        { max: 100, maxPerUser: 10 },
+        { setSseActiveConnections },
+      );
+      const { response } = createMockResponse();
+
+      r.tryRegister(response);
+      expect(setSseActiveConnections).toHaveBeenLastCalledWith(1);
+
+      r.unregister(response);
+      expect(setSseActiveConnections).toHaveBeenLastCalledWith(0);
     });
   });
 });

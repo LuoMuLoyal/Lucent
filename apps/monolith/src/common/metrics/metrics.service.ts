@@ -45,6 +45,7 @@ export class MetricsService implements OnApplicationBootstrap {
 
   private readonly bullmqJobsTotal: Counter<'queue' | 'status'>;
   private readonly bullmqActiveJobs: Gauge<'queue'>;
+  private readonly sseActiveConnections: Gauge;
   private readonly bullmqWaitingJobs: Gauge<'queue'>;
 
   // ── LLM metrics ───────────────────────────────────────────────────────────
@@ -132,6 +133,14 @@ export class MetricsService implements OnApplicationBootstrap {
       name: 'bullmq_waiting_jobs',
       help: 'Number of waiting BullMQ jobs',
       labelNames: ['queue'],
+      registers: [this.registry],
+    });
+
+    // SSE 长连接数。长连接不占 CPU 但持续占内存，需要单独观察水位：
+    // 逼近 SSE_MAX_CONNECTIONS 时应当告警，而不是等到进程被拖爆。
+    this.sseActiveConnections = new Gauge({
+      name: 'sse_active_connections',
+      help: 'Number of currently open SSE connections',
       registers: [this.registry],
     });
 
@@ -325,6 +334,14 @@ export class MetricsService implements OnApplicationBootstrap {
       return;
     }
     this.bullmqActiveJobs.set({ queue }, count);
+  }
+
+  /** Sets the number of currently open SSE connections. */
+  setSseActiveConnections(count: number): void {
+    if (!this.is_enabled()) {
+      return;
+    }
+    this.sseActiveConnections.set(count);
   }
 
   /**

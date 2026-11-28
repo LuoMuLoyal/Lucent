@@ -78,7 +78,8 @@ export {
   resolveLocale,
 } from './helpers/format/localized-copy.js';
 export { clampPage, clampPageSize } from './helpers/infra/pagination.utils.js';
-export { endSse, prepareSse, writeSseEvent } from './api/sse/sse.js';
+export { endSse, openSse, prepareSse, writeSseEvent } from './api/sse/sse.js';
+export type { SsePrepareResult } from './api/sse/sse.js';
 export { fromPrismaResult } from './helpers/prisma/prisma-result.utils.js';
 export {
   extractAuthRequestContext,

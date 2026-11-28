@@ -24,7 +24,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { RouteConfig } from '@nestjs/platform-fastify';
 import {
   endSse,
-  prepareSse,
+  openSse,
   writeSseEvent,
   SseConnectionRegistry,
   SseProblemDetailsMapper,
@@ -95,15 +95,8 @@ export class AnalysisController {
     @Query('date') date: string | undefined,
     @I18nLang() language: string,
   ) {
-    const resolvedDate = await this.analysisService.resolveDate(
-      user.sub,
-      date,
-    );
-    return this.analysisService.readCurrent(
-      user.sub,
-      resolvedDate,
-      language,
-    );
+    const resolvedDate = await this.analysisService.resolveDate(user.sub, date);
+    return this.analysisService.readCurrent(user.sub, resolvedDate, language);
   }
 
   @Post('refresh')
@@ -141,11 +134,7 @@ export class AnalysisController {
     }
 
     if (request.pending == null || !request.pending.shouldQueue) {
-      return this.analysisService.readCurrent(
-        user.sub,
-        request.date,
-        language,
-      );
+      return this.analysisService.readCurrent(user.sub, request.date, language);
     }
 
     if (this.analysisQueueService.isConfigured) {
@@ -288,11 +277,7 @@ export class AnalysisController {
     }
 
     // Fallback: run synchronously when Redis is not available
-    const result = await this.analysisService.generate(
-      user.sub,
-      dto,
-      language,
-    );
+    const result = await this.analysisService.generate(user.sub, dto, language);
     return { result };
   }
 
@@ -378,7 +363,7 @@ export class AnalysisController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+    openSse(reply, this.sseRegistry, language, user.sub);
 
     try {
       const onSummary = ({ summary }: { summary: string }) => {
@@ -463,9 +448,7 @@ export class AnalysisController {
     language: string,
     onSummary: ({ summary }: { summary: string }) => void,
   ): Promise<
-    NonNullable<
-      Awaited<ReturnType<AnalysisService['readCurrent']>>['analysis']
-    >
+    NonNullable<Awaited<ReturnType<AnalysisService['readCurrent']>>['analysis']>
   > {
     const current = await this.analysisService.readCurrent(
       userId,

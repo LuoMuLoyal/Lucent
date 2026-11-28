@@ -23,7 +23,7 @@ import { I18nLang } from 'nestjs-i18n';
 import {
   endSse,
   extractErrorInfo,
-  prepareSse,
+  openSse,
   SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
@@ -268,7 +268,7 @@ export class AssistantController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+    openSse(reply, this.sseRegistry, language, user.sub);
 
     try {
       const result = await this.assistantService.streamMessages(
@@ -339,7 +339,7 @@ export class AssistantController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry, language, reply.getHeaders());
+    openSse(reply, this.sseRegistry, language, user.sub);
 
     try {
       const result = await this.assistantService.regenerateConversation(

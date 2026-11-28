@@ -839,6 +839,8 @@ METRICS_ENABLED
 THROTTLE_TTL_MS
 THROTTLE_LIMIT
 THROTTLE_DISABLED
+SSE_MAX_CONNECTIONS
+SSE_MAX_CONNECTIONS_PER_USER
 METRICS_USER
 METRICS_PASSWORD
 OTEL_ENABLED
@@ -884,6 +886,13 @@ VICTORIALOGS_URL
   唯一的流量防线只剩云安全组，故生产必须保持 `false`。
   与运行时文档（`THROTTLE_*` 可经 rnacos 热更新）不同，本项**只从环境变量读**、
   不进运行时快照，避免压测脚本同时依赖两处状态。
+- `SSE_MAX_CONNECTIONS` — 单实例允许同时打开的 SSE 连接总数。Default: `500`，
+  Range: 1–100000。超限时新连接在写响应头之前即被拒绝，返回 `503`（Problem Details
+  码 `DEPENDENCY_UNAVAILABLE`），不排队。长连接不耗 CPU 但每条都持有 response 缓冲
+  与上游流引用，无上限时几百条连接即可把进程内存顶到数 GB。
+- `SSE_MAX_CONNECTIONS_PER_USER` — 单用户允许同时打开的 SSE 连接数。Default: `3`，
+  Range: 1–1000。防止单个账号刷爆实例总配额、把其他用户挡在门外。
+  当前连接数经 `sse_active_connections` Prometheus gauge 暴露。
 - `METRICS_USER` — Basic Auth username for `/metrics`. When set together with
   `METRICS_PASSWORD`, the `/metrics` endpoint requires HTTP Basic Auth.
 - `METRICS_PASSWORD` — Basic Auth password for `/metrics`. Must be set together
