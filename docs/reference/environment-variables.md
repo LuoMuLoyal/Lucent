@@ -108,8 +108,7 @@ METRICS_PASSWORD
 >
 > ⚠️ **单机 Sentinel 只防 Redis 进程级故障**（OOM kill / 容器崩溃 / 主节点只读），
 > 防不了整机故障。真高可用需要把 replica 与 sentinel 拆到独立故障域。
-> 编排与取舍见 `infra/redis/sentinel.conf`；故障切换演练见
-> `ops/stress-test/sentinel-drill.sh`（实测 4 秒完成切换，新主可读写）。
+> 编排与取舍见 `infra/redis/sentinel.conf`。
 
 `LANGGRAPH_CHECKPOINTER_SCHEMA`(默认 `langgraph`)决定 assistant 的 LangGraph
 checkpoint 表落在哪个 schema。取值须符合 PostgreSQL 标识符规则(小写字母/数字/下划线,
