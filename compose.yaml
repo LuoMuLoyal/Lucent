@@ -76,7 +76,14 @@ services:
     #  而 app 的 depends_on: service_healthy 会因此永远等不到 redis 就绪)。
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --appendonly yes
+    # 防脑裂的两项只能写在 master 侧：被网络隔离的旧主若还连着 replica，
+    # 就拒绝写入，把「双主期间数据分叉」的窗口压到秒级。
+    command: >-
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --appendonly yes
+      --min-replicas-to-write 1
+      --min-replicas-max-lag 10
     volumes:
       - redis-data:/data
     ports:
@@ -88,6 +95,115 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  # ── Redis 高可用（`--profile sentinel` 启用，默认不启动）───────────
+  # 单实例部署完全不受影响：不带 profile 时下面两个服务不会被创建。
+  #
+  # ⚠️ 单机上这套只防**Redis 进程级**故障（OOM kill / 容器崩溃 / 主节点只读）。
+  #    整机故障需要把 replica 与 sentinel 拆到独立故障域——那要等第二台机器。
+  #    详见 infra/redis/sentinel.conf 的文件头。
+  #
+  # 启用步骤（在 .env 里）：
+  #   REDIS_SENTINELS=redis-sentinel:26379     # 单机三进程共用一个容器时只有一个地址
+  #   REDIS_MASTER_NAME=mymaster
+  #   REDIS_PASSWORD=<与 master 一致>
+  #   REDIS_SENTINEL_PASSWORD=<sentinel 自身口令>
+  # 然后 `docker compose --profile sentinel up -d`。
+  redis-replica:
+    image: redis:8-alpine
+    profiles: ['sentinel']
+    restart: unless-stopped
+    # `--replicaof` 指向服务名；masterauth 与 master 的 requirepass 必须一致，
+    # 否则复制建立不起来（replica 日志反复 NOAUTH）。
+    command: >-
+      redis-server
+      --replicaof redis 6379
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --masterauth ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --appendonly yes
+      --replica-read-only yes
+    volumes:
+      - redis-replica-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+
+  redis-sentinel:
+    image: redis:8-alpine
+    profiles: ['sentinel']
+    restart: unless-stopped
+    # 单机部署下图省：在一个容器里跑 3 个 sentinel 进程凑 quorum。
+    # ⚠️ 这不是真高可用——三个进程共享同一内核与磁盘，主机一挂全没。
+    # 它的意义是让 failover 逻辑可用、可演练；真 HA 要拆机。
+    #
+    # ⚠️ **配置文件必须在容器内生成**，不能挂宿主机的只读文件：
+    #    Sentinel 会持续重写自己的配置（记录已知 replica / 新 master），
+    #    只读挂载或属主不对会直接退出：
+    #    `Sentinel config file ... is not writable: Read-only file system`。
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        PORT=26379
+        for i in 1 2 3; do
+          P=$$((PORT + i - 1))
+          cat > /data/sentinel-$$i.conf <<EOF
+        port $$P
+        dir /data
+        sentinel monitor ${REDIS_MASTER_NAME} ${REDIS_SENTINEL_MASTER_HOST} 6379 2
+        sentinel auth-pass ${REDIS_MASTER_NAME} ${REDIS_PASSWORD}
+        sentinel down-after-milliseconds ${REDIS_MASTER_NAME} 5000
+        sentinel failover-timeout ${REDIS_MASTER_NAME} 60000
+        sentinel parallel-syncs ${REDIS_MASTER_NAME} 1
+        requirepass ${REDIS_SENTINEL_PASSWORD}
+        EOF
+          redis-server /data/sentinel-$$i.conf --sentinel &
+        done
+        wait
+    environment:
+      REDIS_MASTER_NAME: ${REDIS_MASTER_NAME:-mymaster}
+      # Sentinel 的 monitor 目标必须能解析：用 compose 服务名 `redis` 在容器网络内有效，
+      # 但 Redis 启动时若 DNS 未就绪会 Fatal，因此允许用显式 host 覆盖。
+      REDIS_SENTINEL_MASTER_HOST: ${REDIS_SENTINEL_MASTER_HOST:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDIS_SENTINEL_PASSWORD: ${REDIS_SENTINEL_PASSWORD:?REDIS_SENTINEL_PASSWORD is required}
+    volumes:
+      - redis-sentinel-data:/data
+    ports:
+      # 只发布一个端口；客户端配 REDIS_SENTINELS=host:26379 即可。
+      - '26379:26379'
+    depends_on:
+      redis:
+        condition: service_healthy
+      redis-replica:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli -p 26379 -a "$${REDIS_SENTINEL_PASSWORD}" --no-auth-warning ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -477,6 +593,10 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  # Sentinel 部署下的从节点数据卷。单实例部署不会创建它（profile 未启用）。
+  redis-replica-data:
+  # Sentinel 自己重写的配置文件也落卷，容器重建后保留已知拓扑。
+  redis-sentinel-data:
   # RabbitMQ 的持久化(definitions + 消息)。durable queue 的内容落在这里,
   # 备份单位是这个卷。
   rabbitmqdata:

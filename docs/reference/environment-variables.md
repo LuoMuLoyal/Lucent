@@ -87,6 +87,30 @@ METRICS_PASSWORD
 生产(`compose.yaml`,服务器 `/opt/lucent/.env`)下 `DATABASE_URL` / `REDIS_URL` 由
 `compose.yaml` 按 `POSTGRES_PASSWORD` / `REDIS_PASSWORD` 拼接注入,不需要单独填写。
 
+## Redis 高可用（Sentinel，可选）
+
+默认单实例：只配 `REDIS_URL` 即可，不写下面任何一项。
+
+启用 Sentinel 时，四个 Redis 消费方（BullMQ、限流、缓存、`RedisService`）会统一
+走哨兵发现——**不要直连主库 IP**，否则故障切换后仍指向旧主（旧主降为 replica，
+写入报 `READONLY`）。
+
+| 变量 | 说明 |
+|---|---|
+| `REDIS_SENTINELS` | 逗号分隔的 **Sentinel 进程**地址（非 Redis 主从地址），如 `10.0.0.1:26379,10.0.0.2:26379`。**非空即启用 Sentinel 模式**，此时 `REDIS_URL` 可留空（仅用于取 `db`）。 |
+| `REDIS_MASTER_NAME` | Sentinel 监控的 master 名，默认 `mymaster`。 |
+| `REDIS_PASSWORD` | 数据节点口令。Sentinel 模式下 `REDIS_URL` 通常不带口令，需单填。 |
+| `REDIS_SENTINEL_PASSWORD` | Sentinel 自身口令；与数据节点口令不同时才需要。 |
+
+> ⚠️ **BullMQ worker 必须保留 `maxRetriesPerRequest: null`**：Sentinel 切换期间它
+> 会一直重连等待新主——这正是期望行为。producer 与限流侧保持
+> `maxRetriesPerRequest: 1` 快速失败，避免请求悬挂。
+>
+> ⚠️ **单机 Sentinel 只防 Redis 进程级故障**（OOM kill / 容器崩溃 / 主节点只读），
+> 防不了整机故障。真高可用需要把 replica 与 sentinel 拆到独立故障域。
+> 编排与取舍见 `infra/redis/sentinel.conf`；故障切换演练见
+> `ops/stress-test/sentinel-drill.sh`（实测 4 秒完成切换，新主可读写）。
+
 `LANGGRAPH_CHECKPOINTER_SCHEMA`(默认 `langgraph`)决定 assistant 的 LangGraph
 checkpoint 表落在哪个 schema。取值须符合 PostgreSQL 标识符规则(小写字母/数字/下划线,
 首字符非数字)。**不要设成 `public`**:`public` 只由 `prisma/models/**` 管理,而
