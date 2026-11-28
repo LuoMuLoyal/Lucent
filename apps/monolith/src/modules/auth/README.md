@@ -153,6 +153,12 @@ operationId 在 `@ApiOperation` 上显式声明(`loginInBrowser` /
   `AUTH_WRONG_PASSWORD`。**折叠只在有枚举风险的地方才是必需的**。
 - `services/identity/rate-limit.service.ts` — 登录失败限流(基于 Redis);`isCaptchaRequired`
   读同一失败桶,达到 `CAPTCHA_THRESHOLD` 后要求人机验证.
+  - **登录侧只延迟、不拒绝**：失败次数越多，凭据校验前的等待越久
+    （`domain/policies/login-failures.ts` 的 `backoffDelayMs`，1s 起翻倍、封顶 30s），
+    但**永不返回「账号已锁」**。这样暴力猜测被拖慢，而知道邮箱的陌生人无法
+    用失败次数把真实用户挡在门外（定向 DoS）。正确密码在延迟结束后始终能登录。
+  - **密码重验保留硬拒绝**：重验发生在已登录会话内，攻击者须先拿到会话，
+    不存在匿名锁死他人的问题，故仍按 `LOGIN_FAILURE_MAX` 计数并返回 `RATE_LIMITED`。
 - `services/identity/turnstile.service.ts` — Cloudflare Turnstile 校验。无凭据即关闭
   (本地与 e2e 默认);云侧不可达时放行(fail open),明确拒绝时返回 `AUTH_CAPTCHA_INVALID`。
 - `services/identity/verification-code.service.ts` — 邮箱验证码的**编排**：

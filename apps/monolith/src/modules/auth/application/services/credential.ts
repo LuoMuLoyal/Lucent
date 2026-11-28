@@ -125,7 +125,8 @@ export class CredentialAuthService {
     const email = normalizeEmail(dto.email);
 
     return this.authRateLimitService
-      .checkLoginRateLimit(email)
+      .loginDelayMs(email)
+      .andThen((delayMs) => this.waitOutBackoff(delayMs))
       .andThen(() =>
         this.authRateLimitService
           .isCaptchaRequired(email)
@@ -158,6 +159,25 @@ export class CredentialAuthService {
   }
 
   // ── Helpers ──────────────────────────────────────────────────
+
+  /**
+   * 按策略给出的延迟等待，然后继续登录流程。
+   *
+   * 这是「防锁死他人账号」的关键：失败次数只让**本次尝试**变慢，从不拒绝。
+   * 等待有上限（策略里已封顶 30s），所以正常用户偶尔连错两三次几乎无感，
+   * 而持续猜测者每次都要付出指数增长的时间成本。
+   */
+  private waitOutBackoff(delayMs: number): ResultAsync<void, DomainFailure> {
+    if (delayMs <= 0) {
+      return okAsync(undefined);
+    }
+    return fromPromise(
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, delayMs);
+      }),
+      (error) => mapUnknownToDependencyFailure(error, 'Login backoff failed'),
+    );
+  }
 
   /**
    * Validates the provided password (or verification code) for a login attempt.

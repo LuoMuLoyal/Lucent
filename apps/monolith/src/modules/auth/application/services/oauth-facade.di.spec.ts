@@ -44,8 +44,7 @@ describe('AuthOAuthFacadeService — 提供商 DI token', () => {
     // Nest 为 `@Inject(x)` 写入 `self:paramtypes`：`[{ index, param }]`。
     const declared: { index: number; param: unknown }[] =
       (Reflect.getMetadata(SELF_DECLARED_DEPS, AuthOAuthFacadeService) as
-        | { index: number; param: unknown }[]
-        | undefined) ?? [];
+        { index: number; param: unknown }[] | undefined) ?? [];
     for (const entry of declared) tokens.set(entry.index, entry.param);
     return tokens;
   }
@@ -86,8 +85,7 @@ describe('AuthOAuthFacadeService — 提供商 DI token', () => {
     // 这条断言把「为什么必须用 @Inject」钉在测试里，而不是只写在注释里。
     const paramTypes: unknown[] =
       (Reflect.getMetadata(PARAM_TYPES, AuthOAuthFacadeService) as
-        | unknown[]
-        | undefined) ?? [];
+        unknown[] | undefined) ?? [];
 
     // 提供商那 5 个位置在类型元数据里就是 `Object`（interface 的运行时表示）。
     for (const index of [1, 2, 3, 4, 5]) {

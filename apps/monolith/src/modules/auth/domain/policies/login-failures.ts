@@ -1,23 +1,24 @@
 /**
  * 登录失败桶 —— 限流与「何时开始要求人机验证」的**纯状态机（策略）**。
  *
- * ## 为什么这是领域知识
+ * ## 为什么不硬锁账号
  *
- * 一个失败桶的转移规则全部是策略判断，不是存储细节：
+ * 早期版本在失败 {@link LOGIN_FAILURE_MAX} 次后锁号 60 分钟，且**对任何人**都
+ * 返回「账号已锁」。这给攻击者提供了免费武器：只要知道受害者邮箱，连发十几次
+ * 错误密码就能把对方锁在门外，成本几乎为零，而受害者自己完全无辜。
  *
- * - 什么时候计数清零（窗口过期）；
- * - 第几次失败开始锁号（{@link LOGIN_FAILURE_MAX}）；
- * - 锁多久（{@link LOGIN_FAILURE_LOCKOUT_MS}）；
- * - 第几次失败开始要求人机验证（{@link CAPTCHA_THRESHOLD}）。
+ * 现在改为**渐进延迟**：失败次数越多，下一次尝试的响应越慢，但**不返回任何
+ * 「账号已锁」信号**，正确密码在延迟结束后仍可登录。这样：
  *
- * 这些以前散在 service 的读写流程里，只能靠 mock 缓存间接覆盖。搬到这里之后
- * 每个边界都能纯单测。
+ * - 暴力猜测依然被拖慢（每次尝试都要等待，成本随失败次数指数上升）；
+ * - 陌生人无法用失败次数把真实用户挡在门外；
+ * - 人机验证仍是廉价闸门，在第 {@link CAPTCHA_THRESHOLD} 次失败后要求。
  *
  * ## 人机验证与限流读**同一个桶**
  *
- * `CAPTCHA_THRESHOLD`(3) 远低于 `LOGIN_FAILURE_MAX`(10)：验证是廉价闸门、
- * 锁号是最后手段，而正常用户很少连错三次密码。两者读同一个桶是刻意的——
- * 各算一套会出现「限流说锁了、验证说没到阈值」这种互相矛盾的组合。
+ * `CAPTCHA_THRESHOLD`(3) 低于渐进延迟的起始阈值：验证是廉价闸门，
+ * 延迟是持续成本，正常用户很少连错三次密码。两者读同一个桶是刻意的——
+ * 各算一套会出现「限流说该慢、验证说没到阈值」这种互相矛盾的组合。
  *
  * ## 领域纯度
  *
@@ -25,38 +26,61 @@
  * 可以精确单测而不需要假时钟。
  */
 
-/** 一分钟的毫秒数。窗口与锁号时长都由它派生。 */
+/** 一分钟的毫秒数。窗口与延迟时长都由它派生。 */
 const MS_PER_MINUTE = 60 * 1000;
 
 /** 失败计数窗口。窗口内累计，过期即清零。 */
 export const LOGIN_FAILURE_WINDOW_MS = 15 * MS_PER_MINUTE;
 
-/** 窗口内失败多少次后锁号。 */
+/**
+ * 失败计数下限：达到此数后开始施加渐进延迟（并继续累加）。
+ *
+ * 取代了原来的「锁号阈值」语义——这里不再是「到此即锁」，而是「到此开始变慢」。
+ */
 export const LOGIN_FAILURE_MAX = 10;
 
-/** 锁号时长。 */
-export const LOGIN_FAILURE_LOCKOUT_MS = 60 * MS_PER_MINUTE;
+/** @deprecated 硬锁已移除；保留常量仅为兼容引用，恒为 0。 */
+export const LOGIN_FAILURE_LOCKOUT_MS = 0;
 
 /**
  * 失败多少次后开始要求人机验证。
  *
- * 刻意远低于 {@link LOGIN_FAILURE_MAX}：验证是廉价闸门、锁号是最后手段，
+ * 刻意低于渐进延迟的起始阈值：验证是廉价闸门、延迟是持续成本，
  * 而正常用户很少连错三次密码。
  */
 export const CAPTCHA_THRESHOLD = 3;
+
+/** 渐进延迟的起点（秒）：恰好在阈值处生效，此后每多一次失败翻倍。 */
+const BACKOFF_BASE_SECONDS = 1;
+
+/** 渐进延迟上限（秒）：避免长尾把正常用户拖到无法忍受。 */
+const BACKOFF_MAX_SECONDS = 30;
 
 /** 失败桶的持久化形状（进缓存，扁平可序列化）。 */
 export interface FailureBucket {
   count: number;
   resetAt: number;
-  /** 锁号截止时刻；存在即表示**曾经**锁过（不一定仍在锁号期）。 */
+  /**
+   * 仍被写入以兼容旧数据形状，但**不再用于拒绝登录**。
+   * 保留字段可以让滚动升级期间旧版本写入的桶不触发解析失败。
+   */
   lockedUntil?: number;
 }
 
-/** 桶对一次新尝试的判定结论。 */
-export type ThrottleVerdict =
-  | { kind: 'allowed' }
-  | { kind: 'locked'; retryAfterSeconds: number; minutes: number };
+/**
+ * 桶对一次新尝试的判定结论。
+ *
+ * `delayMs > 0` 表示「先等这么久再继续验证」，而不是「拒绝」。
+ * 调用方**必须**把这段等待当成正常流程的一部分，且**不得**把 `delayMs`
+ * 与「账号是否存在 / 是否被锁」关联起来对外暴露。
+ */
+export type ThrottleVerdict = {
+  kind: 'allowed';
+  /** 进入凭据校验前的等待毫秒数；0 表示无延迟。 */
+  delayMs: number;
+  /** 是否已越过人机验证阈值（与 {@link isCaptchaRequired} 一致）。 */
+  captchaRequired: boolean;
+};
 
 /**
  * 该桶在 `at` 时刻是否仍然有效（窗口未过期且形状可信）。
@@ -75,45 +99,41 @@ export function isBucketLive(
 }
 
 /**
- * 该桶在 `at` 时刻是否处于**锁号期**。
+ * 计算第 N 次失败后应施加的延迟（毫秒）。
  *
- * 与 {@link isBucketLive} 分开：锁号可以晚于窗口结束（`bucketTtlMs` 取两者
- * 较大值），所以「桶还活着」不等于「窗口还开着」。
+ * 低于阈值不延迟；越过阈值后每多一次失败翻倍，上限 {@link BACKOFF_MAX_SECONDS}。
+ * 用 2 的幂而不是线性增长，是为了让持续猜测的代价快速变得不可承受，
+ * 同时正常用户（偶尔连错两三次）完全不受影响。
  */
-export function isLockedOut(
-  bucket: FailureBucket | undefined,
-  at: number,
-): bucket is FailureBucket & { lockedUntil: number } {
-  return (
-    bucket !== undefined &&
-    bucket.lockedUntil !== undefined &&
-    bucket.lockedUntil > at
+export function backoffDelayMs(count: number): number {
+  const over = count - CAPTCHA_THRESHOLD;
+  if (over <= 0) {
+    return 0;
+  }
+  const seconds = Math.min(
+    BACKOFF_BASE_SECONDS * 2 ** (over - 1),
+    BACKOFF_MAX_SECONDS,
   );
+  return seconds * 1000;
 }
 
 /**
  * 评估当前桶对一次新尝试的结论。
  *
- * **锁号优先**：处于锁号期的桶直接返回 `locked`，不关心计数与阈值。
- * 顺序反了会让「已锁号但计数看起来没到阈值」的桶放行。
- *
- * 注意这里**不**返回「要不要人机验证」——那是
- * {@link isCaptchaRequired}，因为它读的是同一个桶但判据不同（阈值 vs 锁号），
- * 合成一个联合类型会逼调用方在不需要的字段上做窄化。
+ * **永不返回「拒绝」**：所有情况都返回 `allowed`，只通过 `delayMs` 表达代价。
+ * 这是防「锁死他人账号」的核心——对陌生人而言，失败次数只会让自己变慢，
+ * 不会把真实用户挡在门外。
  */
 export function evaluateBucket(
   bucket: FailureBucket | undefined,
   at: number,
 ): ThrottleVerdict {
-  if (isLockedOut(bucket, at)) {
-    const lockedMs = bucket.lockedUntil - at;
-    return {
-      kind: 'locked',
-      retryAfterSeconds: Math.ceil(lockedMs / 1000),
-      minutes: Math.ceil(lockedMs / 60_000),
-    };
-  }
-  return { kind: 'allowed' };
+  const live = isBucketLive(bucket, at);
+  return {
+    kind: 'allowed',
+    delayMs: live ? backoffDelayMs(bucket.count) : 0,
+    captchaRequired: live && bucket.count >= CAPTCHA_THRESHOLD,
+  };
 }
 
 /**
@@ -135,11 +155,11 @@ export function isCaptchaRequired(
  *
  * ## 三种起点
  *
- * 1. **没有桶 / 窗口过期 / 已在锁号期** → 开一个新桶（计数 1）。
- *    已在锁号期时重开是刻意的：锁号期内继续尝试不该延长锁号，
- *    但也不该把计数累加到解锁后的新窗口里。
- * 2. **未到上限** → 计数 +1。
- * 3. **达到上限** → 计数 +1 并设置 `lockedUntil`。
+ * 1. **没有桶 / 窗口过期** → 开一个新桶（计数 1）。
+ * 2. **窗口内** → 计数 +1，窗口保持。
+ *
+ * 不再设置 `lockedUntil`：硬锁已移除。字段保留只是为了让滚动升级期间
+ * 旧版本写入的桶仍能被解析。
  *
  * ## 为什么用新对象而不是就地改
  *
@@ -149,25 +169,21 @@ export function recordFailure(
   bucket: FailureBucket | undefined,
   at: number,
 ): FailureBucket {
-  if (!isBucketLive(bucket, at) || isLockedOut(bucket, at)) {
+  if (!isBucketLive(bucket, at)) {
     return { count: 1, resetAt: at + LOGIN_FAILURE_WINDOW_MS };
   }
 
-  const nextCount = bucket.count + 1;
   return {
-    count: nextCount,
+    count: bucket.count + 1,
     resetAt: bucket.resetAt,
-    ...(nextCount >= LOGIN_FAILURE_MAX && {
-      lockedUntil: at + LOGIN_FAILURE_LOCKOUT_MS,
-    }),
   };
 }
 
 /**
  * 桶应当写入缓存时的 TTL（毫秒）。
  *
- * 取「窗口剩余」与「锁号剩余」的较大值——否则锁号会在窗口到期时随之消失，
- * 而锁号（1 小时）本来比窗口（15 分钟）长。
+ * 取「窗口剩余」与「旧锁号剩余」的较大值：硬锁已移除，但滚动升级期间
+ * 旧桶可能还带 `lockedUntil`，让它自然过期而不是提前清掉。
  *
  * 下限 1ms：`cache.set` 传 0 或负数时各后端行为不一致（有的当立即过期，
  * 有的当永不过期）。给一个极小正值，语义是「马上过期」。

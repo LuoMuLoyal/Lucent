@@ -46,8 +46,7 @@ export interface PasswordHash {
  * 类型上区分、响应上统一，这是本模块反复出现的形状。
  */
 export type StoredPassword =
-  | { kind: 'set'; hash: PasswordHash }
-  | { kind: 'none' };
+  { kind: 'set'; hash: PasswordHash } | { kind: 'none' };
 
 /**
  * 把库里读出的字符串收敛成 {@link StoredPassword}。

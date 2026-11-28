@@ -126,7 +126,7 @@ describe('CredentialAuthService', () => {
         {
           provide: AuthRateLimitService,
           useValue: {
-            checkLoginRateLimit: vi.fn(),
+            loginDelayMs: vi.fn(),
             isCaptchaRequired: vi.fn(),
             recordLoginFailure: vi.fn(),
             clearLoginFailures: vi.fn(),
@@ -177,9 +177,7 @@ describe('CredentialAuthService', () => {
     sessionTokens.revokeAll.mockReturnValue(okAsync(undefined));
     verificationCodeService.verify.mockReturnValue(okAsync(undefined));
     verificationCodeService.send.mockReturnValue(okAsync(undefined));
-    authRateLimitService.checkLoginRateLimit.mockReturnValue(
-      okAsync(undefined),
-    );
+    authRateLimitService.loginDelayMs.mockReturnValue(okAsync(0));
     authRateLimitService.recordLoginFailure.mockReturnValue(okAsync(undefined));
     authRateLimitService.clearLoginFailures.mockReturnValue(okAsync(undefined));
     authRateLimitService.isCaptchaRequired.mockReturnValue(okAsync(false));
@@ -352,7 +350,7 @@ describe('CredentialAuthService', () => {
     it('should login with correct password and return tokens', async () => {
       const outcome = await collectResult(service.login(buildLoginDto()));
 
-      expect(authRateLimitService.checkLoginRateLimit).toHaveBeenCalledWith(
+      expect(authRateLimitService.loginDelayMs).toHaveBeenCalledWith(
         'test@example.com',
       );
       expect(checkLocalPasswordMock).toHaveBeenCalledWith(
@@ -562,15 +560,14 @@ describe('CredentialAuthService', () => {
       expect(unknown).toEqual({ ok: false, error: wrongPasswordFailure });
     });
 
-    it('should surface the login rate-limit failure without recording another failure', async () => {
-      authRateLimitService.checkLoginRateLimit.mockReturnValue(
+    it('surfaces a backoff computation failure without recording another failure', async () => {
+      // 登录侧不再有「拒绝」分支，但延迟读失败仍要原样上抛（限流不能静默失效）。
+      authRateLimitService.loginDelayMs.mockReturnValue(
         errAsync(
           createDomainFailure({
-            kind: 'rate_limited',
-            code: 'AUTH_LOGIN_RATE_LIMITED',
+            kind: 'dependency',
+            code: 'DEPENDENCY_UNAVAILABLE',
             retryable: true,
-            retryAfter: 60,
-            args: { minutes: 1 },
           }),
         ),
       );
@@ -579,7 +576,7 @@ describe('CredentialAuthService', () => {
 
       expect(outcome).toEqual({
         ok: false,
-        error: expect.objectContaining({ code: 'AUTH_LOGIN_RATE_LIMITED' }),
+        error: expect.objectContaining({ code: 'DEPENDENCY_UNAVAILABLE' }),
       });
       expect(userService.findByEmail).not.toHaveBeenCalled();
       expect(authRateLimitService.recordLoginFailure).not.toHaveBeenCalled();

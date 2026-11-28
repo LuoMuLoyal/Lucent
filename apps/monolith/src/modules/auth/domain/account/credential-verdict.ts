@@ -35,10 +35,7 @@
 
 /** 依赖在哪一步坏掉了。用于日志与告警定位，**不**用于对外响应。 */
 export type CredentialStage =
-  | 'account-lookup'
-  | 'password-lookup'
-  | 'password-compare'
-  | 'code-verify';
+  'account-lookup' | 'password-lookup' | 'password-compare' | 'code-verify';
 
 /**
  * 凭据被拒绝的原因。

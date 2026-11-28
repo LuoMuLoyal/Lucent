@@ -7,7 +7,6 @@ import { AuthRateLimitService } from './rate-limit.js';
 import { FailureCounters } from '../../application/ports/failure-counters.js';
 import {
   CAPTCHA_THRESHOLD,
-  LOGIN_FAILURE_LOCKOUT_MS,
   LOGIN_FAILURE_MAX,
   LOGIN_FAILURE_WINDOW_MS,
   type FailureBucket,
@@ -74,64 +73,62 @@ describe('AuthRateLimitService', () => {
     service = new AuthRateLimitService(counters);
   });
 
-  describe('checkLoginRateLimit', () => {
-    it('没有记录 → 放行', async () => {
-      const outcome = await service.checkLoginRateLimit(email).match(
-        () => 'ok',
+  describe('loginDelayMs', () => {
+    it('没有记录 → 无延迟', async () => {
+      const delay = await service.loginDelayMs(email).match(
+        (ms) => ms,
         (e) => e.code,
       );
-      expect(outcome).toBe('ok');
+      expect(delay).toBe(0);
     });
 
-    it('锁号期内 → AUTH_LOGIN_RATE_LIMITED，带 retryAfter 与 minutes', async () => {
+    it('**大量失败也只产生延迟，不返回任何拒绝**', async () => {
+      // 防「知道邮箱就能锁死他人账号」的核心断言：无论多少失败，
+      // 结论都是「等一下」，绝无 AUTH_LOGIN_RATE_LIMITED。
       counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
-        count: LOGIN_FAILURE_MAX,
+        count: 999,
         resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
-        lockedUntil: Date.now() + 90_000,
       });
 
-      const failure = await service.checkLoginRateLimit(email).match(
-        () => null,
-        (e) => e,
+      const delay = await service.loginDelayMs(email).match(
+        (ms) => ms,
+        (e) => e.code,
       );
 
-      expect(failure?.code).toBe('AUTH_LOGIN_RATE_LIMITED');
-      expect(failure?.kind).toBe('rate_limited');
-      expect(failure?.retryable).toBe(true);
-      expect(failure?.retryAfter).toBeGreaterThan(0);
-      expect(failure?.args?.['minutes']).toBeGreaterThan(0);
+      expect(typeof delay).toBe('number');
+      expect(delay).toBe(30_000);
     });
 
-    it('窗口过期（未锁号）→ 放行', async () => {
+    it('窗口过期 → 无延迟（不累加旧窗口代价）', async () => {
       counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
         count: LOGIN_FAILURE_MAX,
         resetAt: Date.now() - 1,
       });
 
-      const outcome = await service.checkLoginRateLimit(email).match(
-        () => 'ok',
+      const delay = await service.loginDelayMs(email).match(
+        (ms) => ms,
         (e) => e.code,
       );
-      expect(outcome).toBe('ok');
+      expect(delay).toBe(0);
     });
 
-    it('形状损坏的桶 → 放行（不让它把窗口无限续期）', async () => {
+    it('形状损坏的桶 → 无延迟（不让它把窗口无限续期）', async () => {
       counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
         garbage: true,
       });
 
-      const outcome = await service.checkLoginRateLimit(email).match(
-        () => 'ok',
+      const delay = await service.loginDelayMs(email).match(
+        (ms) => ms,
         (e) => e.code,
       );
-      expect(outcome).toBe('ok');
+      expect(delay).toBe(0);
     });
 
     it('**缓存故障原样上抛**，不伪装成「没有记录」', async () => {
       // 返回「没有记录」等于限流静默失效——把依赖故障说成正常状态。
       counters.readError = new Error('cache down');
 
-      const failure = await service.checkLoginRateLimit(email).match(
+      const failure = await service.loginDelayMs(email).match(
         () => null,
         (e) => e,
       );
@@ -141,7 +138,7 @@ describe('AuthRateLimitService', () => {
     });
 
     it('按邮箱的 sha256 分桶（不落明文邮箱）', async () => {
-      await service.checkLoginRateLimit(email);
+      await service.loginDelayMs(email);
       expect(counters.reads[0]).toBe(`auth:login-failure:${hashEmail(email)}`);
       expect(counters.reads[0]).not.toContain('@');
     });
@@ -169,7 +166,7 @@ describe('AuthRateLimitService', () => {
       expect(counters.writes[0]?.value).toMatchObject({ count: 5 });
     });
 
-    it('达到上限 → 设置 lockedUntil，且 TTL 覆盖锁号（比窗口长）', async () => {
+    it('达到旧上限也不再写 lockedUntil，TTL 只覆盖窗口', async () => {
       counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
         count: LOGIN_FAILURE_MAX - 1,
         resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
@@ -179,13 +176,9 @@ describe('AuthRateLimitService', () => {
 
       const written = counters.writes[0]!;
       expect(written.value).toMatchObject({ count: LOGIN_FAILURE_MAX });
-      expect((written.value as FailureBucket).lockedUntil).toBeGreaterThan(
-        Date.now(),
-      );
-      // 锁号（1h）比窗口（15min）长，TTL 必须取较大值。
-      expect(written.ttlMs).toBeGreaterThan(LOGIN_FAILURE_WINDOW_MS);
+      expect((written.value as FailureBucket).lockedUntil).toBeUndefined();
       expect(written.ttlMs).toBeLessThanOrEqual(
-        LOGIN_FAILURE_LOCKOUT_MS + 5_000,
+        LOGIN_FAILURE_WINDOW_MS + 5_000,
       );
     });
 
@@ -199,9 +192,9 @@ describe('AuthRateLimitService', () => {
       expect(counters.writes[0]?.value).toMatchObject({ count: 1 });
     });
 
-    it('已在锁号期 → 重开桶但不延长锁号', async () => {
+    it('遗留 lockedUntil 不会让新计数被重置（兼容旧数据）', async () => {
       counters.store.set(`auth:login-failure:${hashEmail(email)}`, {
-        count: LOGIN_FAILURE_MAX,
+        count: 4,
         resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
         lockedUntil: Date.now() + 60_000,
       });
@@ -209,7 +202,7 @@ describe('AuthRateLimitService', () => {
       await service.recordLoginFailure(email);
 
       const value = counters.writes[0]?.value as FailureBucket;
-      expect(value.count).toBe(1);
+      expect(value.count).toBe(5);
       expect(value.lockedUntil).toBeUndefined();
     });
 
@@ -290,11 +283,11 @@ describe('AuthRateLimitService', () => {
   });
 
   describe('密码重验路径（按 userId 分桶）', () => {
-    it('锁号期内 → 通用 RATE_LIMITED（不是 AUTH_LOGIN_RATE_LIMITED）', async () => {
+    it('达到阈值 → 通用 RATE_LIMITED（不是 AUTH_LOGIN_RATE_LIMITED）', async () => {
+      // 重验发生在已登录会话内，不存在「匿名锁死他人」，因此保留硬拒绝。
       counters.store.set('auth:reauth-failure:user-1', {
         count: LOGIN_FAILURE_MAX,
         resetAt: Date.now() + LOGIN_FAILURE_WINDOW_MS,
-        lockedUntil: Date.now() + 60_000,
       });
 
       const failure = await service.checkReauthRateLimit('user-1').match(

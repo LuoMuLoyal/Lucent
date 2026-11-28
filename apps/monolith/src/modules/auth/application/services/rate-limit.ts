@@ -16,6 +16,7 @@ import {
   CAPTCHA_THRESHOLD,
   evaluateBucket,
   isCaptchaRequired,
+  LOGIN_FAILURE_MAX,
   recordFailure,
   type FailureBucket,
 } from '../../domain/policies/login-failures.js';
@@ -38,21 +39,23 @@ export function reauthFailureCacheKey(userId: string): string {
  *
  * ## 它只做「读写 + 映射」，判定全在策略里
  *
- * 桶的转移规则（窗口、阈值、锁号）在
+ * 桶的转移规则（窗口、阈值、渐进延迟）在
  * `domain/policies/login-failures.ts`——那里是纯函数，可以精确单测窗口边界。
  * 本类负责：拼 key、从端口读写、把结论折成 `DomainFailure`。
  *
- * ## 两条路径共用同一套机制
+ * ## 登录失败：**只延迟，不拒绝**
  *
- * - **登录失败**按邮箱分桶（`loginFailureCacheKey`），失败返回
- *   `AUTH_LOGIN_RATE_LIMITED`（带 `retryAfter` 与动态 `minutes`）。
- * - **密码重验失败**按 userId 分桶（`reauthFailureCacheKey`），失败返回通用
- *   `RATE_LIMITED`（带 `retryAfter`）。
+ * 登录侧永不因为失败次数返回「已锁定」。策略给出的 `delayMs` 由调用方在
+ * 凭据校验前 `await` 掉，代价随失败次数指数增长，但正确密码始终能登录。
+ * 这样才能防止「知道邮箱就能锁死他人账号」的定向拒绝服务。
  *
- * 阈值相同、错误码不同：重验是**已认证用户**的敏感操作，客户端需要区分
- * 「登录被限流」与「重验被限流」以便给出不同提示。
+ * ## 重验失败：保留硬限流
  *
- * ## 缓存故障保留原始异常（不变量 #2）
+ * 密码重验是**已认证用户**在会话内的敏感操作，攻击者必须先拿到会话才有机会
+ * 尝试，不存在「匿名锁死他人」的问题。因此这里仍按 {@link LOGIN_FAILURE_MAX}
+ * 计数并在达到阈值时拒绝（`RATE_LIMITED`），语义是「这个会话的密码猜错了太多次」。
+ *
+ * ## 缓存故障保留原始异常
  *
  * 读失败**不**返回「没有失败记录」——那等于限流静默失效。异常原样上抛，
  * 由调用方映射成 `DEPENDENCY_UNAVAILABLE`。
@@ -62,22 +65,13 @@ export class AuthRateLimitService {
   constructor(private readonly counters: FailureCounters) {}
 
   /**
-   * 检查登录限流。账户处于锁定窗口时返回
-   * `AUTH_LOGIN_RATE_LIMITED`（携带 `retryAfter` 与动态 `minutes`）。
+   * 计算本次登录尝试在凭据校验前应等待的毫秒数。
+   *
+   * 永不失败为「拒绝」；`delayMs` 为 0 表示无需等待。
    */
-  checkLoginRateLimit(email: string): ResultAsync<void, DomainFailure> {
-    return this.evaluate(loginFailureCacheKey(email)).andThen((verdict) =>
-      verdict.kind === 'locked'
-        ? errAsync(
-            createDomainFailure({
-              kind: 'rate_limited',
-              code: 'AUTH_LOGIN_RATE_LIMITED',
-              retryable: true,
-              retryAfter: verdict.retryAfterSeconds,
-              args: { minutes: verdict.minutes },
-            }),
-          )
-        : okAsync(undefined),
+  loginDelayMs(email: string): ResultAsync<number, DomainFailure> {
+    return this.evaluate(loginFailureCacheKey(email)).map(
+      (verdict) => verdict.delayMs,
     );
   }
 
@@ -109,21 +103,37 @@ export class AuthRateLimitService {
   }
 
   /**
-   * 检查密码再认证限流。按 userId 分桶，返回通用 `RATE_LIMITED`。
+   * 检查密码再认证限流。按 userId 分桶、按 {@link LOGIN_FAILURE_MAX} 计数，
+   * 达到阈值时返回通用 `RATE_LIMITED`。
+   *
+   * 与登录不同，这里**保留硬拒绝**：重验发生在已登录会话内，攻击者必须先
+   * 拿到有效会话才谈得上爆破，不存在「匿名锁死他人」的定向拒绝服务风险。
    */
   checkReauthRateLimit(userId: string): ResultAsync<void, DomainFailure> {
-    return this.evaluate(reauthFailureCacheKey(userId)).andThen((verdict) =>
-      verdict.kind === 'locked'
-        ? errAsync(
-            createDomainFailure({
-              kind: 'rate_limited',
-              code: 'RATE_LIMITED',
-              retryable: true,
-              retryAfter: verdict.retryAfterSeconds,
-            }),
-          )
-        : okAsync(undefined),
-    );
+    return fromPromise(
+      this.counters.read(reauthFailureCacheKey(userId)),
+      (error) =>
+        mapUnknownToDependencyFailure(error, 'Failed to read reauth bucket'),
+    ).andThen((raw) => {
+      const bucket = toBucket(raw);
+      const now = Date.now();
+      if (
+        bucket !== undefined &&
+        bucket.resetAt > now &&
+        bucket.count >= LOGIN_FAILURE_MAX
+      ) {
+        const retryAfterSeconds = Math.ceil((bucket.resetAt - now) / 1000);
+        return errAsync(
+          createDomainFailure({
+            kind: 'rate_limited',
+            code: 'RATE_LIMITED',
+            retryable: true,
+            retryAfter: retryAfterSeconds,
+          }),
+        );
+      }
+      return okAsync(undefined);
+    });
   }
 
   recordReauthFailure(userId: string): ResultAsync<void, DomainFailure> {
@@ -137,6 +147,7 @@ export class AuthRateLimitService {
   // ── 内部步骤 ─────────────────────────────────────────────────
 
   /** 读桶 → 策略判定。锁号结论由调用方折成各自的错误码。 */
+  /** 读桶 → 策略判定（用于登录侧的延迟与验证阈值）。 */
   private evaluate(
     key: string,
   ): ResultAsync<ReturnType<typeof evaluateBucket>, DomainFailure> {

@@ -173,25 +173,23 @@ export class GoogleOAuthProvider implements OAuthProvider, OnModuleInit {
     accessToken: string,
   ): ResultAsync<OAuthProviderProfile, DomainFailure> {
     return this.verifyIdToken(idToken).andThen(() =>
-      this.fetchUserInfo(accessToken).map(
-        (userInfo): OAuthProviderProfile => ({
-          provider: OAUTH_PROVIDER_GOOGLE,
-          providerUserId: userInfo.sub,
+      this.fetchUserInfo(accessToken).map((userInfo): OAuthProviderProfile => ({
+        provider: OAUTH_PROVIDER_GOOGLE,
+        providerUserId: userInfo.sub,
+        email: userInfo.email ?? null,
+        emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
+        nickname: userInfo.name ?? null,
+        avatar: userInfo.picture ?? null,
+        rawProfile: toRawProfile({
+          sub: userInfo.sub,
           email: userInfo.email ?? null,
-          emailVerifiedAt: userInfo.email_verified === true ? new Date() : null,
-          nickname: userInfo.name ?? null,
-          avatar: userInfo.picture ?? null,
-          rawProfile: toRawProfile({
-            sub: userInfo.sub,
-            email: userInfo.email ?? null,
-            name: userInfo.name ?? null,
-            given_name: userInfo.given_name ?? null,
-            family_name: userInfo.family_name ?? null,
-            picture: userInfo.picture ?? null,
-            locale: userInfo.locale ?? null,
-          }),
+          name: userInfo.name ?? null,
+          given_name: userInfo.given_name ?? null,
+          family_name: userInfo.family_name ?? null,
+          picture: userInfo.picture ?? null,
+          locale: userInfo.locale ?? null,
         }),
-      ),
+      })),
     );
   }
 
