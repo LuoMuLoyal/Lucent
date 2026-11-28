@@ -17,6 +17,17 @@ export enum EnvKey {
   PUBLIC_BASE_URL = 'PUBLIC_BASE_URL',
   REDIS_URL = 'REDIS_URL',
   /**
+   * 逗号分隔的 Sentinel 地址表（`host:port,host:port`）。非空即启用 Sentinel
+   * 连接模式；此时 `REDIS_URL` 可留空。
+   */
+  REDIS_SENTINELS = 'REDIS_SENTINELS',
+  /** Sentinel 监控的 master 名，默认 `mymaster`。 */
+  REDIS_MASTER_NAME = 'REDIS_MASTER_NAME',
+  /** Redis 数据节点口令（Sentinel 模式下 `REDIS_URL` 不含它时必须单填）。 */
+  REDIS_PASSWORD = 'REDIS_PASSWORD',
+  /** Sentinel 进程自身的口令；与数据节点口令不同时才需要。 */
+  REDIS_SENTINEL_PASSWORD = 'REDIS_SENTINEL_PASSWORD',
+  /**
    * AMQP connection string for cross-service events. Unset disables the
    * RabbitMQ transport entirely — same degradation model as `REDIS_URL`.
    */

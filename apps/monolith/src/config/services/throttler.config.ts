@@ -6,6 +6,10 @@ import {
   type ThrottlerStorage as IThrottlerStorage,
 } from '@nestjs/throttler';
 import type { Redis } from 'ioredis';
+import {
+  resolveRedisConnection,
+  toIoredisOptions,
+} from '../../common/helpers/infra/redis-url.js';
 import { EnvKey } from '../env/env-keys.enum.js';
 
 const logger = new Logger('ThrottlerConfig');
@@ -110,15 +114,32 @@ export async function buildThrottlerOptions(
   };
 
   if (
-    redisUrl &&
+    (redisUrl || configService.get<string>(EnvKey.REDIS_SENTINELS)?.trim()) &&
     configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) !== 'true'
   ) {
     try {
-      const mod = await import('ioredis');
-      const RedisCtor = mod.default;
-      options.storage = new RedisThrottlerStorage(
-        new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
-      );
+      const connection = resolveRedisConnection({
+        REDIS_URL: redisUrl,
+        REDIS_SENTINELS: configService.get<string>(EnvKey.REDIS_SENTINELS),
+        REDIS_MASTER_NAME: configService.get<string>(EnvKey.REDIS_MASTER_NAME),
+        REDIS_PASSWORD: configService.get<string>(EnvKey.REDIS_PASSWORD),
+        REDIS_SENTINEL_PASSWORD: configService.get<string>(
+          EnvKey.REDIS_SENTINEL_PASSWORD,
+        ),
+      });
+      if (connection != null) {
+        const mod = await import('ioredis');
+        const RedisCtor = mod.default;
+        const clientOptions = toIoredisOptions(connection, {
+          // 限流计数是「读改写」的轻量命令，失败要快速可见，不要无限重试。
+          maxRetriesPerRequest: 1,
+        });
+        options['storage'] = new RedisThrottlerStorage(
+          new (RedisCtor as unknown as new (
+            opts: Record<string, unknown>,
+          ) => Redis)(clientOptions),
+        );
+      }
     } catch (error) {
       logger.warn(
         `Failed to connect Redis for throttler storage — falling back to in-memory storage: ${error instanceof Error ? error.message : String(error)}`,

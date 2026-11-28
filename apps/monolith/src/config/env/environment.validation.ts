@@ -218,6 +218,23 @@ const envSchema = z.object({
     .regex(/^[a-z_][a-z0-9_]*$/, 'validation.field.invalid')
     .default('langgraph'),
   [EnvKey.REDIS_URL]: redisUrl,
+  // Sentinel 地址表：非空即启用 Sentinel 连接模式（此时 REDIS_URL 可留空）。
+  // 每项形如 `host:port`，逗号分隔。
+  [EnvKey.REDIS_SENTINELS]: z
+    .string()
+    .refine(
+      (v) =>
+        v
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+          .every((s) => /^[^:\s]+(:\d{1,5})?$/.test(s)),
+      'must be a comma-separated list of host[:port]',
+    )
+    .optional(),
+  [EnvKey.REDIS_MASTER_NAME]: z.string().min(1).optional(),
+  [EnvKey.REDIS_PASSWORD]: z.string().optional(),
+  [EnvKey.REDIS_SENTINEL_PASSWORD]: z.string().optional(),
   [EnvKey.RABBITMQ_URL]: rabbitMqUrl,
   // Must be a *topic* exchange: routing keys are `<domain>.<action>`.
   [EnvKey.RABBITMQ_EXCHANGE]: z

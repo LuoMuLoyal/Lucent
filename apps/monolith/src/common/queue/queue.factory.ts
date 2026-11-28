@@ -9,7 +9,11 @@ import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions, JobsOptions, Telemetry } from 'bullmq';
 import { BullMQOtel } from 'bullmq-otel';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
-import { parseRedisUrl } from '../helpers/infra/redis-url.js';
+import {
+  resolveRedisConnection,
+  toIoredisOptions,
+  type RedisConnection,
+} from '../helpers/infra/redis-url.js';
 import { MetricsService } from '../metrics/metrics.service.js';
 import { QueueRuntimeRegistry } from './queue-runtime.registry.js';
 import type { QueueName } from './queue-names.js';
@@ -69,7 +73,7 @@ interface ManagedQueue {
 @Injectable()
 export class BullmqQueueFactory implements OnModuleDestroy {
   private readonly logger = new Logger(BullmqQueueFactory.name);
-  private readonly redisUrl: string | null;
+  private readonly redisConnection: RedisConnection | null;
   private readonly managed: ManagedQueue[] = [];
   /**
    * Process-wide registry of every Queue instance this factory created, in
@@ -89,11 +93,21 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     const skipRedis =
       this.configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) ===
       'true';
-    this.redisUrl = skipRedis
+    this.redisConnection = skipRedis
       ? null
-      : url && url.trim().length > 0
-        ? url
-        : null;
+      : resolveRedisConnection({
+          REDIS_URL: url,
+          REDIS_SENTINELS: this.configService.get<string>(
+            EnvKey.REDIS_SENTINELS,
+          ),
+          REDIS_MASTER_NAME: this.configService.get<string>(
+            EnvKey.REDIS_MASTER_NAME,
+          ),
+          REDIS_PASSWORD: this.configService.get<string>(EnvKey.REDIS_PASSWORD),
+          REDIS_SENTINEL_PASSWORD: this.configService.get<string>(
+            EnvKey.REDIS_SENTINEL_PASSWORD,
+          ),
+        });
 
     // Conditionally activate BullMQ OTel telemetry when OTEL_ENABLED=true.
     // The telemetry instance creates spans for Queue.add (producer) and
@@ -113,7 +127,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   }
 
   get isAvailable(): boolean {
-    return this.redisUrl != null;
+    return this.redisConnection != null;
   }
 
   /**
@@ -130,7 +144,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     queue: Queue<TData, TResult> | null;
     worker: Worker<TData, TResult> | null;
   } {
-    if (!this.redisUrl) {
+    if (!this.redisConnection) {
       this.logger.log(
         `Queue "${options.name}" disabled; REDIS_URL not configured`,
       );
@@ -257,12 +271,9 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   private createConnection(retryOptions: {
     maxRetriesPerRequest: number | null;
   }): ConnectionOptions {
-    if (this.redisUrl == null) {
-      throw new Error('REDIS_URL is not configured');
+    if (this.redisConnection == null) {
+      throw new Error('Redis is not configured');
     }
-    return {
-      ...parseRedisUrl(this.redisUrl),
-      ...retryOptions,
-    };
+    return toIoredisOptions(this.redisConnection, retryOptions);
   }
 }

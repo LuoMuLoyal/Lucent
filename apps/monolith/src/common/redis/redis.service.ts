@@ -7,6 +7,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Redis } from 'ioredis';
 import { EnvKey } from '../../config/env/env-keys.enum.js';
+import {
+  resolveRedisConnection,
+  toIoredisOptions,
+  type RedisConnection,
+} from '../helpers/infra/redis-url.js';
 import { DomainFailureException } from '../result/domain-failure.exception.js';
 import { createDomainFailure } from '../result/domain-failure.js';
 
@@ -40,18 +45,28 @@ return count
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client: Redis | null = null;
-  private readonly redisUrl: string | null;
+  private readonly connection: RedisConnection | null;
 
   constructor(private readonly configService: ConfigService) {
     const url = this.configService.get<string>(EnvKey.REDIS_URL);
     const skipRedis =
       this.configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) ===
       'true';
-    this.redisUrl = skipRedis
+    this.connection = skipRedis
       ? null
-      : url != null && url.trim().length > 0
-        ? url
-        : null;
+      : resolveRedisConnection({
+          REDIS_URL: url,
+          REDIS_SENTINELS: this.configService.get<string>(
+            EnvKey.REDIS_SENTINELS,
+          ),
+          REDIS_MASTER_NAME: this.configService.get<string>(
+            EnvKey.REDIS_MASTER_NAME,
+          ),
+          REDIS_PASSWORD: this.configService.get<string>(EnvKey.REDIS_PASSWORD),
+          REDIS_SENTINEL_PASSWORD: this.configService.get<string>(
+            EnvKey.REDIS_SENTINEL_PASSWORD,
+          ),
+        });
   }
 
   get isAvailable(): boolean {
@@ -59,16 +74,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    if (this.redisUrl == null) {
-      this.logger.log('RedisService disabled; REDIS_URL not configured');
+    if (this.connection == null) {
+      this.logger.log('RedisService disabled; Redis not configured');
       return;
     }
     try {
       const mod = await import('ioredis');
       const RedisCtor = mod.default;
-      this.client = new (RedisCtor as unknown as new (url: string) => Redis)(
-        this.redisUrl,
-      );
+      this.client = new (RedisCtor as unknown as new (
+        opts: Record<string, unknown>,
+      ) => Redis)(toIoredisOptions(this.connection));
       this.logger.log('RedisService connected');
     } catch (error) {
       this.logger.error(

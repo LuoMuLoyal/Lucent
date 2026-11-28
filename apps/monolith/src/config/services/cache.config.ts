@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { CacheOptionsFactory, CacheModuleOptions } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createKeyv } from '@keyv/redis';
+import {
+  resolveRedisConnection,
+  toNodeRedisOptions,
+} from '../../common/helpers/infra/redis-url.js';
 import { EnvKey } from '../env/env-keys.enum.js';
 
 /**
@@ -46,23 +50,41 @@ export class CacheConfigService implements CacheOptionsFactory {
 
   createCacheOptions(): CacheModuleOptions {
     const redisUrl = this.configService.get<string>(EnvKey.REDIS_URL);
+    const hasSentinel = Boolean(
+      this.configService.get<string>(EnvKey.REDIS_SENTINELS)?.trim(),
+    );
 
     if (
-      redisUrl &&
+      (redisUrl || hasSentinel) &&
       this.configService.get<string>(EnvKey.OPENAPI_EXPORT_SKIP_REDIS) !==
         'true'
     ) {
+      const connection = resolveRedisConnection({
+        REDIS_URL: redisUrl,
+        REDIS_SENTINELS: this.configService.get<string>(EnvKey.REDIS_SENTINELS),
+        REDIS_MASTER_NAME: this.configService.get<string>(
+          EnvKey.REDIS_MASTER_NAME,
+        ),
+        REDIS_PASSWORD: this.configService.get<string>(EnvKey.REDIS_PASSWORD),
+        REDIS_SENTINEL_PASSWORD: this.configService.get<string>(
+          EnvKey.REDIS_SENTINEL_PASSWORD,
+        ),
+      });
+      if (connection == null) {
+        return { ttl: 5 * 60 * 1000 };
+      }
       return {
         stores: [
-          createKeyv({
-            url: redisUrl,
-            socket: {
-              connectTimeout: REDIS_CONNECT_TIMEOUT_MS,
-              keepAlive: true,
-            },
-            disableOfflineQueue: true,
-            commandsQueueMaxLength: REDIS_COMMANDS_QUEUE_MAX_LENGTH,
-          }),
+          createKeyv(
+            toNodeRedisOptions(connection, {
+              socket: {
+                connectTimeout: REDIS_CONNECT_TIMEOUT_MS,
+                keepAlive: true,
+              },
+              disableOfflineQueue: true,
+              commandsQueueMaxLength: REDIS_COMMANDS_QUEUE_MAX_LENGTH,
+            }),
+          ),
         ],
         ttl: 5 * 60 * 1000,
       };
