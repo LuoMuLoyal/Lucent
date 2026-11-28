@@ -64,8 +64,15 @@ export class SuggestionPipelineService {
    * invocations within the same cache TTL window.
    */
   async run(userId: string, targetDate: string): Promise<PipelineResult> {
+    // 信号与基线缓存互相独立，并行读取而非先后串行：
+    // 每次缓存往返都有 RTT 成本，跨可用区/高延迟链路上串行两跳等于两倍延迟。
+    const [cachedSignals, cachedBaseline] = await Promise.all([
+      this.cache.getSignals(userId, targetDate),
+      this.cache.getBaselineStatus(userId),
+    ]);
+
     // 1. Collect signals (use signal cache if available)
-    let allSignals = await this.cache.getSignals(userId, targetDate);
+    let allSignals = cachedSignals;
     if (allSignals == null) {
       const [
         medicationSignals,
@@ -90,7 +97,7 @@ export class SuggestionPipelineService {
     }
 
     // 2. Build rule context (use baseline cache if available)
-    let baselineStatus = await this.cache.getBaselineStatus(userId);
+    let baselineStatus = cachedBaseline;
     if (baselineStatus == null) {
       baselineStatus = await this.baseline.getBaselineStatus(userId);
       await this.cache.setBaselineStatus(userId, baselineStatus);
