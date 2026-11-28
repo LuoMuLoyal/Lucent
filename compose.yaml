@@ -148,6 +148,18 @@ services:
     ports:
       # 公网入口;可达范围由安全组按来源 IP 收口(见文件头)。
       - '3000:3000'
+    # ── 容器安全基线 ────────────────────────────────────────────
+    # 镜像本身已 `USER lucent`(uid 100);下面几条把"万一应用被拿下"的后果压到最小,
+    # 不依赖镜像里的 Dockerfile 约束单独生效。
+    read_only: true
+    tmpfs:
+      # 只读根文件系统下仍需可写目录:字体/缓存临时文件、Node 的临时解压。
+      - /tmp:size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # 不挂 docker.sock、不加 privileged、不加额外 cap —— 保持默认最小权限。
     depends_on:
       postgres:
         condition: service_healthy
