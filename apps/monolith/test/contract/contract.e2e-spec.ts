@@ -210,26 +210,6 @@ describe('API Contract Tests (e2e)', () => {
 
   // ── Public endpoints ────────────────────────────────────────
 
-  describe('GET /api/v1/health — contract', () => {
-    it('should match HealthResponse shape', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/health')
-        .expect(200);
-
-      assertDirectResourceShape(res.body);
-      const env = res.body as Record<string, unknown>;
-
-      const schema = resolveRef(spec, '#/components/schemas/HealthResponse');
-      assertRequiredProperties(env, schema, spec);
-
-      // Native terminus body: overall status plus the info/error/details maps.
-      expect(env).toHaveProperty('status', 'ok');
-      expect(env).toHaveProperty('info');
-      expect(env).toHaveProperty('error');
-      expect(env).toHaveProperty('details');
-    });
-  });
-
   describe('GET /api/v1/health/live — contract', () => {
     it('should match HealthResponse shape', async () => {
       const res = await request(app.getHttpServer())
@@ -330,10 +310,7 @@ describe('API Contract Tests (e2e)', () => {
 
       assertDirectResourceShape(res.body);
 
-      const schema = resolveRef(
-        spec,
-        '#/components/schemas/ContextResponse',
-      );
+      const schema = resolveRef(spec, '#/components/schemas/ContextResponse');
       assertRequiredProperties(res.body, schema, spec);
     });
   });

@@ -134,9 +134,9 @@ describe('Lucent API (e2e)', () => {
     prisma.$queryRawUnsafe = rawOk;
   });
 
-  it('/api/v1/health (GET)', () => {
+  it('/api/v1/health/ready (GET) reports all critical dependencies up', () => {
     return request(app.getHttpServer())
-      .get('/api/v1/health')
+      .get('/api/v1/health/ready')
       .expect(200)
       .expect((response) => {
         expect(response.body.status).toBe('ok');
@@ -154,7 +154,7 @@ describe('Lucent API (e2e)', () => {
     // deployment. `upgrade-insecure-requests` would rewrite /admin/assets/* to
     // https there, so every asset fails and the console renders blank.
     return request(app.getHttpServer())
-      .get('/api/v1/health')
+      .get('/api/v1/health/live')
       .expect(200)
       .expect((response) => {
         const csp = response.headers['content-security-policy'];

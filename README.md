@@ -159,7 +159,7 @@ pnpm start:test:dev
 ```
 
 Or use the local helper that starts the test runtime in the background and
-waits for `GET /api/v1/health`:
+waits for `GET /api/v1/health/ready`:
 
 ```bash
 pnpm test:runtime:start
@@ -234,15 +234,14 @@ Local database layout:
 
 ## Runtime Probes
 
-- `GET /api/v1/health`
-  - compatibility alias for existing readiness checks
-  - returns `200` when critical dependencies are ready, `503` otherwise
 - `GET /api/v1/health/live`
-  - cheap liveness probe for process survival only
+  - liveness probe: process survival only, never checks dependencies
+  - use this for container healthchecks
 - `GET /api/v1/health/ready`
-  - readiness probe for PostgreSQL plus Redis when `REDIS_URL` is configured
+  - readiness probe: process + PostgreSQL + Redis (when `REDIS_URL` is set)
+  - returns `503` when a critical dependency is unavailable
 - `GET /api/v1/health/deep`
-  - detailed dependency probe with timings and error text
+  - detailed dependency probe with per-component timings and error text
     Recommended use:
 
 - container liveness: `/api/v1/health/live`

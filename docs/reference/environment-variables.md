@@ -29,8 +29,10 @@ Env 文件仅本地使用、不入库(`.env.development|production|test` 及对�
   `postgres/postgres@127.0.0.1:5432/test`(同实例、独立 database);Redis:`redis://127.0.0.1:6379`;
   RabbitMQ:`amqp://lucent:lucent-dev-rabbit@127.0.0.1:5672`(管理台 15672)
 - Global prefix `/api`,URI 版本默认 `1`;管理控制台 `/admin`(SPA,由后端同源挂载)
-- 健康探针:`GET /api/v1/health`(readiness 别名,关键依赖不可用返回 503)、
-  `/api/v1/health/live`(纯进程存活)、`/api/v1/health/ready`、`/api/v1/health/deep`(诊断)
+- 健康探针:`/api/v1/health/live`(纯进程存活,容器 healthcheck 用它)、
+  `/api/v1/health/ready`(进程 + PostgreSQL + Redis,关键依赖不可用返回 503)、
+  `/api/v1/health/deep`(诊断,含逐组件耗时)。存活与就绪分开:容器探针只应打 live,
+  否则依赖故障会被误判为进程故障。
 - 启动顺序:`pnpm dev:stack` → `pnpm db:migrate` → `pnpm start:dev`
 - `pnpm dev:stack`(`compose.dev.yaml`)以 `pgvector/pgvector:pg18` 启动
   postgres-dev / postgres-test——Assistant RAG 的向量索引与查询依赖

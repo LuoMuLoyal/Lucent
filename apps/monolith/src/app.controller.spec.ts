@@ -15,7 +15,6 @@ describe('AppController', () => {
         {
           provide: AppService,
           useValue: {
-            getHealth: vi.fn(),
             getLiveHealth: vi.fn(),
             getReadyHealth: vi.fn(),
             getDeepHealth: vi.fn(),
@@ -27,26 +26,6 @@ describe('AppController', () => {
 
     controller = module.get(AppController);
     service = module.get(AppService);
-  });
-
-  it('returns 503 for an unhealthy readiness alias', async () => {
-    const result = makeResult('error');
-    const response = makeReply();
-    service.getHealth.mockResolvedValue(result);
-    service.isHealthy.mockReturnValue(false);
-
-    await expect(controller.getHealth(response)).resolves.toBe(result);
-    expect(response.status).toHaveBeenCalledWith(503);
-  });
-
-  it('returns 200 for a healthy readiness alias', async () => {
-    const result = makeResult('ok');
-    const response = makeReply();
-    service.getHealth.mockResolvedValue(result);
-    service.isHealthy.mockReturnValue(true);
-
-    await expect(controller.getHealth(response)).resolves.toBe(result);
-    expect(response.status).toHaveBeenCalledWith(200);
   });
 
   it('returns the liveness result without touching the reply status', async () => {

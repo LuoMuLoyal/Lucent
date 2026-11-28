@@ -8,7 +8,9 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(thisDir, '..', '..');
 const PID_FILE = path.join(REPO_ROOT, '.runtime-test.pid');
 const LOG_FILE = path.join(REPO_ROOT, '.runtime-test.log');
-const HEALTH_URL = 'http://127.0.0.1:3000/api/v1/health';
+// 等「进程起来且依赖就绪」才继续，所以这里用 ready 而不是 live：
+// live 只测进程，会在 PG/Redis 还没连上时就提前返回。
+const HEALTH_URL = 'http://127.0.0.1:3000/api/v1/health/ready';
 const TIMEOUT_MS = 45_000;
 const POLL_INTERVAL_MS = 500;
 const IS_WINDOWS = process.platform === 'win32';

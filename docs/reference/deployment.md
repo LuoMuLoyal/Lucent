@@ -93,7 +93,7 @@ VM 与 Grafana 同机会让同一份数据在公网上往返两次并穿过窄�
 
 | 机器   | 服务              | 镜像                                       | 端口                  | 说明                                                                                                                                |
 | ------ | ----------------- | ------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 主站   | `app`             | `<registry>/lucent:sha-<sha8>`             | `3000`                | 公网入口;健康检查 `/api/v1/health`;multi-arch(tag 不含架构)                                                                         |
+| 主站   | `app`             | `<registry>/lucent:sha-<sha8>`             | `3000`                | 公网入口;容器健康检查 `/api/v1/health/live`,依赖就绪 `/api/v1/health/ready`;multi-arch(tag 不含架构)                                                                         |
 | 主站   | `app`(管理面)     | 同 `lucent` 镜像                           | `3000`(同 app)        | `/admin` 控制台与 `/admin/queues` 队列面板(bull-board)同源;**不新开端口**;管理员 JWT + `AdminUser` 角色鉴权,面板变更写 `audit_logs` |
 | 主站   | `postgres`        | `<registry>/lucent-db:sha-<sha8>`          | `5432`                | 卷 `postgres-data`;镜像自带 `vector` + `zhparser`;**`lucent` 与 `lightrag` 两库各需 `CREATE EXTENSION vector`**                     |
 | 主站   | `redis`           | `redis:8-alpine`                           | `6379`                | requirepass + appendonly;卷 `redis-data`                                                                                            |

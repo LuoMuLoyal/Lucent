@@ -158,10 +158,14 @@ services:
     stop_grace_period: 60s
     stop_signal: SIGTERM
     healthcheck:
+      # ⚠️ 打 /live 而不是 /health。容器健康与否只应取决于**进程是否活着**，
+      # 不能取决于 Redis/PG 等下游：用 readiness 做容器 healthcheck 会让
+      # 「Redis 挂了」被误判成「app 挂了」进而重启整个容器，掩盖真实故障面。
+      # 依赖健康属于 /health/ready，供 LB / 就绪探针使用。
       test:
         [
           'CMD-SHELL',
-          'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
+          'wget -q -O - http://127.0.0.1:3000/api/v1/health/live >/dev/null 2>&1 || exit 1',
         ]
       interval: 10s
       timeout: 5s

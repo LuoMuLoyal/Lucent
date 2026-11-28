@@ -18,25 +18,6 @@ const HEALTH_COMPONENT = 'HealthResponse';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  @ApiOperation({
-    operationId: 'getHealth',
-    summary: 'Readiness probe alias used by existing scripts',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Service is ready; all critical dependencies are up.',
-  })
-  @ApiResponse({
-    status: 503,
-    description: 'At least one critical dependency is unavailable.',
-  })
-  async getHealth(@Res({ passthrough: true }) reply: FastifyReply) {
-    const result = await this.appService.getHealth();
-    reply.status(this.replyStatusFor(result));
-    return result;
-  }
-
   @Get('live')
   @ApiOperation({
     operationId: 'getLiveHealth',
@@ -94,15 +75,6 @@ export class AppController {
       : HttpStatus.SERVICE_UNAVAILABLE;
   }
 }
-
-registerResponseSchema({
-  path: '/api/v1/health',
-  method: 'get',
-  componentName: HEALTH_COMPONENT,
-  schema: healthCheckResultSchema,
-  description: 'Readiness probe alias: native terminus health-check result.',
-  errorStatuses: [503],
-});
 
 registerResponseSchema({
   path: '/api/v1/health/live',

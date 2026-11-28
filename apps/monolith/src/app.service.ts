@@ -13,11 +13,16 @@ import {
 /**
  * Health-check orchestration built on `@nestjs/terminus`.
  *
- * - `/health` and `/health/ready` run the critical dependency indicators
- *   (`app`, `database`, `cache`) and return 503 when any of them is down.
- * - `/health/live` only reports process info and never depends on downstream
- *   services, so it always answers 200.
- * - `/health/deep` runs the same checks as `ready` with extra probe detail.
+ * 三条路径语义严格分离：
+ *
+ * | 路径 | 查什么 | 依赖挂掉时 | 用途 |
+ * |---|---|---|---|
+ * | `/health/live` | 只测进程 | 仍 200 | 容器存活探针 |
+ * | `/health/ready` | 进程 + database + cache | 503 | 就绪探针 |
+ * | `/health/deep` | 同 ready，带逐组件诊断 | 503 | 人工排查 |
+ *
+ * 存活探针不得查依赖：容器健康与否只取决于进程是否运行。依赖故障属于就绪问题，
+ * 由 `/health/ready` 表达，否则一次下游抖动会引发容器重启。
  *
  * terminus signals failures by throwing `ServiceUnavailableException` carrying
  * the native `{ status, info, error, details }` body. This app installs a
@@ -34,10 +39,6 @@ export class AppService {
     private readonly database: DatabaseHealthIndicator,
     private readonly cache: CacheHealthIndicator,
   ) {}
-
-  getHealth(): Promise<HealthCheckResult> {
-    return this.getReadyHealth();
-  }
 
   getLiveHealth(): Promise<HealthCheckResult> {
     return this.run([() => this.appInfo.info()]);
