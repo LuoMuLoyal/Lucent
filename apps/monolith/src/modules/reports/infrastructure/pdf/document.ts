@@ -19,6 +19,7 @@ import {
   drawPageChrome,
   wrapText,
   CJK_FONT_PATH,
+  CJK_FONT_SUBSETTABLE,
 } from '../../../export/index.js';
 import type { ClinicSummaryOptions } from '../../application/use_cases/build-clinic-summary.js';
 import { ClinicSummaryService } from '../../application/use_cases/build-clinic-summary.js';
@@ -81,7 +82,7 @@ export class ClinicSummaryPdfService {
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
     const fontBytes = await readFile(CJK_FONT_PATH);
-    const cjkFont = await pdf.embedFont(fontBytes, { subset: false });
+    const cjkFont = await pdf.embedFont(fontBytes, { subset: CJK_FONT_SUBSETTABLE });
 
     const title = t('title');
     this.applyMetadata(pdf, title, summary, t);

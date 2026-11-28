@@ -11,7 +11,7 @@ import {
   statusLabel,
   statusPalette,
 } from '../../utils/report-pdf.theme.js';
-import { CJK_FONT_PATH } from '../../pdf-fonts.js';
+import { CJK_FONT_PATH, CJK_FONT_SUBSETTABLE } from '../../pdf-fonts.js';
 import {
   createPdfTranslator,
   type PdfTranslator,
@@ -90,7 +90,7 @@ export class ReportExportPdfService extends ReportPdf {
     const pdf = await PDFDocument.create({ updateMetadata: false });
     pdf.registerFontkit(fontkit);
     const fontBytes = await readFile(CJK_FONT_PATH);
-    const cjkFont = await pdf.embedFont(fontBytes, { subset: false });
+    const cjkFont = await pdf.embedFont(fontBytes, { subset: CJK_FONT_SUBSETTABLE });
     this.applyMetadata(pdf, title, kind, report, t);
 
     const headerSubtitle = t('header.range_and_generated', {

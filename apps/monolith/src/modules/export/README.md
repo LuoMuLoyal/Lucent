@@ -44,6 +44,23 @@ Problem Details + 稳定依赖码，不暴露队列/提供方内部细节。
 - `storage.service.ts` — COS 上传与短时签名下载 URL。
 - `report-pdf/`（pdf/draw/theme）— 报告 PDF 渲染与主题。
 
+## PDF 字体
+
+- **字体是构建产物，不入库**（`.gitignore` 掉了 `assets/fonts/*.ttf`）。
+  `node tools/fonts/fetch-pdf-font.mjs` 从 Google Fonts CDN 取 Noto Sans SC 的
+  **静态 glyf 实例**（10.07 MB / 30890 码位），由 `postinstall` 的 `font:build`
+  自动完成。
+- **为什么必须是 glyf 轮廓**：`@pdf-lib/fontkit` 的子集化器只支持 TrueType（glyf）。
+  仓库原本用的 `@fontpkg/source-han-sans-sc-vf` 是 CFF2 + fvar 可变字体，对它开
+  `subset: true` 会抛 `glyph._decode is not a function`；不开就只能整份嵌入 37 MB
+  字体（约 24 MB / 4 秒）。
+- **覆盖范围**：CJK 基本区（4E00-9FFF）与扩展 A（3400-4DBF）**完整**；
+  该版本缺的是韩文谚文（11534 码位）与 CJK 兼容区（244 码位，同一批汉字的重复编码）。
+  下载脚本会断言抽样汉字（含生僻药名用字）全部存在，字体升级若开始丢汉字会直接失败。
+- 实测同一份报告：**24.01 MB / 4013 ms → 10.2 KB / 60 ms**。
+- 字体缺失时 `pdf-fonts.ts` 回退到可变字体并打 warning —— 宁可 PDF 变大，
+  也不要整条导出能力 500。
+
 ## Dependencies
 
 - 引用：`auth`（PasswordReauthService）、`reports`（ReportsService 数据源）、

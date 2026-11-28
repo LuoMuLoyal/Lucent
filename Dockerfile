@@ -29,6 +29,10 @@ COPY apps/monolith/prisma ./apps/monolith/prisma
 COPY apps/monolith/prisma.config.ts ./apps/monolith/prisma.config.ts
 COPY apps/monolith/tsconfig.json apps/monolith/tsconfig.build.json apps/monolith/.swcrc apps/monolith/nest-cli.json ./apps/monolith/
 COPY apps/monolith/src ./apps/monolith/src
+# PDF 用的 CJK 静态字体（`nest build` 的 assets 配置会把它复制进 dist/fonts/）。
+# 它是本仓库的构建产物而非 node_modules 资产，必须显式带进来，否则运行时会
+# 回退到可变字体、每份 PDF 多背 ~24 MB。
+COPY apps/monolith/assets ./apps/monolith/assets
 # 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
 # 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
 # provider 只生成 .ts 文件，prisma:generate 脚本会额外运行

@@ -133,3 +133,9 @@ packages/contracts/go/openapi.gen.go
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# PDF 用的 CJK 静态字体是**构建产物**,不入库:
+# 由 tools/fonts/build-pdf-font.py 从 node_modules 里的可变字体生成
+# (含 postinstall / 构建前置步骤),与 **/generated/prisma/ 同一处置方式。
+# 22 MB 二进制进 git 会永久留在历史里,而下一次字体升级它还会再来一份。
+/apps/monolith/assets/fonts/*.ttf

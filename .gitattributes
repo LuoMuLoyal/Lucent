@@ -35,3 +35,8 @@ generated/lucent_api/** linguist-generated=true
 
 # Mark generated OpenAPI spec as linguist-generated to reduce diff noise
 docs/reference/generated/openapi.json linguist-generated=true
+
+# PDF 用的 CJK 字体是二进制构建产物:必须禁止 Git 的换行/文本规范化,
+# 否则 core.autocrlf=true 的检出会把字体字节改坏(与 admin 下 PNG 同一类坑)。
+apps/monolith/assets/fonts/** binary
+apps/monolith/assets/fonts/** linguist-generated=true
